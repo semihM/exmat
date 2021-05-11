@@ -1,0 +1,78 @@
+
+
+Symbols:
+    - Definitive:
+        + <name> = <value> | {cluster} | cluster
+            - my_var = 123
+
+            - my_vec = [1,2,3]
+
+            - my_mat = [1, 2, 3 ; 3, 4, 5 ; 6, 7, 8]
+            
+            - my_mat = [ my_vec ; my_vec + 3 ; [3, 3, 3] + [0, 0, 2] ]
+
+            - my_cls = {1, 2, 3, 4, 5}
+            
+            - my_cls = {x | x in Z+ ; k in Z+ ; x = 3k + 1 }
+
+            - my_cls = Z*+ + {0}   // Same as Z+
+
+            - my_cls = {(x,y) | x,y in Z+ ; x = 3y}
+
+            - my_cls = {(x1,x2) | x. in R- ; x1 != x2} 
+
+        + rule <name> [<variables>]: <expression> | {cluster_of_expressions}
+            + rule AB : A < B + 2
+
+            + rule Anot1 : A != 1
+
+            + rule foo x : x >= 0
+
+            + rule my_rule x,y : x = 3y
+                - my_cls = {(x,y) | x,y in Z+ ; my_rule}
+
+            + rule clsfoo x,y,z : x != 1 , y != z
+
+        + def <function>([<domains>]) : <variables>,... -> <expression> 
+            + def foo : x,y -> (x+y)/(x-y)
+                - my_val = s(2,4)  // == -3 
+
+            + def s : x -> x[0] - x[1]
+                - my_val = s([1,2])  // == -1
+
+                - my_val = s(3) // dimension error    
+
+            + def s(R'2 -> R) : x -> x[0] + x[1] 
+                - my_val = s([1,2])  // == 3
+
+                - my_val = s(3) // evaluation error
+
+        + <function>(.<argument_vector>)
+
+        + for <iterator> = <start_value>; <conditional_exp> ; <inc_or_dec_exp> : <expression>
+            - for i = 0; i < 3; i += 1: print X
+                    // 0
+                    // 1
+                    // 2
+            - for X = (-0.8, -1); X in my_cls; X += (-0.1, 0): print X
+                    // (-0.8, -1)
+                    // (-0.9, -1)
+                    // breaks with (-1.0, -1) since -1 == -1
+        
+        + sum <iterator> = <start_value> -> <end_value> : <expression>
+            - sum x = 1 -> 10 : x  // 55
+
+        + mul <iterator> = <start_value> -> <end_value> : <expression>
+            - mul x = 1 -> 5 : x  // 5! = 120
+
+        + <function>  <- <function>  <- ... , (<args>)
+            - foo_1 <- foo_2 <- foo_3 , (1,2,3)     // foo_1(foo_2(foo_3(1,2,3)))
+
+
+    - Operations:
+        + Elementary Aritmethic Operations : + , - , / , * , % , '
+
+        + Vector/Matrix Arithmetic Operations : .* (Dot product) , .' (Cross product) 
+
+
+
