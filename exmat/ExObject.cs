@@ -88,7 +88,7 @@ namespace ExMat.Objects
             return _type == ExObjType.DICT ? _val.d_Dict : null;
         }
 
-        public string GetDebuggerDisplay()
+        public virtual string GetDebuggerDisplay()
         {
             string s = _type.ToString();
             switch (_type)
@@ -104,44 +104,61 @@ namespace ExMat.Objects
         }
     }
 
+    public enum ExMemberFlag
+    {
+        METHOD = 0x01000000,
+        FIELD = 0x02000000
+    }
+
     public class ExObjectPtr : ExObject
     {
-        public bool IsRefC(ExObjType t)
+        public bool IsField()
         {
-            return ((int)t & (int)ExObjFlag.REF_COUNTED) == (int)t;
+            return (GetInt() & (int)ExMemberFlag.FIELD) > 0;
         }
-        public void AddReference(ExObjType t, ExObjVal v, bool forced = false)
+        public bool IsMethod()
         {
+            return (GetInt() & (int)ExMemberFlag.METHOD) > 0;
+        }
+        public int GetMemberID()
+        {
+            return GetInt() & 0x00FFFFFF;
+        }
+
+        public static bool IsRefC(ExObjType t)
+        {
+            return ((int)t & (int)ExObjFlag.REF_COUNTED) > 0;
+        }
+        public virtual void AddReference(ExObjType t, ExObjVal v, bool forced = false)
+        {
+            if (!IsRefC(t))
+            {
+                return;
+            }
+
+            if (v._RefC == null)
+            {
+                v._RefC = new();
+            }
+
             if (forced || IsRefC(t))
             {
-                if (v._RefC == null)
-                {
-                    v._RefC = new();
-                }
-                else
-                {
-                    v._RefC._refc++;
-                }
+                v._RefC._refc++;
             }
         }
-        public void Release()
+        public virtual void Release()
         {
             if (IsRefC(_type) && ((--_val._RefC._refc) == 0))
             {
-                if (_val._RefC != null)
-                {
-                    _val._RefC.Release();
-                }
+                Nullify();
             }
         }
         public void Release(ExObjType t, ExObjVal v)
         {
-            if (IsRefC(t) && ((--v._RefC._refc) == 0))
+            if (IsRefC(t) && v._RefC != null && (--v._RefC._refc) == 0)
             {
-                if (v._RefC != null)
-                {
-                    v._RefC.Release();
-                }
+                _val.i_Int = 0;
+                _type = ExObjType.NULL;
             }
         }
 
@@ -317,7 +334,7 @@ namespace ExMat.Objects
 
             _val.d_Dict = dict;
             _val._RefC = new();
-            _type = ExObjType.CLASS;
+            _type = ExObjType.DICT;
 
             AddReference(_type, _val, true);
             Release(t, v);
@@ -508,12 +525,13 @@ namespace ExMat.Objects
 
     }
 
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExRefC : ExObjectPtr
     {
         public int _refc = 0;
         public ExWeakRef _weakref;
 
-        public virtual void Release() { }
+        public override void Release() { base.Release(); }
 
         public ExRefC()
         {
@@ -533,6 +551,10 @@ namespace ExMat.Objects
             return _weakref;
         }
 
+        public override string GetDebuggerDisplay()
+        {
+            return "REFC: " + _refc;
+        }
     }
 
     public class ExWeakRef : ExRefC
@@ -560,7 +582,7 @@ namespace ExMat.Objects
         {
             if (_delegate != null)
             {
-                return (_delegate._val.d_Dict.TryGetValue(m.ToString(), out res));
+                return _delegate._val.d_Dict.TryGetValue(m.ToString(), out res);
             }
             return false;
         }
@@ -589,7 +611,7 @@ namespace ExMat.Objects
             GetHead()._prev = c;
         }
 
-        public void RemoveFromChain(ExCollectable ch, ExCollectable c)
+        public static void RemoveFromChain(ExCollectable ch, ExCollectable c)
         {
             if (c._prev != null)
             {
@@ -606,7 +628,7 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExList : ExRefC
+    public class ExList : ExObjectPtr
     {
         public ExList()
         {
@@ -636,7 +658,7 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExBool : ExObject
+    public class ExBool : ExObjectPtr
     {
         public ExBool()
         {
@@ -666,7 +688,7 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExInt : ExObject
+    public class ExInt : ExObjectPtr
     {
         public ExInt()
         {
@@ -696,7 +718,7 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExFloat : ExObject
+    public class ExFloat : ExObjectPtr
     {
         public ExFloat()
         {
@@ -726,7 +748,7 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExString : ExObject
+    public class ExString : ExObjectPtr
     {
         public ExString()
         {
@@ -763,7 +785,7 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExUserP : ExObject
+    public class ExUserP : ExObjectPtr
     {
         public ExUserP() { _type = ExObjType.USERPTR; }
     }

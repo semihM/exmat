@@ -36,21 +36,21 @@ namespace ExMat.InfoVar
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExOuterInfo
     {
-        public ExObject name = new();
-        public ExObject _src;
+        public ExObjectPtr name = new();
+        public ExObjectPtr _src;
         public ExOuterType _type;
 
         public ExOuterInfo() { }
         public ExOuterInfo(ExObject _name, ExObject src, ExOuterType typ)
         {
-            name = _name;
-            _src = src;
+            name.Assign(_name);
+            _src.Assign(src);
             _type = typ;
         }
         public ExOuterInfo(ExOuterInfo o)
         {
-            name = o.name;
-            _src = o._src;
+            name.Assign(o.name);
+            _src.Assign(o._src);
             _type = o._type;
         }
 
@@ -108,17 +108,23 @@ namespace ExMat.InfoVar
         public T _val;
         private bool disposedValue;
 
-        public Node<T> BuildNodesFromList(List<T> l, int start = 0)
+        public static Node<T> BuildNodesFromList(List<T> l, int start = 0)
         {
-            Node<T> last = new() { _val = l[start] };
-            for (int i = start + 1; i < l.Count; i++)
+            Node<T> first = new() { _val = l[0] };
+            int c = l.Count;
+            for (int i = 1; i < c; i++)
             {
-                Node<T> curr = new() { _val = l[i] };
-                curr._prev = last;
-                last._next = curr;
-                last = curr;
+                first._next = new() { _val = l[i], _prev = first };
+                first = first._next;
             }
-            return last;
+
+            while (c > start + 1 && first._prev != null)
+            {
+                c--;
+                first = first._prev;
+            }
+
+            return first;
         }
 
         public T this[int i]

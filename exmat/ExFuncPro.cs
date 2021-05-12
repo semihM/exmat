@@ -34,7 +34,7 @@ namespace ExMat.FuncPrototype
         public List<ExObjectPtr> _lits;
         public List<ExObjectPtr> _params;
         public List<int> _defparams;
-        public List<ExObjectPtr> _funcs;
+        public List<ExFuncPro> _funcs;
         public List<ExLocalInfo> _localinfos;
         public List<ExLineInfo> _lineinfos;
         public List<ExOuterInfo> _outers;

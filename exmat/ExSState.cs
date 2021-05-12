@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using ExMat.Closure;
 using ExMat.Objects;
 using ExMat.VM;
 
@@ -25,6 +26,23 @@ namespace ExMat.States
 
         public ExObjectPtr _constructid = new("constructor");
 
+        public ExObjectPtr _class_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _class_delF = new();
+        public ExObjectPtr _dict_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _dict_delF = new();
+        public ExObjectPtr _list_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _list_delF = new();
+        public ExObjectPtr _num_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _num_delF = new();
+        public ExObjectPtr _str_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _str_delF = new();
+        public ExObjectPtr _closure_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _closure_delF = new();
+        public ExObjectPtr _inst_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _inst_delF = new();
+        public ExObjectPtr _wref_del = new(new Dictionary<string, ExObjectPtr>());
+        public List<ExRegFunc> _wref_delF = new();
+
         public void Initialize()
         {
             _metaMethods.Add(new("_ADD"));
@@ -49,6 +67,39 @@ namespace ExMat.States
             {
                 _metaMethodsMap._val.d_Dict.Add(_metaMethods[i].GetString(), new(i));
             }
+
+            _dict_del = CreateDefDel(this, _dict_delF);
+            _class_del = CreateDefDel(this, _class_delF);
+            _list_del = CreateDefDel(this, _list_delF);
+            _num_del = CreateDefDel(this, _num_delF);
+            _str_del = CreateDefDel(this, _str_delF);
+            _closure_del = CreateDefDel(this, _closure_delF);
+            _inst_del = CreateDefDel(this, _inst_delF);
+            _wref_del = CreateDefDel(this, _wref_delF);
+        }
+
+        public static ExObjectPtr CreateDefDel(ExSState exs, List<ExRegFunc> f)
+        {
+            int i = 0;
+            Dictionary<string, ExObjectPtr> d = new();
+            while (f[i].name != string.Empty)
+            {
+                ExNativeClosure cls = ExNativeClosure.Create(exs, f[i].func, 0);
+                cls.n_paramscheck = f[i].n_pchecks;
+                if (!exs._strings.ContainsKey(f[i].name))
+                {
+                    exs._strings.Add(f[i].name, new());
+                }
+                cls._name = new(f[i].name);
+
+                if (!string.IsNullOrEmpty(f[i].mask) && !API.ExAPI.CompileTypeMask(cls._typecheck, f[i].mask))
+                {
+                    return new();
+                }
+                d.Add(f[i].name, cls);
+                i++;
+            }
+            return new(d);
         }
 
         public int GetMetaIdx(string mname)

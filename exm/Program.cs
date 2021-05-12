@@ -10,14 +10,14 @@ namespace ExMat
 {
     class Program
     {
-        static int VM_STACK_SIZE = 512;
+        static readonly int VM_STACK_SIZE = 512;
 
         static int Main(string[] args)
         {
             args = new string[] { "sq.exe", "hello.nut" };
 
             int argc = args.Length;
-            
+
             if (argc == 2)
             {
                 ExVM vm = ExAPI.Start(VM_STACK_SIZE);

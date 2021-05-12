@@ -10,16 +10,25 @@ namespace ExMat.BaseLib
 {
     public static class ExBaseLib
     {
-        //public static MethodInfo MI_print = Console.Out.GetType().GetMethod("WriteLine", new Type[] { typeof(string) });
         public static int BASE_print(ExVM vm)
         {
             string s = string.Empty;
             ExAPI.ToString(vm, 2);
             ExAPI.GetString(vm, -1, ref s);
 
-            Console.WriteLine(s);
-            return 1;
+            Console.Write(s);
+            return 0;
         }
+        public static int BASE_printl(ExVM vm)
+        {
+            string s = string.Empty;
+            ExAPI.ToString(vm, 2);
+            ExAPI.GetString(vm, -1, ref s);
+
+            Console.WriteLine(s);
+            return 0;
+        }
+
         public static int BASE_type(ExVM vm)
         {
             ExObjectPtr o = ExAPI.GetFromStack(vm, 2);
@@ -64,10 +73,10 @@ namespace ExMat.BaseLib
                 if (end > start)
                 {
                     int count = (int)((end - start) / step);
-                    
+
                     for (int i = 0; i < count; i++)
                     {
-                        l._val.l_List.Add(new((start + i * step)));
+                        l._val.l_List.Add(new(start + i * step));
                     }
                 }
 
@@ -83,7 +92,7 @@ namespace ExMat.BaseLib
                     int count = (int)(end - start);
                     for (int i = 0; i < count; i++)
                     {
-                        l._val.l_List.Add(new((start + i)));
+                        l._val.l_List.Add(new(start + i));
                     }
                 }
             }
@@ -102,9 +111,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static List<ExRegFunc> _basefuncs = new()
+        private static readonly List<ExRegFunc> _exRegFuncs = new()
         {
             new() { name = "print", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_print")), n_pchecks = 2, mask = null },
+            new() { name = "printl", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_printl")), n_pchecks = 2, mask = null },
             new() { name = "type", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_type")), n_pchecks = 2, mask = null },
             new() { name = "string", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string")), n_pchecks = 2, mask = null },
             new() { name = "list", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_list")), n_pchecks = 2, mask = ".n" },
@@ -112,18 +122,19 @@ namespace ExMat.BaseLib
 
             new() { name = string.Empty }
         };
+        public static List<ExRegFunc> BaseFuncs { get => _exRegFuncs; }
 
         public static void RegisterBase(ExVM vm)
         {
             int i = 0;
             ExAPI.PushRootTable(vm);
 
-            while (_basefuncs[i].name != string.Empty)
+            while (BaseFuncs[i].name != string.Empty)
             {
-                ExAPI.PushString(vm, _basefuncs[i].name, -1);
-                ExAPI.CreateClosure(vm, _basefuncs[i].func, 0);
-                ExAPI.SetNativeClosureName(vm, -1, _basefuncs[i].name);
-                ExAPI.SetParamCheck(vm, _basefuncs[i].n_pchecks, _basefuncs[i].mask);
+                ExAPI.PushString(vm, BaseFuncs[i].name, -1);
+                ExAPI.CreateClosure(vm, BaseFuncs[i].func, 0);
+                ExAPI.SetNativeClosureName(vm, -1, BaseFuncs[i].name);
+                ExAPI.SetParamCheck(vm, BaseFuncs[i].n_pchecks, BaseFuncs[i].mask);
                 ExAPI.CreateNewSlot(vm, -3, false);
                 i++;
             }

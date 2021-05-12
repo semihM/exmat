@@ -32,7 +32,7 @@ namespace ExMat.States
         public List<ExObjectPtr> _params = new();
         public List<int> _defparams = new();
 
-        public List<ExObjectPtr> _funcs = new();
+        public List<ExFuncPro> _funcs = new();
 
         public int _stacksize;
         public ExStack _tStack = new();
@@ -308,7 +308,7 @@ namespace ExMat.States
 
         public bool IsLocalArg(int pos)
         {
-            return (pos < _localvs.Count && _localvs[pos].name._type != ExObjType.NULL);
+            return pos < _localvs.Count && _localvs[pos].name._type != ExObjType.NULL;
         }
 
         public int PushLocal(ExObject local)
@@ -349,7 +349,7 @@ namespace ExMat.States
                 }
             }
 
-            int p = -1;
+            int p;
             if (_parent != null)
             {
                 p = _parent.GetLocal(obj);

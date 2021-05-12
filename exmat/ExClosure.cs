@@ -32,7 +32,7 @@ namespace ExMat.Closure
             return exo;
         }
 
-        public new ExObjType GetType()
+        public new static ExObjType GetType()
         {
             return ExObjType.OUTER;
         }
@@ -62,6 +62,26 @@ namespace ExMat.Closure
             _type = ExObjType.CLOSURE;
         }
 
+        public ExClosure Copy()
+        {
+            ExFuncPro fp = _func;
+            ExClosure res = Create(_sState, fp);
+            res._envweakref = _envweakref;
+            if (res._envweakref != null)
+            {
+                res._envweakref._refc++;
+            }
+            for (int i = 0; i < fp.n_outers; i++)
+            {
+                res._outervals[i].Assign(_outervals[i]);
+            }
+            for (int i = 0; i < fp.n_defparams; i++)
+            {
+                res._defparams[i].Assign(_defparams[i]);
+            }
+            return res;
+        }
+
         public override void Release()
         {
             base.Release();
@@ -77,7 +97,7 @@ namespace ExMat.Closure
             }
             _defparams = null;
         }
-        public new ExObjType GetType()
+        public new static ExObjType GetType()
         {
             return ExObjType.CLOSURE;
         }
@@ -122,7 +142,7 @@ namespace ExMat.Closure
             }
             _outervals = null;
         }
-        public new ExObjType GetType()
+        public new static ExObjType GetType()
         {
             return ExObjType.NATIVECLOSURE;
         }

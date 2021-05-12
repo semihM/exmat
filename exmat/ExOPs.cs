@@ -6,7 +6,7 @@ namespace ExMat.OPs
     public enum BitOP
     {
         AND,
-        OR,
+        OR = 2,
         XOR,
         SHIFTL,
         SHIFTR
@@ -15,7 +15,7 @@ namespace ExMat.OPs
     public enum CmpOP
     {
         GRT,
-        GET,
+        GET = 2,
         LST,
         LET
     }
@@ -132,7 +132,13 @@ namespace ExMat.OPs
         public ExTrap(ExTrap e) { _sbase = e._sbase; _ssize = e._ssize; instr = e.instr; _target = e._target; }
         private string GetDebuggerDisplay()
         {
-            return "TRAP("+instr.GetDebuggerDisplay() + "): " + _sbase + ", " + _ssize + ", " + _target;
+            return "TRAP(" + instr.GetDebuggerDisplay() + "): " + _sbase + ", " + _ssize + ", " + _target;
         }
+    }
+
+    public enum ExNewSlotFlag
+    {
+        ATTR = 0x01,
+        STATIC = 0x02
     }
 }

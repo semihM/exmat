@@ -14,7 +14,7 @@ namespace ExMat
         public static readonly string _VERSION = "0.0.1";
 
         public const char _END = '\0';
-        public ExRawType GetRawType(ExObjType typ)
+        public static ExRawType GetRawType(ExObjType typ)
         {
             return (ExRawType)((int)typ & 0x00FFFFFF);
         }
@@ -56,7 +56,7 @@ namespace ExMat
         INTEGER = ExRawType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
         FLOAT = ExRawType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
         BOOL = ExRawType.BOOL | ExObjFlag.BOOLFALSEABLE,
-        STRING = ExRawType.STRING | ExObjFlag.REF_COUNTED,
+        STRING = ExRawType.STRING, // | ExObjFlag.REF_COUNTED,
         DICT = ExRawType.DICT, //| ExObjFlag.REF_COUNTED,
 
         ARRAY = ExRawType.ARRAY | ExObjFlag.BOOLFALSEABLE, // | ExObjFlag.REF_COUNTED,
@@ -127,7 +127,8 @@ namespace ExMat
         NEWS,
         DELS,
         NEWM,
-        INH
+        INH,
+        _LAST
     }
 
 }

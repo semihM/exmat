@@ -3,11 +3,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31025.194
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "exm", "exm\exm.csproj", "{8C20D4C4-1C50-451A-8C56-4FCFA7B6DBA1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "exm", "exm\exm.csproj", "{8C20D4C4-1C50-451A-8C56-4FCFA7B6DBA1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "exmatstdlib", "exmatstdlib\exmatstdlib.csproj", "{1BDF8080-7FE9-4BD5-A79F-D3A1CF43FD51}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "exmatstdlib", "exmatstdlib\exmatstdlib.csproj", "{1BDF8080-7FE9-4BD5-A79F-D3A1CF43FD51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "exmat", "exmat\exmat.csproj", "{D0C639D3-4995-40E8-A2D1-5AEEAF1807C6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "exmat", "exmat\exmat.csproj", "{D0C639D3-4995-40E8-A2D1-5AEEAF1807C6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8255A664-A8DB-4448-8109-DECD35577B83}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

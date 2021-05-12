@@ -21,7 +21,7 @@ namespace ExMat.Compiler
         private ExLexer _lexer;
         private TokenType _currToken;
 
-        private bool _lineinfo;
+        private readonly bool _lineinfo;
 
         private ExScope _scope = new();
 
@@ -117,9 +117,9 @@ namespace ExMat.Compiler
         {
             if (typ != _currToken)
             {
-                if (_currToken != TokenType.IDENTIFIER)
+                if (typ != TokenType.IDENTIFIER || _currToken != TokenType.CONSTRUCTOR)
                 {
-                    string expmsg = "";
+                    string expmsg;
                     switch (typ)
                     {
                         case TokenType.IDENTIFIER:
@@ -144,7 +144,7 @@ namespace ExMat.Compiler
                             }
                         default:
                             {
-                                expmsg = _lexer.GetStringForTokenType(typ);
+                                expmsg = ExLexer.GetStringForTokenType(typ);
                                 break;
                             }
                     }
@@ -247,6 +247,11 @@ namespace ExMat.Compiler
                         ProcessFunctionStatement();
                         break;
                     }
+                case TokenType.CLASS:
+                    {
+                        ProcessClassStatement();
+                        break;
+                    }
                 case TokenType.RETURN:
                     {
                         OPC op = OPC.RETURN;
@@ -267,14 +272,14 @@ namespace ExMat.Compiler
                     }
                 case TokenType.BREAK:
                     {
-                        if(_Fstate._breaktargs.Count <= 0)
+                        if (_Fstate._breaktargs.Count <= 0)
                         {
                             throw new Exception("'break' has to be in a breakable block");
                         }
 
-                        if(_Fstate._breaktargs[_Fstate._breaktargs.Count - 1] > 0)
+                        if (_Fstate._breaktargs[^1] > 0)
                         {
-                            _Fstate.AddInstr(OPC.TRAPPOP, _Fstate._breaktargs[_Fstate._breaktargs.Count - 1], 0, 0, 0);
+                            _Fstate.AddInstr(OPC.TRAPPOP, _Fstate._breaktargs[^1], 0, 0, 0);
                         }
 
                         DoOuterControl();
@@ -291,9 +296,9 @@ namespace ExMat.Compiler
                             throw new Exception("'continue' has to be in a breakable block");
                         }
 
-                        if (_Fstate._continuetargs[_Fstate._continuetargs.Count - 1] > 0)
+                        if (_Fstate._continuetargs[^1] > 0)
                         {
-                            _Fstate.AddInstr(OPC.TRAPPOP, _Fstate._continuetargs[_Fstate._continuetargs.Count - 1], 0, 0, 0);
+                            _Fstate.AddInstr(OPC.TRAPPOP, _Fstate._continuetargs[^1], 0, 0, 0);
                         }
 
                         DoOuterControl();
@@ -327,9 +332,9 @@ namespace ExMat.Compiler
 
         public void DoOuterControl()
         {
-            if(_Fstate.GetLocalStackSize() != _scope.stack_size)
+            if (_Fstate.GetLocalStackSize() != _scope.stack_size)
             {
-                if(_Fstate.GetOuterSize(_scope.stack_size) > 0)
+                if (_Fstate.GetOuterSize(_scope.stack_size) > 0)
                 {
                     _Fstate.AddInstr(OPC.CLOSE, 0, _scope.stack_size, 0, 0);
                 }
@@ -349,7 +354,7 @@ namespace ExMat.Compiler
 
             if (bc[0] > 0)
             {
-                DoBreakControl(_Fstate, bc[0], t);
+                DoBreakControl(_Fstate, bc[0]);
             }
 
             if (bc[1] > 0)
@@ -357,7 +362,7 @@ namespace ExMat.Compiler
                 DoContinueControl(_Fstate, bc[1], t);
             }
 
-            if(_Fstate._breaks.Count > 0)
+            if (_Fstate._breaks.Count > 0)
             {
                 _Fstate._breaks.RemoveAt(_Fstate._breaks.Count - 1);
             }
@@ -367,22 +372,22 @@ namespace ExMat.Compiler
             }
         }
 
-        public void DoBreakControl(ExFState fs, int count, int t)
+        public static void DoBreakControl(ExFState fs, int count)
         {
             while (count > 0)
             {
-                int p = fs._breaks[fs._breaks.Count - 1];
+                int p = fs._breaks[^1];
                 fs._breaks.RemoveAt(fs._breaks.Count - 1);
                 fs.SetInstrParams(p, 0, fs.GetCurrPos() - p, 0, 0);
                 count--;
             }
         }
 
-        public void DoContinueControl(ExFState fs, int count, int t)
+        public static void DoContinueControl(ExFState fs, int count, int t)
         {
             while (count > 0)
             {
-                int p = fs._continues[fs._continues.Count - 1];
+                int p = fs._continues[^1];
                 fs._continues.RemoveAt(fs._continues.Count - 1);
                 fs.SetInstrParams(p, 0, t - p, 0, 0);
                 count--;
@@ -477,7 +482,7 @@ namespace ExMat.Compiler
             _Fstate._not_snoozed = false;
 
             int eend = _Fstate.GetCurrPos();
-            int esize = (eend - estart) + 1;
+            int esize = eend - estart + 1;
             List<ExInstr> instrs = null;
 
             if (esize > 0)
@@ -499,9 +504,9 @@ namespace ExMat.Compiler
             ProcessStatement();
             int ctarg = _Fstate.GetCurrPos();
 
-            if(esize > 0)
+            if (esize > 0)
             {
-                for(int i = 0; i < esize; i++)
+                for (int i = 0; i < esize; i++)
                 {
                     _Fstate.AddInstr(instrs[i]);
                 }
@@ -509,16 +514,16 @@ namespace ExMat.Compiler
 
             _Fstate.AddInstr(OPC.JMP, 0, jpos - _Fstate.GetCurrPos() - 1, 0, 0);
 
-            if(jzpos > 0)
+            if (jzpos > 0)
             {
                 _Fstate.SetInstrParam(jzpos, 1, _Fstate.GetCurrPos() - jzpos);
             }
 
             ReleaseScope(scp);
-            ReleaseBreakableBlock(bc,ctarg);
+            ReleaseBreakableBlock(bc, ctarg);
         }
 
-        public void ProcessForeachStatement()
+        public static void ProcessForeachStatement()
         {
 
         }
@@ -568,9 +573,36 @@ namespace ExMat.Compiler
                 }
             }
         }
-        public void ProcessFunctionStatement()
+        public static void ProcessFunctionStatement()
         {
 
+        }
+
+        public void ProcessClassStatement()
+        {
+            ExEState ex;
+            ReadAndSetToken();
+            ex = _Estate.Copy();
+
+            _Estate.stop_deref = true;
+
+            ExPrefixed();
+
+            if (_Estate._type == ExEType.EXPRESSION)
+            {
+                throw new Exception("invalid class name");
+            }
+            else if (_Estate._type == ExEType.OBJECT || _Estate._type == ExEType.BASE)
+            {
+                ExClassResolveExp();
+                AddBasicDerefInstr(OPC.NEWSLOT);
+                _Fstate.PopTarget();
+            }
+            else
+            {
+                throw new Exception("can't create a class as local");
+            }
+            _Estate = ex;
         }
 
         public void ExInvokeExp(string ex)
@@ -982,7 +1014,7 @@ namespace ExMat.Compiler
             }
         }
 
-        public OPC ExOPDecideArithmetic(TokenType typ)
+        public static OPC ExOPDecideArithmetic(TokenType typ)
         {
             switch (typ)
             {
@@ -1003,7 +1035,7 @@ namespace ExMat.Compiler
             }
         }
 
-        public int ExOPDecideArithmeticInt(TokenType typ)
+        public static int ExOPDecideArithmeticInt(TokenType typ)
         {
             switch (typ)
             {
@@ -1022,6 +1054,7 @@ namespace ExMat.Compiler
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
         public void ExPrefixed()
         {
             int p = ExFactor();
@@ -1208,7 +1241,7 @@ namespace ExMat.Compiler
                                 }
                         }
 
-                        int p = -1;
+                        int p;
                         ReadAndSetToken();
 
                         if ((p = _Fstate.GetLocal(idx)) != -1)
@@ -1428,7 +1461,7 @@ namespace ExMat.Compiler
                         return false;
                     }
             }
-            return (!_Estate.stop_deref || (_Estate.stop_deref && (_currToken == TokenType.DOT || _currToken == TokenType.ARR_OPEN)));
+            return !_Estate.stop_deref || (_Estate.stop_deref && (_currToken == TokenType.DOT || _currToken == TokenType.ARR_OPEN));
         }
 
         public void ExPrefixedIncDec(TokenType typ)
@@ -1630,7 +1663,7 @@ namespace ExMat.Compiler
                     throw new Exception("attributes present count error");
                 }
 
-                int flg = a_present ? 1 : 0;
+                int flg = a_present ? (int)ExNewSlotFlag.ATTR : 0; // to-do static flag
                 int t = _Fstate.TopTarget();
                 if (sep == TokenType.SEP)
                 {
@@ -1695,11 +1728,11 @@ namespace ExMat.Compiler
             Expect(TokenType.R_OPEN);
             ExObjectPtr d = new();
             ExFuncCreate(d);
-            _Fstate.AddInstr(OPC.CLOSURE, _Fstate.PushTarget(), _Fstate._funcs.Count - 1, (typ == TokenType.FUNCTION ? 0 : 1), 0);
+            _Fstate.AddInstr(OPC.CLOSURE, _Fstate.PushTarget(), _Fstate._funcs.Count - 1, typ == TokenType.FUNCTION ? 0 : 1, 0);
         }
         public void ExClassResolveExp()
         {
-            int at = -1;
+            int at = 985;
 
             if (_currToken == TokenType.A_START)
             {
@@ -1711,7 +1744,7 @@ namespace ExMat.Compiler
 
             Expect(TokenType.CLS_OPEN);
 
-            if (at != -1)
+            if (at != 985)
             {
                 _Fstate.PopTarget();
             }
@@ -1772,7 +1805,7 @@ namespace ExMat.Compiler
             ProcessStatement(false);
 
             f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
-            f_state.AddInstr(OPC.RETURN, -1, 0, 0, 0);
+            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExFuncPro fpro = f_state.CreatePrototype();

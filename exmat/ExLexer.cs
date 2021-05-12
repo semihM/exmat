@@ -7,8 +7,8 @@ namespace ExMat.Lexer
 {
     public class ExLexer
     {
-        private string _source;
-        private int _sourcelen = 0;
+        private readonly string _source;
+        private readonly int _sourcelen = 0;
         private int _sourceidx = 0;
 
         public int _currLine;
@@ -269,8 +269,8 @@ namespace ExMat.Lexer
             return typ;
         }
 
-        private bool IsExp(char c) => c == 'e' || c == 'E';
-        private bool IsSign(char c) => c == '+' || c == '-';
+        private static bool IsExp(char c) => c == 'e' || c == 'E';
+        private static bool IsSign(char c) => c == '+' || c == '-';
 
         private TokenType ReadNumber()
         {
@@ -333,7 +333,7 @@ namespace ExMat.Lexer
             return TokenType.ENDLINE;
         }
 
-        public string GetStringForTokenType(TokenType typ)
+        public static string GetStringForTokenType(TokenType typ)
         {
             switch (typ)
             {
@@ -364,7 +364,7 @@ namespace ExMat.Lexer
             }
         }
 
-        public TokenType GetTokenTypeForChar(char c)
+        public static TokenType GetTokenTypeForChar(char c)
         {
             switch (c)
             {

@@ -16,7 +16,7 @@ namespace ExMat.API
             res = GetFromStack(vm, idx);
             if (res._type != typ)
             {
-                throw new Exception(string.Format("wrong argument type, expected %s got %s", typ.ToString(), res._type.ToString()));
+                throw new Exception("wrong argument type, expected " + typ.ToString() + " got " + res._type.ToString());
             }
         }
 
