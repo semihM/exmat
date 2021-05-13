@@ -45,6 +45,7 @@ namespace ExMat.OPs
         MLT,
         DIV,
         MOD,
+        EXP,
         BITWISE,
         RETURN,
         LOAD_NULL,

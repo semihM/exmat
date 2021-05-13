@@ -36,6 +36,12 @@ namespace ExMat.BaseLib
             vm.Push(new ExObjectPtr(t));
             return 1;
         }
+        public static int BASE_time(ExVM vm)
+        {
+            vm.Push(new ExObjectPtr(DateTime.Now.Millisecond));
+            return 1;
+        }
+
         public static int BASE_string(ExVM vm)
         {
             ExAPI.ToString(vm, 2);
@@ -111,11 +117,84 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int BASE_default_length(ExVM vm)
+        {
+            int size = -1;
+            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
+            switch(obj._type)
+            {
+                case ExObjType.ARRAY:
+                    {
+                        size = obj._val.l_List.Count;
+                        break;
+                    }
+                case ExObjType.DICT:
+                    {
+                        size = obj._val.d_Dict.Count;
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        size = obj.GetString().Length;
+                        break;
+                    }
+                case ExObjType.CLASS:
+                    {
+                        size = obj._val._Class._udsize;
+                        break;
+                    }
+                case ExObjType.INSTANCE:
+                    {
+                        size = obj._val._Instance._class._udsize;
+                        break;
+                    }
+                default:
+                    {
+                        break; // TO-DO
+                    }
+            }
+            vm.Push(new ExObjectPtr(size));
+            return 1;
+        }
+
+        public static int BASE_array_append(ExVM vm)
+        {
+            if(ExAPI.GetTopOfStack(vm) >= 2)
+            {
+                ExObjectPtr res = new();
+                ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
+                res._val.l_List.Add(new(vm.GetAbove(-1)));
+                vm.Pop();
+                return 0;
+            }
+            return -1;
+        }
+        public static int BASE_array_pop(ExVM vm)
+        {
+            if (ExAPI.GetTopOfStack(vm) >= 1)
+            {
+                ExObjectPtr res = new();
+                ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
+                if (res._val.l_List.Count > 0)
+                {
+                    vm.Push(res._val.l_List[^1]); // TO-DO make this optional
+                    res._val.l_List.RemoveAt(res._val.l_List.Count - 1);
+                    return 1;
+                }
+                else
+                {
+                    throw new Exception("cant pop from empty list");
+                }
+            }
+            return -1;
+        }
+
         private static readonly List<ExRegFunc> _exRegFuncs = new()
         {
             new() { name = "print", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_print")), n_pchecks = 2, mask = null },
             new() { name = "printl", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_printl")), n_pchecks = 2, mask = null },
             new() { name = "type", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_type")), n_pchecks = 2, mask = null },
+            new() { name = "time", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_time")), n_pchecks = 2, mask = null },
             new() { name = "string", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string")), n_pchecks = 2, mask = null },
             new() { name = "list", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_list")), n_pchecks = 2, mask = ".n" },
             new() { name = "range", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_range")), n_pchecks = 2, mask = ".n" },

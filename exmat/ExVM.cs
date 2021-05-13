@@ -479,17 +479,17 @@ namespace ExMat.VM
                         }
                     case OPC.CALL_TAIL:
                         {
-                            ExObjectPtr tmp = new(GetTargetInStack(i.arg1));
+                            ExObjectPtr tmp = GetTargetInStack(i.arg1);
                             if (tmp._type == ExObjType.CLOSURE)
                             {
-                                ExObjectPtr c = new(); c.Assign(tmp);
+                                ExObjectPtr c = new(tmp);
                                 if (_openouters != null)
                                 {
                                     CloseOuters(_stackbase);
                                 }
                                 for (int j = 0; j < i.arg3.GetInt(); j++)
                                 {
-                                    GetTargetInStack(i).Assign(GetTargetInStack(i.arg2.GetInt() + j));
+                                    GetTargetInStack(j).Assign(GetTargetInStack(i.arg2.GetInt() + j));
                                 }
                                 if (!StartCall(c._val._Closure, ci._val._target, i.arg3.GetInt(), _stackbase, true))
                                 {
@@ -598,12 +598,12 @@ namespace ExMat.VM
                     case OPC.PREPCALL:
                     case OPC.PREPCALLK:
                         {
-                            ExObjectPtr k = i.op == OPC.PREPCALLK ? ci._val._lits[i.arg1] : new(GetTargetInStack(i.arg1));
-                            ExObjectPtr obj = new(GetTargetInStack(i.arg2));
+                            ExObjectPtr k = i.op == OPC.PREPCALLK ? ci._val._lits[i.arg1] : GetTargetInStack(i.arg1);
+                            ExObjectPtr obj = GetTargetInStack(i.arg2);
 
                             if (!Getter(ref obj, ref k, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
                             {
-                                throw new Exception("error getting call");
+                                throw new Exception("unknown method or field '"+k.GetString()+"'");
                             }
 
                             GetTargetInStack(i.arg3).Assign(obj);
@@ -612,12 +612,12 @@ namespace ExMat.VM
                         }
                     case OPC.GETK:
                         {
-                            ExObjectPtr tmp = new(GetTargetInStack(i.arg2));
+                            ExObjectPtr tmp = GetTargetInStack(i.arg2);
                             ExObjectPtr lit = ci._val._lits[i.arg1];
 
                             if (!Getter(ref tmp, ref lit, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
                             {
-                                throw new Exception("error getting literal"); // access to local var decl before
+                                throw new Exception("unknown variable '"+lit.GetString()+"'"); // access to local var decl before
                             }
                             //GetTargetInStack(i).Assign(tmpreg); // TO-DO
                             SwapObjects(GetTargetInStack(i), ref tmpreg);
@@ -642,7 +642,11 @@ namespace ExMat.VM
                         }
                     case OPC.DELETE:
                         {
-                            // TO-DO
+                            ExObjectPtr r = new(GetTargetInStack(i));
+                            if (!RemoveObjectSlot(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), ref r))
+                            {
+                                throw new Exception("failed to delete a slot");
+                            }
                             continue;
                         }
                     case OPC.SET:
@@ -684,6 +688,7 @@ namespace ExMat.VM
                     case OPC.ADD:
                     case OPC.SUB:
                     case OPC.MLT:
+                    case OPC.EXP:
                     case OPC.DIV:
                     case OPC.MOD:
                         {
@@ -699,7 +704,6 @@ namespace ExMat.VM
                         {
                             if (ReturnValue(i.arg0.GetInt(), i.arg1, ref tmpreg))
                             {
-                                //o.Assign(tmpreg); // TO-DO
                                 SwapObjects(o, ref tmpreg);
                                 return true;
                             }
@@ -946,6 +950,21 @@ namespace ExMat.VM
                             }
                             continue;
                         }
+                    case OPC.CMP_ARTH:
+                        {
+                            // TO-DO somethings wrong here
+                            int idx = (int)((i.arg1 & 0xFFFF0000) >> 16);
+                            ExObjectPtr t = GetTargetInStack(i);
+                            ExObjectPtr si = GetTargetInStack(idx);
+                            ExObjectPtr s2 = GetTargetInStack(i.arg2);
+                            ExObjectPtr s1v = GetTargetInStack(i.arg1&0x0000FFFF);
+
+                            if (!DoDerefInc((OPC)i.arg3.GetInt(), ref t, ref si, ref s2, ref s1v, false, (ExFallback)idx))
+                            {
+                                throw new Exception("compound arithmetic failed");
+                            }
+                            continue;
+                        }
                     default:
                         {
                             throw new Exception("unknown operator " + i.op);
@@ -954,11 +973,65 @@ namespace ExMat.VM
             }
         }
 
+        public bool RemoveObjectSlot(ExObjectPtr self, ExObjectPtr k, ref ExObjectPtr r)
+        {
+            switch (self._type)
+            {
+                case ExObjType.DICT:
+                case ExObjType.INSTANCE:
+                case ExObjType.USERDATA:
+                    {
+                        ExObjectPtr cls = new();
+                        ExObjectPtr tmp = null;
+
+                        if (self._val._Deleg != null && self._val._Deleg.GetMetaM(this, ExMetaM.DELS, ref cls))
+                        {
+                            Push(self);
+                            Push(k);
+                            return CallMetaMethod(ref cls, ExMetaM.DELS, 2, ref r);
+                        }
+                        else
+                        {
+                            if (self._type == ExObjType.DICT)
+                            {
+                                if (self._val.d_Dict.ContainsKey(k.GetString()))
+                                {
+                                    tmp = new(self._val.d_Dict[k.GetString()]);
+
+                                    self._val.d_Dict.Remove(k.GetString());
+                                }
+                                else
+                                {
+                                    throw new Exception(k.GetString() + " doesn't exist");
+                                }
+                            }
+                            else
+                            {
+                                throw new Exception("can't delete a slot from " + self._type.ToString());
+                            }
+                        }
+
+                        r = tmp;
+                        break;
+                    }
+                default:
+                    {
+                        throw new Exception("can't delete a slot from " + self._type.ToString());
+                    }
+            }
+            return true;
+        }
+
         public void FindOuterVal(ExObjectPtr target, ExObjectPtr sidx)
         {
             ExOuter opo = _openouters;
+            if(opo == null)
+            {
+                opo = new();
+            }
+
             ExOuter tmp;
-            while (opo != null && opo._valptr.GetInt() >= sidx.GetInt())
+            while (opo._valptr != null && opo._valptr.GetInt() >= sidx.GetInt())
             {
                 if (opo._valptr.GetInt() == sidx.GetInt())
                 {
@@ -1283,7 +1356,7 @@ namespace ExMat.VM
             }
             else
             {
-                throw new Exception("bitwise op between " + a._type.ToString() + " and " + b._type.ToString());
+                throw new Exception("bitwise op between '" + a._type.ToString() + "' and '" + b._type.ToString() + "'");
             }
             return res;
         }
@@ -1314,6 +1387,10 @@ namespace ExMat.VM
                         }
 
                         res = new(a % b); break;
+                    }
+                case OPC.EXP:
+                    {
+                        res = new((int)Math.Pow(a,b)); break;
                     }
                 default:
                     {
@@ -1348,6 +1425,10 @@ namespace ExMat.VM
                         }
 
                         res = new(a % b); break;
+                    }
+                case OPC.EXP:
+                    {
+                        res = new((float)Math.Pow(a, b)); break;
                     }
                 default:
                     {
@@ -1664,7 +1745,13 @@ namespace ExMat.VM
                         break;
                     }
             }
-            return del.TryGetValue(k.GetString(), out dest);
+            if(del.ContainsKey(k.GetString()))
+            {
+                dest = new ExNativeClosure();
+                dest._val._NativeClosure = (ExNativeClosure)del[k.GetString()];
+                return true;
+            }
+            return false;
         }
 
         public ExFallback GetterFallback(ExObjectPtr self, ExObjectPtr k, ref ExObjectPtr dest)
@@ -1949,6 +2036,10 @@ namespace ExMat.VM
                 CloseOuters(last_b);
             }
 
+            if(last_t >= _stack.Count)
+            {
+                throw new Exception("stack overflow! Allocate more stack room for these operations");
+            }
             while (last_t >= _top)
             {
                 _stack[last_t--].Nullify();
@@ -1957,6 +2048,11 @@ namespace ExMat.VM
 
         public bool CallNative(ExNativeClosure cls, int narg, int newb, ref ExObjectPtr o)
         {
+            if(cls._val._NativeClosure != null)
+            {
+                cls = cls._val._NativeClosure;
+            }
+
             int nparamscheck = cls.n_paramscheck;
             int new_top = newb + narg + cls.n_outervals;
 
@@ -1978,7 +2074,7 @@ namespace ExMat.VM
                 {
                     if (ts[i] != -1 && !IncludesType((int)_stack[newb + i]._type, ts[i]))
                     {
-                        throw new Exception("invalid parameter type, expected: type("+ ts[i].ToString()+") got: "+ _stack[newb + i]._type.ToString());
+                        throw new Exception("invalid parameter type, expected: type(" + ts[i].ToString() + ") got: " + _stack[newb + i]._type.ToString());
                     }
                 }
             }
@@ -2012,7 +2108,7 @@ namespace ExMat.VM
 
             if (ret == 0)
             {
-                // o.Nullify(); // TODO: Stops rest of the instructions
+                 o.Nullify(); // TODO: Stops rest of the instructions
             }
             else
             {

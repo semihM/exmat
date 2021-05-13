@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using ExMat.Closure;
 using ExMat.Objects;
 using ExMat.VM;
@@ -27,21 +28,58 @@ namespace ExMat.States
         public ExObjectPtr _constructid = new("constructor");
 
         public ExObjectPtr _class_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _class_delF = new();
+        public List<ExRegFunc> _class_delF = new()
+        {
+            new() { name = string.Empty }
+        };
+
         public ExObjectPtr _dict_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _dict_delF = new();
+        public List<ExRegFunc> _dict_delF = new()
+        {
+            new() { name = "len", n_pchecks = 1, mask = "d", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
+            new() { name = string.Empty }
+        };
+
         public ExObjectPtr _list_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _list_delF = new();
+        public List<ExRegFunc> _list_delF = new()
+        {
+            new() { name = "len", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) } ,
+            new() { name = "append", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) } ,
+            new() { name = "push", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) } ,
+            new() { name = "pop", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_pop")) } ,
+            new() { name = string.Empty }
+        };
+
         public ExObjectPtr _num_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _num_delF = new();
+        public List<ExRegFunc> _num_delF = new()
+        {
+            new() { name = string.Empty }
+        };
+
         public ExObjectPtr _str_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _str_delF = new();
+        public List<ExRegFunc> _str_delF = new()
+        {
+            new() { name = "len", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
+            new() { name = string.Empty }
+        };
+
         public ExObjectPtr _closure_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _closure_delF = new();
+        public List<ExRegFunc> _closure_delF = new()
+        {
+            new() { name = string.Empty }
+        };
+
         public ExObjectPtr _inst_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _inst_delF = new();
+        public List<ExRegFunc> _inst_delF = new()
+        {
+            new() { name = string.Empty }
+        };
+
         public ExObjectPtr _wref_del = new(new Dictionary<string, ExObjectPtr>());
-        public List<ExRegFunc> _wref_delF = new();
+        public List<ExRegFunc> _wref_delF = new()
+        {
+            new() { name = string.Empty }
+        };
 
         public void Initialize()
         {
@@ -88,7 +126,7 @@ namespace ExMat.States
                 cls.n_paramscheck = f[i].n_pchecks;
                 if (!exs._strings.ContainsKey(f[i].name))
                 {
-                    exs._strings.Add(f[i].name, new());
+                    exs._strings.Add(f[i].name, new(f[i].name));
                 }
                 cls._name = new(f[i].name);
 

@@ -10,7 +10,7 @@ namespace ExMat
 {
     class Program
     {
-        static readonly int VM_STACK_SIZE = 512;
+        static readonly int VM_STACK_SIZE = 5096;
 
         static int Main(string[] args)
         {

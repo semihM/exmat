@@ -243,6 +243,7 @@ namespace ExMat.API
         public static ExVM Start(int stacksize)
         {
             ExSState exS = new();
+            exS.Initialize();
             ExVM vm = new() { _sState = exS };
 
             exS._rootVM = vm;

@@ -39,7 +39,7 @@ namespace ExMat.Lexer
             CreateKeyword("break", TokenType.BREAK);
             CreateKeyword("continue", TokenType.CONTINUE);
             CreateKeyword("null", TokenType.NULL);
-            CreateKeyword("def", TokenType.FUNCTION);
+            CreateKeyword("function", TokenType.FUNCTION);
             CreateKeyword("var", TokenType.VAR);
             CreateKeyword("return", TokenType.RETURN);
             CreateKeyword("sum", TokenType.SUM);
@@ -54,6 +54,8 @@ namespace ExMat.Lexer
             CreateKeyword("typeof", TokenType.TYPEOF);
             CreateKeyword("in", TokenType.IN);
             CreateKeyword("instanceof", TokenType.INSTANCEOF);
+            CreateKeyword("delete", TokenType.DELETE);
+
 
             _lastTokenLine = 1;
             _currLine = 1;
@@ -378,8 +380,6 @@ namespace ExMat.Lexer
                     return TokenType.MLT;
                 case '%':
                     return TokenType.MOD;
-                case '\'':
-                    return TokenType.EXP;
                 case '&':
                     return TokenType.BAND;
                 case '|':
@@ -659,6 +659,11 @@ namespace ExMat.Lexer
                             Next();
                             switch (_currChar)
                             {
+                                case '*':
+                                    {
+                                        Next();
+                                        return SetAndReturnToken(TokenType.EXP);
+                                    }
                                 case '=':
                                     {
                                         Next();

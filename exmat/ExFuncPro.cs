@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -13,6 +14,7 @@ using ExMat.VM;
 
 namespace ExMat.FuncPrototype
 {
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExFuncPro : ExCollectable
     {
         public int n_instr;
@@ -92,6 +94,11 @@ namespace ExMat.FuncPrototype
             _prev = null;
             _sState = ss;
             AddToChain(_sState._GC_CHAIN, this);
+        }
+
+        public new string GetDebuggerDisplay()
+        {
+            return "FPRO(" + _name.GetString() + ", n_func: "+ n_funcs + ", n_lits: " + n_lits + ", n_instr: " + n_instr + ")";
         }
     }
 

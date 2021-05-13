@@ -51,8 +51,10 @@
         RETURN,
         SUM,
         MUL,
+
         THIS,
         CLASS,
+        DELETE,
 
         A_START,
         A_END,

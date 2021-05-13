@@ -9,9 +9,11 @@ using ExMat.InfoVar;
 using ExMat.FuncPrototype;
 using ExMat.States;
 using ExMat.Utils;
+using System.Diagnostics;
 
 namespace ExMat.Closure
 {
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExOuter : ExCollectable
     {
         public ExObjectPtr _valptr;
@@ -45,8 +47,14 @@ namespace ExMat.Closure
                 RemoveFromChain(_sState._GC_CHAIN, this);
             }
         }
+
+        public new string GetDebuggerDisplay()
+        {
+            return "OUTER(" + idx + ", *(" + _valptr.GetDebuggerDisplay() + "), " + _v.GetDebuggerDisplay() + ")"; 
+        }
     }
 
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClosure : ExCollectable
     {
         public static ExClosure Create(ExSState exS, ExFuncPro fpro)
@@ -102,6 +110,15 @@ namespace ExMat.Closure
             return ExObjType.CLOSURE;
         }
 
+        public new string GetDebuggerDisplay()
+        {
+            if(_base != null)
+            {
+                return "[" + _base.GetDebuggerDisplay() + "] CLOSURE(" + _func._name.GetString() + ")";
+            }
+            return "CLOSURE(" + _func._name.GetString() + ")";
+        }
+
         public ExWeakRef _envweakref;
         public ExClass _base;
         public ExFuncPro _func;
@@ -110,13 +127,14 @@ namespace ExMat.Closure
 
     }
 
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExNativeClosure : ExCollectable
     {
         public ExWeakRef _envweakref;
         public ExObjectPtr _name;
         public ExFunc _func;
         public List<ExObjectPtr> _outervals;
-        public List<int> _typecheck;
+        public List<int> _typecheck = new();
         public int n_outervals;
         public int n_paramscheck;
 
@@ -145,6 +163,11 @@ namespace ExMat.Closure
         public new static ExObjType GetType()
         {
             return ExObjType.NATIVECLOSURE;
+        }
+
+        public new string GetDebuggerDisplay()
+        {
+            return "NATIVECLOSURE(" + _name.GetString() + ")";
         }
     }
 }

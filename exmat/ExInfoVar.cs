@@ -37,7 +37,7 @@ namespace ExMat.InfoVar
     public class ExOuterInfo
     {
         public ExObjectPtr name = new();
-        public ExObjectPtr _src;
+        public ExObjectPtr _src = new();
         public ExOuterType _type;
 
         public ExOuterInfo() { }

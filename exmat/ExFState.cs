@@ -514,6 +514,7 @@ namespace ExMat.States
                                 case OPC.ADD:
                                 case OPC.SUB:
                                 case OPC.MLT:
+                                case OPC.EXP:
                                 case OPC.DIV:
                                 case OPC.MOD:
                                 case OPC.BITWISE:

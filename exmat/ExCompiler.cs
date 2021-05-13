@@ -239,7 +239,7 @@ namespace ExMat.Compiler
                     }
                 case TokenType.VAR:
                     {
-                        ProcessLocalAsgStatement();
+                        ProcessVarAsgStatement();
                         break;
                     }
                 case TokenType.FUNCTION:
@@ -256,10 +256,11 @@ namespace ExMat.Compiler
                     {
                         OPC op = OPC.RETURN;
                         ReadAndSetToken();
-                        if (IsEOS())
+                        if (!IsEOS())
                         {
                             int rexp = _Fstate.GetCurrPos() + 1;
                             ExSepExp();
+                            // TO-DO trap count check and pop
                             _Fstate._returnE = rexp;
                             _Fstate.AddInstr(op, 1, _Fstate.PopTarget(), _Fstate.GetLocalStackSize(), 0);
                         }
@@ -447,7 +448,7 @@ namespace ExMat.Compiler
 
             if (_currToken == TokenType.VAR)
             {
-                ProcessLocalAsgStatement();
+                ProcessVarAsgStatement();
             }
             else if (_currToken != TokenType.SMC)
             {
@@ -527,7 +528,7 @@ namespace ExMat.Compiler
         {
 
         }
-        public void ProcessLocalAsgStatement()
+        public void ProcessVarAsgStatement()
         {
             ExObject v;
             ReadAndSetToken();
@@ -536,8 +537,11 @@ namespace ExMat.Compiler
             {
                 ReadAndSetToken();
                 v = Expect(TokenType.IDENTIFIER);
+                Expect(TokenType.R_OPEN);
                 ExFuncCreate((ExObjectPtr)v);
                 _Fstate.AddInstr(OPC.CLOSURE, _Fstate.PushTarget(), _Fstate._funcs.Count - 1, 0, 0);
+                _Fstate.PopTarget();
+                _Fstate.PushLocal(v);
                 return;
             }
 
@@ -573,9 +577,43 @@ namespace ExMat.Compiler
                 }
             }
         }
-        public static void ProcessFunctionStatement()
+        public void ProcessFunctionStatement()
         {
+            ExObjectPtr idx;
 
+            ReadAndSetToken();
+            idx = Expect(TokenType.IDENTIFIER);
+
+            _Fstate.PushTarget(0);
+            _Fstate.AddInstr(OPC.LOAD, _Fstate.PushTarget(), _Fstate.GetConst(idx), 0, 0);
+
+            if(_currToken == TokenType.GLB)
+            {
+                AddBasicOpInstr(OPC.GET);
+            }
+
+            while(_currToken == TokenType.GLB)
+            {
+                ReadAndSetToken();
+                idx = Expect(TokenType.IDENTIFIER);
+
+                _Fstate.AddInstr(OPC.LOAD, _Fstate.PushTarget(), _Fstate.GetConst(idx), 0, 0);
+
+                if(_currToken == TokenType.GLB)
+                {
+                    AddBasicOpInstr(OPC.GET);
+                }
+            }
+
+            Expect(TokenType.R_OPEN);
+
+            ExFuncCreate(idx);
+
+            _Fstate.AddInstr(OPC.CLOSURE, _Fstate.PushTarget(), _Fstate._funcs.Count - 1, 0, 0);
+
+            AddBasicDerefInstr(OPC.NEWSLOT);
+
+            _Fstate.PopTarget();
         }
 
         public void ProcessClassStatement()
@@ -1001,6 +1039,7 @@ namespace ExMat.Compiler
             {
                 switch (_currToken)
                 {
+                    case TokenType.EXP:
                     case TokenType.MLT:
                     case TokenType.DIV:
                     case TokenType.MOD:
@@ -1018,6 +1057,8 @@ namespace ExMat.Compiler
         {
             switch (typ)
             {
+                case TokenType.EXP:
+                    return OPC.EXP;
                 case TokenType.SUB:
                 case TokenType.SUBEQ:
                     return OPC.SUB;
@@ -1064,6 +1105,7 @@ namespace ExMat.Compiler
                 {
                     case TokenType.DOT:
                         {
+                            p = -1;
                             ReadAndSetToken();
 
                             _Fstate.AddInstr(OPC.LOAD, _Fstate.PushTarget(), _Fstate.GetConst(Expect(TokenType.IDENTIFIER)), 0, 0);
@@ -1437,10 +1479,42 @@ namespace ExMat.Compiler
                         Expect(TokenType.R_CLOSE);
                         break;
                     }
-
+                case TokenType.DELETE:
+                    {
+                        ExDeleteExp();
+                        break;
+                    }
             }
 
             return -1;
+        }
+
+        public void ExDeleteExp()
+        {
+            ExEState es;
+
+            ReadAndSetToken();
+
+            es = _Estate.Copy();
+            _Estate.stop_deref = true;
+
+            ExPrefixed();
+
+            if (_Estate._type == ExEType.EXPRESSION)
+            {
+                throw new Exception("cant 'delete' and expression");
+            }
+
+            if (_Estate._type == ExEType.OBJECT || _Estate._type == ExEType.BASE)
+            {
+                AddBasicOpInstr(OPC.DELETE);
+            }
+            else
+            {
+                throw new Exception("can't delete an outer local variable");
+            }
+
+            _Estate = es;
         }
 
         public bool ExRequiresGetter()

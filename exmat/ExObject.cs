@@ -551,7 +551,7 @@ namespace ExMat.Objects
             return _weakref;
         }
 
-        public override string GetDebuggerDisplay()
+        public new string GetDebuggerDisplay()
         {
             return "REFC: " + _refc;
         }
@@ -578,11 +578,18 @@ namespace ExMat.Objects
     public class ExDeleg : ExCollectable
     {
         public ExObjectPtr _delegate; // TO-DO dict
+
         public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObjectPtr res)
         {
             if (_delegate != null)
             {
-                return _delegate._val.d_Dict.TryGetValue(m.ToString(), out res);
+                string k = vm._sState._metaMethods[(int)m].ToString();
+                if (_delegate._val.d_Dict.ContainsKey(k))
+                {
+                    res = _delegate._val.d_Dict[k];
+                    return true;
+                }
+                return false;
             }
             return false;
         }

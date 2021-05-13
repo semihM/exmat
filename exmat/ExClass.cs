@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using ExMat.Utils;
 
 namespace ExMat.Class
 {
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClassMem
     {
         public ExObjectPtr val = new();
@@ -26,7 +28,14 @@ namespace ExMat.Class
             val.Nullify();
             attrs.Nullify();
         }
+
+        public string GetDebuggerDisplay()
+        {
+            return "CMEM(" + val.GetDebuggerDisplay()+ ")";
+        }
     }
+
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClass : ExCollectable
     {
         public ExClass _base;
@@ -183,8 +192,7 @@ namespace ExMat.Class
 
                     if (tmp._type == ExObjType.NULL)
                     {
-                        bool bconstr = false;
-                        VM.ExVM.CheckEqual(exs._constructid, key, ref bconstr);
+                        bool bconstr = exs._constructid.GetString() == key.GetString();
 
                         if (bconstr)
                         {
@@ -211,8 +219,18 @@ namespace ExMat.Class
 
             return true;
         }
+
+        public new string GetDebuggerDisplay()
+        {
+            if(_base != null)
+            {
+                return "[" + _base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + _constridx + ", n_mem: " + _members.Count + ")";
+            }
+            return "CLASS(c_idx: "+ _constridx + ", n_mem: " + _members.Count + ")";
+        }
     }
 
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExInstance : ExDeleg
     {
         public ExClass _class;
@@ -282,6 +300,11 @@ namespace ExMat.Class
                 }
                 _values.RemoveAll((ExObjectPtr e) => true); _values = null;
             }
+        }
+
+        public new string GetDebuggerDisplay()
+        {
+            return "INSTANCE(n_vals: " + _values.Count + ")";
         }
     }
 }
