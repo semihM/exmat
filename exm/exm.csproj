@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\exmatstdlib\exmatstdlib.csproj" />
     <ProjectReference Include="..\exmat\exmat.csproj" />
   </ItemGroup>
 

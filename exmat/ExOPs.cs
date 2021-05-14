@@ -40,13 +40,13 @@ namespace ExMat.OPs
         GET,
         EQ,
         NEQ,
-        ADD,
-        SUB,
-        MLT,
-        DIV,
-        MOD,
-        EXP,
-        BITWISE,
+        DEC,
+        DECL,
+        CMP,
+        EXISTS,
+        INSTANCE_OF,
+        TRAPPOP,
+        ARRAY_APPEND,
         RETURN,
         LOAD_NULL,
         LOAD_ROOT,
@@ -59,23 +59,23 @@ namespace ExMat.OPs
         NEW_OBJECT,
         NEWSLOT,
         NEWSLOTA,
-        ARRAY_APPEND,
+        MOD,
         CMP_ARTH,
         INC,
         INCL,
         PINC,
+        MLT,
+        ADD,
         PINCL,
-        DEC,
-        DECL,
-        CMP,
-        EXISTS,
-        INSTANCE_OF,
+        SUB,
+        BITWISE,
+        DIV,
+        EXP,
         AND,
         OR,
         NEGATE,
         NOT,
         BNOT,
-        TRAPPOP,
         CLOSURE,
         FOREACH,
         POSTFOREACH,
@@ -116,7 +116,10 @@ namespace ExMat.OPs
         public string GetDebuggerDisplay()
         {
             if (op == OPC.LINE)
+            {
                 return "LINE";
+            }
+
             return op.ToString() + ": " + arg0.GetInt() + ", " + arg1 + ", " + arg2.GetInt() + ", " + arg3.GetInt();
         }
     }

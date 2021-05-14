@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ExMat.OPs;
+using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Objects;
-using ExMat.FuncPrototype;
+using ExMat.OPs;
 
 namespace ExMat.States
 {

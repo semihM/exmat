@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ExMat.Objects;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using ExMat.Class;
-using ExMat.InfoVar;
 using ExMat.FuncPrototype;
+using ExMat.Objects;
 using ExMat.States;
 using ExMat.Utils;
-using System.Diagnostics;
 
 namespace ExMat.Closure
 {
@@ -34,7 +29,7 @@ namespace ExMat.Closure
             return exo;
         }
 
-        public new static ExObjType GetType()
+        public static new ExObjType GetType()
         {
             return ExObjType.OUTER;
         }
@@ -50,7 +45,7 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            return "OUTER(" + idx + ", *(" + _valptr.GetDebuggerDisplay() + "), " + _v.GetDebuggerDisplay() + ")"; 
+            return "OUTER(" + idx + ", *(" + _valptr.GetDebuggerDisplay() + "), " + _v.GetDebuggerDisplay() + ")";
         }
     }
 
@@ -105,14 +100,14 @@ namespace ExMat.Closure
             }
             _defparams = null;
         }
-        public new static ExObjType GetType()
+        public static new ExObjType GetType()
         {
             return ExObjType.CLOSURE;
         }
 
         public new string GetDebuggerDisplay()
         {
-            if(_base != null)
+            if (_base != null)
             {
                 return "[" + _base.GetDebuggerDisplay() + "] CLOSURE(" + _func._name.GetString() + ")";
             }
@@ -160,7 +155,7 @@ namespace ExMat.Closure
             }
             _outervals = null;
         }
-        public new static ExObjType GetType()
+        public static new ExObjType GetType()
         {
             return ExObjType.NATIVECLOSURE;
         }

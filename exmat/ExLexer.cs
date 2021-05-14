@@ -29,6 +29,8 @@ namespace ExMat.Lexer
         public TokenType _prevToken;
         public TokenType _currToken;
 
+        public string _error;
+
         public ExLexer(string source)
         {
             CreateKeyword("if", TokenType.IF);
@@ -137,15 +139,16 @@ namespace ExMat.Lexer
                     {
                         case ExMat._END:
                             {
-                                throw new Exception("unfinished string");
+                                _error = "unfinished string";
+                                return TokenType.UNKNOWN;
                             }
-                        case '\n':
-                            {
-                                _aStr += _currChar;
-                                Next();
-                                _currLine++;
-                                break;
-                            }
+                        //case '\n':
+                        //    {
+                        //        _aStr += _currChar;
+                        //        Next();
+                        //        _currLine++;
+                        //        break;
+                        //    }
                         case '\\':
                             {
                                 Next();
@@ -219,10 +222,17 @@ namespace ExMat.Lexer
                                         }
                                     default:
                                         {
-                                            throw new Exception("unknown escape char '" + _currChar + "'");
+                                            _error = "unknown escape char '" + _currChar + "'";
+                                            return TokenType.UNKNOWN;
                                         }
                                 }
                                 break;
+                            }
+                        case '\r':
+                        case '\n':
+                            {
+                                _error = "unfinished string";
+                                return TokenType.UNKNOWN;
                             }
                         default:
                             {
@@ -294,7 +304,8 @@ namespace ExMat.Lexer
                 {
                     if (typ != TokenType.FLOAT)
                     {
-                        throw new Exception("Wrong float number format");
+                        _error = "Wrong float number format";
+                        return TokenType.UNKNOWN;
                     }
 
                     typ = TokenType.SCI;
@@ -310,7 +321,8 @@ namespace ExMat.Lexer
 
                     if (!char.IsDigit(_currChar))
                     {
-                        throw new Exception("Wrong exponent value format");
+                        _error = "Wrong exponent value format";
+                        return TokenType.UNKNOWN;
                     }
                 }
 
@@ -333,37 +345,6 @@ namespace ExMat.Lexer
                     }
             }
             return TokenType.ENDLINE;
-        }
-
-        public static string GetStringForTokenType(TokenType typ)
-        {
-            switch (typ)
-            {
-                case TokenType.VAR:
-                    return "var";
-                case TokenType.THIS:
-                    return "this";
-                case TokenType.NULL:
-                    return "null";
-                case TokenType.IF:
-                    return "if";
-                case TokenType.ELSE:
-                    return "else";
-                case TokenType.RULE:
-                    return "rule";
-                case TokenType.FOR:
-                    return "for";
-                case TokenType.FOREACH:
-                    return "foreach";
-                case TokenType.FUNCTION:
-                    return "def";
-                case TokenType.SUM:
-                    return "sum";
-                case TokenType.MUL:
-                    return "mul";
-                default:
-                    throw new Exception("Unknown keyword type: " + typ.ToString());
-            }
         }
 
         public static TokenType GetTokenTypeForChar(char c)
@@ -523,6 +504,11 @@ namespace ExMat.Lexer
                                 return SetAndReturnToken(TokenType.EXC);
                             }
                         }
+                    case '\\':
+                        {
+                            _error = "escape char outside string";
+                            return TokenType.UNKNOWN;
+                        }
                     case '"':
                     case '\'':
                         {
@@ -531,7 +517,7 @@ namespace ExMat.Lexer
                             {
                                 return SetAndReturnToken(res);
                             }
-                            throw new Exception("failed to parse string");
+                            return TokenType.UNKNOWN;
                         }
                     case '{':
                     case '}':

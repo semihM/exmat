@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using ExMat.InfoVar;
 using ExMat.Objects;
 using ExMat.OPs;
 using ExMat.States;
-using ExMat.Utils;
 using ExMat.VM;
 
 namespace ExMat.FuncPrototype
@@ -98,7 +93,7 @@ namespace ExMat.FuncPrototype
 
         public new string GetDebuggerDisplay()
         {
-            return "FPRO(" + _name.GetString() + ", n_func: "+ n_funcs + ", n_lits: " + n_lits + ", n_instr: " + n_instr + ")";
+            return "FPRO(" + _name.GetString() + ", n_func: " + n_funcs + ", n_lits: " + n_lits + ", n_instr: " + n_instr + ")";
         }
     }
 
@@ -113,9 +108,9 @@ namespace ExMat.FuncPrototype
             _type = ExObjType.CLOSURE;
             _val._Method = m;
         }
-        public int Invoke(ExVM vm)
+        public int Invoke(ExVM vm, int nargs)
         {
-            return (int)_val._Method.Invoke(this, new object[] { vm });
+            return (int)_val._Method.Invoke(this, new object[] { vm, nargs });
         }
     }
 }

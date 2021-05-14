@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using ExMat.Class;
 using ExMat.Closure;
@@ -9,11 +10,12 @@ using ExMat.VM;
 namespace ExMat.Objects
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExObject
+    public class ExObject : IDisposable
     {
         public ExObjType _type = ExObjType.NULL;
 
         public ExObjVal _val;
+        private bool disposedValue;
 
         public ExObject() { }
         public ExObject(int i)
@@ -101,6 +103,85 @@ namespace ExMat.Objects
                 case ExObjType.NULL: break;
             }
             return s;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _val._RefC = null;
+                    switch (_type)
+                    {
+                        case ExObjType.INTEGER:
+                        case ExObjType.FLOAT:
+                        case ExObjType.BOOL:
+                            {
+                                _val.i_Int = 0;
+                                break;
+                            }
+                        case ExObjType.STRING:
+                            {
+                                _val.s_String = null;
+                                break;
+                            }
+                        case ExObjType.ARRAY:
+                            {
+                                if(_val.l_List != null)
+                                {
+                                    foreach(ExObjectPtr o in _val.l_List)
+                                    {
+                                        o.Dispose();
+                                    }
+                                    _val.l_List.RemoveRange(0,_val.l_List.Count);
+                                }
+                                _val.l_List = null;
+                                break;
+                            }
+                        case ExObjType.DICT:
+                            {
+                                if (_val.d_Dict != null)
+                                {
+                                    foreach (KeyValuePair<string,ExObjectPtr> pair in _val.d_Dict)
+                                    {
+                                        pair.Value.Dispose();
+                                        _val.d_Dict[pair.Key] = null;
+                                    }
+                                }
+                                _val.d_Dict = null;
+                                break;
+                            }
+                        default:
+                            {
+                                _val._Method = null;
+                                _val._Closure = null;
+                                _val._Outer = null;
+                                _val._NativeClosure = null;
+                                _val._UserData = null;
+                                _val._UserPointer = null;
+                                _val._FuncPro = null;
+                                _val._Deleg = null;
+                                _val._Thread = null;
+                                _val._Class = null;
+                                _val._Instance = null;
+                                _val._WeakRef = null;
+                                break;
+                            }
+                    }
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 
@@ -583,7 +664,7 @@ namespace ExMat.Objects
         {
             if (_delegate != null)
             {
-                string k = vm._sState._metaMethods[(int)m].ToString();
+                string k = vm._sState._metaMethods[(int)m].GetString();
                 if (_delegate._val.d_Dict.ContainsKey(k))
                 {
                     res = _delegate._val.d_Dict[k];

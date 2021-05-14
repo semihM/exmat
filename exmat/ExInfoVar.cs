@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using ExMat.Objects;
 using ExMat.OPs;
-using System.Diagnostics;
 
 namespace ExMat.InfoVar
 {

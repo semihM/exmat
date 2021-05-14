@@ -1,38 +1,108 @@
 ﻿using System;
-using ExMat.VM;
+using System.Collections.Generic;
+using ExMat.Closure;
+using ExMat.Compiler;
+using ExMat.FuncPrototype;
 using ExMat.Objects;
 using ExMat.States;
-using ExMat.Closure;
-using ExMat.FuncPrototype;
-using ExMat.Compiler;
-using System.Collections.Generic;
+using ExMat.VM;
 
 namespace ExMat.API
 {
     public static class ExAPI
     {
-        public static void GetSafeObject(ExVM vm, int idx, ExObjType typ, ref ExObjectPtr res)
+        public static bool GetSafeObject(ExVM vm, int idx, ExObjType typ, ref ExObjectPtr res)
         {
             res = GetFromStack(vm, idx);
             if (res._type != typ)
             {
-                throw new Exception("wrong argument type, expected " + typ.ToString() + " got " + res._type.ToString());
+                vm.AddToErrorMessage("wrong argument type, expected " + typ.ToString() + " got " + res._type.ToString());
+                return false;
             }
+            return true;
         }
 
-        public static void ToString(ExVM vm, int i)
+        public static bool ToString(ExVM vm, int i)
         {
             ExObjectPtr o = GetFromStack(vm, i);
             ExObjectPtr res = new(string.Empty);
-            vm.ToString(o, ref res);
+            if (!vm.ToString(o, ref res))
+            {
+                return false;
+            }
             vm.Push(res);
+            return true;
         }
 
-        public static void GetString(ExVM vm, int idx, ref string s)
+        public static bool ToFloat(ExVM vm, int i)
+        {
+            ExObjectPtr o = GetFromStack(vm, i);
+            ExObjectPtr res = null;
+            if (!vm.ToFloat(o, ref res))
+            {
+                return false;
+            }
+            vm.Push(res);
+            return true;
+        }
+
+        public static bool ToInteger(ExVM vm, int i)
+        {
+            ExObjectPtr o = GetFromStack(vm, i);
+            ExObjectPtr res = null;
+            if (!vm.ToInteger(o, ref res))
+            {
+                return false;
+            }
+            vm.Push(res);
+            return true;
+        }
+
+        public static bool GetString(ExVM vm, int idx, ref string s)
         {
             ExObjectPtr o = new();
-            GetSafeObject(vm, idx, ExObjType.STRING, ref o);
+            if (!GetSafeObject(vm, idx, ExObjType.STRING, ref o))
+            {
+                return false;
+            }
             s = o._val.s_String;
+            return true;
+        }
+
+        public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs)
+        {
+            int i = 0;
+
+            while (funcs[i].name != string.Empty)
+            {
+                PushString(vm, funcs[i].name, -1);
+                CreateClosure(vm, funcs[i].func, 0);
+                SetNativeClosureName(vm, -1, funcs[i].name);
+                SetParamCheck(vm, funcs[i].n_pchecks, funcs[i].mask);
+                CreateNewSlot(vm, -3, false);
+                i++;
+            }
+        }
+
+        public static void CreateConstantInt(ExVM vm, string name, int val)
+        {
+            PushString(vm, name, -1);
+            PushInt(vm, val);
+            CreateNewSlot(vm, -3, false);
+        }
+
+        public static void CreateConstantFloat(ExVM vm, string name, float val)
+        {
+            PushString(vm, name, -1);
+            PushFloat(vm, val);
+            CreateNewSlot(vm, -3, false);
+        }
+
+        public static void CreateConstantString(ExVM vm, string name, string val)
+        {
+            PushString(vm, name, -1);
+            PushString(vm, val, -1);
+            CreateNewSlot(vm, -3, false);
         }
 
         public static void PushBool(ExVM vm, bool b)
@@ -91,6 +161,20 @@ namespace ExMat.API
         {
         }
 
+        public static string GetExpectedTypes(int mask)
+        {
+            List<string> names = new();
+            for (int i = 0; i < 18; i++)
+            {
+                if (((mask >> i) % 2) == 1)
+                {
+                    names.Add(((ExRawType)(1 << i)).ToString());
+                }
+            }
+
+            return "(" + string.Join(", ", names) + ")";
+        }
+
         public static bool CompileTypeMask(List<int> r, string mask)
         {
             int i;
@@ -144,6 +228,8 @@ namespace ExMat.API
                 throw new Exception("native closure expected");
             }
             ExNativeClosure nc = o._val._NativeClosure;
+            nc.n_paramscheck = n;
+
             if (!string.IsNullOrEmpty(mask))
             {
                 List<int> r = new();
@@ -156,11 +242,6 @@ namespace ExMat.API
             else
             {
                 nc._typecheck = new();
-            }
-
-            if (n == int.MaxValue)
-            {
-                nc.n_paramscheck = nc._typecheck.Count;
             }
         }
         public static void DoParamChecks(ExVM vm, int n)
@@ -198,6 +279,7 @@ namespace ExMat.API
                 vm.Push(cls);
                 return true;
             }
+            vm._error = c._error;
             return false;
         }
 

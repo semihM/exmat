@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using ExMat.API;
+using ExMat.BaseLib;
+using ExMat.Class;
+using ExMat.Closure;
+using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Objects;
-using ExMat.States;
-using ExMat.BaseLib;
-using ExMat.Utils;
-using ExMat.Closure;
-using ExMat.Class;
-using ExMat.FuncPrototype;
-using ExMat.API;
 using ExMat.OPs;
+using ExMat.States;
+using ExMat.Utils;
 
 namespace ExMat.VM
 {
@@ -37,6 +37,20 @@ namespace ExMat.VM
 
         public List<ExTrap> _traps = new();
 
+        public string _error;
+
+        public void AddToErrorMessage(string msg)
+        {
+            if (string.IsNullOrEmpty(_error))
+            {
+                _error = "[ERROR]" + msg;
+            }
+            else
+            {
+                _error += "\n[ERROR]" + msg;
+            }
+        }
+
         public void Initialize(int s_size)
         {
             ExUtils.InitList(ref _stack, s_size);
@@ -48,11 +62,11 @@ namespace ExMat.VM
             _top = 0;
             _rootdict = new() { _type = ExObjType.DICT };
             _rootdict._val.d_Dict = new();
-            ExBaseLib.RegisterBase(this);
+            ExBaseLib.RegisterStdBase(this);
 
         }
 
-        public void ToString(ExObjectPtr obj, ref ExObjectPtr res, bool inside = false)
+        public bool ToString(ExObjectPtr obj, ref ExObjectPtr res, bool inside = false)
         {
             switch (obj._type)
             {
@@ -153,13 +167,95 @@ namespace ExMat.VM
                         break;
                     }
             }
+            return true;
+        }
+        public bool ToFloat(ExObjectPtr obj, ref ExObjectPtr res)
+        {
+            switch (obj._type)
+            {
+                case ExObjType.INTEGER:
+                    {
+                        res = new((float)obj.GetInt());
+                        break;
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        res = new(obj.GetFloat());
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        if (float.TryParse(obj.GetString(), out float r))
+                        {
+                            res = new(r);
+                        }
+                        else
+                        {
+                            AddToErrorMessage("failed to parse string as float");
+                            return false;
+                        }
+                        break;
+                    }
+                case ExObjType.BOOL:
+                    {
+                        res = new((float)(obj._val.b_Bool ? 1.0 : 0.0));
+                        break;
+                    }
+                default:
+                    {
+                        AddToErrorMessage("failed to parse " + obj._type.ToString() + " as float");
+                        return false;
+                    }
+            }
+            return true;
+        }
+        public bool ToInteger(ExObjectPtr obj, ref ExObjectPtr res)
+        {
+            switch (obj._type)
+            {
+                case ExObjType.INTEGER:
+                    {
+                        res = new(obj.GetInt());
+                        break;
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        res = new((int)obj.GetFloat());
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        if (int.TryParse(obj.GetString(), out int r))
+                        {
+                            res = new(r);
+                        }
+                        else
+                        {
+                            AddToErrorMessage("failed to parse string as integer");
+                            return false;
+                        }
+                        break;
+                    }
+                case ExObjType.BOOL:
+                    {
+                        res = new(obj._val.b_Bool ? 1 : 0);
+                        break;
+                    }
+                default:
+                    {
+                        AddToErrorMessage("failed to parse " + obj._type.ToString() + " as integer");
+                        return false;
+                    }
+            }
+            return true;
         }
 
         public bool NewSlotA(ExObjectPtr self, ExObjectPtr key, ExObjectPtr val, ExObjectPtr attrs, bool bstat, bool braw)
         {
             if (self._type != ExObjType.CLASS)
             {
-                throw new Exception("object has to be a class");
+                AddToErrorMessage("object has to be a class");
+                return false;
             }
 
             ExClass cls = self._val._Class;
@@ -180,6 +276,7 @@ namespace ExMat.VM
 
             if (!NewSlot(self, key, val, bstat))
             {
+                AddToErrorMessage("failed to create a slot named '" + key + "'");
                 return false;
             }
 
@@ -194,7 +291,8 @@ namespace ExMat.VM
         {
             if (key._type == ExObjType.NULL)
             {
-                throw new Exception("'null' can't be used as index");
+                AddToErrorMessage("'null' can't be used as index");
+                return false;
             }
 
             switch (self._type)
@@ -211,13 +309,21 @@ namespace ExMat.VM
                         {
                             ExObjectPtr v = new();
                             v.Assign(val);
-                            self._val.d_Dict.Add(key.GetString(), v);
+                            if(self._val.d_Dict.ContainsKey(key.GetString()))
+                            {
+                                self._val.d_Dict[key.GetString()].Assign(v);    // TO-DO should i really allow this ?
+                            }
+                            else
+                            {
+                                self._val.d_Dict.Add(key.GetString(), v);
+                            }
                         }
                         break;
                     }
                 case ExObjType.INSTANCE:
                     {
-                        throw new Exception("instances don't support new slots");
+                        AddToErrorMessage("instances don't support new slots");
+                        return false;
                     }
                 case ExObjType.CLASS:
                     {
@@ -225,18 +331,20 @@ namespace ExMat.VM
                         {
                             if (self._val._Class._islocked)
                             {
-                                throw new Exception("can't modify a class that has already been instantianted");
+                                AddToErrorMessage("can't modify a class that has already been instantianted");
                             }
                             else
                             {
-                                throw new Exception(key.GetString() + " already exists");
+                                AddToErrorMessage(key.GetString() + " already exists");
                             }
+                            return false;
                         }
                         break;
                     }
                 default:
                     {
-                        throw new Exception("indexing " + self._type.ToString() + " with " + key._type.ToString());
+                        AddToErrorMessage("indexing " + self._type.ToString() + " with " + key._type.ToString());
+                        return false;
                     }
             }
             return true;
@@ -270,6 +378,9 @@ namespace ExMat.VM
             return _stack[--_top];
         }
 
+        public void Push(string o) => _stack[_top++].Assign(o);
+        public void Push(int o) => _stack[_top++].Assign(o);
+        public void Push(float o) => _stack[_top++].Assign(o);
         public void Push(bool o) => _stack[_top++].Assign(o);
         public void Push(ExObject o) => _stack[_top++].Assign(o);
         public void Push(ExObjectPtr o) => _stack[_top++].Assign(o);
@@ -340,7 +451,8 @@ namespace ExMat.VM
                 p--;
                 if (nargs < p)
                 {
-                    throw new Exception("wrong number of parameters");
+                    AddToErrorMessage("'" + pro._name.GetString() + "' takes at least " + p + " arguments");
+                    return false;
                 }
 
                 int nvargs = nargs - p;
@@ -370,7 +482,8 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    throw new Exception("wrong number of parameters");
+                    AddToErrorMessage("'" + pro._name.GetString() + "' takes exactly " + (p-1) + " arguments");
+                    return false;
                 }
             }
 
@@ -381,6 +494,7 @@ namespace ExMat.VM
 
             if (!EnterFrame(sbase, newt, tail))
             {
+                AddToErrorMessage("failed to create a scope");
                 return false;
             }
 
@@ -404,6 +518,7 @@ namespace ExMat.VM
             }
             _nmetacalls--;
             Pop(nparams);
+            AddToErrorMessage("failed to call meta method " + m.ToString());
             return false;
         }
 
@@ -420,10 +535,11 @@ namespace ExMat.VM
             int traps = 0;
 
             // TO-DO Exec types
-            tmpreg.Assign(cls);
+            tmpreg = new(cls);
             if (!StartCall(tmpreg._val._Closure, _top - narg, narg, stackbase, false))
             {
-                throw new Exception("no calls found");
+                AddToErrorMessage("no calls found");
+                return false;
             }
 
             if (ci == prevci)
@@ -436,14 +552,15 @@ namespace ExMat.VM
             //Exception restore
             for (; ; )
             {
-                if (ci._val == null)
+                if (ci._val == null || ci._val._instrs == null)
                 {
                     return true;
                 }
 
                 if (ci._val._idx_instrs >= ci._val._instrs.Count)
                 {
-                    throw new Exception("instruction index error");
+                    return false;
+                    //throw new Exception("instruction index error");
                 }
 
                 ExInstr i = ci._val._instrs[ci._val._idx_instrs++];
@@ -493,7 +610,8 @@ namespace ExMat.VM
                                 }
                                 if (!StartCall(c._val._Closure, ci._val._target, i.arg3.GetInt(), _stackbase, true))
                                 {
-                                    throw new Exception("guarded failed call");
+                                    //AddToErrorMessage("guarded failed call");
+                                    return false;
                                 }
                                 continue;
                             }
@@ -508,7 +626,8 @@ namespace ExMat.VM
                                     {
                                         if (!StartCall(tmp2._val._Closure, i.arg0.GetInt(), i.arg3.GetInt(), _stackbase + i.arg2.GetInt(), false))
                                         {
-                                            throw new Exception("guarded failed call");
+                                            //AddToErrorMessage("guarded failed call");
+                                            return false;
                                         }
                                         continue;
                                     }
@@ -516,7 +635,8 @@ namespace ExMat.VM
                                     {
                                         if (!CallNative(tmp2._val._NativeClosure, i.arg3.GetInt(), _stackbase + i.arg2.GetInt(), ref tmp2))
                                         {
-                                            throw new Exception("guarded failed call");
+                                            //AddToErrorMessage("guarded failed call");
+                                            return false;
                                         }
 
                                         if (i.arg0.GetInt() != 985)
@@ -530,7 +650,8 @@ namespace ExMat.VM
                                         ExObjectPtr instance = new();
                                         if (!CreateClassInst(tmp2._val._Class, ref instance, tmp2))
                                         {
-                                            throw new Exception("guarded failed call");
+                                            //AddToErrorMessage("guarded failed call");
+                                            return false;
                                         }
                                         if (i.arg0.GetInt() != -1)
                                         {
@@ -546,7 +667,8 @@ namespace ExMat.VM
                                                     _stack[sbase].Assign(instance);
                                                     if (!StartCall(tmp2._val._Closure, -1, i.arg3.GetInt(), sbase, false))
                                                     {
-                                                        throw new Exception("guarded failed call");
+                                                        //AddToErrorMessage("guarded failed call");
+                                                        return false;
                                                     }
                                                     break;
                                                 }
@@ -556,7 +678,8 @@ namespace ExMat.VM
                                                     _stack[sbase].Assign(instance);
                                                     if (!CallNative(tmp2._val._NativeClosure, i.arg3.GetInt(), sbase, ref tmp2))
                                                     {
-                                                        throw new Exception("guarded failed call");
+                                                        //AddToErrorMessage("guarded failed call");
+                                                        return false;
                                                     }
                                                     break;
                                                 }
@@ -579,7 +702,8 @@ namespace ExMat.VM
 
                                             if (!CallMetaMethod(ref cls2, ExMetaM.CALL, i.arg3.GetInt() + 1, ref tmp2))
                                             {
-                                                throw new Exception("meta method failed call");
+                                                AddToErrorMessage("meta method failed call");
+                                                return false;
                                             }
 
                                             if (i.arg0.GetInt() != -1)
@@ -591,7 +715,10 @@ namespace ExMat.VM
                                         goto default;
                                     }
                                 default:
-                                    throw new Exception("attemt to call " + tmp2._type.ToString());
+                                    {
+                                        AddToErrorMessage("attemt to call " + tmp2._type.ToString());
+                                        return false;
+                                    }
                             }
                             continue;
                         }
@@ -603,7 +730,8 @@ namespace ExMat.VM
 
                             if (!Getter(ref obj, ref k, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
                             {
-                                throw new Exception("unknown method or field '"+k.GetString()+"'");
+                                AddToErrorMessage("unknown method or field '" + k.GetString() + "'");
+                                return false;
                             }
 
                             GetTargetInStack(i.arg3).Assign(obj);
@@ -617,7 +745,8 @@ namespace ExMat.VM
 
                             if (!Getter(ref tmp, ref lit, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
                             {
-                                throw new Exception("unknown variable '"+lit.GetString()+"'"); // access to local var decl before
+                                AddToErrorMessage("unknown variable '" + lit.GetString() + "'"); // access to local var decl before
+                                return false;
                             }
                             //GetTargetInStack(i).Assign(tmpreg); // TO-DO
                             SwapObjects(GetTargetInStack(i), ref tmpreg);
@@ -632,7 +761,8 @@ namespace ExMat.VM
                         {
                             if (!NewSlot(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), GetTargetInStack(i.arg3), false))
                             {
-                                throw new Exception("guarded failed newslot");
+                                //AddToErrorMessage("guarded failed newslot");
+                                return false;
                             }
                             if (i.arg0.GetInt() != 985)
                             {
@@ -645,7 +775,8 @@ namespace ExMat.VM
                             ExObjectPtr r = new(GetTargetInStack(i));
                             if (!RemoveObjectSlot(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), ref r))
                             {
-                                throw new Exception("failed to delete a slot");
+                                AddToErrorMessage("failed to delete a slot");
+                                return false;
                             }
                             continue;
                         }
@@ -654,7 +785,8 @@ namespace ExMat.VM
                             ExObjectPtr t = new(GetTargetInStack(i.arg3));
                             if (!Setter(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), ref t, ExFallback.OK))
                             {
-                                throw new Exception("failed setter for '" + GetTargetInStack(i.arg2).GetString() + "' key");
+                                AddToErrorMessage("failed setter for '" + GetTargetInStack(i.arg2).GetString() + "' key");
+                                return false;
                             }
                             if (i.arg0.GetInt() != 985)
                             {
@@ -668,7 +800,8 @@ namespace ExMat.VM
                             ExObjectPtr s2 = new(GetTargetInStack(i.arg2));
                             if (!Getter(ref s1, ref s2, ref tmpreg, false, (ExFallback)i.arg1))
                             {
-                                throw new Exception("failed getter for '" + s2.GetString() + "' key");
+                                AddToErrorMessage("failed getter for '" + s2.GetString() + "' key");
+                                return false;
                             }
                             SwapObjects(GetTargetInStack(i), ref tmpreg);
                             //GetTargetInStack(i).Assign(tmpreg);
@@ -692,7 +825,12 @@ namespace ExMat.VM
                     case OPC.DIV:
                     case OPC.MOD:
                         {
-                            GetTargetInStack(i).Assign(DoArithmeticOP(i.op, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1)));
+                            ExObjectPtr res = new();
+                            if (!DoArithmeticOP(i.op, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
+                            {
+                                return false;
+                            }
+                            GetTargetInStack(i).Assign(res);
                             continue;
                         }
                     case OPC.BITWISE:
@@ -789,12 +927,16 @@ namespace ExMat.VM
                                     {
                                         if (!DoClassOP(GetTargetInStack(i), i.arg1, i.arg2.GetInt()))
                                         {
-                                            throw new Exception("failed to create class");
+                                            AddToErrorMessage("failed to create class");
+                                            return false;
                                         }
                                         continue;
                                     }
                                 default:
-                                    throw new Exception("unknown object type " + i.arg3.GetInt());
+                                    {
+                                        AddToErrorMessage("unknown object type " + i.arg3.GetInt());
+                                        return false;
+                                    }
                             }
                         }
                     case OPC.ARRAY_APPEND:
@@ -824,10 +966,10 @@ namespace ExMat.VM
                     case OPC.PINC:
                         {
                             ExObjectPtr ob = new(i.arg3);
-                            ExObjectPtr trg = new(GetTargetInStack(i));
+
                             ExObjectPtr s1 = new(GetTargetInStack(i.arg1));
                             ExObjectPtr s2 = new(GetTargetInStack(i.arg2));
-                            if (!DoDerefInc(OPC.ADD, ref trg, ref s1, ref s2, ref ob, i.op == OPC.PINC, (ExFallback)i.arg1))
+                            if (!DoDerefInc(OPC.ADD, GetTargetInStack(i), ref s1, ref s2, ref ob, i.op == OPC.PINC, (ExFallback)i.arg1))
                             {
                                 throw new Exception(i.op + " failed");
                             }
@@ -847,7 +989,12 @@ namespace ExMat.VM
                                 ob = new(i.arg3);
                                 if (i.op == OPC.INCL)
                                 {
-                                    ob.Assign(DoArithmeticOP(OPC.ADD, ob, o));
+                                    ExObjectPtr res = new();
+                                    if (!DoArithmeticOP(OPC.ADD, ob, o, ref res))
+                                    {
+                                        return false;
+                                    }
+                                    ob.Assign(res);
                                 }
                                 else
                                 {
@@ -954,12 +1101,12 @@ namespace ExMat.VM
                         {
                             // TO-DO somethings wrong here
                             int idx = (int)((i.arg1 & 0xFFFF0000) >> 16);
-                            ExObjectPtr t = GetTargetInStack(i);
+                            
                             ExObjectPtr si = GetTargetInStack(idx);
                             ExObjectPtr s2 = GetTargetInStack(i.arg2);
-                            ExObjectPtr s1v = GetTargetInStack(i.arg1&0x0000FFFF);
+                            ExObjectPtr s1v = GetTargetInStack(i.arg1 & 0x0000FFFF);
 
-                            if (!DoDerefInc((OPC)i.arg3.GetInt(), ref t, ref si, ref s2, ref s1v, false, (ExFallback)idx))
+                            if (!DoDerefInc((OPC)i.arg3.GetInt(), GetTargetInStack(i), ref si, ref s2, ref s1v, false, (ExFallback)idx))
                             {
                                 throw new Exception("compound arithmetic failed");
                             }
@@ -1025,7 +1172,7 @@ namespace ExMat.VM
         public void FindOuterVal(ExObjectPtr target, ExObjectPtr sidx)
         {
             ExOuter opo = _openouters;
-            if(opo == null)
+            if (opo == null)
             {
                 opo = new();
             }
@@ -1126,7 +1273,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool DoDerefInc(OPC op, ref ExObjectPtr t, ref ExObjectPtr self, ref ExObjectPtr k, ref ExObjectPtr inc, bool post, ExFallback idx)
+        public bool DoDerefInc(OPC op, ExObjectPtr t, ref ExObjectPtr self, ref ExObjectPtr k, ref ExObjectPtr inc, bool post, ExFallback idx)
         {
             ExObjectPtr tmp = new();
             ExObjectPtr tmpk = k;
@@ -1135,7 +1282,12 @@ namespace ExMat.VM
             {
                 return false;
             }
-            t = DoArithmeticOP(op, tmp, inc);
+
+            if (!DoArithmeticOP(op, tmp, inc, ref t))
+            {
+                return false;
+            }
+
             if (!Setter(tmps, tmpk, ref t, idx))
             {
                 return false;
@@ -1147,9 +1299,13 @@ namespace ExMat.VM
             return true;
         }
 
-        public static bool DoVarInc(OPC op, ref ExObjectPtr t, ref ExObjectPtr o, ref ExObjectPtr diff)
+        public bool DoVarInc(OPC op, ref ExObjectPtr t, ref ExObjectPtr o, ref ExObjectPtr diff)
         {
-            ExObjectPtr res = DoArithmeticOP(op, o, diff);
+            ExObjectPtr res = new();
+            if (!DoArithmeticOP(op, o, diff, ref res))
+            {
+                return false;
+            }
             t.Assign(o);
             o.Assign(res);
             return true;
@@ -1390,7 +1546,7 @@ namespace ExMat.VM
                     }
                 case OPC.EXP:
                     {
-                        res = new((int)Math.Pow(a,b)); break;
+                        res = new((int)Math.Pow(a, b)); break;
                     }
                 default:
                     {
@@ -1398,7 +1554,8 @@ namespace ExMat.VM
                     }
             }
         }
-        private static void InnerDoArithmeticOPFloat(OPC op, float a, float b, ref ExObjectPtr res)
+
+        private bool InnerDoArithmeticOPFloat(OPC op, float a, float b, ref ExObjectPtr res)
         {
             switch (op)
             {
@@ -1412,7 +1569,8 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            throw new Exception("division by zero");
+                            AddToErrorMessage("division by zero");
+                            return false;
                         }
 
                         res = new(a / b); break;
@@ -1421,7 +1579,8 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            throw new Exception("modulo by zero");
+                            AddToErrorMessage("modulo by zero");
+                            return false;
                         }
 
                         res = new(a % b); break;
@@ -1435,10 +1594,10 @@ namespace ExMat.VM
                         throw new Exception("unknown arithmetic operation");
                     }
             }
+            return true;
         }
-        public static ExObjectPtr DoArithmeticOP(OPC op, ExObjectPtr a, ExObjectPtr b)
+        public bool DoArithmeticOP(OPC op, ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
         {
-            ExObjectPtr res = null;
             // TO-DO find out why string are nulled
             if (a._type == ExObjType.NULL && a._val.s_String != null)
             {
@@ -1459,7 +1618,10 @@ namespace ExMat.VM
                 case (int)ArithmeticMask.FLOATINT:
                 case (int)ArithmeticMask.FLOAT:
                     {
-                        InnerDoArithmeticOPFloat(op, a.GetFloat(), b.GetFloat(), ref res);
+                        if (!InnerDoArithmeticOPFloat(op, a.GetFloat(), b.GetFloat(), ref res))
+                        {
+                            return false;
+                        };
                         break;
                     }
                 case (int)ArithmeticMask.STRING:
@@ -1487,10 +1649,11 @@ namespace ExMat.VM
                     }
                 default:
                     {
-                        throw new Exception("can't do " + op.ToString() + " operation between " + a._type.ToString() + " and " + b._type.ToString());
+                        AddToErrorMessage("can't do " + op.ToString() + " operation between " + a._type.ToString() + " and " + b._type.ToString());
+                        return false;
                     }
             }
-            return res;
+            return true;
         }
 
         public enum ArithmeticMask
@@ -1553,7 +1716,8 @@ namespace ExMat.VM
                     {
                         if (self._val.d_Dict == null)
                         {
-                            throw new Exception("attempted to access null dictionary");
+                            AddToErrorMessage("attempted to access null dictionary");
+                            return false;
                         }
 
                         if (!self._val.d_Dict.ContainsKey(k.GetString()))
@@ -1569,7 +1733,8 @@ namespace ExMat.VM
                         {
                             if (self._val.l_List == null)
                             {
-                                throw new Exception("attempted to access null array");
+                                AddToErrorMessage("attempted to access null array");
+                                return false;
                             }
 
                             int n = k.GetInt();
@@ -1585,16 +1750,19 @@ namespace ExMat.VM
                             }
                             else
                             {
-                                throw new Exception("array index error: count " + self._val.l_List.Count + " idx: " + k.GetInt());
+                                AddToErrorMessage("array index error: count " + self._val.l_List.Count + " idx: " + k.GetInt());
+                                return false;
                             }
                         }
-                        throw new Exception("can't index array with " + k._type.ToString());
+                        AddToErrorMessage("can't index array with " + k._type.ToString());
+                        return false;
                     }
                 case ExObjType.INSTANCE:
                     {
                         if (self._val._Instance == null)
                         {
-                            throw new Exception("attempted to access null instance");
+                            AddToErrorMessage("attempted to access null instance");
+                            return false;
                         }
 
                         ExObjectPtr res = new();
@@ -1603,7 +1771,7 @@ namespace ExMat.VM
                             self._val._Instance._values[res.GetMemberID()].Assign(new ExObjectPtr(v));
                             return true;
                         }
-                        return false;
+                        break;
                     }
                 case ExObjType.STRING:
                     {
@@ -1620,7 +1788,8 @@ namespace ExMat.VM
                                 self.SetString(self.GetString().Substring(0, n) + k.GetString() + self.GetString()[n..l]);
                                 return true;
                             }
-                            throw new Exception("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
+                            AddToErrorMessage("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
+                            return false;
                         }
                         break;
                     }
@@ -1647,7 +1816,8 @@ namespace ExMat.VM
                 }
             }
 
-            throw new Exception("key error: " + k.GetString());
+            AddToErrorMessage("key error: " + k.GetString());
+            return false;
         }
         public ExFallback SetterFallback(ExObjectPtr self, ExObjectPtr k, ref ExObjectPtr v)
         {
@@ -1745,7 +1915,7 @@ namespace ExMat.VM
                         break;
                     }
             }
-            if(del.ContainsKey(k.GetString()))
+            if (del.ContainsKey(k.GetString()))
             {
                 dest = new ExNativeClosure();
                 dest._val._NativeClosure = (ExNativeClosure)del[k.GetString()];
@@ -1806,7 +1976,8 @@ namespace ExMat.VM
                     {
                         if (self._val.d_Dict == null)
                         {
-                            throw new Exception("attempted to access null dictionary");
+                            AddToErrorMessage("attempted to access null dictionary");
+                            return false;
                         }
 
                         if (self._val.d_Dict.ContainsKey(k.GetString()))
@@ -1823,7 +1994,8 @@ namespace ExMat.VM
                         {
                             if (self._val.l_List == null)
                             {
-                                throw new Exception("attempted to access null array");
+                                AddToErrorMessage("attempted to access null array");
+                                return false;
                             }
 
                             if (self._val.l_List.Count != 0 && self._val.l_List.Count > k.GetInt())
@@ -1843,7 +2015,8 @@ namespace ExMat.VM
                     {
                         if (self._val._Instance == null)
                         {
-                            throw new Exception("attempted to access null instance");
+                            AddToErrorMessage("attempted to access null instance");
+                            return false;
                         }
 
                         if (self._val._Instance._class._members.ContainsKey(k.GetString()))
@@ -1866,7 +2039,8 @@ namespace ExMat.VM
                     {
                         if (self._val._Class == null)
                         {
-                            throw new Exception("attempted to access null class");
+                            AddToErrorMessage("attempted to access null class");
+                            return false;
                         }
                         if (self._val._Class._members.ContainsKey(k.GetString()))
                         {
@@ -1898,7 +2072,8 @@ namespace ExMat.VM
                                 dest = new ExObjectPtr(self.GetString()[n].ToString());
                                 return true;
                             }
-                            throw new Exception("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
+                            AddToErrorMessage("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
+                            return false;
                         }
                         break;
                     }
@@ -2036,7 +2211,7 @@ namespace ExMat.VM
                 CloseOuters(last_b);
             }
 
-            if(last_t >= _stack.Count)
+            if (last_t >= _stack.Count)
             {
                 throw new Exception("stack overflow! Allocate more stack room for these operations");
             }
@@ -2048,7 +2223,7 @@ namespace ExMat.VM
 
         public bool CallNative(ExNativeClosure cls, int narg, int newb, ref ExObjectPtr o)
         {
-            if(cls._val._NativeClosure != null)
+            if (cls._val._NativeClosure != null)
             {
                 cls = cls._val._NativeClosure;
             }
@@ -2061,20 +2236,35 @@ namespace ExMat.VM
                 throw new Exception("Native stack overflow");
             }
 
-            if ((nparamscheck > 0 && nparamscheck != narg) || (nparamscheck < 0 && narg < -nparamscheck))
+            if (((nparamscheck > 0) && (nparamscheck != narg)) ||
+            ((nparamscheck < 0) && (narg < (-nparamscheck))))
             {
-                throw new Exception("wrong number of parameters");
+                if (nparamscheck < 0)
+                {
+                    AddToErrorMessage("'" + cls._name.GetString() + "' takes minimum " + (-nparamscheck - 1) + " arguments");
+                    return false;
+                }
+                AddToErrorMessage("'" + cls._name.GetString() + "' takes exactly " + (nparamscheck - 1) + " arguments");
+                return false;
             }
 
             List<int> ts = cls._typecheck;
             int t_n = ts.Count;
+
             if (t_n > 0)
             {
+                if (nparamscheck < 0 && t_n < narg)
+                {
+                    AddToErrorMessage("'" + cls._name.GetString() + "' takes maximum " + (t_n - 1) + " arguments");
+                    return false;
+                }
+
                 for (int i = 0; i < narg && i < t_n; i++)
                 {
                     if (ts[i] != -1 && !IncludesType((int)_stack[newb + i]._type, ts[i]))
                     {
-                        throw new Exception("invalid parameter type, expected: type(" + ts[i].ToString() + ") got: " + _stack[newb + i]._type.ToString());
+                        AddToErrorMessage("invalid parameter type, expected one of " + ExAPI.GetExpectedTypes(ts[i]) + ", got: " + _stack[newb + i]._type.ToString());
+                        return false;
                     }
                 }
             }
@@ -2097,18 +2287,18 @@ namespace ExMat.VM
             }
 
             _nnativecalls++;
-            int ret = cls._func.Invoke(this);
+            int ret = cls._func.Invoke(this, narg - 1);
             _nnativecalls--;
 
             if (ret < 0)
             {
                 LeaveFrame();
-                throw new Exception("returned < 0 from native func");
+                return false;
             }
 
             if (ret == 0)
             {
-                 o.Nullify(); // TODO: Stops rest of the instructions
+                o.Nullify(); // TODO: Stops rest of the instructions
             }
             else
             {

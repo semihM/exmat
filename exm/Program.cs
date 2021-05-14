@@ -1,31 +1,97 @@
 ﻿using System;
-using ExMat.Compiler;
+using System.IO;
+using ExMat.API;
+using ExMat.BaseLib;
 using ExMat.Objects;
 using ExMat.VM;
-using ExMat.BaseLib;
-using ExMat.API;
-using System.IO;
 
 namespace ExMat
 {
-    class Program
+    internal class Program
     {
-        static readonly int VM_STACK_SIZE = 5096;
+        private static readonly int VM_STACK_SIZE = 5096;
 
-        static int Main(string[] args)
+        private static bool CheckCarryOver(string code)
         {
-            args = new string[] { "sq.exe", "hello.nut" };
+            return code.Length > 0 && code[^1] == '\\';
+        }
 
-            int argc = args.Length;
+        private static int Main(string[] args)
+        {
+            
+            ExVM vm = ExAPI.Start(VM_STACK_SIZE);
+            ExAPI.PushRootTable(vm);
 
-            if (argc == 2)
+            ExStdMath.RegisterStdMath(vm);
+            ExStdIO.RegisterStdIO(vm);
+            ExStdString.RegisterStdString(vm);
+
+            int count = 0;
+            bool carryover = false;
+            string code = string.Empty;
+
+            ///////////
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine(vm._rootdict.GetDict()["_version_"].GetString());
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine(new string('-',60));
+            Console.ResetColor();
+            ///////////
+            while (true)
             {
-                ExVM vm = ExAPI.Start(VM_STACK_SIZE);
-                ExAPI.PushRootTable(vm);
+                if(carryover)
+                {
+                    Console.Write("\t");
+                    code += Console.ReadLine().TrimEnd(' ','\t');
+                    if(CheckCarryOver(code))
+                    {
+                        carryover = false;
+                    }
+                    code = code.TrimEnd('\\', ' ', '\t');
+                }
+                else
+                {
+                    ///////////
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    if(count > 0)
+                    {
+                        Console.Write("\n");
+                    }
+                    Console.Write("\nIN [");
+                    Console.ForegroundColor = ConsoleColor.White;
+                    Console.Write(count);
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.Write("]: ");
+                    Console.ResetColor();
+                    ///////////
 
-                string file = File.ReadAllText(args[1]);
+                    code = Console.ReadLine().TrimEnd(' ', '\t');
+                    if (CheckCarryOver(code))
+                    {
+                        carryover = true;
+                    }
+                }
 
-                if (ExAPI.CompileFile(vm, file))
+                if (carryover)
+                {
+                    code = code.TrimEnd('\\', ' ', '\t') + "\r\n";
+                    continue;
+                }
+
+                ///////////
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write("OUT[");
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.Write(count);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write("]: ");
+                Console.ResetColor();
+                ///////////
+
+                carryover = false;
+                count++;
+
+                if (ExAPI.CompileFile(vm, code))
                 {
                     ExAPI.PushRootTable(vm);
                     if (ExAPI.Call(vm, 1, true))
@@ -43,16 +109,22 @@ namespace ExMat
                     }
                     else
                     {
-                        throw new Exception("error executing");
+                        Console.WriteLine("\n\n+/+/+/+/+/+/+/+/+/+/+/+/+/+");
+                        Console.WriteLine("FAILED TO EXECUTE");
+                        Console.WriteLine(vm._error);
+                        Console.WriteLine("+/+/+/+/+/+/+/+/+/+/+/+/+/+");
+                        vm._error = string.Empty;
                     }
                 }
                 else
                 {
-                    throw new Exception("error compling");
+                    Console.WriteLine("\n\n+/+/+/+/+/+/+/+/+/+/+/+/+/+");
+                    Console.WriteLine("FAILED TO COMPILE");
+                    Console.WriteLine(vm._error);
+                    Console.WriteLine("+/+/+/+/+/+/+/+/+/+/+/+/+/+");
+                    vm._error = string.Empty;
                 }
             }
-
-            return -1;
         }
     }
 }

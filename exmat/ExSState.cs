@@ -43,10 +43,10 @@ namespace ExMat.States
         public ExObjectPtr _list_del = new(new Dictionary<string, ExObjectPtr>());
         public List<ExRegFunc> _list_delF = new()
         {
-            new() { name = "len", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) } ,
-            new() { name = "append", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) } ,
-            new() { name = "push", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) } ,
-            new() { name = "pop", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_pop")) } ,
+            new() { name = "len", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
+            new() { name = "append", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) },
+            new() { name = "push", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) },
+            new() { name = "pop", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_pop")) },
             new() { name = string.Empty }
         };
 
@@ -106,14 +106,14 @@ namespace ExMat.States
                 _metaMethodsMap._val.d_Dict.Add(_metaMethods[i].GetString(), new(i));
             }
 
-            _dict_del = CreateDefDel(this, _dict_delF);
-            _class_del = CreateDefDel(this, _class_delF);
-            _list_del = CreateDefDel(this, _list_delF);
-            _num_del = CreateDefDel(this, _num_delF);
-            _str_del = CreateDefDel(this, _str_delF);
-            _closure_del = CreateDefDel(this, _closure_delF);
-            _inst_del = CreateDefDel(this, _inst_delF);
-            _wref_del = CreateDefDel(this, _wref_delF);
+            _dict_del.Assign(CreateDefDel(this, _dict_delF));
+            _class_del.Assign(CreateDefDel(this, _class_delF));
+            _list_del.Assign(CreateDefDel(this, _list_delF));
+            _num_del.Assign(CreateDefDel(this, _num_delF));
+            _str_del.Assign(CreateDefDel(this, _str_delF));
+            _closure_del.Assign(CreateDefDel(this, _closure_delF));
+            _inst_del.Assign(CreateDefDel(this, _inst_delF));
+            _wref_del.Assign(CreateDefDel(this, _wref_delF));
         }
 
         public static ExObjectPtr CreateDefDel(ExSState exs, List<ExRegFunc> f)

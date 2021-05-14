@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.Utils;
@@ -31,7 +27,7 @@ namespace ExMat.Class
 
         public string GetDebuggerDisplay()
         {
-            return "CMEM(" + val.GetDebuggerDisplay()+ ")";
+            return "CMEM(" + val.GetDebuggerDisplay() + ")";
         }
     }
 
@@ -88,7 +84,7 @@ namespace ExMat.Class
             return new(exs, b);
         }
 
-        public new static ExObjType GetType()
+        public static new ExObjType GetType()
         {
             return ExObjType.CLASS;
         }
@@ -222,11 +218,11 @@ namespace ExMat.Class
 
         public new string GetDebuggerDisplay()
         {
-            if(_base != null)
+            if (_base != null)
             {
                 return "[" + _base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + _constridx + ", n_mem: " + _members.Count + ")";
             }
-            return "CLASS(c_idx: "+ _constridx + ", n_mem: " + _members.Count + ")";
+            return "CLASS(c_idx: " + _constridx + ", n_mem: " + _members.Count + ")";
         }
     }
 
@@ -243,7 +239,7 @@ namespace ExMat.Class
             _values = new();
         }
 
-        public new static ExObjType GetType()
+        public static new ExObjType GetType()
         {
             return ExObjType.INSTANCE;
         }
