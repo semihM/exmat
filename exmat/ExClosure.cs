@@ -39,7 +39,7 @@ namespace ExMat.Closure
             _refc--;
             if (_refc == 0)
             {
-                RemoveFromChain(_sState._GC_CHAIN, this);
+                RemoveFromChain(ref _sState._GC_CHAIN, this);
             }
         }
 

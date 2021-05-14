@@ -142,9 +142,9 @@ namespace ExMat.Compiler
 
         public string GetStringForTokenType(TokenType typ)
         {
-            foreach(KeyValuePair<string,TokenType> pair in _lexer._keyWordsDict)
+            foreach (KeyValuePair<string, TokenType> pair in _lexer._keyWordsDict)
             {
-                if(pair.Value == typ)
+                if (pair.Value == typ)
                 {
                     return pair.Key;
                 }
@@ -1377,7 +1377,6 @@ namespace ExMat.Compiler
             }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0059:Unnecessary assignment of a value", Justification = "<Pending>")]
         public bool ExPrefixed()
         {
             int p = -1;
@@ -2131,8 +2130,8 @@ namespace ExMat.Compiler
                         {
                             if (!ReadAndSetToken()
                                 || !ExSepExp()
-                                || Expect(TokenType.ARR_CLOSE) == null 
-                                || Expect(TokenType.ASG) == null 
+                                || Expect(TokenType.ARR_CLOSE) == null
+                                || Expect(TokenType.ASG) == null
                                 || !ExExp())
                             {
                                 return false;

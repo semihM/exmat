@@ -8,17 +8,17 @@ namespace ExMat.BaseLib
 {
     public static class ExStdMath
     {
-        public static Random rand = new();
+        private static Random rand = new();
 
         public static int MATH_srand(ExVM vm, int nargs)
         {
-            rand = new(ExAPI.GetFromStack(vm, 2).GetInt());
+            Rand = new(ExAPI.GetFromStack(vm, 2).GetInt());
             return 0;
         }
 
         public static int MATH_rand(ExVM vm, int nargs)
         {
-            vm.Push(rand.Next());
+            vm.Push(Rand.Next());
             return 1;
         }
 
@@ -257,6 +257,7 @@ namespace ExMat.BaseLib
             new() { name = string.Empty }
         };
         public static List<ExRegFunc> MathFuncs { get => _stdmathfuncs; }
+        public static Random Rand { get => rand; set => rand = value; }
 
         public static bool RegisterStdMath(ExVM vm)
         {

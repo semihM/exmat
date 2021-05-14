@@ -309,7 +309,7 @@ namespace ExMat.VM
                         {
                             ExObjectPtr v = new();
                             v.Assign(val);
-                            if(self._val.d_Dict.ContainsKey(key.GetString()))
+                            if (self._val.d_Dict.ContainsKey(key.GetString()))
                             {
                                 self._val.d_Dict[key.GetString()].Assign(v);    // TO-DO should i really allow this ?
                             }
@@ -482,7 +482,7 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    AddToErrorMessage("'" + pro._name.GetString() + "' takes exactly " + (p-1) + " arguments");
+                    AddToErrorMessage("'" + pro._name.GetString() + "' takes exactly " + (p - 1) + " arguments");
                     return false;
                 }
             }
@@ -1101,7 +1101,7 @@ namespace ExMat.VM
                         {
                             // TO-DO somethings wrong here
                             int idx = (int)((i.arg1 & 0xFFFF0000) >> 16);
-                            
+
                             ExObjectPtr si = GetTargetInStack(idx);
                             ExObjectPtr s2 = GetTargetInStack(i.arg2);
                             ExObjectPtr s1v = GetTargetInStack(i.arg1 & 0x0000FFFF);
@@ -1129,7 +1129,7 @@ namespace ExMat.VM
                 case ExObjType.USERDATA:
                     {
                         ExObjectPtr cls = new();
-                        ExObjectPtr tmp = null;
+                        ExObjectPtr tmp;
 
                         if (self._val._Deleg != null && self._val._Deleg.GetMetaM(this, ExMetaM.DELS, ref cls))
                         {

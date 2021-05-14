@@ -128,13 +128,13 @@ namespace ExMat.Objects
                             }
                         case ExObjType.ARRAY:
                             {
-                                if(_val.l_List != null)
+                                if (_val.l_List != null)
                                 {
-                                    foreach(ExObjectPtr o in _val.l_List)
+                                    foreach (ExObjectPtr o in _val.l_List)
                                     {
                                         o.Dispose();
                                     }
-                                    _val.l_List.RemoveRange(0,_val.l_List.Count);
+                                    _val.l_List.RemoveRange(0, _val.l_List.Count);
                                 }
                                 _val.l_List = null;
                                 break;
@@ -143,7 +143,7 @@ namespace ExMat.Objects
                             {
                                 if (_val.d_Dict != null)
                                 {
-                                    foreach (KeyValuePair<string,ExObjectPtr> pair in _val.d_Dict)
+                                    foreach (KeyValuePair<string, ExObjectPtr> pair in _val.d_Dict)
                                     {
                                         pair.Value.Dispose();
                                         _val.d_Dict[pair.Key] = null;
@@ -699,11 +699,15 @@ namespace ExMat.Objects
             GetHead()._prev = c;
         }
 
-        public static void RemoveFromChain(ExCollectable ch, ExCollectable c)
+        public static void RemoveFromChain(ref ExCollectable ch, ExCollectable c)
         {
             if (c._prev != null)
             {
                 c._prev._next = c._next;
+            }
+            else
+            {
+                ch = c._next;
             }
 
             if (c._next != null)

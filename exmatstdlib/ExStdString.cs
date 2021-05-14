@@ -53,7 +53,7 @@ namespace ExMat.BaseLib
         public static int STRING_compile(ExVM vm, int nargs)
         {
             string code = ExAPI.GetFromStack(vm, 2).GetString();
-            
+
             if (ExAPI.CompileFile(vm, code))
             {
                 return 1;

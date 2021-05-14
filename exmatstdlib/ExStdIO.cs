@@ -224,7 +224,7 @@ namespace ExMat.BaseLib
                 return -1;
             }
 
-            if(ExAPI.CompileFile(vm, File.ReadAllText(i.GetString())))
+            if (ExAPI.CompileFile(vm, File.ReadAllText(i.GetString())))
             {
                 ExAPI.PushRootTable(vm);
                 if (!ExAPI.Call(vm, 1, false))
