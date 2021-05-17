@@ -1,0 +1,407 @@
+//Start by priting the version
+
+var start = time()
+
+printl(_version_)
+printl("-----------------------")
+printl("henlo world")
+printl("-----------------------")
+var a = [33,44,55,66,77,88,99];
+printl(a)
+printl("a string: "+ string(a))
+printl("a[5]: "+ a[5]);
+a[1] = 3
+a[2] = a[1]
+a[1] = 99999
+printl("a[1] = 3 & a[2] = a[1] & a[1] = 99999: " + string(a))
+printl("type of a[3]: " + type(a[3]))
+
+printl("-----------------------")
+var b = a[1];
+printl("b == a[1]: "+ b)
+
+printl("-----------------------")
+var a2 = list(10,2)
+printl(a2)
+
+printl("-----------------------")
+b = 3 + 0.14159
+printl("pi: " + b)
+
+printl("-----------------------")
+var sci = 3.923E+2
+printl("sci: "+sci)
+printl("sci type: "+type(sci))
+
+printl("-----------------------")
+var d = type(sci)
+printl("d: " + d)
+printl("sci type+num: " + d + 123)
+
+printl("-----------------------")
+var e = "hello world\n\t newlined"
+printl(e)
+printl("hello world direct")
+printl(e+" \t"+"<- tab&spaced")
+printl(e+"+scientific: "+9.0025e-3)
+
+printl("-----------------------")
+var l = list(5)
+printl("empty list(5):"+string(l))
+
+l[0] = 5
+printl("after l[0]=5: "+string(l))
+
+printl("-----------------------")
+
+if(false)
+	printl("condition failed");
+else
+	printl("condition worked");
+
+if(l[1] != 5)
+{
+	printl("l[1] is not 5")
+}
+
+if(l[0] == 5)
+{
+	printl("l[0] is 5");
+}
+else
+{
+	printl("l[0] is not 5 ???");
+}
+printl("-----------------------")
+if(1)
+{
+	printl("1 is true as bool");
+	var a3 = 123
+	printl("a3 inside: "+a3) 
+}
+
+if(0 in a)
+	printl("0 is in a ????")
+
+if(55 in a)
+	printl("a has an element equal to 55")
+
+printl("-----------------------")
+var x = range(6);
+printl(x)
+
+var y = range(2,7);
+printl(y)
+
+var z = range(0,1,0.1);
+printl(z)
+printl("-----------------------")
+
+var globcalled = false
+
+for(var i = 0; i < 2; i++)
+{
+	printl("i is: "+i);
+	for(var j = 3;j >= i; j--)
+	{
+		if(j == i)
+			break;
+
+		if("global" in this)
+		{
+			if(!globcalled)
+			{
+				printl("global is "+ global)
+				globcalled = true;
+			}
+		}
+		else
+		{
+			::global = 123
+		}
+
+		printl("j is: "+j)
+	}
+	printl("-------")
+	continue;
+}
+
+printl("-----------------------")
+::another_global = "global_two"
+this["hello"] = 999
+this.hi = 666
+
+printl(this)
+
+printl("-----------------------")
+class Test
+{
+	constructor(abc)
+	{
+		_abc = abc
+	}
+
+	_abc = null;
+	_secret = null;
+}
+
+var inst = Test(3)
+printl("inst type:" + type(inst))
+printl("inst: "+inst._abc)
+
+var inst2 = Test("xd")
+printl("inst2 type:" + type(inst2))
+printl("inst2: "+inst2._abc)
+printl("inst: "+inst._abc)
+
+inst._secret = 123
+printl("inst secret: "+inst._secret)
+printl("inst2 secret: "+inst2._secret)
+
+inst = inst2
+printl("inst=inst2 secret: "+inst._secret)
+printl("inst2 secret: "+inst2._secret)
+printl("-----------------------")
+
+var list = list(3,99)
+printl(list)
+list = ::list(3,66)
+printl(list)
+
+list = ::list(list[0]/11,list[0]/6)
+printl(list)
+printl("-----------------------")
+
+var lim = 32
+for(var i = 0; i <= lim; i++)
+	print((1<<i) + (i == lim ? "" : ", "))
+
+print("\n")
+printl("removing: "+(delete this.hello))
+printl(this)
+
+printl("-----------------------")
+function fact(y)
+{
+	if(y <= 1)
+		return 1
+	else
+		return y * fact(y-1)
+}
+
+var factstart = time()
+printl(fact(15))
+printl("Factorial time(ms):"+(time()-factstart))
+printl("-----------------------")
+
+function fib(n)
+{
+    if (n < 2) return 1
+    return fib(n-2) + fib(n-1) 
+}
+
+var fibstart = time()
+printl(fib(15))
+printl("Fibonacci time(ms):"+(time()-fibstart))
+printl("-----------------------")
+
+function Ack(M, N) {
+    if (M == 0) return( N + 1 );
+    if (N == 0) return( Ack(M - 1, 1) );
+    return( Ack(M - 1, Ack(M, (N - 1))) );
+}
+
+var ackstart = time()
+printl(Ack(3,2))
+printl("Ack time(ms):"+(time()-ackstart))
+printl("-----------------------")
+
+var i1 = 0;
+var i2 = 0;
+var n = 65
+
+x = ::list(n);
+y = ::list(n);
+
+for (i1 = 0; i1 < n; i1+=1) {
+  x[i1] = i1 + 1;
+  y[i1] = 0; 
+}
+
+for (i2 = 0 ; i2 < n; i2+=1) {
+  for (i1 = n-1; i1 >= 0; i1-=1) {
+	y[i1] = y[i1]+ x[i1];
+  }
+}
+
+printl(y[0]+" "+y[n-1]);
+printl("-----------------------")
+function min(x,y)
+	return x<y?x:y;
+	
+function max(x,y)
+	return x>y?x:y;
+
+if(min(100,200)>max(50,20))
+	printl("min(100,200) > max(50,20)");
+else
+	printl("something broke");
+	
+
+var aa=1,bb=[],cc=function(a,b){return a+b;}
+
+printl("aa "+type(aa));
+printl("bb "+type(bb));
+printl("cc "+type(cc));
+printl("-----------------------")
+
+class Vector
+{
+	constructor(_x,_y,_z)
+	{
+		this.x = _x
+		this.y = _y
+		this.z = _z
+	}
+
+	x = 0
+	y = 0
+	z = 0
+
+	function Norm()
+	{
+		return (this.x**2 + this.y**2 + this.z**2)**0.5
+	}
+}
+
+function Vector::GetX()
+{
+	return this.x;
+}
+
+function Vector::GetY()
+{
+	return this.y;
+}
+
+function Vector::GetZ()
+{
+	return this.z;
+}
+
+var v1 = Vector(3,4,0)
+var v2 = Vector(5,12,0)
+printl(v1)
+printl(v1.x + " "+ v1.y + " " + v1.z)
+printl(v1.GetX() + " "+ v1.GetY() + " " + v1.GetZ())
+printl(type(v1.x) + " "+ type(v1.y) + " " + type(v1.z))
+printl(type(x) + " "+ type(y) + " " + type(z))
+printl(v1.Norm())
+
+printl(v2)
+printl(v2.GetX() + " "+ v2.GetY() + " " + v2.GetZ())
+printl(v1.GetX() + " "+ v1.GetY() + " " + v1.GetZ())
+printl(v2.Norm())
+
+function Vector::Norm()
+{
+	return "borked norm method";
+}
+
+printl(v1.Norm())
+printl(v2.Norm())
+
+printl("-----------------------")
+
+var str = "get length of this"
+printl("str length: "+str.len())
+printl("-----------------------")
+printl("this length: "+len())
+printl("-----------------------")
+x = range(1,11,0.5)
+printl(x)
+x.pop()
+printl(x)
+printl(x.pop())
+printl(x)
+x.append(999)
+printl(x)
+printl(x.append(666))
+printl(x)
+printl("-----------------------")
+printl("5 random values")
+for(var id = 0; id < 5; id++)
+{
+	print(randf() + ", ")
+}
+printl("\n-----------------------")
+printl("loge(E): "+loge(E))
+printl("log2(4): "+log2(4))
+printl("log10(1000): "+log10(1000))
+printl("loge(E**5): "+loge(E**5))
+printl("-----------------------")
+printl("PI/180: "+ PI/180)
+printl("sin(PI): "+ sin(PI))
+printl("ceil(sin(PI)): "+ ceil(sin(PI)))
+printl("round(sin(PI)): "+ round(sin(PI)))
+printl("sin(45*PI/180): "+ sin(45*PI/180))
+printl("-----------------------")
+printl("sqrt(2)/2: "+ sqrt(2)/2)
+printl("-----------------------")
+printl("cos(PI): "+ cos(PI))
+printl("floor(cos(PI)): "+ floor(cos(PI)))
+printl("round(cos(PI)): "+ round(cos(PI)))
+printl("cos(45*PI/180): "+ cos(45*PI/180))
+printl("-----------------------")
+printl(NAN)
+printl(INF)
+printl(NINF)
+printl(float(string(NAN)))
+printl(float(string(INF)))
+printl(float(string(NINF)))
+printl("-----------------------")
+if(isNAN(NAN))
+	printl("NAN is indeed NAN")
+else
+	printl("NAN is not NAN ?????")
+
+if(isINF(NINF))
+	printl("NINF is INF ?????")
+else
+	printl("NINF is NINF yep")
+
+//if(isNINF("abc"))
+//	printl("abc is NINF ?????")
+printl("-----------------------")
+
+var dir = "./test.txt"
+var dir1 = "./test1.txt"
+var dir2 = "./test2.txt"
+var content = "hello test\twriting files"
+
+write_text(dir,content)
+
+printl(read_text(dir))
+printl(read_lines(dir))
+printl(read_bytes(dir1))
+
+printl("-----------------------")
+
+printl(read_text(dir,"utf8"))
+printl(read_text(dir,"latin"))
+printl(read_text(dir,"utf16"))
+printl(read_text(dir,"utf32"))
+printl(read_text(dir,"ascii"))
+
+printl("-----------------------")
+
+printl(strip("   12345 789  ").len())
+printl(lstrip("   12345 789  ").len())
+printl(rstrip("   12345 789  ").len())
+printl(split("   12345 789  "," "))
+printl(split("   12345 789  "," ",true))
+
+printl("-----------------------")
+printl("Execution time(ms):"+(time()-start))
+
+print("-----------------------")

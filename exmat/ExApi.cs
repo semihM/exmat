@@ -268,6 +268,21 @@ namespace ExMat.API
             }
         }
 
+        public static int GetValueIndexFromArray(List<ExObjectPtr> lis, ExObjectPtr obj)
+        {
+            int i = 0;
+            bool f = false;
+            for (; i < lis.Count; i++)
+            {
+                ExVM.CheckEqual(lis[i], obj, ref f);
+                if (f)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         public static bool CompileFile(ExVM vm, string _source)
         {
             ExCompiler c = new();
@@ -334,5 +349,35 @@ namespace ExMat.API
             return vm;
         }
 
+        public static void WriteErrorMessages(ExVM vm, string typ)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine("\n\n*******************************");
+            switch (typ)
+            {
+                case "COMPILE":
+                    {
+                        Console.ForegroundColor = ConsoleColor.Cyan;
+                        Console.WriteLine("FAILED TO COMPILE");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(vm._error);
+                        break;
+                    }
+                case "EXECUTE":
+                    {
+                        Console.ForegroundColor = ConsoleColor.Blue;
+                        Console.WriteLine("FAILED TO EXECUTE");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine(vm._error);
+                        break;
+                    }
+            }
+
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            Console.WriteLine("*******************************");
+            Console.ResetColor();
+
+            vm._error = string.Empty;
+        }
     }
 }

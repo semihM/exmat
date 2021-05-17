@@ -115,7 +115,14 @@
         INSTANCEOF,
         IN,
 
-        NEWSLOT
+        NEWSLOT,
+
+        CLUSTER,
+        ELEMENT_DEF,
+        SPACE,
+
+        MACROSTART,
+        MACROEND
 
     }
 

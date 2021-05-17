@@ -1,0 +1,148 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "ExMat",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#reserved-words"
+		},
+		{
+			"include": "#reserved-funcs"
+		},
+		{
+			"include": "#keywords"
+		}
+	],
+	"repository": {
+
+		"comments": 
+		{
+			"patterns": 
+			[
+				{
+					"begin": "//",
+					"end": "\\n",
+					"captures": {
+						"0":
+						{
+							"name":"punctuation.definition.comment.exmat"
+						}
+					},
+					"name": "comment.line.control.exmat"
+				},
+				{
+					"begin": "/\\*",
+					"end": "\\*/",
+					"captures": {
+						"0":
+						{
+							"name":"punctuation.definition.comment.exmat"
+						}
+					},
+					"name": "comment.block.control.exmat"
+				},
+				{  
+					"begin" : "#define",
+					"end" : "[\\n\\r\\t ]",
+					"name" : "comment.block.preprocessor",
+					"captures": 
+					{
+						"1": 
+						{
+							"name": "comment.block.preprocessor"
+						}
+					}
+				},
+				{  
+					"begin" : "#end",
+					"end" : "[\\n\\r\\t ]",
+					"name" : "comment.block.preprocessor",
+					"captures": 
+					{
+						"1": 
+						{
+							"name": "comment.block.preprocessor"
+						}
+					}
+				}
+			]
+		},
+		"keywords": 
+		{
+			"patterns": 
+			[
+				{
+					"name": "keyword.control.exmat",
+					"match": "\\b(if|else|break|continue|for|return)\\b"
+				},
+				{
+					"name": "keyword.control.exmat",
+					"match": "\\b(in)\\b"
+				},
+				{
+					"name": "keyword.other.exmat",
+					"match": "\\b(var|delete|typeof|instanceof)\\b"
+				}
+			]
+		},
+		"reserved-funcs": 
+		{
+			"patterns": 
+			[
+				{
+					"name": "storage.type.exmat",
+					"match": "\\b(function|cluster|rule|class)\\b"
+				},
+				{
+				"name": "entity.name.function.exmat",
+				"match": "\\b(print|printl|type|time|string|float|integer|list|range|matrix)\\b"
+				},
+				{
+				"name": "entity.name.function.exmat",
+				"match": "\\b(read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir)\\b"
+				},
+				{
+				"name": "entity.name.function.exmat",
+				"match": "\\b(srand|rand|randf|abs|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|asinh|acos|acosh|atan|atan2|atanh|loge|log2|log10|exp|round|floor|ceil|pow|isINF|isNINF|isNAN)\\b"
+				},
+				{
+				"name": "entity.name.function.exmat",
+				"match": "\\b(compile|strip|lstrip|rstrip|split)\\b"
+				}
+			]
+		},
+		"reserved-words": 
+		{
+			"patterns": 
+			[
+				{
+				"name": "variable.language.exmat",
+				"match": "\\b(constructor|this|base|vargv)\\b"
+				},
+				{
+				"name": "constant.language.exmat",
+				"match": "\\b(true|false|null)\\b"
+				}
+			]
+		},
+		"strings": 
+		{
+			"name": "string.quoted.double.exmat",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": 
+			[
+				{
+					"name": "constant.character.escape.exmat",
+					"match": "\\\\."
+				}
+			]
+		}
+	},
+	"scopeName": "source.exmat"
+}

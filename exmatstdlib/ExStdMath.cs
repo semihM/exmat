@@ -18,7 +18,48 @@ namespace ExMat.BaseLib
 
         public static int MATH_rand(ExVM vm, int nargs)
         {
-            vm.Push(Rand.Next());
+            switch (nargs)
+            {
+                case 0:
+                    {
+                        vm.Push(Rand.Next());
+                        break;
+                    }
+                case 1:
+                    {
+                        vm.Push(Rand.Next(ExAPI.GetFromStack(vm, 2).GetInt()));
+                        break;
+                    }
+                case 2:
+                    {
+                        vm.Push(Rand.Next(ExAPI.GetFromStack(vm, 2).GetInt(), ExAPI.GetFromStack(vm, 3).GetInt()));
+                        break;
+                    }
+            }
+            return 1;
+        }
+
+        public static int MATH_randf(ExVM vm, int nargs)
+        {
+            switch (nargs)
+            {
+                case 0:
+                    {
+                        vm.Push(Rand.NextDouble());
+                        break;
+                    }
+                case 1:
+                    {
+                        vm.Push(Rand.NextDouble() * ExAPI.GetFromStack(vm, 2).GetFloat());
+                        break;
+                    }
+                case 2:
+                    {
+                        float min = ExAPI.GetFromStack(vm, 2).GetFloat();
+                        vm.Push((Rand.NextDouble() * (ExAPI.GetFromStack(vm, 3).GetFloat() - min)) + min);
+                        break;
+                    }
+            }
             return 1;
         }
 
@@ -48,6 +89,14 @@ namespace ExMat.BaseLib
                     : (float)Math.Sin(i.GetFloat()));
             return 1;
         }
+        public static int MATH_sinh(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            vm.Push(i._type == ExObjType.INTEGER
+                    ? (float)Math.Sinh(i.GetInt())
+                    : (float)Math.Sinh(i.GetFloat()));
+            return 1;
+        }
 
         public static int MATH_cos(ExVM vm, int nargs)
         {
@@ -55,6 +104,14 @@ namespace ExMat.BaseLib
             vm.Push(i._type == ExObjType.INTEGER
                     ? (float)Math.Cos(i.GetInt())
                     : (float)Math.Cos(i.GetFloat()));
+            return 1;
+        }
+        public static int MATH_cosh(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            vm.Push(i._type == ExObjType.INTEGER
+                    ? (float)Math.Cosh(i.GetInt())
+                    : (float)Math.Cosh(i.GetFloat()));
             return 1;
         }
 
@@ -66,13 +123,12 @@ namespace ExMat.BaseLib
                     : (float)Math.Tan(i.GetFloat()));
             return 1;
         }
-
-        public static int MATH_cot(ExVM vm, int nargs)
+        public static int MATH_tanh(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)(1.0 / Math.Tan(i.GetInt()))
-                    : (float)(1.0 / Math.Tan(i.GetFloat())));
+                    ? (float)Math.Tanh(i.GetInt())
+                    : (float)Math.Tanh(i.GetFloat()));
             return 1;
         }
 
@@ -84,6 +140,14 @@ namespace ExMat.BaseLib
                     : (float)Math.Acos(i.GetFloat()));
             return 1;
         }
+        public static int MATH_acosh(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            vm.Push(i._type == ExObjType.INTEGER
+                    ? (float)Math.Acosh(i.GetInt())
+                    : (float)Math.Acosh(i.GetFloat()));
+            return 1;
+        }
 
         public static int MATH_asin(ExVM vm, int nargs)
         {
@@ -93,6 +157,14 @@ namespace ExMat.BaseLib
                     : (float)Math.Asin(i.GetFloat()));
             return 1;
         }
+        public static int MATH_asinh(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            vm.Push(i._type == ExObjType.INTEGER
+                    ? (float)Math.Asinh(i.GetInt())
+                    : (float)Math.Asinh(i.GetFloat()));
+            return 1;
+        }
 
         public static int MATH_atan(ExVM vm, int nargs)
         {
@@ -100,6 +172,14 @@ namespace ExMat.BaseLib
             vm.Push(i._type == ExObjType.INTEGER
                     ? (float)Math.Atan(i.GetInt())
                     : (float)Math.Atan(i.GetFloat()));
+            return 1;
+        }
+        public static int MATH_atanh(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            vm.Push(i._type == ExObjType.INTEGER
+                    ? (float)Math.Atanh(i.GetInt())
+                    : (float)Math.Atanh(i.GetFloat()));
             return 1;
         }
 
@@ -232,16 +312,27 @@ namespace ExMat.BaseLib
         private static readonly List<ExRegFunc> _stdmathfuncs = new()
         {
             new() { name = "srand", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_srand")), n_pchecks = 2, mask = ".n" },
-            new() { name = "rand", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_rand")), n_pchecks = 1, mask = null },
+            new() { name = "rand", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_rand")), n_pchecks = -1, mask = ".nn" },
+            new() { name = "randf", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_randf")), n_pchecks = -1, mask = ".nn" },
+
             new() { name = "abs", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_abs")), n_pchecks = 2, mask = ".n" },
             new() { name = "sqrt", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sqrt")), n_pchecks = 2, mask = ".n" },
+
             new() { name = "sin", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sin")), n_pchecks = 2, mask = ".n" },
             new() { name = "cos", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_cos")), n_pchecks = 2, mask = ".n" },
             new() { name = "tan", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_tan")), n_pchecks = 2, mask = ".n" },
+            new() { name = "sinh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sinh")), n_pchecks = 2, mask = ".n" },
+            new() { name = "cosh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_cosh")), n_pchecks = 2, mask = ".n" },
+            new() { name = "tanh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_tanh")), n_pchecks = 2, mask = ".n" },
+
             new() { name = "asin", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_asin")), n_pchecks = 2, mask = ".n" },
             new() { name = "acos", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_acos")), n_pchecks = 2, mask = ".n" },
             new() { name = "atan", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_atan")), n_pchecks = 2, mask = ".n" },
             new() { name = "atan2", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_atan2")), n_pchecks = 3, mask = ".nn" },
+            new() { name = "asinh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_asinh")), n_pchecks = 2, mask = ".n" },
+            new() { name = "acosh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_acosh")), n_pchecks = 2, mask = ".n" },
+            new() { name = "atanh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_atanh")), n_pchecks = 2, mask = ".n" },
+
             new() { name = "loge", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_loge")), n_pchecks = 2, mask = ".n" },
             new() { name = "log2", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_log2")), n_pchecks = 2, mask = ".n" },
             new() { name = "log10", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_log10")), n_pchecks = 2, mask = ".n" },

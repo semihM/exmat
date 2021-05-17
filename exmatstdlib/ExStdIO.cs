@@ -128,6 +128,51 @@ namespace ExMat.BaseLib
             return 0;
         }
 
+        public static int IO_appendfile(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr c = null;
+            vm.ToString(ExAPI.GetFromStack(vm, 3), ref c);
+
+            string enc = null;
+            if (nargs == 3)
+            {
+                enc = ExAPI.GetFromStack(vm, 4).GetString();
+            }
+
+            Encoding e = DecideEncodingFromString(enc);
+
+            File.AppendAllText(i.GetString(), c.GetString(), e);
+            return 0;
+        }
+        public static int IO_appendfilelines(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr lis = ExAPI.GetFromStack(vm, 3);
+
+            string enc = null;
+            if (nargs == 3)
+            {
+                enc = ExAPI.GetFromStack(vm, 4).GetString();
+            }
+
+            Encoding e = DecideEncodingFromString(enc);
+
+            int n = lis._val.l_List.Count;
+
+            string[] lines = new string[n];
+
+            for (int l = 0; l < n; l++)
+            {
+                ExObjectPtr line = new();
+                vm.ToString(lis._val.l_List[l], ref line);
+                lines[l] = line.GetString();
+            }
+
+            File.AppendAllLines(i.GetString(), lines, e);
+            return 0;
+        }
+
         public static int IO_readfile(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
@@ -215,6 +260,59 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int IO_currentdir(ExVM vm, int nargs)
+        {
+            vm.Push(Directory.GetCurrentDirectory());
+
+            return 1;
+        }
+
+        public static int IO_changedir(ExVM vm, int nargs)
+        {
+            string dir = ExAPI.GetFromStack(vm, 2).GetString();
+
+            if (!Directory.Exists(dir))
+            {
+                if (nargs == 2 && ExAPI.GetFromStack(vm, 3).GetBool())
+                {
+                    Directory.CreateDirectory(dir);
+                }
+                vm.Push(false);
+                return 1;
+            }
+
+            Directory.SetCurrentDirectory(dir);
+
+            vm.Push(Directory.GetCurrentDirectory());
+            return 1;
+        }
+
+        public static int IO_showdir(ExVM vm, int nargs)
+        {
+            string cd;
+            if (nargs != 0)
+            {
+                cd = ExAPI.GetFromStack(vm, 2).GetString();
+                if (!Directory.Exists(cd))
+                {
+                    vm.AddToErrorMessage(cd + " path doesn't exist");
+                    return -1;
+                }
+            }
+            else
+            {
+                cd = Directory.GetCurrentDirectory();
+            }
+
+            List<string> all;
+            all = new(Directory.GetDirectories(cd));
+            all.AddRange(Directory.GetFiles(cd));
+
+            vm.Push(new ExList(all));
+
+            return 1;
+        }
+
         public static int IO_includefile(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
@@ -229,11 +327,7 @@ namespace ExMat.BaseLib
                 ExAPI.PushRootTable(vm);
                 if (!ExAPI.Call(vm, 1, false))
                 {
-                    Console.WriteLine("\n\n+/+/+/+/+/+/+/+/+/+/+/+/+/+");
-                    Console.WriteLine("FAILED TO EXECUTE");
-                    Console.WriteLine(vm._error);
-                    Console.WriteLine("+/+/+/+/+/+/+/+/+/+/+/+/+/+");
-                    vm._error = string.Empty;
+                    ExAPI.WriteErrorMessages(vm, "EXECUTE");
                 }
 
                 vm.Push(new ExObjectPtr(true));
@@ -250,11 +344,20 @@ namespace ExMat.BaseLib
             new() { name = "read_bytes", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_readfilebytes")), n_pchecks = 2, mask = ".s" },
             new() { name = "read_text", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_readfile")), n_pchecks = -2, mask = ".ss" },
             new() { name = "read_lines", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_readfilelines")), n_pchecks = -2, mask = ".ss" },
+
             new() { name = "write_bytes", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_writefilebytes")), n_pchecks = -2, mask = ".sa" },
             new() { name = "write_text", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_writefile")), n_pchecks = -3, mask = ".sss" },
             new() { name = "write_lines", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_writefilelines")), n_pchecks = -3, mask = ".sas" },
+
+            new() { name = "append_text", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_appendfile")), n_pchecks = -3, mask = ".sss" },
+            new() { name = "append_lines", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_appendfilelines")), n_pchecks = -3, mask = ".sas" },
+
             new() { name = "file_exists", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_fileexists")), n_pchecks = 2, mask = ".s" },
             new() { name = "include_file", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_includefile")), n_pchecks = 2, mask = ".s" },
+
+            new() { name = "current_dir", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_currentdir")), n_pchecks = 1, mask = "." },
+            new() { name = "dir_content", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_showdir")), n_pchecks = -1, mask = ".s" },
+            new() { name = "change_dir", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_changedir")), n_pchecks = -2, mask = ".sb" },
 
             new() { name = string.Empty }
         };

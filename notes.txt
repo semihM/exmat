@@ -21,6 +21,8 @@ Symbols:
 
             - my_cls = {(x1,x2) | x. in R- ; x1 != x2} 
 
+	    - cluster my_cls{x : @R'3@ , y : @Z'2@ | k : @z+@} k < 2 && x[k] == y[k]
+ 
         + rule <name> [<variables>]: <expression> | {cluster_of_expressions}
             + rule AB : A < B + 2
 

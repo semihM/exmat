@@ -107,9 +107,13 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
+            if (_func._name == null)
+            {
+                return "CLOSURE";
+            }
             if (_base != null)
             {
-                return "[" + _base.GetDebuggerDisplay() + "] CLOSURE(" + _func._name.GetString() + ")";
+                return "[HAS BASE] CLOSURE(" + _func._name.GetString() + ")";
             }
             return "CLOSURE(" + _func._name.GetString() + ")";
         }

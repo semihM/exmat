@@ -1,0 +1,30 @@
+#define PRINTSTUFF  printl("\nhello");printl("this is printed by macro gang");printl("peace..") #end
+#define PRINT_MACRO_INFOS
+    printl("--------------------------")
+    printl(">> macros can be used with or without calling")
+    printl(">> macros are treated similar to functions")
+    printl(">> macros currently dont allow control interruptions(break,return etc.)")
+    printl(">> value returned by the last statement of the macro")
+    printl("      gets return by the macro")
+    printl("--------------------------")
+#end
+
+#define SIZE 6 #end
+
+#define FOO(x)  x + exp(x) #end
+
+#define BAR(y)  
+    y+= FOO(y)
+    printl("last statement gets returned!")
+    y 
+#end
+
+PRINT_MACRO_INFOS
+
+PRINTSTUFF
+
+printl(BAR(12))
+
+printl("A list sized with SIZE macro : " + string(list(SIZE)))
+
+printl("bye!")

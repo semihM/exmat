@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using ExMat.Objects;
 using ExMat.States;
@@ -7,10 +8,11 @@ using ExMat.Utils;
 namespace ExMat.Class
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClassMem
+    public class ExClassMem : IDisposable
     {
         public ExObjectPtr val = new();
         public ExObjectPtr attrs = new();
+        private bool disposedValue;
 
         public ExClassMem() { }
         public ExClassMem(ExClassMem mem)
@@ -29,6 +31,36 @@ namespace ExMat.Class
         {
             return "CMEM(" + val.GetDebuggerDisplay() + ")";
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    val.Dispose();
+                    attrs.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExClassMem()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
@@ -41,7 +73,6 @@ namespace ExMat.Class
         public List<ExClassMem> _methods = new();
         public ExObjectPtr _attrs = new();
         public ExObjectPtr _hook = new(0);
-        public dynamic _typetag;
         public bool _islocked;
         public int _constridx;
         public int _udsize;
@@ -224,6 +255,41 @@ namespace ExMat.Class
             }
             return "CLASS(c_idx: " + _constridx + ", n_mem: " + _members.Count + ")";
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (_base != null)
+            {
+                _base.Dispose();
+            }
+
+            _attrs.Dispose();
+            _hook.Dispose();
+
+            foreach (ExClassMem o in _methods)
+            {
+                o.Dispose();
+            }
+            _methods.RemoveAll((ExClassMem o) => true);
+            _methods = null;
+
+            foreach (ExClassMem o in _defvals)
+            {
+                o.Dispose();
+            }
+            _defvals.RemoveAll((ExClassMem o) => true);
+            _defvals = null;
+
+            foreach (ExObjectPtr o in _metas)
+            {
+                o.Dispose();
+            }
+            _metas.RemoveAll((ExObjectPtr o) => true);
+            _metas = null;
+
+        }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
@@ -301,6 +367,27 @@ namespace ExMat.Class
         public new string GetDebuggerDisplay()
         {
             return "INSTANCE(n_vals: " + _values.Count + ")";
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            if (_class != null)
+            {
+                _class.Dispose();
+            }
+
+            _hook.Dispose();
+            _up.Dispose();
+
+            foreach (ExObjectPtr o in _values)
+            {
+                o.Dispose();
+            }
+            _values.RemoveAll((ExObjectPtr o) => true);
+            _values = null;
+
         }
     }
 }

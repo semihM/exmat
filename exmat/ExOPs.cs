@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using ExMat.Objects;
 
 namespace ExMat.OPs
@@ -82,6 +83,9 @@ namespace ExMat.OPs
         TYPEOF,
         INSTANCEOF,
         GETBASE,
+        RETURNBOOL,
+        LOAD_SPACE,
+        JZS,
         CLOSE = 984
     }
 
@@ -104,13 +108,14 @@ namespace ExMat.OPs
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExInstr
+    public class ExInstr : IDisposable
     {
         public OPC op;
         public ExInt arg0;
         public ExInt arg2;
         public ExInt arg3;
         public int arg1;
+        private bool disposedValue;
 
         public ExInstr() { }
         public string GetDebuggerDisplay()
@@ -121,6 +126,37 @@ namespace ExMat.OPs
             }
 
             return op.ToString() + ": " + arg0.GetInt() + ", " + arg1 + ", " + arg2.GetInt() + ", " + arg3.GetInt();
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    arg0.Dispose();
+                    arg2.Dispose();
+                    arg3.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExInstr()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 

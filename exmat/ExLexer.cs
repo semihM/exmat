@@ -21,6 +21,7 @@ namespace ExMat.Lexer
         public string str_val;
         public float f_val;
         public int i_val;
+        public Objects.ExSpace _space;
 
         public Dictionary<string, TokenType> _keyWordsDict = new();
 
@@ -44,9 +45,8 @@ namespace ExMat.Lexer
             CreateKeyword("function", TokenType.FUNCTION);
             CreateKeyword("var", TokenType.VAR);
             CreateKeyword("return", TokenType.RETURN);
-            CreateKeyword("sum", TokenType.SUM);
-            CreateKeyword("mul", TokenType.MUL);
             CreateKeyword("rule", TokenType.RULE);
+            CreateKeyword("cluster", TokenType.CLUSTER);
             CreateKeyword("true", TokenType.TRUE);
             CreateKeyword("false", TokenType.FALSE);
             CreateKeyword("constructor", TokenType.CONSTRUCTOR);
@@ -90,6 +90,44 @@ namespace ExMat.Lexer
             } while (_currChar != '\n' && _currChar != ExMat._END);
         }
 
+        private bool SkipBlockComment()
+        {
+            bool finished = false;
+            while (!finished)
+            {
+                switch (_currChar)
+                {
+                    case '*':
+                        {
+                            Next();
+                            if (_currChar == '/')
+                            {
+                                finished = true;
+                                Next();
+                            }
+                            continue;
+                        }
+                    case '\n':
+                        {
+                            _currLine++;
+                            Next();
+                            continue;
+                        }
+                    case ExMat._END:
+                        {
+                            _error = "expected '*/' to finish the block comment";
+                            return false;
+                        }
+                    default:
+                        {
+                            Next();
+                            break;
+                        }
+                }
+            }
+            return true;
+        }
+
         private char ReadSourceChar()
         {
             if (_sourceidx == _sourcelen)
@@ -121,6 +159,93 @@ namespace ExMat.Lexer
             _currCol++;
             _currChar = ExMat._END;
             _reached_end = true;
+        }
+
+        private TokenType ReadSpaceDim(char curr)
+        {
+            Next();
+            switch (ReadNumber())
+            {
+                case TokenType.INTEGER:
+                    {
+                        if (i_val < 0)
+                        {
+                            _error = "dimension can't be less than zero";
+                            return TokenType.UNKNOWN;
+                        }
+                        _space.dim = i_val;
+                        break;
+                    }
+                default:
+                    {
+                        _error = "expected integer as dimension";
+                        return TokenType.UNKNOWN;
+                    }
+            }
+            if (_currChar != curr)
+            {
+                _error = "expected '" + curr + "' to finish space reference after dimension";
+                return TokenType.UNKNOWN;
+            }
+            return TokenType.SPACE;
+        }
+
+
+        private TokenType ReadSpace(char curr)
+        {
+            Next();
+            if (ReadId() != TokenType.IDENTIFIER)
+            {
+                _error = "expected space identifier";
+                return TokenType.UNKNOWN;
+            }
+
+            _space = new();
+            _space.space = str_val;
+
+            if (_currChar == ExMat._END)
+            {
+                return TokenType.UNKNOWN;
+            }
+
+            if (_currChar == curr)
+            {
+                return TokenType.SPACE;
+            }
+
+            switch (_currChar)
+            {
+                case '+':
+                case '-':
+                    //case '*':
+                    {
+                        _space.sign = _currChar;
+                        Next();
+                        break;
+                    }
+                case '\'':
+                    {
+                        return ReadSpaceDim(curr);
+                    }
+                default:
+                    {
+                        _error = "expected sign(+,-) or dimension(') characters";
+                        return TokenType.UNKNOWN;
+                    }
+            }
+
+            if (_currChar == curr)
+            {
+                return TokenType.SPACE;
+            }
+
+            if (_currChar != '\'')
+            {
+                _error = "unexpected space character '" + _currChar + "'";
+                return TokenType.UNKNOWN;
+            }
+
+            return ReadSpaceDim(curr);
         }
 
         private TokenType ReadString(char curr)
@@ -261,7 +386,7 @@ namespace ExMat.Lexer
             return TokenType.IDENTIFIER;
         }
 
-        private TokenType ReadId()
+        private TokenType ReadId(bool macro = false)
         {
             TokenType typ;
             _aStr = string.Empty;
@@ -272,7 +397,21 @@ namespace ExMat.Lexer
 
             } while (char.IsLetterOrDigit(_currChar) || _currChar == '_');
 
+            if (macro)
+            {
+                switch (_aStr)
+                {
+                    case "define":
+                        return TokenType.MACROSTART;
+                    case "end":
+                        return TokenType.MACROEND;
+                    default:
+                        return TokenType.UNKNOWN;
+                }
+            }
+
             typ = GetIdType();
+
             if (typ == TokenType.IDENTIFIER)
             {
                 str_val = _aStr + "";
@@ -379,8 +518,6 @@ namespace ExMat.Lexer
                     return TokenType.EXC;
                 case '.':
                     return TokenType.DOT;
-                case '#':
-                    return TokenType.COMMENT;
                 case ';':
                     return TokenType.SMC;
                 case ',':
@@ -429,8 +566,15 @@ namespace ExMat.Lexer
                         }
                     case '#':
                         {
-                            SkipComment();
-                            continue;
+                            Next();
+                            TokenType typ;
+                            if ((typ = ReadId(true)) != TokenType.MACROSTART && typ != TokenType.MACROEND)
+                            {
+                                _error = "expected 'define' or 'end' after '#'";
+                                return TokenType.UNKNOWN;
+                            }
+
+                            return SetAndReturnToken(typ);
                         }
                     case '=':
                         {
@@ -439,6 +583,11 @@ namespace ExMat.Lexer
                             {
                                 Next();
                                 return SetAndReturnToken(TokenType.EQU);
+                            }
+                            else if (_currChar == '>')
+                            {
+                                Next();
+                                return SetAndReturnToken(TokenType.ELEMENT_DEF);
                             }
                             else
                             {
@@ -518,6 +667,20 @@ namespace ExMat.Lexer
                                 return SetAndReturnToken(res);
                             }
                             return TokenType.UNKNOWN;
+                        }
+                    case '@':
+                        {
+                            TokenType res;
+                            if ((res = ReadSpace(_currChar)) != TokenType.UNKNOWN)
+                            {
+                                Next();
+                                return SetAndReturnToken(TokenType.SPACE);
+                            }
+                            else
+                            {
+                                _error = "expected the pattern @(Z|R|N)[+-]?('\\d+)?@ for spaces";
+                                return TokenType.UNKNOWN;
+                            }
                         }
                     case '{':
                     case '}':
@@ -670,6 +833,20 @@ namespace ExMat.Lexer
                                     {
                                         Next();
                                         return SetAndReturnToken(TokenType.DIVEQ);
+                                    }
+                                case '/':
+                                    {
+                                        SkipComment();
+                                        continue;
+                                    }
+                                case '*':
+                                    {
+                                        Next();
+                                        if (!SkipBlockComment())
+                                        {
+                                            return TokenType.UNKNOWN;
+                                        }
+                                        continue;
                                     }
                                 case '>':
                                     {

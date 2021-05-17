@@ -15,6 +15,8 @@ namespace ExMat.VM
 {
     public class ExVM
     {
+        public readonly DateTime StartingTime = DateTime.Now;
+
         public ExSState _sState = new();
 
         public List<ExObjectPtr> _stack;
@@ -157,6 +159,50 @@ namespace ExMat.VM
                             }
                         }
                         s += "}";
+
+                        res = new(s);
+                        break;
+                    }
+                case ExObjType.NATIVECLOSURE:
+                    {
+                        string s = obj._type.ToString() + "(" + obj._val._NativeClosure._name.GetString() + ", ";
+                        int n = obj._val._NativeClosure.n_paramscheck;
+                        if (n < 0)
+                        {
+                            s += (obj._val._NativeClosure._typecheck.Count - 1) + " params (min:" + (-n - 1) + ")";
+                        }
+                        else if (n > 0)
+                        {
+                            s += (n - 1) + " params";
+                        }
+                        else
+                        {
+                            s += "<=" + (obj._val._NativeClosure._typecheck.Count - 1) + " params";
+                        }
+
+                        s += ")";
+
+                        res = new(s);
+                        break;
+                    }
+                case ExObjType.CLOSURE:
+                    {
+                        ExFuncPro tmp = obj._val._Closure._func;
+                        string s = (tmp.is_rule ? "RULE"
+                                                : tmp.is_cluster ? "CLUSTER"
+                                                                 : tmp.is_macro ? "MACRO"
+                                                                                : obj._type.ToString())
+                                + "(" + obj._val._Closure._func._name.GetString() + ", ";
+
+                        if (tmp.n_defparams > 0 && !tmp.is_cluster && !tmp.is_rule)
+                        {
+                            s += (tmp.n_params - 1) + " params (min:" + (tmp.n_params - tmp.n_defparams - 1) + ")";
+                        }
+                        else if(!tmp.is_macro)
+                        {
+                            s += (tmp.n_params - 1) + " params";
+                        }
+                        s += ")";
 
                         res = new(s);
                         break;
@@ -315,7 +361,7 @@ namespace ExMat.VM
                             }
                             else
                             {
-                                self._val.d_Dict.Add(key.GetString(), v);
+                                self._val.d_Dict.Add(key.GetString(), new(v));
                             }
                         }
                         break;
@@ -380,7 +426,9 @@ namespace ExMat.VM
 
         public void Push(string o) => _stack[_top++].Assign(o);
         public void Push(int o) => _stack[_top++].Assign(o);
+        public void Push(long o) => _stack[_top++].Assign((int)o);
         public void Push(float o) => _stack[_top++].Assign(o);
+        public void Push(double o) => _stack[_top++].Assign((float)o);
         public void Push(bool o) => _stack[_top++].Assign(o);
         public void Push(ExObject o) => _stack[_top++].Assign(o);
         public void Push(ExObjectPtr o) => _stack[_top++].Assign(o);
@@ -438,6 +486,65 @@ namespace ExMat.VM
             return true;
         }
 
+        private bool DoClusterParamChecks(ExFuncPro pro, List<ExObjectPtr> lis)
+        {
+            int t_n = pro._spaces.Count;
+
+            List<ExObjectPtr> ts = new(t_n);
+            foreach (ExObjectPtr ob in pro._spaces.Values)
+            {
+                ts.Add(ob);
+            }
+            int nargs = lis.Count;
+
+            if (t_n > 0)
+            {
+                if (t_n != nargs)
+                {
+                    AddToErrorMessage("'" + pro._name.GetString() + "' takes " + (t_n) + " arguments");
+                    return false;
+                }
+
+                for (int i = 0; i < nargs; i++)
+                {
+                    if (!IsInSpace(lis[i], ts[i]._val.c_Space, i + 1))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        private bool DoClusterParamChecks(ExFuncPro pro, int nargs, int sbase)
+        {
+            int t_n = pro._spaces.Count;
+
+            List<ExObjectPtr> ts = new(t_n);
+            foreach (ExObjectPtr ob in pro._spaces.Values)
+            {
+                ts.Add(ob);
+            }
+
+            if (t_n > 0)
+            {
+                if (t_n != nargs - 1)
+                {
+                    AddToErrorMessage("'" + pro._name.GetString() + "' takes " + (t_n) + " arguments");
+                    return false;
+                }
+
+                for (int i = 0; i < nargs && i < t_n; i++)
+                {
+                    if (!IsInSpace(_stack[sbase + i + 1], ts[i]._val.c_Space, i + 1))
+                    {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
         public bool StartCall(ExClosure cls, int trg, int args, int sbase, bool tail)
         {
             ExFuncPro pro = cls._func;
@@ -469,7 +576,7 @@ namespace ExMat.VM
 
                 _stack[sbase + p].Assign(new ExList(varglis));
             }
-            else if (p != nargs)
+            else if (p != nargs && !pro.is_cluster && !pro.is_rule)
             {
                 int n_def = pro.n_defparams;
                 int diff;
@@ -482,7 +589,31 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    AddToErrorMessage("'" + pro._name.GetString() + "' takes exactly " + (p - 1) + " arguments");
+                    if (n_def > 0 && !pro.is_rule && !pro.is_cluster)
+                    {
+                        AddToErrorMessage("'" + pro._name.GetString() + "' takes at least " + (p - n_def - 1) + " arguments");
+                    }
+                    else
+                    {
+                        AddToErrorMessage("'" + pro._name.GetString() + "' takes exactly " + (p - 1) + " arguments");
+                    }
+                    return false;
+                }
+            }
+
+            if (pro.is_rule)
+            {
+                int t_n = pro._localinfos.Count;
+                if (t_n != nargs)
+                {
+                    AddToErrorMessage("'" + pro._name.GetString() + "' takes " + (t_n - 1) + " arguments");
+                    return false;
+                }
+            }
+            else if (pro.is_cluster)
+            {
+                if (!DoClusterParamChecks(pro, nargs, sbase))   // TO-DO currently returns given vector on success, random stuff at failure
+                {
                     return false;
                 }
             }
@@ -500,10 +631,402 @@ namespace ExMat.VM
 
             ci._val._closure = new(); ci._val._closure.Assign(cls);
             ci._val._lits = pro._lits;
+            ci._val._spaces = pro._spaces;
             ci._val._instrs = pro._instr;
             ci._val._idx_instrs = 0;
             ci._val._target = trg;
 
+            return true;
+        }
+
+        public bool IsInSpace(ExObjectPtr argument, ExSpace space, int i)
+        {
+            switch (argument._type)
+            {
+                case ExObjType.SPACE:   // TO-DO maybe allow spaces as arguments here ?
+                    {
+                        AddToErrorMessage("can't use 'CLUSTER' or 'SPACE' as an argument for parameter " + i);
+                        return false;
+                    }
+                case ExObjType.ARRAY:
+                    {
+                        if (argument._val.l_List.Count != space.dim)
+                        {
+                            AddToErrorMessage("expected " + space.dim + " dimensions for parameter " + i);
+                            return false;
+                        }
+
+                        switch (space.space)
+                        {
+                            case "r":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (!val.IsNumeric() || val.GetFloat() <= 0)
+                                                    {
+                                                        AddToErrorMessage("expected numeric positive non-zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (!val.IsNumeric() || val.GetFloat() >= 0)
+                                                    {
+                                                        AddToErrorMessage("expected numeric negative non-zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (!val.IsNumeric() || val.GetFloat() == 0)
+                                                    {
+                                                        AddToErrorMessage("expected numeric non-zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case "R":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (!val.IsNumeric() || val.GetFloat() < 0)
+                                                    {
+                                                        AddToErrorMessage("expected numeric positive or zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (!val.IsNumeric() || val.GetFloat() > 0)
+                                                    {
+                                                        AddToErrorMessage("expected numeric negative or zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (!val.IsNumeric())
+                                                    {
+                                                        AddToErrorMessage("expected numeric values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case "Z":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (val._type != ExObjType.INTEGER || val.GetFloat() < 0)
+                                                    {
+                                                        AddToErrorMessage("expected integer positive or zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (val._type != ExObjType.INTEGER || val.GetFloat() > 0)
+                                                    {
+                                                        AddToErrorMessage("expected integer negative or zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (val._type != ExObjType.INTEGER)
+                                                    {
+                                                        AddToErrorMessage("expected integer values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case "z":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (val._type != ExObjType.INTEGER || val.GetInt() <= 0)
+                                                    {
+                                                        AddToErrorMessage("expected integer positive non-zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (val._type != ExObjType.INTEGER || val.GetInt() >= 0)
+                                                    {
+                                                        AddToErrorMessage("expected integer negative non-zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                foreach (ExObjectPtr val in argument._val.l_List)
+                                                {
+                                                    if (val._type != ExObjType.INTEGER || val.GetInt() == 0)
+                                                    {
+                                                        AddToErrorMessage("expected integer non-zero values for parameter " + i);
+                                                        return false;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case ExObjType.INTEGER:
+                case ExObjType.FLOAT:
+                    {
+                        if (space.dim != 1)
+                        {
+                            AddToErrorMessage("expected " + space.dim + " dimensions for parameter " + i);
+                            return false;
+                        }
+                        switch (space.space)
+                        {
+                            case "r":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                if (!argument.IsNumeric() || argument.GetFloat() <= 0)
+                                                {
+                                                    AddToErrorMessage("expected numeric positive non-zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                if (!argument.IsNumeric() || argument.GetFloat() >= 0)
+                                                {
+                                                    AddToErrorMessage("expected numeric negative non-zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                if (!argument.IsNumeric() || argument.GetFloat() == 0)
+                                                {
+                                                    AddToErrorMessage("expected numeric non-zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case "R":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                if (!argument.IsNumeric() || argument.GetFloat() < 0)
+                                                {
+                                                    AddToErrorMessage("expected numeric positive or zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                if (!argument.IsNumeric() || argument.GetFloat() > 0)
+                                                {
+                                                    AddToErrorMessage("expected numeric negative or zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                if (!argument.IsNumeric())
+                                                {
+                                                    AddToErrorMessage("expected numeric value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case "Z":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                if (argument._type != ExObjType.INTEGER || argument.GetInt() < 0)
+                                                {
+                                                    AddToErrorMessage("expected integer positive or zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                if (argument._type != ExObjType.INTEGER || argument.GetInt() > 0)
+                                                {
+                                                    AddToErrorMessage("expected integer negative or zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                if (argument._type != ExObjType.INTEGER)
+                                                {
+                                                    AddToErrorMessage("expected integer value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                            case "z":
+                                {
+                                    switch (space.sign)
+                                    {
+                                        case '+':
+                                            {
+                                                if (argument._type != ExObjType.INTEGER || argument.GetInt() <= 0)
+                                                {
+                                                    AddToErrorMessage("expected integer positive non-zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '-':
+                                            {
+                                                if (argument._type != ExObjType.INTEGER || argument.GetInt() >= 0)
+                                                {
+                                                    AddToErrorMessage("expected integer negative non-zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        case '\\':
+                                            {
+                                                if (argument._type != ExObjType.INTEGER || argument.GetInt() == 0)
+                                                {
+                                                    AddToErrorMessage("expected integer non-zero value for parameter " + i);
+                                                    return false;
+                                                }
+                                                break;
+                                            }
+                                        default:
+                                            {
+                                                AddToErrorMessage("expected + or - symbols");
+                                                return false;
+                                            }
+                                    }
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case ExObjType.NULL:
+                    {
+                        return false;
+                    }
+            }
             return true;
         }
 
@@ -522,6 +1045,39 @@ namespace ExMat.VM
             return false;
         }
 
+        private ExObjectPtr FindSpaceObject(int i)
+        {
+            string name = ci._val._lits[i].GetString();
+            foreach (ExObjectPtr s in ci._val._spaces.Values)
+            {
+                if (s._val.c_Space.GetString() == name)
+                {
+                    return s;
+                }
+            }
+            throw new Exception("unknown space");
+        }
+
+        public bool FixStackAfterError()
+        {
+            while (ci._val != null)
+            {
+                if (ci._val._traps > 0)
+                {
+                    // TO-DO traps
+                }
+
+                bool end = ci._val != null && ci._val._root;
+                LeaveFrame();
+                if (end)
+                {
+                    break;
+                }
+            }
+
+            return false;
+        }
+
         public bool Exec(ExObjectPtr cls, int narg, int stackbase, ref ExObjectPtr o)
         {
             if (_nnativecalls + 1 > 100)
@@ -530,7 +1086,7 @@ namespace ExMat.VM
             }
 
             _nnativecalls++;
-            // TO-DO AutoDec nativacalls
+
             Node<ExCallInfo> prevci = ci;
             int traps = 0;
 
@@ -557,7 +1113,7 @@ namespace ExMat.VM
                     return true;
                 }
 
-                if (ci._val._idx_instrs >= ci._val._instrs.Count)
+                if (ci._val._idx_instrs >= ci._val._instrs.Count || ci._val._idx_instrs < 0)
                 {
                     return false;
                     //throw new Exception("instruction index error");
@@ -588,6 +1144,11 @@ namespace ExMat.VM
                             GetTargetInStack(i).Assign(i.arg1 == 1);
                             continue;
                         }
+                    case OPC.LOAD_SPACE:
+                        {
+                            GetTargetInStack(i).Assign(FindSpaceObject(i.arg1));
+                            continue;
+                        }
                     case OPC.DLOAD:
                         {
                             GetTargetInStack(i).Assign(ci._val._lits[i.arg1]);
@@ -611,7 +1172,7 @@ namespace ExMat.VM
                                 if (!StartCall(c._val._Closure, ci._val._target, i.arg3.GetInt(), _stackbase, true))
                                 {
                                     //AddToErrorMessage("guarded failed call");
-                                    return false;
+                                    return FixStackAfterError();
                                 }
                                 continue;
                             }
@@ -627,7 +1188,7 @@ namespace ExMat.VM
                                         if (!StartCall(tmp2._val._Closure, i.arg0.GetInt(), i.arg3.GetInt(), _stackbase + i.arg2.GetInt(), false))
                                         {
                                             //AddToErrorMessage("guarded failed call");
-                                            return false;
+                                            return FixStackAfterError();
                                         }
                                         continue;
                                     }
@@ -636,7 +1197,7 @@ namespace ExMat.VM
                                         if (!CallNative(tmp2._val._NativeClosure, i.arg3.GetInt(), _stackbase + i.arg2.GetInt(), ref tmp2))
                                         {
                                             //AddToErrorMessage("guarded failed call");
-                                            return false;
+                                            return FixStackAfterError();
                                         }
 
                                         if (i.arg0.GetInt() != 985)
@@ -651,7 +1212,7 @@ namespace ExMat.VM
                                         if (!CreateClassInst(tmp2._val._Class, ref instance, tmp2))
                                         {
                                             //AddToErrorMessage("guarded failed call");
-                                            return false;
+                                            return FixStackAfterError();
                                         }
                                         if (i.arg0.GetInt() != -1)
                                         {
@@ -668,7 +1229,7 @@ namespace ExMat.VM
                                                     if (!StartCall(tmp2._val._Closure, -1, i.arg3.GetInt(), sbase, false))
                                                     {
                                                         //AddToErrorMessage("guarded failed call");
-                                                        return false;
+                                                        return FixStackAfterError();
                                                     }
                                                     break;
                                                 }
@@ -679,7 +1240,7 @@ namespace ExMat.VM
                                                     if (!CallNative(tmp2._val._NativeClosure, i.arg3.GetInt(), sbase, ref tmp2))
                                                     {
                                                         //AddToErrorMessage("guarded failed call");
-                                                        return false;
+                                                        return FixStackAfterError();
                                                     }
                                                     break;
                                                 }
@@ -703,7 +1264,7 @@ namespace ExMat.VM
                                             if (!CallMetaMethod(ref cls2, ExMetaM.CALL, i.arg3.GetInt() + 1, ref tmp2))
                                             {
                                                 AddToErrorMessage("meta method failed call");
-                                                return false;
+                                                return FixStackAfterError();
                                             }
 
                                             if (i.arg0.GetInt() != -1)
@@ -716,8 +1277,8 @@ namespace ExMat.VM
                                     }
                                 default:
                                     {
-                                        AddToErrorMessage("attemt to call " + tmp2._type.ToString());
-                                        return false;
+                                        AddToErrorMessage("attempt to call " + tmp2._type.ToString());
+                                        return FixStackAfterError();
                                     }
                             }
                             continue;
@@ -731,7 +1292,7 @@ namespace ExMat.VM
                             if (!Getter(ref obj, ref k, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
                             {
                                 AddToErrorMessage("unknown method or field '" + k.GetString() + "'");
-                                return false;
+                                return FixStackAfterError();
                             }
 
                             GetTargetInStack(i.arg3).Assign(obj);
@@ -746,7 +1307,7 @@ namespace ExMat.VM
                             if (!Getter(ref tmp, ref lit, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
                             {
                                 AddToErrorMessage("unknown variable '" + lit.GetString() + "'"); // access to local var decl before
-                                return false;
+                                return FixStackAfterError();
                             }
                             //GetTargetInStack(i).Assign(tmpreg); // TO-DO
                             SwapObjects(GetTargetInStack(i), ref tmpreg);
@@ -762,7 +1323,7 @@ namespace ExMat.VM
                             if (!NewSlot(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), GetTargetInStack(i.arg3), false))
                             {
                                 //AddToErrorMessage("guarded failed newslot");
-                                return false;
+                                return FixStackAfterError();
                             }
                             if (i.arg0.GetInt() != 985)
                             {
@@ -776,7 +1337,7 @@ namespace ExMat.VM
                             if (!RemoveObjectSlot(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), ref r))
                             {
                                 AddToErrorMessage("failed to delete a slot");
-                                return false;
+                                return FixStackAfterError();
                             }
                             continue;
                         }
@@ -786,7 +1347,7 @@ namespace ExMat.VM
                             if (!Setter(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), ref t, ExFallback.OK))
                             {
                                 AddToErrorMessage("failed setter for '" + GetTargetInStack(i.arg2).GetString() + "' key");
-                                return false;
+                                return FixStackAfterError();
                             }
                             if (i.arg0.GetInt() != 985)
                             {
@@ -800,8 +1361,8 @@ namespace ExMat.VM
                             ExObjectPtr s2 = new(GetTargetInStack(i.arg2));
                             if (!Getter(ref s1, ref s2, ref tmpreg, false, (ExFallback)i.arg1))
                             {
-                                AddToErrorMessage("failed getter for '" + s2.GetString() + "' key");
-                                return false;
+                                //AddToErrorMessage("failed getter for '" + s2.GetString() + "' key");
+                                return FixStackAfterError();
                             }
                             SwapObjects(GetTargetInStack(i), ref tmpreg);
                             //GetTargetInStack(i).Assign(tmpreg);
@@ -813,7 +1374,8 @@ namespace ExMat.VM
                             bool res = false;
                             if (!CheckEqual(GetTargetInStack(i.arg2), GetConditionFromInstr(i), ref res))
                             {
-                                throw new Exception("equal op failed");
+                                AddToErrorMessage("equal op failed");
+                                return FixStackAfterError();
                             }
                             GetTargetInStack(i).Assign(i.op == OPC.EQ ? res : !res);
                             continue;
@@ -828,19 +1390,24 @@ namespace ExMat.VM
                             ExObjectPtr res = new();
                             if (!DoArithmeticOP(i.op, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
                             {
-                                return false;
+                                return FixStackAfterError();
                             }
                             GetTargetInStack(i).Assign(res);
                             continue;
                         }
                     case OPC.BITWISE:
                         {
-                            GetTargetInStack(i).Assign(DoBitwiseOP(i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg1)));
+                            if (!DoBitwiseOP(i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
+                            {
+                                return FixStackAfterError();
+                            }
+
                             continue;
                         }
+                    case OPC.RETURNBOOL:
                     case OPC.RETURN:
                         {
-                            if (ReturnValue(i.arg0.GetInt(), i.arg1, ref tmpreg))
+                            if (ReturnValue(i.arg0.GetInt(), i.arg1, ref tmpreg, i.op == OPC.RETURNBOOL))
                             {
                                 SwapObjects(o, ref tmpreg);
                                 return true;
@@ -866,6 +1433,14 @@ namespace ExMat.VM
                             GetTargetInStack(i.arg2).Assign(GetTargetInStack(i.arg3));
                             continue;
                         }
+                    case OPC.JZS:
+                        {
+                            if (!GetTargetInStack(i.arg0).GetBool())
+                            {
+                                ci._val._idx_instrs += i.arg1;
+                            }
+                            continue;
+                        }
                     case OPC.JMP:
                         {
                             ci._val._idx_instrs += i.arg1;
@@ -873,9 +1448,9 @@ namespace ExMat.VM
                         }
                     case OPC.JCMP:
                         {
-                            if (!DoCompareOP((CmpOP)i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg0), ref tmpreg))
+                            if (!DoCompareOP((CmpOP)i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg0), tmpreg))
                             {
-                                throw new Exception("failed compare op");
+                                return FixStackAfterError();
                             }
                             if (!tmpreg.GetBool())
                             {
@@ -928,14 +1503,14 @@ namespace ExMat.VM
                                         if (!DoClassOP(GetTargetInStack(i), i.arg1, i.arg2.GetInt()))
                                         {
                                             AddToErrorMessage("failed to create class");
-                                            return false;
+                                            return FixStackAfterError();
                                         }
                                         continue;
                                     }
                                 default:
                                     {
                                         AddToErrorMessage("unknown object type " + i.arg3.GetInt());
-                                        return false;
+                                        return FixStackAfterError();
                                     }
                             }
                         }
@@ -992,7 +1567,7 @@ namespace ExMat.VM
                                     ExObjectPtr res = new();
                                     if (!DoArithmeticOP(OPC.ADD, ob, o, ref res))
                                     {
-                                        return false;
+                                        return FixStackAfterError();
                                     }
                                     ob.Assign(res);
                                 }
@@ -1012,15 +1587,33 @@ namespace ExMat.VM
                         {
                             ExObjectPtr s1 = new(GetTargetInStack(i.arg1));
                             ExObjectPtr s2 = new(GetTargetInStack(i.arg2));
-                            GetTargetInStack(i).Assign(Getter(ref s1, ref s2, ref tmpreg, true, ExFallback.DONT));
+
+                            string tmp = _error;
+                            bool b = Getter(ref s1, ref s2, ref tmpreg, true, ExFallback.DONT, true);
+
+                            if (s1._type == ExObjType.CLOSURE
+                                && s1._val._Closure._func.is_cluster)
+                            {
+                                //TO-DO Find a way to evaluate to condition instructions
+
+                                GetTargetInStack(i).Assign(b);
+                            }
+                            else
+                            {
+                                if (_error != tmp)
+                                {
+                                    return false;
+                                }
+                                GetTargetInStack(i).Assign(b);
+                            }
+
                             continue;
                         }
                     case OPC.CMP:
                         {
-                            ExObjectPtr target = new(GetTargetInStack(i));
-                            if (!DoCompareOP((CmpOP)i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref target))
+                            if (!DoCompareOP((CmpOP)i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
                             {
-                                throw new Exception("comparison failed");
+                                return FixStackAfterError();
                             }
                             continue;
                         }
@@ -1110,6 +1703,11 @@ namespace ExMat.VM
                             {
                                 throw new Exception("compound arithmetic failed");
                             }
+                            continue;
+                        }
+                    case OPC.TYPEOF:
+                        {
+                            GetTargetInStack(i).Assign(GetTargetInStack(i.arg1)._type.ToString());
                             continue;
                         }
                     default:
@@ -1430,7 +2028,7 @@ namespace ExMat.VM
                 }
             }
         }
-        public static bool DoCompareOP(CmpOP cop, ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
+        public bool DoCompareOP(CmpOP cop, ExObjectPtr a, ExObjectPtr b, ExObjectPtr res)
         {
             int t = 0;
             if (InnerDoCompareOP(a, b, ref t))
@@ -1438,46 +2036,47 @@ namespace ExMat.VM
                 switch (cop)
                 {
                     case CmpOP.GRT:
-                        res = new(t > 0); return true;
+                        res.Assign(t > 0); return true;
                     case CmpOP.GET:
-                        res = new(t >= 0); return true;
+                        res.Assign(t >= 0); return true;
                     case CmpOP.LST:
-                        res = new(t < 0); return true;
+                        res.Assign(t < 0); return true;
                     case CmpOP.LET:
-                        res = new(t <= 0); return true;
+                        res.Assign(t <= 0); return true;
                 }
             }
+            AddToErrorMessage("failed comparison operation " + cop.ToString());
             return false;
         }
 
-        public bool ReturnValue(int a0, int a1, ref ExObjectPtr res)
+        public bool ReturnValue(int a0, int a1, ref ExObjectPtr res, bool make_bool = false)
         {
             bool r = ci._val._root;
             int cbase = _stackbase - ci._val._prevbase;
 
+            ExObjectPtr p;
             if (r)
+            {
+                p = res;
+            }
+            else if (ci._val._target == -1)
+            {
+                p = new();
+            }
+            else
+            {
+                p = _stack[cbase + ci._val._target];
+            }
+
+            if (p._type != ExObjType.NULL)
             {
                 if (a0 != 985)
                 {
-                    res.Assign(_stack[_stackbase + a1]);
+                    p.Assign(make_bool ? new(_stack[_stackbase + a1].GetBool()) : _stack[_stackbase + a1]);
                 }
                 else
                 {
-                    res.Nullify();
-                }
-            }
-            else if (ci._val._target != -1)
-            {   // TO-DO cbase may be too low -> index < 0
-                if (cbase + ci._val._target >= 0) // TEMP HACK
-                {
-                    if (a0 != 985)
-                    {
-                        _stack[cbase + ci._val._target].Assign(_stack[_stackbase + a1]);
-                    }
-                    else
-                    {
-                        _stack[cbase + ci._val._target].Nullify();
-                    }
+                    p.Nullify();
                 }
             }
 
@@ -1485,25 +2084,23 @@ namespace ExMat.VM
             return r;
         }
 
-        public static ExObjectPtr DoBitwiseOP(int iop, ExObjectPtr a, ExObjectPtr b)
+        public bool DoBitwiseOP(int iop, ExObjectPtr a, ExObjectPtr b, ExObjectPtr res)
         {
             int a_mask = (int)a._type | (int)b._type;
-            ExObjectPtr res;
             if (a_mask == (int)ExObjType.INTEGER)
             {
-                BitOP op = (BitOP)iop;
-                switch (op)
+                switch ((BitOP)iop)
                 {
                     case BitOP.AND:
-                        res = new(a.GetInt() & b.GetInt()); break;
+                        res.Assign(a.GetInt() & b.GetInt()); break;
                     case BitOP.OR:
-                        res = new(a.GetInt() | b.GetInt()); break;
+                        res.Assign(a.GetInt() | b.GetInt()); break;
                     case BitOP.XOR:
-                        res = new(a.GetInt() ^ b.GetInt()); break;
+                        res.Assign(a.GetInt() ^ b.GetInt()); break;
                     case BitOP.SHIFTL:
-                        res = new(a.GetInt() << b.GetInt()); break;
+                        res.Assign(a.GetInt() << b.GetInt()); break;
                     case BitOP.SHIFTR:
-                        res = new(a.GetInt() >> b.GetInt()); break;
+                        res.Assign(a.GetInt() >> b.GetInt()); break;
                     default:
                         {
                             throw new Exception("unknown bitwise operation");
@@ -1512,9 +2109,10 @@ namespace ExMat.VM
             }
             else
             {
-                throw new Exception("bitwise op between '" + a._type.ToString() + "' and '" + b._type.ToString() + "'");
+                AddToErrorMessage("bitwise op between '" + a._type.ToString() + "' and '" + b._type.ToString() + "'");
+                return false;
             }
-            return res;
+            return true;
         }
         private static void InnerDoArithmeticOPInt(OPC op, int a, int b, ref ExObjectPtr res)
         {
@@ -1672,13 +2270,32 @@ namespace ExMat.VM
         {
             if (x._type == y._type)
             {
-                if (x._type == ExObjType.BOOL)
+                switch (x._type)
                 {
-                    res = x.GetBool() == y.GetBool();
-                }
-                else
-                {
-                    res = x.GetInt() == y.GetInt();
+                    case ExObjType.BOOL:
+                        res = x.GetBool() == y.GetBool();
+                        break;
+                    case ExObjType.STRING:
+                        res = x.GetString() == y.GetString();
+                        break;
+                    case ExObjType.INTEGER:
+                        res = x.GetInt() == y.GetInt();
+                        break;
+                    case ExObjType.FLOAT:
+                        res = x.GetFloat() == y.GetFloat();
+                        break;
+                    case ExObjType.NULL:
+                        res = true;
+                        break;
+                    case ExObjType.NATIVECLOSURE:
+                        CheckEqual(x._val._NativeClosure._name, y._val._NativeClosure._name, ref res);
+                        break;
+                    case ExObjType.CLOSURE:
+                        CheckEqual(x._val._Closure._func._name, y._val._Closure._func._name, ref res);
+                        break;
+                    default:
+                        res = x == y;   // TO-DO
+                        break;
                 }
             }
             else
@@ -1968,7 +2585,7 @@ namespace ExMat.VM
             }
             return ExFallback.NOMATCH;
         }
-        public bool Getter(ref ExObjectPtr self, ref ExObjectPtr k, ref ExObjectPtr dest, bool raw, ExFallback f)
+        public bool Getter(ref ExObjectPtr self, ref ExObjectPtr k, ref ExObjectPtr dest, bool raw, ExFallback f, bool b_exist = false)
         {
             switch (self._type)
             {
@@ -1998,15 +2615,30 @@ namespace ExMat.VM
                                 return false;
                             }
 
-                            if (self._val.l_List.Count != 0 && self._val.l_List.Count > k.GetInt())
+                            if (!b_exist && self._val.l_List.Count != 0 && self._val.l_List.Count > k.GetInt())
                             {
                                 dest.Assign(new ExObjectPtr(self._val.l_List[k.GetInt()]));
                                 return true;
                             }
                             else
                             {
+                                if (!b_exist)
+                                {
+                                    AddToErrorMessage("array index error: count " + self._val.l_List.Count + ", idx: " + k.GetInt());
+                                }
+                                else
+                                {
+                                    bool found = false;
+                                    foreach (ExObjectPtr o in self._val.l_List)
+                                    {
+                                        CheckEqual(o, k, ref found);
+                                        if (found)
+                                        {
+                                            return true;
+                                        }
+                                    }
+                                }
                                 return false;
-                                //throw new Exception("array index error: count " + self._val.l_List.Count + " idx: " + k.GetInt());
                             }
                         }
                         break;
@@ -2072,13 +2704,60 @@ namespace ExMat.VM
                                 dest = new ExObjectPtr(self.GetString()[n].ToString());
                                 return true;
                             }
-                            AddToErrorMessage("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
+                            if (!b_exist)
+                            {
+                                AddToErrorMessage("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
+                            }
                             return false;
+                        }
+                        else if (b_exist)
+                        {
+                            return self.GetString().IndexOf(k.GetString()) != -1;
                         }
                         break;
                     }
+                case ExObjType.SPACE:
+                    {
+                        if (b_exist)
+                        {
+                            return IsInSpace(k, self._val.c_Space, 1);
+                        }
+
+                        goto default;
+
+                    }
+                case ExObjType.CLOSURE:
+                    {
+                        if (b_exist)
+                        {
+                            if (!self._val._Closure._func.is_cluster)
+                            {
+                                goto default;
+                            }
+
+                            List<ExObjectPtr> lis = k._type != ExObjType.ARRAY
+                                    ? new() { k }
+                                    : k._val.l_List;
+
+                            if (!DoClusterParamChecks(self._val._Closure._func, lis))
+                            {
+                                return false;
+                            }
+
+                            return true;
+                        }
+
+                        goto default;
+
+                    }
                 default:
-                    break;
+                    {
+                        if (!b_exist)
+                        {
+                            AddToErrorMessage("can't index '" + self._type.ToString() + "' with '" + k._type.ToString() + "'");
+                        }
+                        return false;
+                    }
             }
 
             if (!raw)
@@ -2298,7 +2977,7 @@ namespace ExMat.VM
 
             if (ret == 0)
             {
-                o.Nullify(); // TODO: Stops rest of the instructions
+                o.Nullify();
             }
             else
             {
@@ -2314,7 +2993,12 @@ namespace ExMat.VM
             {
                 case ExObjType.CLOSURE:
                     {
-                        return Exec(cls, nparams, stackbase, ref o);
+                        bool state = Exec(cls, nparams, stackbase, ref o);
+                        if (state)
+                        {
+                            _nnativecalls--;
+                        }
+                        return state;
                     }
                 case ExObjType.NATIVECLOSURE:
                     {

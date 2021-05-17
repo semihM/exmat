@@ -100,6 +100,8 @@ namespace ExMat.Objects
                 case ExObjType.FLOAT: s += " " + GetFloat(); break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
+                case ExObjType.CLOSURE: s = (_val._Closure == null ? s + GetString() : _val._Closure.GetDebuggerDisplay()); break;
+                case ExObjType.NATIVECLOSURE: s = (_val._NativeClosure == null ? s + GetString() : _val._NativeClosure.GetDebuggerDisplay()); break;
                 case ExObjType.NULL: break;
             }
             return s;
@@ -459,6 +461,25 @@ namespace ExMat.Objects
             AddReference(_type, _val, true);
             Release(t, v);
         }
+        public ExObjectPtr(ExList o)
+        {
+            _type = ExObjType.ARRAY;
+            _val.l_List = o._val.l_List;
+            _val._RefC = new();
+            AddReference(_type, _val, true);
+        }
+        public void Assign(ExList o)
+        {
+            ExObjType t = _type;
+            ExObjVal v = _val;
+
+            _val.l_List = o._val.l_List;
+            _val._RefC = new() { _refc = o._val._RefC._refc };
+            _type = ExObjType.ARRAY;
+
+            AddReference(_type, _val, true);
+            Release(t, v);
+        }
         public ExObjectPtr(ExClass o)
         {
             _type = ExObjType.CLASS;
@@ -612,6 +633,12 @@ namespace ExMat.Objects
         public int _refc = 0;
         public ExWeakRef _weakref;
 
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            _weakref.Dispose();
+        }
+
         public override void Release() { base.Release(); }
 
         public ExRefC()
@@ -645,6 +672,12 @@ namespace ExMat.Objects
         public ExWeakRef()
         {
             _type = ExObjType.WEAKREF;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            obj.Dispose();
         }
 
         public override void Release()
@@ -726,27 +759,46 @@ namespace ExMat.Objects
         {
             _type = ExObjType.ARRAY;
             _val.l_List = new();
+            _val._RefC = new();
         }
 
         public ExList(bool n)
         {
             _type = ExObjType.ARRAY;
             _val.l_List = n ? new() : null;
+            _val._RefC = new();
         }
         public ExList(char c)
         {
             _type = ExObjType.ARRAY;
             _val.l_List = c != '0' ? new() : null;
+            _val._RefC = new();
         }
         public ExList(ExList e)
         {
             _type = ExObjType.ARRAY;
             _val.l_List = e._val.l_List;
+            _val._RefC = new();
         }
         public ExList(List<ExObjectPtr> e)
         {
             _type = ExObjType.ARRAY;
             _val.l_List = e;
+            _val._RefC = new();
+        }
+
+        public ExList(List<string> e)
+        {
+            _type = ExObjType.ARRAY;
+
+            _val.l_List = new(e.Count);
+
+            _val._RefC = new();
+
+            foreach (string s in e)
+            {
+                _val.l_List.Add(new(s));
+            }
         }
     }
 
@@ -908,21 +960,55 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExRegFunc
+    public class ExRegFunc : IDisposable
     {
         public string name;
         public ExFunc func;
         public int n_pchecks;
         public string mask;
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    mask = null;
+                    name = null;
+                    n_pchecks = 0;
+                    func.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExRegFunc()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExStack //<T> where T : class, new()
+    public class ExStack : IDisposable //<T> where T : class, new()
     {
         public List<ExObjectPtr> _values;
 
         public int _size;
         public int _alloc;
+        private bool disposedValue;
 
         public string GetDebuggerDisplay()
         {
@@ -1073,6 +1159,97 @@ namespace ExMat.Objects
         {
             get => _values[n];
             set => _values[n].Assign(value);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing && _values != null)
+                {
+                    foreach (ExObjectPtr o in _values)
+                    {
+                        o.Dispose();
+                    }
+
+                    _values.RemoveAll((ExObjectPtr e) => true);
+                    _values = null;
+
+                    _alloc = 0;
+                    _size = 0;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExStack()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+    }
+
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+    public class ExSpace : IDisposable
+    {
+        public int dim = 1;
+        public string space = string.Empty;
+        public char sign = '\\';
+        public ExSpace _parent;
+        private bool disposedValue;
+
+        public string GetString()
+        {
+            return "@" + space + sign + dim;
+        }
+
+        public ExSpace() { }
+
+        public virtual string GetDebuggerDisplay()
+        {
+            return "SPACE(" + dim + ", " + space + ", " + sign + ")";
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    space = null;
+                    dim = 0;
+                    _parent.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExSpace()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

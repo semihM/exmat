@@ -9,6 +9,7 @@ namespace ExMat.BaseLib
 {
     public static class ExBaseLib
     {
+        // BASIC FUNCTIONS
         public static int BASE_print(ExVM vm, int nargs)
         {
             string s = string.Empty;
@@ -43,10 +44,17 @@ namespace ExMat.BaseLib
         }
         public static int BASE_time(ExVM vm, int nargs)
         {
-            vm.Push(new ExObjectPtr(DateTime.Now.Millisecond));
+            vm.Push(new ExObjectPtr((float)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
             return 1;
         }
 
+        // BASIC CLASSES
+        public static int BASE_bool(ExVM vm, int nargs)
+        {
+            vm.Push(ExAPI.GetFromStack(vm, 2).GetBool());
+
+            return 1;
+        }
         public static int BASE_string(ExVM vm, int nargs)
         {
             if (!ExAPI.ToString(vm, 2))
@@ -96,54 +104,105 @@ namespace ExMat.BaseLib
         {
             ExList l = new();
             ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
-            if (nargs == 3)    // range(x,y,z)
+
+            switch (nargs)
             {
-                float start = s.GetFloat();
-                float end = ExAPI.GetFromStack(vm, 3).GetFloat();
-                float step = ExAPI.GetFromStack(vm, 4).GetFloat();
-                l._val.l_List = new();
-
-                if (end > start)
-                {
-                    int count = (int)((end - start) / step);
-
-                    for (int i = 0; i < count; i++)
+                case 3:
                     {
-                        l._val.l_List.Add(new(start + i * step));
+                        float start = s.GetFloat();
+                        float end = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        float step = ExAPI.GetFromStack(vm, 4).GetFloat();
+                        l._val.l_List = new();
+
+                        if (end > start)
+                        {
+                            int count = (int)((end - start) / step);
+
+                            for (int i = 0; i < count; i++)
+                            {
+                                l._val.l_List.Add(new(start + i * step));
+                            }
+                        }
+
+                        break;
                     }
-                }
 
-            }
-            else if (nargs == 2) // range(x,y)
-            {
-                float start = s.GetFloat();
-                float end = ExAPI.GetFromStack(vm, 3).GetFloat();
-                l._val.l_List = new();
-
-                if (end > start)
-                {
-                    int count = (int)(end - start);
-                    for (int i = 0; i < count; i++)
+                case 2:
                     {
-                        l._val.l_List.Add(new(start + i));
-                    }
-                }
-            }
-            else if (nargs == 1)
-            {
-                float end = s.GetFloat();
-                l._val.l_List = new();
+                        float start = s.GetFloat();
+                        float end = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        l._val.l_List = new();
 
-                int count = (int)end;
-                for (int i = 0; i < count; i++)
-                {
-                    l._val.l_List.Add(new(i));
-                }
+                        if (end > start)
+                        {
+                            int count = (int)(end - start);
+                            for (int i = 0; i < count; i++)
+                            {
+                                l._val.l_List.Add(new(start + i));
+                            }
+                        }
+
+                        break;
+                    }
+
+                case 1:
+                    {
+                        float end = s.GetFloat();
+                        l._val.l_List = new();
+
+                        int count = (int)end;
+                        for (int i = 0; i < count; i++)
+                        {
+                            l._val.l_List.Add(new(i));
+                        }
+
+                        break;
+                    }
+            }
+            vm.Push(l);
+            return 1;
+        }
+        public static int BASE_matrix(ExVM vm, int nargs)
+        {
+            ExList l = new();
+            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+
+            switch (nargs)
+            {
+                case 2:
+                case 3:
+                    {
+                        int m = s.GetInt();
+                        if (m < 0)
+                        {
+                            m = 0;
+                        }
+
+                        int n = ExAPI.GetFromStack(vm, 3).GetInt();
+                        if (n < 0)
+                        {
+                            n = 0;
+                        }
+
+                        ExObjectPtr filler = nargs == 3 ? ExAPI.GetFromStack(vm, 4) : new();
+
+                        l._val.l_List = new(m);
+
+                        for (int i = 0; i < m; i++)
+                        {
+                            List<ExObjectPtr> lis = null;
+                            ExUtils.InitList(ref lis, n, filler);
+                            l._val.l_List.Add(new ExObjectPtr(lis));
+                        }
+
+                        break;
+                    }
             }
             vm.Push(l);
             return 1;
         }
 
+        // COMMON
         public static int BASE_default_length(ExVM vm, int nargs)
         {
             int size = -1;
@@ -184,6 +243,22 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        // STRING
+        public static int BASE_string_index_of(ExVM vm, int nargs)
+        {
+            if (ExAPI.GetTopOfStack(vm) >= 2)
+            {
+                ExObjectPtr res = new();
+                ExAPI.GetSafeObject(vm, -2, ExObjType.STRING, ref res);
+                string sub = vm.GetAbove(-1).GetString();
+                vm.Pop();
+                vm.Push(res.GetString().IndexOf(sub));
+                return 1;
+            }
+            return -1;
+        }
+
+        // ARRAY
         public static int BASE_array_append(ExVM vm, int nargs)
         {
             if (ExAPI.GetTopOfStack(vm) >= 2)
@@ -192,7 +267,19 @@ namespace ExMat.BaseLib
                 ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
                 res._val.l_List.Add(new(vm.GetAbove(-1)));
                 vm.Pop();
-                return 0;
+                return 1;
+            }
+            return -1;
+        }
+        public static int BASE_array_extend(ExVM vm, int nargs)
+        {
+            if (ExAPI.GetTopOfStack(vm) >= 2)
+            {
+                ExObjectPtr res = new();
+                ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
+                res._val.l_List.AddRange(vm.GetAbove(-1)._val.l_List);
+                vm.Pop();
+                return 1;
             }
             return -1;
         }
@@ -217,17 +304,100 @@ namespace ExMat.BaseLib
             return -1;
         }
 
+        public static int BASE_array_resize(ExVM vm, int nargs)
+        {
+            if (ExAPI.GetTopOfStack(vm) > 1)
+            {
+                ExObjectPtr res = new();
+                ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
+                int newsize = ExAPI.GetFromStack(vm, 2).GetInt();
+                if (newsize < 0)
+                {
+                    newsize = 0;
+                }
+
+                int curr = res._val.l_List.Count;
+                if (curr > 0 && newsize > 0)
+                {
+                    if (newsize >= curr)
+                    {
+                        for (int i = curr; i < newsize; i++)
+                        {
+                            res._val.l_List.Add(new());
+                        }
+                    }
+                    else
+                    {
+                        while (curr != newsize)
+                        {
+                            res._val.l_List[curr - 1].Nullify();
+                            res._val.l_List.RemoveAt(curr - 1);
+                            curr--;
+                        }
+                    }
+                }
+                else if (newsize > 0)
+                {
+                    res._val.l_List = new(newsize);
+                    for (int i = 0; i < newsize; i++)
+                    {
+                        res._val.l_List.Add(new());
+                    }
+                }
+                else
+                {
+                    res._val.l_List = new();
+                }
+
+                vm.Pop();
+                return 1;
+            }
+            return -1;
+        }
+
+        public static int BASE_array_index_of(ExVM vm, int nargs)
+        {
+            if (ExAPI.GetTopOfStack(vm) >= 2)
+            {
+                ExObjectPtr res = new();
+                ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
+                using ExObjectPtr obj = new(vm.GetAbove(-1));
+                vm.Pop();
+                vm.Push(ExAPI.GetValueIndexFromArray(res._val.l_List, obj));
+                return 1;
+            }
+            return -1;
+        }
+
+        // DICT
+        public static int BASE_dict_has_key(ExVM vm, int nargs)
+        {
+            if (ExAPI.GetTopOfStack(vm) >= 2)
+            {
+                ExObjectPtr res = new();
+                ExAPI.GetSafeObject(vm, -2, ExObjType.DICT, ref res);
+                string key = vm.GetAbove(-1).GetString();
+                vm.Pop();
+                vm.Push(res._val.d_Dict.ContainsKey(key));
+                return 1;
+            }
+            return -1;
+        }
+
+        // 
         private static readonly List<ExRegFunc> _exRegFuncs = new()
         {
             new() { name = "print", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_print")), n_pchecks = 2, mask = null },
             new() { name = "printl", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_printl")), n_pchecks = 2, mask = null },
             new() { name = "type", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_type")), n_pchecks = 2, mask = null },
             new() { name = "time", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_time")), n_pchecks = 1, mask = null },
-            new() { name = "string", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string")), n_pchecks = -2, mask = null },
-            new() { name = "float", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_float")), n_pchecks = -2, mask = null },
-            new() { name = "integer", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_integer")), n_pchecks = -2, mask = null },
+            new() { name = "string", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string")), n_pchecks = 2, mask = null },
+            new() { name = "float", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_float")), n_pchecks = 2, mask = null },
+            new() { name = "integer", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_integer")), n_pchecks = 2, mask = null },
+            new() { name = "bool", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_bool")), n_pchecks = 2, mask = null },
             new() { name = "list", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_list")), n_pchecks = -1, mask = ".n." },
             new() { name = "range", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_range")), n_pchecks = -2, mask = ".nnn" },
+            new() { name = "matrix", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_matrix")), n_pchecks = -3, mask = ".ii." },
 
             new() { name = string.Empty }
         };

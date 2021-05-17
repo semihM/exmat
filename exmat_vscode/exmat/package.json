@@ -1,0 +1,25 @@
+{
+    "name": "exmat",
+    "displayName": "exmat_highlighter",
+    "description": "ExMAT Programming Language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.56.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "exmat",
+            "aliases": ["ExMat", "exmat"],
+            "extensions": ["exmat"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "exmat",
+            "scopeName": "source.exmat",
+            "path": "./syntaxes/exmat.tmLanguage.json"
+        }]
+    }
+}

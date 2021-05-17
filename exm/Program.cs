@@ -18,40 +18,57 @@ namespace ExMat
 
         private static int CompileString(ExVM vm, string code)
         {
+            int tp = vm._top - vm._stackbase;
+            int ret = -1;
+
             if (ExAPI.CompileFile(vm, code))
             {
                 ExAPI.PushRootTable(vm);
                 if (ExAPI.Call(vm, 1, true))
                 {
                     ExObjType type = ExAPI.GetFromStack(vm, -1)._type;
-                    if (type == ExObjType.INTEGER)
+                    if (type == ExObjType.INTEGER)  // TO-DO maybe always print an additional line?
                     {
                         ExObjectPtr t = ExAPI.GetFromStack(vm, -1);
                         if (t.IsNumeric())
                         {
-                            return t._val.i_Int;
+                            ret = t._val.i_Int;
                         }
                     }
-                    return 0;
+                    else
+                    {
+                        ret = 0;
+                    }
                 }
                 else
                 {
-                    Console.WriteLine("\n\n+/+/+/+/+/+/+/+/+/+/+/+/+/+");
-                    Console.WriteLine("FAILED TO EXECUTE");
-                    Console.WriteLine(vm._error);
-                    Console.WriteLine("+/+/+/+/+/+/+/+/+/+/+/+/+/+");
-                    vm._error = string.Empty;
-                    return -1;
+                    ExAPI.WriteErrorMessages(vm, "EXECUTE");
+                    ret = -1;
                 }
             }
             else
             {
-                Console.WriteLine("\n\n+/+/+/+/+/+/+/+/+/+/+/+/+/+");
-                Console.WriteLine("FAILED TO COMPILE");
-                Console.WriteLine(vm._error);
-                Console.WriteLine("+/+/+/+/+/+/+/+/+/+/+/+/+/+");
-                vm._error = string.Empty;
-                return -1;
+                ExAPI.WriteErrorMessages(vm, "COMPILE");
+                ret = -1;
+            }
+
+            FixStackTopAfterCalls(vm, tp);
+            return ret;
+        }
+
+        private static void FixStackTopAfterCalls(ExVM vm, int t)
+        {
+            int curr = vm._top - vm._stackbase;
+            if (curr > t)
+            {
+                vm.Pop(curr - t);
+            }
+            else
+            {
+                while (curr++ < t)
+                {
+                    vm._stack[vm._top++].Nullify();
+                }
             }
         }
 

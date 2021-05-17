@@ -14,6 +14,7 @@ namespace ExMat.FuncPrototype
     {
         public int n_instr;
         public int n_lits;
+        public int n_spaces;
         public int n_params;
         public int n_funcs;
         public int n_outers;
@@ -24,11 +25,19 @@ namespace ExMat.FuncPrototype
 
         public bool _pvars;
 
+        public bool is_rule;
+
+        public bool is_cluster;
+        public int i_optstart;
+
+        public bool is_macro;
+
         public ExObjectPtr _name;
         public ExObjectPtr _source;
 
         public List<ExInstr> _instr;
         public List<ExObjectPtr> _lits;
+        public Dictionary<string, ExObjectPtr> _spaces;
         public List<ExObjectPtr> _params;
         public List<int> _defparams;
         public List<ExFuncPro> _funcs;
@@ -94,6 +103,67 @@ namespace ExMat.FuncPrototype
         public new string GetDebuggerDisplay()
         {
             return "FPRO(" + _name.GetString() + ", n_func: " + n_funcs + ", n_lits: " + n_lits + ", n_instr: " + n_instr + ")";
+        }
+
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            _source.Dispose();
+            _name.Dispose();
+
+            foreach (ExOuterInfo o in _outers)
+            {
+                o.Dispose();
+            }
+            _outers.RemoveAll((ExOuterInfo o) => true);
+            _outers = null;
+
+            _lineinfos.RemoveAll((ExLineInfo o) => true);
+            _lineinfos = null;
+
+            foreach (ExLocalInfo o in _localinfos)
+            {
+                o.Dispose();
+            }
+            _localinfos.RemoveAll((ExLocalInfo o) => true);
+            _localinfos = null;
+
+            foreach (ExFuncPro o in _funcs)
+            {
+                o.Dispose();
+            }
+            _funcs.RemoveAll((ExFuncPro o) => true);
+            _funcs = null;
+
+            _defparams = null;
+
+            foreach (ExObjectPtr o in _params)
+            {
+                o.Dispose();
+            }
+            _params.RemoveAll((ExObjectPtr o) => true);
+            _params = null;
+
+            foreach (ExObjectPtr o in _spaces.Values)
+            {
+                o.Dispose();
+            }
+            _spaces = null;
+
+            foreach (ExObjectPtr o in _lits)
+            {
+                o.Dispose();
+            }
+            _lits.RemoveAll((ExObjectPtr o) => true);
+            _lits = null;
+
+            foreach (ExInstr o in _instr)
+            {
+                o.Dispose();
+            }
+            _instr.RemoveAll((ExInstr o) => true);
+            _instr = null;
         }
     }
 

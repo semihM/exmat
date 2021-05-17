@@ -13,12 +13,13 @@ namespace ExMat.InfoVar
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExLocalInfo
+    public class ExLocalInfo : IDisposable
     {
         public ExObject name = new();
         public int _sopc = 0;
         public int _eopc = 0;
         public int _pos = 0;
+        private bool disposedValue;
 
         public ExLocalInfo() { }
         public ExLocalInfo(ExLocalInfo lcl)
@@ -31,14 +32,44 @@ namespace ExMat.InfoVar
         {
             return "(" + _sopc + ", " + _eopc + ", " + _pos + ") " + name.GetDebuggerDisplay();
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    name.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExLocalInfo()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExOuterInfo
+    public class ExOuterInfo : IDisposable
     {
         public ExObjectPtr name = new();
         public ExObjectPtr _src = new();
         public ExOuterType _type;
+        private bool disposedValue;
 
         public ExOuterInfo() { }
         public ExOuterInfo(ExObject _name, ExObject src, ExOuterType typ)
@@ -58,6 +89,36 @@ namespace ExMat.InfoVar
         {
             return "::(" + _type.ToString() + ")" + name.GetDebuggerDisplay();
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    name.Dispose();
+                    _src.Dispose();
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExOuterInfo()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
@@ -75,10 +136,11 @@ namespace ExMat.InfoVar
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExCallInfo
+    public class ExCallInfo : IDisposable
     {
         public ExInstr _instr;
         public List<ExObjectPtr> _lits;
+        public Dictionary<string, ExObjectPtr> _spaces;
         public ExObjectPtr _closure;
         public int _prevbase;
         public int _prevtop;
@@ -88,6 +150,8 @@ namespace ExMat.InfoVar
         public bool _root;
         public List<ExInstr> _instrs;
         public int _idx_instrs;
+        private bool disposedValue;
+
         public ExCallInfo() { }
         public ExCallInfo ShallowCopy()
         {
@@ -98,10 +162,60 @@ namespace ExMat.InfoVar
             string i = _instrs == null ? " null" : " " + _instrs.Count;
             return ">>CALLINFO (n_instr:" + i + ", n_idx" + _idx_instrs + ")";
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    foreach (ExObjectPtr o in _lits)
+                    {
+                        o.Dispose();
+                    }
+                    _lits.RemoveAll((ExObjectPtr o) => true);
+                    _lits = null;
+
+                    _closure.Dispose();
+                    _instr.Dispose();
+
+                    foreach (ExObjectPtr o in _spaces.Values)
+                    {
+                        o.Dispose();
+                    }
+                    _spaces = null;
+
+                    foreach (ExInstr o in _instrs)
+                    {
+                        o.Dispose();
+                    }
+                    _instrs.RemoveAll((ExInstr o) => true);
+                    _instrs = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExCallInfo()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
     public class Node<T> : IDisposable
-        where T : class, new()
+        where T : class, IDisposable, new()
     {
         public Node<T> _prev;
         public Node<T> _next;
@@ -163,7 +277,12 @@ namespace ExMat.InfoVar
                         curr = curr._prev;
                     }
 
-                    curr._val = null;
+                    if (curr._val != null)
+                    {
+                        curr._val.Dispose();
+                        curr._val = null;
+                    }
+
                     while (curr._next != null)
                     {
                         if (curr._prev != null)
@@ -171,7 +290,12 @@ namespace ExMat.InfoVar
                             curr._prev._next = null;
                             curr._prev = null;
                         }
-                        curr._val = null;
+
+                        if (curr._val != null)
+                        {
+                            curr._val.Dispose();
+                            curr._val = null;
+                        }
                         curr = curr._next;
                     }
 
@@ -180,7 +304,12 @@ namespace ExMat.InfoVar
                         curr._prev._next = null;
                         curr._prev = null;
                     }
-                    curr._val = null;
+
+                    if (curr._val != null)
+                    {
+                        curr._val.Dispose();
+                        curr._val = null;
+                    }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

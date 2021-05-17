@@ -27,19 +27,20 @@ namespace ExMat
         FLOAT = 1 << 2,
         BOOL = 1 << 3,
         STRING = 1 << 4,
-        ARRAY = 1 << 5,
-        USERDATA = 1 << 6,
-        CLOSURE = 1 << 7,
-        NATIVECLOSURE = 1 << 8,
-        USERPTR = 1 << 9,
-        THREAD = 1 << 10,
-        FUNCINFO = 1 << 11,
-        CLASS = 1 << 12,
-        INSTANCE = 1 << 13,
-        WEAKREF = 1 << 14,
-        OUTER = 1 << 15,
-        FUNCPRO = 1 << 16,
-        DICT = 1 << 17
+        SPACE = 1 << 5,
+        ARRAY = 1 << 6,
+        USERDATA = 1 << 7,
+        CLOSURE = 1 << 8,
+        NATIVECLOSURE = 1 << 9,
+        USERPTR = 1 << 10,
+        THREAD = 1 << 11,
+        FUNCINFO = 1 << 12,
+        CLASS = 1 << 13,
+        INSTANCE = 1 << 14,
+        WEAKREF = 1 << 15,
+        OUTER = 1 << 16,
+        FUNCPRO = 1 << 17,
+        DICT = 1 << 18
     }
 
     public enum ExObjFlag
@@ -57,9 +58,10 @@ namespace ExMat
         FLOAT = ExRawType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
         BOOL = ExRawType.BOOL | ExObjFlag.BOOLFALSEABLE,
         STRING = ExRawType.STRING, // | ExObjFlag.REF_COUNTED,
-        DICT = ExRawType.DICT, //| ExObjFlag.REF_COUNTED,
+        DICT = ExRawType.DICT | ExObjFlag.REF_COUNTED,
+        SPACE = ExRawType.SPACE,
 
-        ARRAY = ExRawType.ARRAY | ExObjFlag.BOOLFALSEABLE, // | ExObjFlag.REF_COUNTED,
+        ARRAY = ExRawType.ARRAY | ExObjFlag.REF_COUNTED,
 
         USERDATA = ExRawType.USERDATA | ExObjFlag.REF_COUNTED | ExObjFlag.DELEGABLE,
         USERPTR = ExRawType.USERPTR,
@@ -93,6 +95,7 @@ namespace ExMat
         [FieldOffset(0)] public float f_Float;
         [FieldOffset(0)] public bool b_Bool;
         [FieldOffset(8)] public string s_String;
+        [FieldOffset(24)] public ExSpace c_Space;
         [FieldOffset(24)] public List<ExObjectPtr> l_List;
         [FieldOffset(24)] public Dictionary<string, ExObjectPtr> d_Dict;
         [FieldOffset(40)] public ExRefC _RefC;

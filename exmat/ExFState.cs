@@ -114,9 +114,45 @@ namespace ExMat.States
             }
         }
 
+        public bool IsMacro(ExObject o)
+        {
+            return _Sstate._macros.ContainsKey(o.GetString());
+        }
+
+        public bool IsFuncMacro(ExObject o)
+        {
+            return _Sstate._macros[o.GetString()].GetBool();
+        }
+
+        public bool AddMacro(ExObjectPtr o, bool isfunc, bool forced = false)
+        {
+            if (_Sstate._macros.ContainsKey(o.GetString()))
+            {
+                if (forced)
+                {
+                    _Sstate._macros[o.GetString()].Assign(isfunc);
+                    return true;
+                }
+                return false;
+            }
+            else
+            {
+                _Sstate._macros.Add(o.GetString(), new(isfunc));
+                return true;
+            }
+        }
+
         public int GetConst(ExObjectPtr o)
         {
-            string name = o._val.s_String;
+            string name;
+            if (o._type == ExObjType.SPACE)
+            {
+                name = o._val.c_Space.GetString();
+            }
+            else
+            {
+                name = o.GetString();
+            }
 
             ExObjectPtr v = new();
             if (!_literals.ContainsKey(name))
@@ -289,10 +325,10 @@ namespace ExMat.States
         {
             if (_Sstate._consts.ContainsKey(name))
             {
-                dynamic val = _Sstate._consts[name];
+                ExObjectPtr val = _Sstate._consts[name];
                 if (val._type == ExObjType.WEAKREF)
                 {
-                    e = val._WeakRef.obj;
+                    e = val._val._WeakRef.obj;
                 }
                 else
                 {
@@ -309,11 +345,11 @@ namespace ExMat.States
             return pos < _localvs.Count && _localvs[pos].name._type != ExObjType.NULL;
         }
 
-        public int PushLocal(ExObject local)
+        public int PushVar(ExObject v)
         {
             int n = _localvs.Count;
             ExLocalInfo l = new();
-            l.name = local;
+            l.name = v;
             l._sopc = GetCurrPos() + 1;
             l._pos = _localvs.Count;
             _localvs.Add(l);
@@ -627,7 +663,7 @@ namespace ExMat.States
 
         public void AddParam(ExObject p)
         {
-            PushLocal(p);
+            PushVar(p);
             _params.Add((ExObjectPtr)p);
         }
 
@@ -711,6 +747,17 @@ namespace ExMat.States
             }
 
             funcPro._pvars = _pvars;
+
+            funcPro.n_spaces = _Sstate._spaces.Count;
+            funcPro._spaces = new();
+            foreach (string v in _Sstate._spaces.Keys)
+            {
+                if (funcPro._spaces.ContainsKey(v))
+                {
+                    continue;
+                }
+                funcPro._spaces.Add(v, _Sstate._spaces[v]);
+            }
 
             return funcPro;
         }

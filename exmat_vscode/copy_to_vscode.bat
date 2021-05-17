@@ -1,0 +1,1 @@
+Xcopy exmat %USERPROFILE%\.vscode\extensions\exmat /E /H /I

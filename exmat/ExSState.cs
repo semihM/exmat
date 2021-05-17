@@ -9,13 +9,15 @@ namespace ExMat.States
     public class ExSState
     {
         public Dictionary<string, ExObjectPtr> _strings = new();
+        public Dictionary<string, ExObjectPtr> _spaces = new();
+        public Dictionary<string, ExObjectPtr> _macros = new();
 
         public List<ExObjectPtr> _types = new();
 
         public List<ExObjectPtr> _metaMethods = new();
         public ExObjectPtr _metaMethodsMap = new(new Dictionary<string, ExObjectPtr>());
 
-        public Dictionary<string, dynamic> _consts = new();
+        public Dictionary<string, ExObjectPtr> _consts = new();
 
         public ExCollectable _GC_CHAIN = new();
 
@@ -37,6 +39,7 @@ namespace ExMat.States
         public List<ExRegFunc> _dict_delF = new()
         {
             new() { name = "len", n_pchecks = 1, mask = "d", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
+            new() { name = "has_key", n_pchecks = 2, mask = "ds", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_dict_has_key")) },
             new() { name = string.Empty }
         };
 
@@ -44,9 +47,13 @@ namespace ExMat.States
         public List<ExRegFunc> _list_delF = new()
         {
             new() { name = "len", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
-            new() { name = "append", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) },
-            new() { name = "push", n_pchecks = 2, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) },
+            new() { name = "append", n_pchecks = 2, mask = "a.", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) },
+            new() { name = "extend", n_pchecks = 2, mask = "aa", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_extend")) },
+            new() { name = "push", n_pchecks = 2, mask = "a.", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_append")) },
             new() { name = "pop", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_pop")) },
+            new() { name = "resize", n_pchecks = 2, mask = "ai", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_resize")) },
+            new() { name = "index_of", n_pchecks = 2, mask = "a.", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_index_of")) },
+
             new() { name = string.Empty }
         };
 
@@ -60,6 +67,7 @@ namespace ExMat.States
         public List<ExRegFunc> _str_delF = new()
         {
             new() { name = "len", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
+            new() { name = "index_of", n_pchecks = 2, mask = "ss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_index_of")) },
             new() { name = string.Empty }
         };
 

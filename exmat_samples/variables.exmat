@@ -1,0 +1,28 @@
+var x,y,z
+printl("x: " + x + " y: " + y + " z: " + z);
+
+var X = null, Y = "\"a string\"", Z = 3
+printl("X: " + X + " Y: " + Y + " Z: " + Z);
+
+var a = 2.2;
+printl(typeof a)
+printl(a);
+a += 4
+printl(a);
+
+var s = 31415e-4
+printl(typeof s)
+printl(s) 
+
+var l = [1,3,5,7]
+printl(typeof l)
+printl(l) 
+
+var d = 
+{
+    "key_1" : "value_1"
+    key_2 = "value_2"
+    "0" : 999
+}
+printl(typeof d)
+printl(d) 
