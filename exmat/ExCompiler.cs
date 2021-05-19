@@ -10,6 +10,7 @@ using ExMat.VM;
 
 namespace ExMat.Compiler
 {
+
     public class ExCompiler
     {
         private ExVM _VM;
@@ -22,6 +23,7 @@ namespace ExMat.Compiler
         private TokenType _currToken;
 
         private readonly bool _lineinfo;
+        private bool _inblockmacro;
 
         private ExScope _scope = new();
 
@@ -247,7 +249,7 @@ namespace ExMat.Compiler
 
         public bool CheckSMC()
         {
-            if (_currToken == TokenType.SMC)
+            if (_currToken == TokenType.SMC || _currToken == TokenType.MACROBLOCK)
             {
                 if (!ReadAndSetToken())
                 {
@@ -335,6 +337,14 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
+                case TokenType.SUM:
+                    {
+                        if (!ProcessSumStatement())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
                 case TokenType.FUNCTION:
                     {
                         if (!ProcessFunctionStatement())
@@ -417,6 +427,14 @@ namespace ExMat.Compiler
                         _Fstate._continues.Add(_Fstate.GetCurrPos());
 
                         if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
+                case TokenType.MACROBLOCK:
+                    {
+                        if (!ProcessMacroBlockStatement())
                         {
                             return false;
                         }
@@ -978,6 +996,11 @@ namespace ExMat.Compiler
             AddBasicDerefInstr(OPC.NEWSLOT);
 
             return true;
+        }
+
+        public bool ProcessSumStatement()
+        {
+            return false;
         }
 
         public bool ProcessVarAsgStatement()
@@ -1966,7 +1989,14 @@ namespace ExMat.Compiler
                             return false;
                         }
 
-                        if (_Fstate.IsMacro(idx) && !_Fstate.IsFuncMacro(idx))
+                        if (_Fstate.IsBlockMacro(idx.GetString()))
+                        {
+                            _Fstate.PushTarget(0);
+                            _Fstate.AddInstr(OPC.LOAD, _Fstate.PushTarget(), _Fstate.GetConst((ExObjectPtr)idx), 0, 0);
+                            //macro = true;
+                            _Estate._type = ExEType.OBJECT;
+                        }
+                        else if (_Fstate.IsMacro(idx) && !_Fstate.IsFuncMacro(idx))
                         {
                             _Fstate.PushTarget(0);
                             _Fstate.AddInstr(OPC.LOAD, _Fstate.PushTarget(), _Fstate.GetConst((ExObjectPtr)idx), 0, 0);
@@ -2043,6 +2073,17 @@ namespace ExMat.Compiler
                 case TokenType.NULL:
                     {
                         _Fstate.AddInstr(OPC.LOAD_NULL, _Fstate.PushTarget(), 1, 0, 0);
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
+                case TokenType.MACROPARAM_NUM:
+                case TokenType.MACROPARAM_STR:
+                    {
+                        _Fstate.AddInstr(OPC.LOAD, _Fstate.PushTarget(), _Fstate.GetConst(_Fstate.CreateString(_lexer.str_val)), 0, 0);
+
                         if (!ReadAndSetToken())
                         {
                             return false;
@@ -2650,7 +2691,8 @@ namespace ExMat.Compiler
                     }
                     if (_currToken == TokenType.R_CLOSE)
                     {
-                        throw new Exception("expression expected, found ')'");
+                        AddToErrorMessage("expression expected, found ')'");
+                        return false;
                     }
                 }
             }
@@ -2817,29 +2859,38 @@ namespace ExMat.Compiler
             ExFState tmp = _Fstate.Copy();
             _Fstate = f_state;
 
-            while (_currToken != TokenType.NEWLINE
-                 && _currToken != TokenType.ENDLINE
-                 && _currToken != TokenType.MACROEND
-                 && _currToken != TokenType.UNKNOWN)
+            if (!_inblockmacro)
             {
-                if (!ProcessStatements(true))
+                while (_currToken != TokenType.NEWLINE
+                     && _currToken != TokenType.ENDLINE
+                     && _currToken != TokenType.MACROEND
+                     && _currToken != TokenType.UNKNOWN)
+                {
+                    if (!ProcessStatements(true))
+                    {
+                        return false;
+                    }
+                    //if (!ProcessStatement(true,true))
+                    //{
+                    //    return false;
+                    //}
+                }
+                if (!ReadAndSetToken())
                 {
                     return false;
                 }
-                //if (!ProcessStatement(true,true))
-                //{
-                //    return false;
-                //}
-            }
 
-            if (!ReadAndSetToken())
+                f_state.AddInstr(OPC.RETURN, 1, _Fstate.PopTarget(), 0, 0);
+
+                f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+
+            }
+            else
             {
-                return false;
+                // TO-DO
+                f_state.AddInstr(OPC.RETURNMACRO, 1, _Fstate.PopTarget(), 0, 0);
             }
 
-            f_state.AddInstr(OPC.RETURN, 1, _Fstate.PopTarget(), 0, 0);
-
-            f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
@@ -2850,6 +2901,76 @@ namespace ExMat.Compiler
             _Fstate._funcs.Add(fpro);
             _Fstate.PopChildState();
 
+            return true;
+        }
+
+        private void FixAfterMacro(ExLexer old_lex, TokenType old_currToken, string old_src)
+        {
+            _lexer = old_lex;
+            _currToken = old_currToken;
+            _source = old_src;
+            _inblockmacro = false;
+        }
+
+        public bool ProcessMacroBlockStatement()
+        {
+            if (true)    // TO-DO
+            {
+                return false;
+            }
+#pragma warning disable CS0162 // Unreachable code detected
+            ExObjectPtr idx;
+#pragma warning restore CS0162 // Unreachable code detected
+
+            ExLexer old_lex = _lexer;
+            TokenType old_currToken = _currToken;
+            string old_src = _source;
+
+            _lexer = new(_lexer.m_block) { m_params = _lexer.m_params, m_block = _lexer.m_block };
+
+            if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null)
+            {
+                FixAfterMacro(old_lex, old_currToken, old_src);
+                return false;
+            }
+
+            if (idx.GetString().ToUpper() != idx.GetString())
+            {
+                FixAfterMacro(old_lex, old_currToken, old_src);
+                AddToErrorMessage("macro names should be all uppercase characters!");
+                return false;
+            }
+
+            _Fstate.PushTarget(0);
+            _Fstate.AddInstr(OPC.LOAD, _Fstate.PushTarget(), _Fstate.GetConst(idx), 0, 0);
+            bool isfunc = _currToken == TokenType.R_OPEN;
+
+            _inblockmacro = true;
+
+            if (!ExMacroCreate(idx, isfunc))
+            {
+                FixAfterMacro(old_lex, old_currToken, old_src);
+                return false;
+            }
+
+            if (_Fstate.IsBlockMacro(idx.GetString()))
+            {
+                AddToErrorMessage("macro '" + idx.GetString() + "' already exists!");
+                FixAfterMacro(old_lex, old_currToken, old_src);
+                return false;
+            }
+            else
+            {
+                _Fstate.AddBlockMacro(idx.GetString(), new() { name = idx.GetString(), source = _lexer.m_block, _params = _lexer.m_params });
+            }
+
+            _Fstate.AddInstr(OPC.CLOSURE, _Fstate.PushTarget(), _Fstate._funcs.Count - 1, 0, 0);
+
+            AddBasicDerefInstr(OPC.NEWSLOT);
+
+            _Fstate.PopTarget();
+
+            FixAfterMacro(old_lex, old_currToken, old_src);
             return true;
         }
 

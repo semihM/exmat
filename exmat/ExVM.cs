@@ -41,6 +41,8 @@ namespace ExMat.VM
 
         public string _error;
 
+        public bool _got_input = false;
+
         public void AddToErrorMessage(string msg)
         {
             if (string.IsNullOrEmpty(_error))
@@ -198,7 +200,7 @@ namespace ExMat.VM
                         {
                             s += (tmp.n_params - 1) + " params (min:" + (tmp.n_params - tmp.n_defparams - 1) + ")";
                         }
-                        else if(!tmp.is_macro)
+                        else if (!tmp.is_macro)
                         {
                             s += (tmp.n_params - 1) + " params";
                         }
@@ -424,6 +426,13 @@ namespace ExMat.VM
             return _stack[--_top];
         }
 
+        public void PushParse(List<ExObjectPtr> o)
+        {
+            foreach (ExObjectPtr ob in o)
+            {
+                Push(ob);
+            }
+        }
         public void Push(string o) => _stack[_top++].Assign(o);
         public void Push(int o) => _stack[_top++].Assign(o);
         public void Push(long o) => _stack[_top++].Assign((int)o);
@@ -591,7 +600,7 @@ namespace ExMat.VM
                 {
                     if (n_def > 0 && !pro.is_rule && !pro.is_cluster)
                     {
-                        AddToErrorMessage("'" + pro._name.GetString() + "' takes at least " + (p - n_def - 1) + " arguments");
+                        AddToErrorMessage("'" + pro._name.GetString() + "' takes min: " + (p - n_def - 1) + ", max:" + (p - 1) + " arguments");
                     }
                     else
                     {
@@ -1094,7 +1103,7 @@ namespace ExMat.VM
             tmpreg = new(cls);
             if (!StartCall(tmpreg._val._Closure, _top - narg, narg, stackbase, false))
             {
-                AddToErrorMessage("no calls found");
+                //AddToErrorMessage("no calls found");
                 return false;
             }
 
@@ -1468,14 +1477,14 @@ namespace ExMat.VM
                         }
                     case OPC.GETOUTER:
                         {
-                            ExClosure currcls = ci._val._closure._val._Closure;
+                            ExClosure currcls = ci._val._closure.GetClosure();
                             ExOuter outr = currcls._outervals[i.arg1]._val._Outer;
                             GetTargetInStack(i).Assign(outr._valptr);
                             continue;
                         }
                     case OPC.SETOUTER:
                         {
-                            ExClosure currcls = ci._val._closure._val._Closure;
+                            ExClosure currcls = ci._val._closure.GetClosure();
                             ExOuter outr = currcls._outervals[i.arg1]._val._Outer;
                             outr._valptr.Assign(GetTargetInStack(i.arg2));
                             if (i.arg0.GetInt() != 985)
@@ -1660,16 +1669,16 @@ namespace ExMat.VM
                         }
                     case OPC.NEGATE:
                         {
-                            ExObjectPtr t = new(GetTargetInStack(i));
-                            if (!DoNegateOP(ref t, GetTargetInStack(i.arg2)))
+                            if (!DoNegateOP(GetTargetInStack(i), GetTargetInStack(i.arg1)))
                             {
-                                throw new Exception("attempt to negate unknown");
+                                AddToErrorMessage("attempted to negate '" + GetTargetInStack(i.arg1) + "'");
+                                return false;
                             }
                             continue;
                         }
                     case OPC.CLOSURE:
                         {
-                            ExClosure cl = ci._val._closure._val._Closure;
+                            ExClosure cl = ci._val._closure.GetClosure();
                             ExFuncPro fp = cl._func;
                             if (!DoClosureOP(GetTargetInStack(i), fp._funcs[i.arg1]))
                             {
@@ -1708,6 +1717,15 @@ namespace ExMat.VM
                     case OPC.TYPEOF:
                         {
                             GetTargetInStack(i).Assign(GetTargetInStack(i.arg1)._type.ToString());
+                            continue;
+                        }
+                    case OPC.RETURNMACRO:
+                        {
+                            if (ReturnValue(i.arg0.GetInt(), i.arg1, ref tmpreg, false, true))
+                            {
+                                SwapObjects(o, ref tmpreg);
+                                return true;
+                            }
                             continue;
                         }
                     default:
@@ -1845,7 +1863,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public static bool DoNegateOP(ref ExObjectPtr target, ExObjectPtr val)
+        public static bool DoNegateOP(ExObjectPtr target, ExObjectPtr val)
         {
             switch (val._type)
             {
@@ -2049,7 +2067,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool ReturnValue(int a0, int a1, ref ExObjectPtr res, bool make_bool = false)
+        public bool ReturnValue(int a0, int a1, ref ExObjectPtr res, bool make_bool = false, bool mac = false)
         {
             bool r = ci._val._root;
             int cbase = _stackbase - ci._val._prevbase;
@@ -2068,11 +2086,18 @@ namespace ExMat.VM
                 p = _stack[cbase + ci._val._target];
             }
 
-            if (p._type != ExObjType.NULL)
+            if (p._type != ExObjType.NULL || _forcereturn)
             {
                 if (a0 != 985)
                 {
-                    p.Assign(make_bool ? new(_stack[_stackbase + a1].GetBool()) : _stack[_stackbase + a1]);
+                    if (mac)
+                    {
+                        p.Assign(_stack[_stackbase - a0]);
+                    }
+                    else
+                    {
+                        p.Assign(make_bool ? new(_stack[_stackbase + a1].GetBool()) : _stack[_stackbase + a1]);
+                    }
                 }
                 else
                 {
@@ -2607,7 +2632,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (k.IsNumeric())
+                        if (k.IsNumeric() && !b_exist)
                         {
                             if (self._val.l_List == null)
                             {
@@ -2902,9 +2927,9 @@ namespace ExMat.VM
 
         public bool CallNative(ExNativeClosure cls, int narg, int newb, ref ExObjectPtr o)
         {
-            if (cls._val._NativeClosure != null)
+            if (cls.GetNClosure() != null)  // shouldnt really happend
             {
-                cls = cls._val._NativeClosure;
+                cls = cls.GetNClosure();
             }
 
             int nparamscheck = cls.n_paramscheck;
@@ -2987,8 +3012,11 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool Call(ref ExObjectPtr cls, int nparams, int stackbase, ref ExObjectPtr o)
+        public bool _forcereturn = false;
+
+        public bool Call(ref ExObjectPtr cls, int nparams, int stackbase, ref ExObjectPtr o, bool forcereturn = false)
         {
+            _forcereturn = forcereturn;
             switch (cls._type)
             {
                 case ExObjType.CLOSURE:
@@ -2998,11 +3026,14 @@ namespace ExMat.VM
                         {
                             _nnativecalls--;
                         }
+                        _forcereturn = false;
                         return state;
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
-                        return CallNative(cls._val._NativeClosure, nparams, stackbase, ref o);
+                        bool s = CallNative(cls._val._NativeClosure, nparams, stackbase, ref o);
+                        _forcereturn = false;
+                        return s;
                     }
                 case ExObjType.CLASS:
                     {
@@ -3013,12 +3044,15 @@ namespace ExMat.VM
                         if (cn._type != ExObjType.NULL)
                         {
                             _stack[stackbase].Assign(o);
-                            return Call(ref cn, nparams, stackbase, ref tmp);
+                            bool s = Call(ref cn, nparams, stackbase, ref tmp);
+                            _forcereturn = false;
+                            return s;
                         }
+                        _forcereturn = false;
                         return true;
                     }
                 default:
-                    return false;
+                    return _forcereturn = false;
             }
 
         }

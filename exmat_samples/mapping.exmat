@@ -1,0 +1,22 @@
+
+var strings = map(string, range(-10,10));
+
+printl( strings )
+
+printl( map("".len, strings) )
+
+var function MapFunc(x) return abs(x) + x
+
+printl( map(MapFunc, range(-5,5,0.5)) )
+
+var function FilterFunc(x) return x > 3
+
+printl( map(MapFunc, filter(FilterFunc, range(-5,10,0.75))))
+
+var function CallMe(x,y,z=20) return abs(x) + abs(y) + abs(z)
+
+printl( call(CallMe, -5, 10 ) )
+
+var function ParseArguments(x,y,z) return x**y + x**z
+
+printl( apply(ParseArguments,range(4,7)) )

@@ -65,7 +65,7 @@ namespace ExMat.API
             {
                 return false;
             }
-            s = o._val.s_String;
+            s = o.GetString();
             return true;
         }
 
@@ -150,7 +150,7 @@ namespace ExMat.API
             ExObject o = GetFromStack(vm, id);
             if (o._type == ExObjType.NATIVECLOSURE)
             {
-                o._val._NativeClosure._name = new(name);
+                o.GetNClosure()._name = new(name);
             }
             else
             {
@@ -164,7 +164,7 @@ namespace ExMat.API
         public static string GetExpectedTypes(int mask)
         {
             List<string> names = new();
-            for (int i = 0; i < 18; i++)
+            for (int i = 0; i < 19; i++)
             {
                 if (((mask >> i) % 2) == 1)
                 {
@@ -227,7 +227,7 @@ namespace ExMat.API
             {
                 throw new Exception("native closure expected");
             }
-            ExNativeClosure nc = o._val._NativeClosure;
+            ExNativeClosure nc = o.GetNClosure();
             nc.n_paramscheck = n;
 
             if (!string.IsNullOrEmpty(mask))
@@ -327,6 +327,77 @@ namespace ExMat.API
             if (vm.Call(ref tmp, pcount, vm._top - pcount, ref res))
             {
                 vm.Pop(pcount);
+                if (ret)
+                {
+                    vm.Push(res);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        public static bool Call(ExVM vm, int pcount, bool ret, bool b_p = false, bool cls = false, int nargs = 2)
+        {
+            ExObjectPtr res = new();
+            ExObjectPtr tmp = vm.GetAbove(-(nargs) + (cls ? -1 : 0));
+            if (cls)
+            {
+                int top = vm._top;
+                vm._top = vm._stackbase + tmp.GetClosure()._func._stacksize + 2;
+                if (vm.Call(ref tmp,
+                        nargs - (b_p
+                                    ? (cls
+                                            ? 0
+                                            : (tmp.GetNClosure().n_paramscheck == 1
+                                                ? 1
+                                                : 0))
+                                    : 0),
+                        vm._stackbase + 2, // vm._top - nargs + (cls ? (parsing ? -2 : 0)  : 0 ), //+ ,
+                        ref res,
+                        cls))
+                {
+                    while (vm._top >= top)
+                    {
+                        vm.Pop();
+                    }
+                    if (ret)
+                    {
+                        vm.Push(res);
+                    }
+                    vm._top = top;
+                    return true;
+                }
+            }
+            else
+            {
+                if (vm.Call(ref tmp,
+                        nargs - (b_p
+                                    ? ((tmp.GetNClosure().n_paramscheck == 1
+                                                ? 1
+                                                : 0))
+                                    : 0),
+                        vm._stackbase + 1, // vm._top - nargs + (cls ? (parsing ? -2 : 0)  : 0 ), //+ ,
+                        ref res,
+                        cls))
+                {
+                    vm.Pop(nargs - 1);
+                    if (ret)
+                    {
+                        vm.Push(res);
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static bool Call(ExVM vm, int pcount, bool ret, bool parsing = false, bool cls = false)
+        {
+            ExObjectPtr res = new();
+            ExObjectPtr tmp = vm.GetAbove(-(pcount + 1 - (parsing && cls ? 1 : 0)));
+            if (vm.Call(ref tmp, pcount - (parsing ? (cls ? 1 : (tmp.GetNClosure().n_paramscheck == 1 ? 2 : 1)) : 0), vm._top - pcount + (parsing ? 1 : 0), ref res, cls))
+            {
+                vm.Pop(pcount - (parsing ? 1 : 0));
                 if (ret)
                 {
                     vm.Push(res);

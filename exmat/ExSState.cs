@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using ExMat.Closure;
+using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.VM;
 
@@ -11,6 +12,7 @@ namespace ExMat.States
         public Dictionary<string, ExObjectPtr> _strings = new();
         public Dictionary<string, ExObjectPtr> _spaces = new();
         public Dictionary<string, ExObjectPtr> _macros = new();
+        public Dictionary<string, ExMacro> _blockmacros = new();
 
         public List<ExObjectPtr> _types = new();
 
@@ -40,6 +42,8 @@ namespace ExMat.States
         {
             new() { name = "len", n_pchecks = 1, mask = "d", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
             new() { name = "has_key", n_pchecks = 2, mask = "ds", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_dict_has_key")) },
+            new() { name = "get_keys", n_pchecks = 1, mask = "d", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_dict_keys")) },
+            new() { name = "get_values", n_pchecks = 1, mask = "d", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_dict_values")) },
             new() { name = string.Empty }
         };
 
@@ -68,6 +72,10 @@ namespace ExMat.States
         {
             new() { name = "len", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
             new() { name = "index_of", n_pchecks = 2, mask = "ss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_index_of")) },
+            new() { name = "to_upper", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_toupper")) },
+            new() { name = "to_lower", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_tolower")) },
+            new() { name = "reverse", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_reverse")) },
+            new() { name = "replace", n_pchecks = 3, mask = "sss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_replace")) },
             new() { name = string.Empty }
         };
 
@@ -130,8 +138,11 @@ namespace ExMat.States
             Dictionary<string, ExObjectPtr> d = new();
             while (f[i].name != string.Empty)
             {
+                f[i].b_isdeleg = true;
                 ExNativeClosure cls = ExNativeClosure.Create(exs, f[i].func, 0);
                 cls.n_paramscheck = f[i].n_pchecks;
+                cls.b_deleg = true;
+
                 if (!exs._strings.ContainsKey(f[i].name))
                 {
                     exs._strings.Add(f[i].name, new(f[i].name));

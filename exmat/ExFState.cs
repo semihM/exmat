@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ExMat.FuncPrototype;
 using ExMat.InfoVar;
+using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.OPs;
 
@@ -112,6 +113,17 @@ namespace ExMat.States
                         break;
                     }
             }
+        }
+
+        public bool IsBlockMacro(string name)
+        {
+            return _Sstate._blockmacros.ContainsKey(name);
+        }
+
+        public bool AddBlockMacro(string name, ExMacro mac)
+        {
+            _Sstate._blockmacros.Add(name, mac);
+            return true;
         }
 
         public bool IsMacro(ExObject o)

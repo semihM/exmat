@@ -45,7 +45,7 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            return "OUTER(" + idx + ", *(" + _valptr.GetDebuggerDisplay() + "), " + _v.GetDebuggerDisplay() + ")";
+            return "OUTER(" + idx + ", *(" + _valptr.ToString() + "), " + _v.ToString() + ")";
         }
     }
 
@@ -136,7 +136,7 @@ namespace ExMat.Closure
         public List<int> _typecheck = new();
         public int n_outervals;
         public int n_paramscheck;
-
+        public bool b_deleg = false;
         public ExNativeClosure()
         {
             _type = ExObjType.NATIVECLOSURE;

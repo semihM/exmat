@@ -86,6 +86,7 @@ namespace ExMat.OPs
         RETURNBOOL,
         LOAD_SPACE,
         JZS,
+        RETURNMACRO,
         CLOSE = 984
     }
 

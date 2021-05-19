@@ -5,6 +5,20 @@ using ExMat.Token;
 
 namespace ExMat.Lexer
 {
+    public class ExMacroParam
+    {
+        public List<int> lines = new();
+        public List<int> cols = new();
+        public string name;
+    }
+
+    public class ExMacro
+    {
+        public List<ExMacroParam> _params = new();
+        public string name;
+        public string source;
+    }
+
     public class ExLexer
     {
         private readonly string _source;
@@ -19,9 +33,14 @@ namespace ExMat.Lexer
 
         public string _aStr;
         public string str_val;
+        public string m_pname;
         public float f_val;
         public int i_val;
         public Objects.ExSpace _space;
+        public string m_block;
+        public List<ExMacroParam> m_params = new();
+
+        public bool reading_macro = false;
 
         public Dictionary<string, TokenType> _keyWordsDict = new();
 
@@ -32,32 +51,46 @@ namespace ExMat.Lexer
 
         public string _error;
 
+        private ExLexer _lookahead;
+
         public ExLexer(string source)
         {
             CreateKeyword("if", TokenType.IF);
             CreateKeyword("else", TokenType.ELSE);
             CreateKeyword("for", TokenType.FOR);
-            CreateKeyword("foreach", TokenType.FOREACH);
-            CreateKeyword("while", TokenType.WHILE);
+            //CreateKeyword("foreach", TokenType.FOREACH);
+            //CreateKeyword("while", TokenType.WHILE);
+
             CreateKeyword("break", TokenType.BREAK);
             CreateKeyword("continue", TokenType.CONTINUE);
-            CreateKeyword("null", TokenType.NULL);
-            CreateKeyword("function", TokenType.FUNCTION);
-            CreateKeyword("var", TokenType.VAR);
             CreateKeyword("return", TokenType.RETURN);
-            CreateKeyword("rule", TokenType.RULE);
-            CreateKeyword("cluster", TokenType.CLUSTER);
+
+            CreateKeyword("in", TokenType.IN);
+            CreateKeyword("and", TokenType.AND);
+            CreateKeyword("or", TokenType.OR);
+            CreateKeyword("is", TokenType.EQU);
+            CreateKeyword("not", TokenType.NEQ);
+
+            CreateKeyword("null", TokenType.NULL);
             CreateKeyword("true", TokenType.TRUE);
             CreateKeyword("false", TokenType.FALSE);
-            CreateKeyword("constructor", TokenType.CONSTRUCTOR);
-            CreateKeyword("class", TokenType.CLASS);
             CreateKeyword("this", TokenType.THIS);
             CreateKeyword("base", TokenType.BASE);
+
+            CreateKeyword("function", TokenType.FUNCTION);
+            CreateKeyword("class", TokenType.CLASS);
+            CreateKeyword("var", TokenType.VAR);
+            CreateKeyword("constructor", TokenType.CONSTRUCTOR);
+
+            CreateKeyword("rule", TokenType.RULE);
+            CreateKeyword("cluster", TokenType.CLUSTER);
+
             CreateKeyword("typeof", TokenType.TYPEOF);
-            CreateKeyword("in", TokenType.IN);
             CreateKeyword("instanceof", TokenType.INSTANCEOF);
             CreateKeyword("delete", TokenType.DELETE);
 
+            CreateKeyword("sum", TokenType.SUM);
+            CreateKeyword("mul", TokenType.MUL);
 
             _lastTokenLine = 1;
             _currLine = 1;
@@ -150,15 +183,12 @@ namespace ExMat.Lexer
         private void Next()
         {
             char c = ReadSourceChar();
-            if (c != ExMat._END)
+            if (c == ExMat._END)
             {
-                _currCol++;
-                _currChar = c;
-                return;
+                _reached_end = true;
             }
             _currCol++;
-            _currChar = ExMat._END;
-            _reached_end = true;
+            _currChar = c;
         }
 
         private TokenType ReadSpaceDim(char curr)
@@ -246,6 +276,96 @@ namespace ExMat.Lexer
             }
 
             return ReadSpaceDim(curr);
+        }
+
+        private string ReadMacroParam()
+        {
+            string pname = string.Empty;
+            do
+            {
+                pname += _currChar;
+                Next();
+
+            } while (char.IsLetterOrDigit(_currChar) || _currChar == '_');
+
+            if (_currChar != '#')
+            {
+                return null;
+            }
+            Next();
+            if (_currChar != '#')
+            {
+                return null;
+            }
+            Next();
+
+            return string.IsNullOrWhiteSpace(pname) ? null : pname;
+        }
+
+        private TokenType ReadMacroBlock()
+        {
+            m_block = string.Empty;
+            for (; ; )
+            {
+                while (_currChar != ExMat._END && _currChar != '#')
+                {
+                    m_block += _currChar;
+                    Next();
+                }
+
+                if (_currChar == '#')
+                {
+                    string mtag = string.Empty;
+                    Next();
+
+                    string pname = string.Empty;
+                    if (_currChar == '#')    // ##param##
+                    {
+                        Next();
+                        pname = ReadMacroParam();
+                        if (pname == null)
+                        {
+                            return TokenType.UNKNOWN;
+                        }
+
+                        ExMacroParam ep;
+                        if ((ep = m_params.Find((ExMacroParam e) => e.name == pname)) != null)
+                        {
+                            ep.cols.Add(_currCol);
+                            ep.lines.Add(_currLine);
+                        }
+                        else
+                        {
+                            m_params.Add(new() { name = pname, cols = new() { _currCol }, lines = new() { _currLine } });
+                        }
+                        m_block += "##" + pname + "##";
+                    }
+                    else // #end 
+                    {
+                        while (char.IsLetterOrDigit(_currChar) || _currChar == '_')
+                        {
+                            mtag += _currChar;
+                            Next();
+                        }
+                    }
+
+                    switch (mtag)
+                    {
+                        case "end":
+                            {
+                                return TokenType.MACROBLOCK;
+                            }
+                        case "":
+                            {
+                                continue;
+                            }
+                        default:
+                            {
+                                return TokenType.UNKNOWN;
+                            }
+                    }
+                }
+            }
         }
 
         private TokenType ReadString(char curr)
@@ -390,12 +510,45 @@ namespace ExMat.Lexer
         {
             TokenType typ;
             _aStr = string.Empty;
-            do
+            if (!reading_macro)
             {
-                _aStr += _currChar;
-                Next();
+                do
+                {
+                    _aStr += _currChar;
+                    Next();
 
-            } while (char.IsLetterOrDigit(_currChar) || _currChar == '_');
+                } while (char.IsLetterOrDigit(_currChar) || _currChar == '_');
+            }
+            else
+            {
+                do
+                {
+                    if (_currChar == '#')
+                    {
+                        Next();
+                        if (_currChar != '#')
+                        {
+                            return TokenType.UNKNOWN;
+                        }
+                        Next();
+                        string pname = ReadMacroParam();
+                        if (string.IsNullOrWhiteSpace(pname))
+                        {
+                            return TokenType.UNKNOWN;
+                        }
+
+                        _aStr += "##" + pname + "##";
+                    }
+                    else
+                    {
+                        _aStr += _currChar;
+                        Next();
+                    }
+
+                } while (char.IsLetterOrDigit(_currChar) || _currChar == '_' || _currChar == '#');
+
+                return TokenType.MACROPARAM_STR;
+            }
 
             if (macro)
             {
@@ -405,12 +558,25 @@ namespace ExMat.Lexer
                         return TokenType.MACROSTART;
                     case "end":
                         return TokenType.MACROEND;
+                    case "block":
+                        return TokenType.MACROBLOCK;
                     default:
                         return TokenType.UNKNOWN;
                 }
             }
 
             typ = GetIdType();
+            if (typ == TokenType.EQU)
+            {
+                _lookahead = new(_source) { _sourceidx = _sourceidx, _currChar = _currChar, _currCol = _currCol, _currToken = _currToken, _lastTokenLine = _lastTokenLine, _aStr = _aStr };
+                _lookahead.Lex();
+                if (_lookahead._currToken == TokenType.NEQ && _lookahead._aStr == "not")
+                {
+                    typ = TokenType.NEQ;
+                    Lex();
+                }
+                _lookahead = null;
+            }
 
             if (typ == TokenType.IDENTIFIER)
             {
@@ -430,60 +596,127 @@ namespace ExMat.Lexer
             _aStr = string.Empty;
             Next();
 
+            bool m_typed = false;
             _aStr += start;
 
-            while (_currChar == '.' || char.IsDigit(_currChar) || IsExp(_currChar))
+            if (reading_macro)
             {
-                if (_currChar == '.' || IsExp(_currChar))
+                while (_currChar == '.'
+                       || char.IsDigit(_currChar)
+                       || IsExp(_currChar)
+                       || _currChar == '#')
                 {
-                    typ = TokenType.FLOAT;
-                }
 
-                if (IsExp(_currChar))
-                {
-                    if (typ != TokenType.FLOAT)
+                    if (_currChar == '#')
                     {
-                        _error = "Wrong float number format";
-                        return TokenType.UNKNOWN;
+                        Next();
+                        if (_currChar != '#')
+                        {
+                            return TokenType.UNKNOWN;
+                        }
+                        Next();
+                        string pname = ReadMacroParam();
+                        if (string.IsNullOrWhiteSpace(pname))
+                        {
+                            return TokenType.UNKNOWN;
+                        }
+
+                        _aStr += "##" + pname + "##";
+                        typ = TokenType.FLOAT;
                     }
 
-                    typ = TokenType.SCI;
+                    if (!m_typed && (_currChar == '.' || IsExp(_currChar)))
+                    {
+                        typ = TokenType.FLOAT;
+                    }
+
+                    if (IsExp(_currChar))
+                    {
+                        if (typ != TokenType.FLOAT)
+                        {
+                            _error = "Wrong float number format";
+                            return TokenType.UNKNOWN;
+                        }
+
+                        typ = TokenType.SCI;
+
+                        _aStr += _currChar;
+                        Next();
+
+                        if (IsSign(_currChar))
+                        {
+                            _aStr += _currChar;
+                            Next();
+                        }
+
+                        if (!char.IsDigit(_currChar) && _currChar != '#')
+                        {
+                            _error = "Wrong exponent value format";
+                            return TokenType.UNKNOWN;
+                        }
+                    }
 
                     _aStr += _currChar;
                     Next();
-
-                    if (IsSign(_currChar))
-                    {
-                        _aStr += _currChar;
-                        Next();
-                    }
-
-                    if (!char.IsDigit(_currChar))
-                    {
-                        _error = "Wrong exponent value format";
-                        return TokenType.UNKNOWN;
-                    }
                 }
 
-                _aStr += _currChar;
-                Next();
+                return TokenType.MACROPARAM_NUM;
             }
-
-            switch (typ)
+            else
             {
-                case TokenType.FLOAT:
-                case TokenType.SCI:
+                while (_currChar == '.' || char.IsDigit(_currChar) || IsExp(_currChar))
+                {
+                    if (_currChar == '.' || IsExp(_currChar))
                     {
-                        f_val = float.Parse(_aStr);
-                        return TokenType.FLOAT;
+                        typ = TokenType.FLOAT;
                     }
-                case TokenType.INTEGER:
+
+                    if (IsExp(_currChar))
                     {
-                        i_val = int.Parse(_aStr);
-                        return TokenType.INTEGER;
+                        if (typ != TokenType.FLOAT)
+                        {
+                            _error = "Wrong float number format";
+                            return TokenType.UNKNOWN;
+                        }
+
+                        typ = TokenType.SCI;
+
+                        _aStr += _currChar;
+                        Next();
+
+                        if (IsSign(_currChar))
+                        {
+                            _aStr += _currChar;
+                            Next();
+                        }
+
+                        if (!char.IsDigit(_currChar))
+                        {
+                            _error = "Wrong exponent value format";
+                            return TokenType.UNKNOWN;
+                        }
                     }
+
+                    _aStr += _currChar;
+                    Next();
+                }
+
+                switch (typ)
+                {
+                    case TokenType.FLOAT:
+                    case TokenType.SCI:
+                        {
+                            f_val = float.Parse(_aStr);
+                            return TokenType.FLOAT;
+                        }
+                    case TokenType.INTEGER:
+                        {
+                            i_val = int.Parse(_aStr);
+                            return TokenType.INTEGER;
+                        }
+                }
+                return TokenType.ENDLINE;
             }
-            return TokenType.ENDLINE;
         }
 
         public static TokenType GetTokenTypeForChar(char c)
@@ -566,15 +799,45 @@ namespace ExMat.Lexer
                         }
                     case '#':
                         {
-                            Next();
-                            TokenType typ;
-                            if ((typ = ReadId(true)) != TokenType.MACROSTART && typ != TokenType.MACROEND)
+                            if (reading_macro)
                             {
-                                _error = "expected 'define' or 'end' after '#'";
-                                return TokenType.UNKNOWN;
+                                Next();
+                                if (_currChar != '#')
+                                {
+                                    // SHOULDNT GO HERE 
+                                    return TokenType.UNKNOWN;
+                                }
+
+                                m_pname = ReadMacroParam();
+                                if (string.IsNullOrWhiteSpace(m_pname))
+                                {
+                                    return TokenType.UNKNOWN;
+                                }
+                                return SetAndReturnToken(TokenType.MACROPARAM);
+                            }
+                            else
+                            {
+                                Next();
+                                TokenType typ = ReadId(true);
+                                switch (typ)
+                                {
+                                    case TokenType.MACROSTART:
+                                    case TokenType.MACROEND:
+                                        {
+                                            return SetAndReturnToken(typ);
+                                        }
+                                    case TokenType.MACROBLOCK:
+                                        {
+                                            return SetAndReturnToken(ReadMacroBlock());
+                                        }
+                                    default:
+                                        {
+                                            _error = "expected 'define' or 'end' after '#'";
+                                            return TokenType.UNKNOWN;
+                                        }
+                                }
                             }
 
-                            return SetAndReturnToken(typ);
                         }
                     case '=':
                         {

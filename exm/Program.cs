@@ -32,7 +32,7 @@ namespace ExMat
                         ExObjectPtr t = ExAPI.GetFromStack(vm, -1);
                         if (t.IsNumeric())
                         {
-                            ret = t._val.i_Int;
+                            ret = t.GetInt();
                         }
                     }
                     else
@@ -85,6 +85,7 @@ namespace ExMat
 
         private static int Main(string[] args)
         {
+            Console.ResetColor();
             if (args.Length >= 1)
             {
                 string f = File.Exists(args[0]) ? File.ReadAllText(args[0]) : string.Empty;
@@ -150,6 +151,13 @@ namespace ExMat
                     ///////////
 
                     code = Console.ReadLine().TrimEnd(' ', '\t');
+
+                    if (vm._got_input && string.IsNullOrWhiteSpace(code))
+                    {
+                        vm._got_input = false;
+                        code = Console.ReadLine().TrimEnd(' ', '\t');
+                    }
+
                     if (CheckCarryOver(code))
                     {
                         carryover = true;

@@ -69,6 +69,30 @@
 							"name": "comment.block.preprocessor"
 						}
 					}
+				},
+				{  
+					"begin" : "#block",
+					"end" : "[\\n\\r\\t ]",
+					"name" : "comment.block.preprocessor",
+					"captures": 
+					{
+						"1": 
+						{
+							"name": "comment.block.preprocessor"
+						}
+					}
+				},
+				{  
+					"begin" : "##\\w+",
+					"end" : "##",
+					"name" : "comment.block.preprocessor",
+					"captures": 
+					{
+						"1": 
+						{
+							"name": "comment.block.preprocessor"
+						}
+					}
 				}
 			]
 		},
@@ -82,7 +106,7 @@
 				},
 				{
 					"name": "keyword.control.exmat",
-					"match": "\\b(in)\\b"
+					"match": "\\b(in|is|not|and|or)\\b"
 				},
 				{
 					"name": "keyword.other.exmat",
@@ -96,7 +120,7 @@
 			[
 				{
 					"name": "storage.type.exmat",
-					"match": "\\b(function|cluster|rule|class)\\b"
+					"match": "\\b(function|cluster|rule|class|sum|mul)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",

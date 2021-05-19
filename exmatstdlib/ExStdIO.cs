@@ -316,13 +316,18 @@ namespace ExMat.BaseLib
         public static int IO_includefile(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            if (!File.Exists(i.GetString()))
+            string fname = i.GetString();
+            if (!File.Exists(fname))
             {
-                vm.Push(new ExObjectPtr(false));
-                return -1;
+                if (!File.Exists(fname + ".exmat"))
+                {
+                    vm.AddToErrorMessage(fname + " file doesn't exist");
+                    return -1;
+                }
+                fname += ".exmat";
             }
 
-            if (ExAPI.CompileFile(vm, File.ReadAllText(i.GetString())))
+            if (ExAPI.CompileFile(vm, File.ReadAllText(fname)))
             {
                 ExAPI.PushRootTable(vm);
                 if (!ExAPI.Call(vm, 1, false))
@@ -336,7 +341,7 @@ namespace ExMat.BaseLib
             }
 
             vm.Push(new ExObjectPtr(false));
-            return -1;
+            return 1;
         }
 
         private static readonly List<ExRegFunc> _stdiofuncs = new()
@@ -359,8 +364,40 @@ namespace ExMat.BaseLib
             new() { name = "dir_content", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_showdir")), n_pchecks = -1, mask = ".s" },
             new() { name = "change_dir", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_changedir")), n_pchecks = -2, mask = ".sb" },
 
+            new() { name = "raw_input", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_rawinput")), n_pchecks = -1, mask = ".s" },
+
             new() { name = string.Empty }
         };
+
+        public static int IO_rawinput(ExVM vm, int nargs)
+        {
+            if (nargs == 1)
+            {
+                Console.Write(ExAPI.GetFromStack(vm, 2).GetString());
+            }
+
+            string input = string.Empty;
+            char ch;
+
+            while (!char.IsControl(ch = (char)Console.Read()))
+            {
+                input += ch;
+            }
+
+            if (vm._got_input)
+            {
+                input = string.Empty;
+                while (!char.IsControl(ch = (char)Console.Read()))
+                {
+                    input += ch;
+                }
+            }
+
+            vm.Push(new ExObjectPtr(input));
+
+            vm._got_input = true;
+            return 1;
+        }
 
         public static List<ExRegFunc> IOFuncs { get => _stdiofuncs; }
 

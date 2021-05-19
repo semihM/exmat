@@ -122,8 +122,13 @@
         SPACE,
 
         MACROSTART,
-        MACROEND
+        MACROEND,
 
+        MACROBLOCK,
+        MACROPARAM,
+
+        MACROPARAM_NUM,
+        MACROPARAM_STR
     }
 
     public class ExToken

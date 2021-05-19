@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using ExMat.API;
+using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.VM;
 
@@ -48,6 +49,20 @@ namespace ExMat.BaseLib
 
             vm.Push(new ExObjectPtr(lis));
             return 1;
+        }
+
+        public static void ReplaceMacroParams(ExMacro m, List<ExObjectPtr> args)
+        {
+            string[] lines = m.source.Split('\n');
+            for (int i = 0; i < m._params.Count; i++)
+            {
+                ExMacroParam p = m._params[i];
+                string val = args[i].GetString();
+                for (int j = 0; j < p.lines.Count; j++)
+                {
+                    lines[p.lines[j]] = lines[p.lines[j]].Substring(0, p.cols[j]) + val + lines[p.lines[j]].Substring(p.cols[j] + p.name.Length + 4, lines[p.lines[j]].Length);
+                }
+            }
         }
 
         public static int STRING_compile(ExVM vm, int nargs)

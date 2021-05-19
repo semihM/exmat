@@ -90,6 +90,21 @@ namespace ExMat.Objects
             return _type == ExObjType.DICT ? _val.d_Dict : null;
         }
 
+        public List<ExObjectPtr> GetList()
+        {
+            return _val.l_List;
+        }
+
+        public ExClosure GetClosure()
+        {
+            return _val._Closure;
+        }
+
+        public ExNativeClosure GetNClosure()
+        {
+            return _val._NativeClosure;
+        }
+
         public virtual string GetDebuggerDisplay()
         {
             string s = _type.ToString();
@@ -100,8 +115,8 @@ namespace ExMat.Objects
                 case ExObjType.FLOAT: s += " " + GetFloat(); break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
-                case ExObjType.CLOSURE: s = (_val._Closure == null ? s + GetString() : _val._Closure.GetDebuggerDisplay()); break;
-                case ExObjType.NATIVECLOSURE: s = (_val._NativeClosure == null ? s + GetString() : _val._NativeClosure.GetDebuggerDisplay()); break;
+                case ExObjType.CLOSURE: s = (GetClosure() == null ? s + GetString() : _val._Closure.GetDebuggerDisplay()); break;
+                case ExObjType.NATIVECLOSURE: s = (GetNClosure() == null ? s + GetString() : _val._NativeClosure.GetDebuggerDisplay()); break;
                 case ExObjType.NULL: break;
             }
             return s;
@@ -130,7 +145,7 @@ namespace ExMat.Objects
                             }
                         case ExObjType.ARRAY:
                             {
-                                if (_val.l_List != null)
+                                if (GetList() != null)
                                 {
                                     foreach (ExObjectPtr o in _val.l_List)
                                     {
@@ -965,6 +980,7 @@ namespace ExMat.Objects
         public string name;
         public ExFunc func;
         public int n_pchecks;
+        public bool b_isdeleg = false;
         public string mask;
         private bool disposedValue;
 
