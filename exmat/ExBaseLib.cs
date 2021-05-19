@@ -44,10 +44,173 @@ namespace ExMat.BaseLib
             vm.Push(new ExObjectPtr(t));
             return 1;
         }
+
         public static int BASE_time(ExVM vm, int nargs)
         {
             vm.Push(new ExObjectPtr((float)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
             return 1;
+        }
+
+        public static int BASE_date(ExVM vm, int nargs)
+        {
+            bool shrt = false;
+            DateTime now = DateTime.Now;
+            DateTime today = DateTime.Today;
+            DateTime utcnow = DateTime.UtcNow;
+
+            switch (nargs)
+            {
+                case 2:
+                    {
+                        shrt = ExAPI.GetFromStack(vm, 3).GetBool();
+                        goto case 1;
+                    }
+                case 1:
+                    {
+                        string[] splt = ExAPI.GetFromStack(vm, 2).GetString().Split("|", StringSplitOptions.RemoveEmptyEntries);
+                        List<ExObjectPtr> res = new(splt.Length);
+                        foreach (string arg in splt)
+                        {
+                            switch (arg.ToLower())
+                            {
+                                case "today":
+                                    {
+                                        res.Add(new ExObjectPtr(shrt ? today.ToShortDateString() : today.ToLongDateString()));
+                                        break;
+                                    }
+                                case "now":
+                                case "time":
+                                    {
+                                        res.Add(new ExObjectPtr(shrt ? now.ToShortTimeString() : now.ToLongTimeString()));
+                                        break;
+                                    }
+                                case "year":
+                                    {
+                                        res.Add(new ExObjectPtr(now.Month.ToString()));
+                                        break;
+                                    }
+                                case "month":
+                                    {
+                                        res.Add(new ExObjectPtr(now.Month.ToString()));
+                                        break;
+                                    }
+                                case "day":
+                                case "wday":
+                                    {
+                                        res.Add(new ExObjectPtr(now.DayOfWeek.ToString()));
+                                        break;
+                                    }
+                                case "mday":
+                                    {
+                                        res.Add(new ExObjectPtr(now.Day.ToString()));
+                                        break;
+                                    }
+                                case "yday":
+                                    {
+                                        res.Add(new ExObjectPtr(now.DayOfYear.ToString()));
+                                        break;
+                                    }
+                                case "hours":
+                                case "hour":
+                                case "hh":
+                                case "h":
+                                    {
+                                        res.Add(new ExObjectPtr(now.Hour.ToString()));
+                                        break;
+                                    }
+                                case "minutes":
+                                case "minute":
+                                case "min":
+                                case "mm":
+                                case "m":
+                                    {
+                                        res.Add(new ExObjectPtr(now.Minute.ToString()));
+                                        break;
+                                    }
+                                case "seconds":
+                                case "second":
+                                case "sec":
+                                case "ss":
+                                case "s":
+                                    {
+                                        res.Add(new ExObjectPtr(now.Second.ToString()));
+                                        break;
+                                    }
+                                case "miliseconds":
+                                case "milisecond":
+                                case "ms":
+                                    {
+                                        res.Add(new ExObjectPtr(now.Millisecond.ToString()));
+                                        break;
+                                    }
+                                case "utc-today":
+                                    {
+                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
+                                        break;
+                                    }
+                                case "utc-now":
+                                case "utc-time":
+                                    {
+                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
+                                        break;
+                                    }
+                                case "utc-year":
+                                    {
+                                        res.Add(new ExObjectPtr(utcnow.Month.ToString()));
+                                        break;
+                                    }
+                                case "utc-month":
+                                    {
+                                        res.Add(new ExObjectPtr(utcnow.Month.ToString()));
+                                        break;
+                                    }
+                                case "utc-day":
+                                case "utc-wday":
+                                    {
+                                        res.Add(new ExObjectPtr(utcnow.DayOfWeek.ToString()));
+                                        break;
+                                    }
+                                case "utc-mday":
+                                    {
+                                        res.Add(new ExObjectPtr(utcnow.Day.ToString()));
+                                        break;
+                                    }
+                                case "utc-yday":
+                                    {
+                                        res.Add(new ExObjectPtr(utcnow.DayOfYear.ToString()));
+                                        break;
+                                    }
+                                case "utc-hh":
+                                case "utc-hours":
+                                case "utc-hour":
+                                    {
+                                        res.Add(new ExObjectPtr(utcnow.Hour.ToString()));
+                                        break;
+                                    }
+                            }
+                        }
+                        if (res.Count == 1)
+                        {
+                            vm.Push(new ExObjectPtr(res[0]));
+                        }
+                        else
+                        {
+                            vm.Push(new ExObjectPtr(res));
+                        }
+                        break;
+                    }
+                default:
+                    {
+                        vm.Push(new ExObjectPtr(new List<ExObjectPtr>() { new(DateTime.Today.ToLongDateString()), new(now.ToLongTimeString()), new(now.Millisecond.ToString()) }));
+                        break;
+                    }
+            }
+            return 1;
+        }
+
+        public static int BASE_assert(ExVM vm, int nargs)
+        {
+            return ExAPI.GetFromStack(vm, 2).GetBool() ? 0 : -1;
         }
 
         // BASIC CLASS-LIKE FUNCTIONS
@@ -75,7 +238,7 @@ namespace ExMat.BaseLib
             switch (nargs)
             {
                 case 1:
-                    {
+                    {   // TO-DO char array to string
                         if (!ExAPI.ToString(vm, 2))
                         {
                             return -1;
@@ -127,6 +290,116 @@ namespace ExMat.BaseLib
                 case 0:
                     {
                         vm.Push(0);
+                        break;
+                    }
+            }
+
+            return 1;
+        }
+
+        public static int BASE_bits(ExVM vm, int nargs)
+        {
+            bool reverse = true;
+            switch (nargs)
+            {
+                case 2:
+                    {
+                        reverse = ExAPI.GetFromStack(vm, 2).GetBool();
+                        goto case 1;
+                    }
+                case 1:
+                    {
+                        ExObjectPtr v = ExAPI.GetFromStack(vm, 2);
+                        int b = 0;
+                        switch (v._type)
+                        {
+                            case ExObjType.INTEGER:
+                                {
+                                    b = v.GetInt();
+                                    goto default;
+                                }
+                            case ExObjType.FLOAT:
+                                {
+                                    b = new FloatInt() { f = v.GetFloat() }.i;
+                                    goto default;
+                                }
+                            default:
+                                {
+                                    List<ExObjectPtr> l = new(32);
+
+                                    for (int i = 0; i < 32; i++)
+                                    {
+                                        l.Add(new((b >> i) % 2 == 0 ? 0 : 1));
+                                    }
+
+                                    if (reverse)
+                                    {
+                                        l.Reverse();
+                                    }
+
+                                    vm.Push(l);
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case 0:
+                    {
+                        vm.Push(new ExList());
+                        break;
+                    }
+            }
+
+            return 1;
+        }
+
+        public static int BASE_bytes(ExVM vm, int nargs)
+        {
+            switch (nargs)
+            {
+                case 1:
+                    {
+                        ExObjectPtr v = ExAPI.GetFromStack(vm, 2);
+                        byte[] bytes = null;
+                        switch (v._type)
+                        {
+                            case ExObjType.INTEGER:
+                                {
+                                    bytes = BitConverter.GetBytes(v.GetInt());
+                                    goto default;
+                                }
+                            case ExObjType.FLOAT:
+                                {
+                                    bytes = BitConverter.GetBytes(v.GetFloat());
+                                    goto default;
+                                }
+                            case ExObjType.STRING:
+                                {
+                                    char[] chars = v.GetString().ToCharArray();
+                                    List<ExObjectPtr> b = new(chars.Length);
+                                    foreach (char i in chars)
+                                    {
+                                        b.Add(new(i));
+                                    }
+                                    vm.Push(b);
+                                    break;
+                                }
+                            default:
+                                {
+                                    List<ExObjectPtr> b = new(bytes.Length);
+                                    foreach (byte i in bytes)
+                                    {
+                                        b.Add(new(i));
+                                    }
+                                    vm.Push(b);
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case 0:
+                    {
+                        vm.Push(new ExList());
                         break;
                     }
             }
@@ -389,7 +662,7 @@ namespace ExMat.BaseLib
             return true;
         }
 
-        public static int BASE_apply(ExVM vm, int nargs)
+        public static int BASE_parse(ExVM vm, int nargs)
         {
             ExObjectPtr cls = ExAPI.GetFromStack(vm, 2);
             List<ExObjectPtr> args = new ExObjectPtr(ExAPI.GetFromStack(vm, 3))._val.l_List;
@@ -808,14 +1081,18 @@ namespace ExMat.BaseLib
             new() { name = "print", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_print")), n_pchecks = 2, mask = null },
             new() { name = "printl", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_printl")), n_pchecks = 2, mask = null },
 
-            new() { name = "type", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_type")), n_pchecks = 2, mask = null },
-
             new() { name = "time", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_time")), n_pchecks = 1, mask = null },
+            new() { name = "date", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_date")), n_pchecks = -1, mask = ".s." },
+
+            new() { name = "type", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_type")), n_pchecks = 2, mask = null },
+            new() { name = "assert", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_assert")), n_pchecks = 2, mask = null },
 
             new() { name = "string", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string")), n_pchecks = -1, mask = ".." },
             new() { name = "float", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_float")), n_pchecks = -1, mask = ".." },
             new() { name = "integer", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_integer")), n_pchecks = -1, mask = ".." },
             new() { name = "bool", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_bool")), n_pchecks = -1, mask = ".." },
+            new() { name = "bits", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_bits")), n_pchecks = -1, mask = ".n." },
+            new() { name = "bytes", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_bytes")), n_pchecks = -1, mask = ".n|s" },
 
             new() { name = "list", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_list")), n_pchecks = -1, mask = ".n." },
             new() { name = "range", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_range")), n_pchecks = -2, mask = ".nnn" },
@@ -824,7 +1101,7 @@ namespace ExMat.BaseLib
             new() { name = "map", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_map")), n_pchecks = 3, mask = ".ca" },
             new() { name = "filter", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_filter")), n_pchecks = 3, mask = ".ca" },
             new() { name = "call", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_call")), n_pchecks = -2, mask = null },
-            new() { name = "apply", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_apply")), n_pchecks = 3, mask = ".ca" },
+            new() { name = "parse", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_parse")), n_pchecks = 3, mask = ".ca" },
 
             new() { name = string.Empty }
         };

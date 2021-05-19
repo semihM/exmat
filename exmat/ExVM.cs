@@ -81,7 +81,18 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        res = new(obj.GetFloat().ToString());
+                        if(obj.GetFloat() % 1 == 0.0)
+                        {
+                            res = new(obj.GetFloat().ToString("0.0"));
+                        }
+                        else if (obj.GetFloat() >= (float)0.000001)
+                        {
+                            res = new(obj.GetFloat().ToString("0.000000"));
+                        }
+                        else
+                        {
+                            res = new(obj.GetFloat().ToString());
+                        }
                         break;
                     }
                 case ExObjType.STRING:

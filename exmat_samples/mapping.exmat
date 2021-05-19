@@ -19,4 +19,4 @@ printl( call(CallMe, -5, 10 ) )
 
 var function ParseArguments(x,y,z) return x**y + x**z
 
-printl( apply(ParseArguments,range(4,7)) )
+printl( parse(ParseArguments,range(4,7)) )

@@ -354,8 +354,12 @@ namespace ExMat.BaseLib
         {
             ExAPI.RegisterNativeFunctions(vm, MathFuncs);
 
-            ExAPI.CreateConstantInt(vm, "RAND_MAX", int.MaxValue);
-            ExAPI.CreateConstantFloat(vm, "RAND_MAXF", int.MaxValue);
+            ExAPI.CreateConstantInt(vm, "INT_MAX", int.MaxValue);
+            ExAPI.CreateConstantInt(vm, "INT_MIN", int.MinValue);
+            ExAPI.CreateConstantFloat(vm, "INT_MAXF", int.MaxValue);
+            ExAPI.CreateConstantFloat(vm, "INT_MINF", int.MinValue);
+            ExAPI.CreateConstantFloat(vm, "FLOAT_MAX", float.MaxValue);
+            ExAPI.CreateConstantFloat(vm, "FLOAT_MIN", float.MinValue);
             ExAPI.CreateConstantFloat(vm, "PI", (float)Math.PI);
             ExAPI.CreateConstantFloat(vm, "E", (float)Math.E);
             ExAPI.CreateConstantFloat(vm, "NAN", float.NaN);
