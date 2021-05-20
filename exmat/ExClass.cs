@@ -188,15 +188,11 @@ namespace ExMat.Class
                 return false;
             }
 
-            if (_members.TryGetValue(key.GetString(), out ExObjectPtr tmp) && tmp.IsField())
+            ExObjectPtr tmp = new();
+            if (_members.ContainsKey(key.GetString()) && (tmp = _members[key.GetString()]).IsField())
             {
-                _defvals[tmp.GetMemberID()].val.Assign(val);
+                _defvals[_members[key.GetString()].GetMemberID()].val.Assign(val);
                 return true;
-            }
-
-            if (tmp == null)
-            {
-                tmp = new();
             }
 
             if (bdict)
@@ -313,7 +309,7 @@ namespace ExMat.Class
         public void Init(ExSState exs)
         {
             _hook = new();
-            _delegate = new ExObjectPtr(_class._members);
+            _delegate = new ExObjectPtr(_class._metas);
             _class._refc++;
             _next = null;
             _prev = null;
@@ -348,6 +344,20 @@ namespace ExMat.Class
             {
                 res = _class._metas[midx];
                 return true;
+            }
+            return false;
+        }
+
+        public bool IsInstanceOf(ExClass cls)
+        {
+            ExClass p = _class;
+            while (p != null)
+            {
+                if (p == cls)
+                {
+                    return true;
+                }
+                p = p._base;
             }
             return false;
         }

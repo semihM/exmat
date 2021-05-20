@@ -14,7 +14,6 @@ namespace ExMat.FuncPrototype
     {
         public int n_instr;
         public int n_lits;
-        public int n_spaces;
         public int n_params;
         public int n_funcs;
         public int n_outers;
@@ -37,7 +36,6 @@ namespace ExMat.FuncPrototype
 
         public List<ExInstr> _instr;
         public List<ExObjectPtr> _lits;
-        public Dictionary<string, ExObjectPtr> _spaces;
         public List<ExObjectPtr> _params;
         public List<int> _defparams;
         public List<ExFuncPro> _funcs;
@@ -144,12 +142,6 @@ namespace ExMat.FuncPrototype
             }
             _params.RemoveAll((ExObjectPtr o) => true);
             _params = null;
-
-            foreach (ExObjectPtr o in _spaces.Values)
-            {
-                o.Dispose();
-            }
-            _spaces = null;
 
             foreach (ExObjectPtr o in _lits)
             {

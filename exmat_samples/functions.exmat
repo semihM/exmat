@@ -13,6 +13,8 @@ printl(typeof Bar)
 printl(Bar)
 printl(Bar(12))
 printl(Bar(-55))
+printl("Bar has "+Bar.n_params+" parameters")
+printl("/////////////////////////")
 
 // Only available in this file
 var function Foo(x,y,z=1)
@@ -23,6 +25,9 @@ printl(typeof Foo)
 printl(Foo)
 printl(Foo(22,44))
 printl(Foo(1,3,5))
+printl("Foo has "+Foo.n_params+" parameters")
+printl("Foo has "+Foo.n_defparams+" default valued parameters")
+printl("Foo requires at least "+Foo.n_minargs+" arguments")
 
 // Available globally
 function Ex(a,b=3)
@@ -35,6 +40,11 @@ printl(Ex)
 printl(Ex(3))
 printl(Ex(77))
 printl(Ex(0,1))
+printl("Ex has "+Ex.n_params+" parameters")
+printl("Ex has "+Ex.n_defparams+" default valued parameters")
+printl("Ex requires at least "+Ex.n_minargs+" arguments")
+printl("Ex function's default value dictionary(parameter# = def_value):\n"+string(Ex.defparams))
+printl("/////////////////////////")
 
 // Available globally
 ::GlobalFunction = function(x)

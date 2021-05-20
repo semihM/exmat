@@ -10,7 +10,6 @@ namespace ExMat.States
     public class ExSState
     {
         public Dictionary<string, ExObjectPtr> _strings = new();
-        public Dictionary<string, ExObjectPtr> _spaces = new();
         public Dictionary<string, ExObjectPtr> _macros = new();
         public Dictionary<string, ExMacro> _blockmacros = new();
 
@@ -57,6 +56,7 @@ namespace ExMat.States
             new() { name = "pop", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_pop")) },
             new() { name = "resize", n_pchecks = 2, mask = "ai", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_resize")) },
             new() { name = "index_of", n_pchecks = 2, mask = "a.", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_index_of")) },
+            new() { name = "reverse", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_reverse")) },
 
             new() { name = string.Empty }
         };
@@ -99,27 +99,14 @@ namespace ExMat.States
 
         public void Initialize()
         {
-            _metaMethods.Add(new("_ADD"));
-            _metaMethods.Add(new("_SUB"));
-            _metaMethods.Add(new("_MLT"));
-            _metaMethods.Add(new("_DIV"));
-            _metaMethods.Add(new("_MOD"));
-            _metaMethods.Add(new("_NEG"));
-            _metaMethods.Add(new("_SET"));
-            _metaMethods.Add(new("_GET"));
-            _metaMethods.Add(new("_TYPEOF"));
-            _metaMethods.Add(new("_NEXT"));
-            _metaMethods.Add(new("_CMP"));
-            _metaMethods.Add(new("_CALL"));
-            _metaMethods.Add(new("_NEWSLOT"));
-            _metaMethods.Add(new("_DELSLOT"));
-            _metaMethods.Add(new("_NEWMEM"));
-            _metaMethods.Add(new("_INHERIT"));
-
             _metaMethodsMap._val.d_Dict = new();
-            for (int i = 0; i < _metaMethods.Count; i++)
+
+            for (int i = 0; i < (int)ExMetaM._LAST; i++)
             {
-                _metaMethodsMap._val.d_Dict.Add(_metaMethods[i].GetString(), new(i));
+                string mname = "_" + ((ExMetaM)i).ToString();
+
+                _metaMethods.Add(new(mname));
+                _metaMethodsMap._val.d_Dict.Add(mname, new(i));
             }
 
             _dict_del.Assign(CreateDefDel(this, _dict_delF));

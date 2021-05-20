@@ -343,6 +343,94 @@ namespace ExMat.BaseLib
             vm.Push(new ExObjectPtr(false));
             return 1;
         }
+        public static int IO_reloadlib(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string lname = i.GetString();
+            string fname = null;
+            if (nargs == 2)
+            {
+                fname = ExAPI.GetFromStack(vm, 3).GetString();
+            }
+            switch (lname.ToLower())
+            {
+                case "std":
+                    {
+                        vm.AddToErrorMessage("use 'reload_base' function to reload the std base functions");
+                        return -1;
+                    }
+                case "io":
+                    {
+                        if (nargs == 2)
+                        {
+                            if (fname != ReloadLibFunc)
+                            {
+                                ExAPI.PushRootTable(vm);
+                                ExAPI.ReloadNativeFunction(vm, IOFuncs, fname, true);
+                            }
+                        }
+                        else if (!RegisterStdIO(vm, true))
+                        {
+                            vm.AddToErrorMessage("something went wrong...");
+                            return -1;
+                        }
+                        break;
+                    }
+                case "math":
+                    {
+                        if (nargs == 2)
+                        {
+                            ExAPI.PushRootTable(vm);
+                            ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, true);
+                        }
+                        else if (!ExStdMath.RegisterStdMath(vm, true))
+                        {
+                            vm.AddToErrorMessage("something went wrong...");
+                            return -1;
+                        }
+                        break;
+                    }
+                case "string":
+                    {
+                        if (nargs == 2)
+                        {
+                            ExAPI.PushRootTable(vm);
+                            ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, true);
+                        }
+                        else if (!ExStdString.RegisterStdString(vm, true))
+                        {
+                            vm.AddToErrorMessage("something went wrong...");
+                            return -1;
+                        }
+                        break;
+                    }
+            }
+            return 0;
+        }
+
+        public static int IO_reloadlibfunc(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string fname = i.GetString();
+
+            if (fname != ReloadLibFunc
+                && fname != ReloadLib
+                && ExAPI.ReloadNativeFunction(vm, IOFuncs, fname, true))
+            {
+                return 0;
+            }
+            else if (ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, true))
+            {
+                return 0;
+            }
+            else if (ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, true))
+            {
+                return 0;
+            }
+
+            vm.AddToErrorMessage("couldn't find a native function named '" + fname + "', try 'reload_base' function");
+            return -1;
+        }
 
         private static readonly List<ExRegFunc> _stdiofuncs = new()
         {
@@ -357,17 +445,25 @@ namespace ExMat.BaseLib
             new() { name = "append_text", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_appendfile")), n_pchecks = -3, mask = ".sss" },
             new() { name = "append_lines", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_appendfilelines")), n_pchecks = -3, mask = ".sas" },
 
-            new() { name = "file_exists", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_fileexists")), n_pchecks = 2, mask = ".s" },
-            new() { name = "include_file", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_includefile")), n_pchecks = 2, mask = ".s" },
-
             new() { name = "current_dir", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_currentdir")), n_pchecks = 1, mask = "." },
             new() { name = "dir_content", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_showdir")), n_pchecks = -1, mask = ".s" },
             new() { name = "change_dir", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_changedir")), n_pchecks = -2, mask = ".sb" },
 
             new() { name = "raw_input", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_rawinput")), n_pchecks = -1, mask = ".s" },
 
+            new() { name = "file_exists", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_fileexists")), n_pchecks = 2, mask = ".s" },
+            new() { name = "include_file", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_includefile")), n_pchecks = 2, mask = ".s" },
+            new() { name = ReloadLib, func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_reloadlib")), n_pchecks = -2, mask = ".ss" },
+            new() { name = ReloadLibFunc, func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_reloadlibfunc")), n_pchecks = 2, mask = ".s" },
+
             new() { name = string.Empty }
         };
+
+        private const string _reloadlib = "reload_lib";
+        public static string ReloadLib { get => _reloadlib; }
+
+        private const string _reloadlibfunc = "reload_func";
+        public static string ReloadLibFunc { get => _reloadlibfunc; }
 
         public static int IO_rawinput(ExVM vm, int nargs)
         {
@@ -401,9 +497,9 @@ namespace ExMat.BaseLib
 
         public static List<ExRegFunc> IOFuncs { get => _stdiofuncs; }
 
-        public static bool RegisterStdIO(ExVM vm)
+        public static bool RegisterStdIO(ExVM vm, bool force = false)
         {
-            ExAPI.RegisterNativeFunctions(vm, IOFuncs);
+            ExAPI.RegisterNativeFunctions(vm, IOFuncs, force);
 
             return true;
         }

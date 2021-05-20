@@ -39,6 +39,11 @@ namespace ExMat.Objects
             _val.s_String = s;
         }
 
+        public bool IsDelegable()
+        {
+            return ((int)_type & (int)ExObjFlag.DELEGABLE) != 0;
+        }
+
         public bool IsNumeric()
         {
             return ((int)_type & (int)ExObjFlag.NUMERIC) != 0;
@@ -630,11 +635,32 @@ namespace ExMat.Objects
             AddReference(_type, _val, true);
             Release(t, v);
         }
+
+        public ExObjectPtr(ExSpace o)
+        {
+            _type = ExObjType.SPACE;
+            _val.c_Space = o;
+            _val._RefC = new();
+
+            AddReference(_type, _val, true);
+        }
+        public void Assign(ExSpace o)
+        {
+            ExObjType t = _type;
+            ExObjVal v = _val;
+
+            _val.c_Space = o;
+            _type = ExObjType.SPACE;
+            _val._RefC = new();
+
+            AddReference(_type, _val, true);
+            Release(t, v);
+        }
         //
         public void Nullify()
         {
             ExObjType oldt = _type;
-            dynamic oldv = _val;
+            ExObjVal oldv = _val;
             _type = ExObjType.NULL;
             _val = new();
             Release(oldt, oldv);
@@ -706,17 +732,29 @@ namespace ExMat.Objects
 
     public class ExDeleg : ExCollectable
     {
-        public ExObjectPtr _delegate; // TO-DO dict
+        public ExObjectPtr _delegate;
 
         public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObjectPtr res)
         {
             if (_delegate != null)
             {
-                string k = vm._sState._metaMethods[(int)m].GetString();
-                if (_delegate._val.d_Dict.ContainsKey(k))
+                if (_delegate._type == ExObjType.DICT)
                 {
-                    res = _delegate._val.d_Dict[k];
-                    return true;
+                    string k = vm._sState._metaMethods[(int)m].GetString();
+                    if (_delegate.GetDict().ContainsKey(k))
+                    {
+                        res.Assign(_delegate.GetDict()[k]);
+                        return true;
+                    }
+                }
+                else if (_delegate._type == ExObjType.ARRAY)
+                {
+                    int k = vm._sState.GetMetaIdx(vm._sState._metaMethods[(int)m].GetString());
+                    if (_delegate.GetList()[k]._type != ExObjType.NULL)
+                    {
+                        res.Assign(_delegate.GetList()[k]);
+                        return true;
+                    }
                 }
                 return false;
             }
@@ -1227,9 +1265,18 @@ namespace ExMat.Objects
 
         public string GetString()
         {
-            return "@" + space + sign + dim;
+            return "@" + space + "@" + sign + "@" + dim;
         }
 
+        public static ExSpace GetSpaceFromString(string s)
+        {
+            ExSpace spc = new();
+            string[] arr = s.Split("@", StringSplitOptions.RemoveEmptyEntries);
+            spc.space = arr[0];
+            spc.sign = arr[1][0];
+            spc.dim = int.Parse(arr[2]);
+            return spc;
+        }
         public ExSpace() { }
 
         public virtual string GetDebuggerDisplay()

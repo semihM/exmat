@@ -25,4 +25,7 @@ var d =
     "0" : 999
 }
 printl(typeof d)
-printl(d) 
+printl(d)
+
+var deg_ratio = 180/PI
+printl(deg_ratio)

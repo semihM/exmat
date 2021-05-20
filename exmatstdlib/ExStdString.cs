@@ -89,9 +89,10 @@ namespace ExMat.BaseLib
         };
         public static List<ExRegFunc> StringFuncs { get => _stdstrfuncs; }
 
-        public static void RegisterStdString(ExVM vm)
+        public static bool RegisterStdString(ExVM vm, bool force = false)
         {
-            ExAPI.RegisterNativeFunctions(vm, StringFuncs);
+            ExAPI.RegisterNativeFunctions(vm, StringFuncs, force);
+            return true;
         }
     }
 }

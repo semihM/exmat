@@ -22,11 +22,11 @@ namespace ExMat.API
             return true;
         }
 
-        public static bool ToString(ExVM vm, int i)
+        public static bool ToString(ExVM vm, int i, int maxdepth = 1)
         {
             ExObjectPtr o = GetFromStack(vm, i);
             ExObjectPtr res = new(string.Empty);
-            if (!vm.ToString(o, ref res))
+            if (!vm.ToString(o, ref res, maxdepth))
             {
                 return false;
             }
@@ -69,39 +69,67 @@ namespace ExMat.API
             return true;
         }
 
-        public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs)
+        public static ExRegFunc FindNativeFunction(ExVM vm, List<ExRegFunc> fs, string name)
+        {
+            foreach (ExRegFunc f in fs)
+            {
+                if (f.name == name && f.name != string.Empty)
+                {
+                    return f;
+                }
+            }
+            return null;
+        }
+
+        public static bool ReloadNativeFunction(ExVM vm, List<ExRegFunc> fs, string name, bool force = false)
+        {
+            ExRegFunc r;
+            if ((r = FindNativeFunction(vm, fs, name)) != null)
+            {
+                RegisterNativeFunction(vm, r, true);
+                return true;
+            }
+            return false;
+        }
+
+        public static void RegisterNativeFunction(ExVM vm, ExRegFunc func, bool force = false)
+        {
+            PushString(vm, func.name, -1, force);
+            CreateClosure(vm, func.func, 0, force);
+            SetNativeClosureName(vm, -1, func.name);
+            SetParamCheck(vm, func.n_pchecks, func.mask);
+            CreateNewSlot(vm, -3, false);
+        }
+
+        public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs, bool force = false)
         {
             int i = 0;
 
             while (funcs[i].name != string.Empty)
             {
-                PushString(vm, funcs[i].name, -1);
-                CreateClosure(vm, funcs[i].func, 0);
-                SetNativeClosureName(vm, -1, funcs[i].name);
-                SetParamCheck(vm, funcs[i].n_pchecks, funcs[i].mask);
-                CreateNewSlot(vm, -3, false);
+                RegisterNativeFunction(vm, funcs[i], force);
                 i++;
             }
         }
 
-        public static void CreateConstantInt(ExVM vm, string name, int val)
+        public static void CreateConstantInt(ExVM vm, string name, int val, bool force = false)
         {
-            PushString(vm, name, -1);
+            PushString(vm, name, -1, force);
             PushInt(vm, val);
             CreateNewSlot(vm, -3, false);
         }
 
-        public static void CreateConstantFloat(ExVM vm, string name, float val)
+        public static void CreateConstantFloat(ExVM vm, string name, float val, bool force = false)
         {
-            PushString(vm, name, -1);
+            PushString(vm, name, -1, force);
             PushFloat(vm, val);
             CreateNewSlot(vm, -3, false);
         }
 
-        public static void CreateConstantString(ExVM vm, string name, string val)
+        public static void CreateConstantString(ExVM vm, string name, string val, bool force = false)
         {
-            PushString(vm, name, -1);
-            PushString(vm, val, -1);
+            PushString(vm, name, -1, force);
+            PushString(vm, val, -1, force);
             CreateNewSlot(vm, -3, false);
         }
 
@@ -117,7 +145,7 @@ namespace ExMat.API
         {
             vm.Push(new ExInt(n));
         }
-        public static void PushString(ExVM vm, string str, int len)
+        public static void PushString(ExVM vm, string str, int len, bool force = false)
         {
             if (string.IsNullOrEmpty(str))
             {
@@ -130,17 +158,46 @@ namespace ExMat.API
                 {
                     str = str[new Range(0, len)];
                 }
-                vm._sState._strings.Add(str, new(str));
+                if (force)
+                {
+                    if (!vm._sState._strings.ContainsKey(str))
+                    {
+                        vm._sState._strings.Add(str, new(str));
+                    }
+                    else
+                    {
+                        vm._sState._strings[str] = new(str);
+                    }
+                }
+                else
+                {
+                    vm._sState._strings.Add(str, new(str));
+                }
                 vm.Push(new ExString(str));
             }
         }
-        public static void CreateClosure(ExVM vm, ExFunc f, int fvars)
+        public static void CreateClosure(ExVM vm, ExFunc f, int fvars, bool force = false)
         {
             ExNativeClosure nc = ExNativeClosure.Create(vm._sState, f, fvars);
             nc.n_paramscheck = 0;
             for (int i = 0; i < fvars; i++)
             {
-                nc._outervals.Add(vm.Top());
+                if (force)
+                {
+                    int idx;
+                    if ((idx = nc._outervals.FindIndex((ExObjectPtr o) => o.GetNClosure()._name.GetString() == vm.Top().GetNClosure()._name.GetString())) != -1)
+                    {
+                        nc._outervals[idx].Assign(vm.Top());
+                    }
+                    else
+                    {
+                        nc._outervals.Add(new(vm.Top()));
+                    }
+                }
+                else
+                {
+                    nc._outervals.Add(new(vm.Top()));
+                }
                 vm.Pop();
             }
             vm.Push(nc);
@@ -156,9 +213,6 @@ namespace ExMat.API
             {
                 throw new Exception("native closure expected");
             }
-        }
-        public enum ExTypeMask
-        {
         }
 
         public static string GetExpectedTypes(int mask)

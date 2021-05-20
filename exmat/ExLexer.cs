@@ -706,12 +706,18 @@ namespace ExMat.Lexer
                     case TokenType.FLOAT:
                     case TokenType.SCI:
                         {
-                            f_val = float.Parse(_aStr);
+                            if (!float.TryParse(_aStr, out f_val))
+                            {
+                                return TokenType.UNKNOWN;
+                            }
                             return TokenType.FLOAT;
                         }
                     case TokenType.INTEGER:
                         {
-                            i_val = int.Parse(_aStr);
+                            if (!int.TryParse(_aStr, out i_val))
+                            {
+                                return TokenType.UNKNOWN;
+                            }
                             return TokenType.INTEGER;
                         }
                 }

@@ -14,8 +14,14 @@ namespace ExMat.BaseLib
         // BASIC FUNCTIONS
         public static int BASE_print(ExVM vm, int nargs)
         {
+            int maxdepth = 2;
+            if (nargs == 2)
+            {
+                maxdepth = ExAPI.GetFromStack(vm, 3).GetInt();
+                maxdepth = maxdepth < 1 ? 1 : maxdepth;
+            }
             string s = string.Empty;
-            ExAPI.ToString(vm, 2);
+            ExAPI.ToString(vm, 2, maxdepth);
             if (!ExAPI.GetString(vm, -1, ref s))
             {
                 return -1;
@@ -26,8 +32,15 @@ namespace ExMat.BaseLib
         }
         public static int BASE_printl(ExVM vm, int nargs)
         {
+            int maxdepth = 2;
+            if (nargs == 2)
+            {
+                maxdepth = ExAPI.GetFromStack(vm, 3).GetInt();
+                maxdepth = maxdepth < 1 ? 1 : maxdepth;
+            }
+
             string s = string.Empty;
-            ExAPI.ToString(vm, 2);
+            ExAPI.ToString(vm, 2, maxdepth);
             if (!ExAPI.GetString(vm, -1, ref s))
             {
                 return -1;
@@ -210,6 +223,18 @@ namespace ExMat.BaseLib
 
         public static int BASE_assert(ExVM vm, int nargs)
         {
+            if (nargs == 2)
+            {
+                if (ExAPI.GetFromStack(vm, 2).GetBool())
+                {
+                    return 0;
+                }
+                else
+                {
+                    vm.AddToErrorMessage("ASSERT FAILED: " + ExAPI.GetFromStack(vm, 3).GetString());
+                    return -1;
+                }
+            }
             return ExAPI.GetFromStack(vm, 2).GetBool() ? 0 : -1;
         }
 
@@ -235,11 +260,41 @@ namespace ExMat.BaseLib
 
         public static int BASE_string(ExVM vm, int nargs)
         {
+            bool carr = false;
             switch (nargs)
             {
+                case 2:
+                    {
+                        carr = ExAPI.GetFromStack(vm, 3).GetBool();
+                        goto case 1;
+                    }
                 case 1:
-                    {   // TO-DO char array to string
-                        if (!ExAPI.ToString(vm, 2))
+                    {
+                        ExObjectPtr obj = ExAPI.GetFromStack(vm, 2);
+                        if (obj._type == ExObjType.ARRAY && carr)
+                        {
+                            string str = string.Empty;
+                            foreach (ExObjectPtr o in obj.GetList())
+                            {
+                                if (o._type == ExObjType.STRING) // && o.GetString().Length == 1)
+                                {
+                                    str += o.GetString();
+                                }
+                                else if (o._type == ExObjType.INTEGER && o.GetInt() >= 0)
+                                {
+                                    str += (char)o.GetInt();
+                                }
+                                else
+                                {
+                                    vm.AddToErrorMessage("failed to create string, list must contain all positive integers or strings");
+                                    return -1;
+                                }
+                            }
+
+                            vm.Push(str);
+                            break;
+                        }
+                        else if (!ExAPI.ToString(vm, 2))
                         {
                             return -1;
                         }
@@ -1040,6 +1095,18 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int BASE_array_reverse(ExVM vm, int nargs)
+        {
+            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
+            List<ExObjectPtr> lis = obj.GetList();
+            List<ExObjectPtr> res = new(lis.Count);
+            for (int i = lis.Count - 1; i >= 0; i--)
+            {
+                res.Add(new(lis[i]));
+            }
+            vm.Push(res);
+            return 1;
+        }
         // DICT
         public static int BASE_dict_has_key(ExVM vm, int nargs)
         {
@@ -1075,19 +1142,45 @@ namespace ExMat.BaseLib
             vm.Push(vals);
             return 1;
         }
-        // 
+        //
+        public static int BASE_reloadbase(ExVM vm, int nargs)
+        {
+            if (nargs == 1)
+            {
+                string name = ExAPI.GetFromStack(vm, 2).GetString();
+                if (name == ReloadBaseFunc)
+                {
+                    return 0;
+                }
+
+                ExAPI.PushRootTable(vm);
+                ExAPI.ReloadNativeFunction(vm, BaseFuncs, name, true);
+
+            }
+            else
+            {
+                if (!RegisterStdBase(vm, true))
+                {
+                    vm.AddToErrorMessage("something went wrong...");
+                    return -1;
+                }
+            }
+            return 0;
+        }
+
+        //
         private static readonly List<ExRegFunc> _exRegFuncs = new()
         {
-            new() { name = "print", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_print")), n_pchecks = 2, mask = null },
-            new() { name = "printl", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_printl")), n_pchecks = 2, mask = null },
+            new() { name = "print", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_print")), n_pchecks = -2, mask = "..n" },
+            new() { name = "printl", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_printl")), n_pchecks = -2, mask = "..n" },
 
             new() { name = "time", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_time")), n_pchecks = 1, mask = null },
             new() { name = "date", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_date")), n_pchecks = -1, mask = ".s." },
 
             new() { name = "type", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_type")), n_pchecks = 2, mask = null },
-            new() { name = "assert", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_assert")), n_pchecks = 2, mask = null },
+            new() { name = "assert", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_assert")), n_pchecks = -2, mask = "..s" },
 
-            new() { name = "string", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string")), n_pchecks = -1, mask = ".." },
+            new() { name = "string", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string")), n_pchecks = -1, mask = "..." },
             new() { name = "float", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_float")), n_pchecks = -1, mask = ".." },
             new() { name = "integer", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_integer")), n_pchecks = -1, mask = ".." },
             new() { name = "bool", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_bool")), n_pchecks = -1, mask = ".." },
@@ -1103,19 +1196,26 @@ namespace ExMat.BaseLib
             new() { name = "call", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_call")), n_pchecks = -2, mask = null },
             new() { name = "parse", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_parse")), n_pchecks = 3, mask = ".ca" },
 
+            new() { name = ReloadBaseFunc, func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_reloadbase")), n_pchecks = -1, mask = ".s" },
+
             new() { name = string.Empty }
         };
         public static List<ExRegFunc> BaseFuncs { get => _exRegFuncs; }
 
-        public static void RegisterStdBase(ExVM vm)
+        private const string _reloadbase = "reload_base";
+        public static string ReloadBaseFunc { get => _reloadbase; }
+
+        public static bool RegisterStdBase(ExVM vm, bool force = false)
         {
             ExAPI.PushRootTable(vm);
-            ExAPI.RegisterNativeFunctions(vm, BaseFuncs);
+            ExAPI.RegisterNativeFunctions(vm, BaseFuncs, force);
 
-            ExAPI.CreateConstantInt(vm, "_versionnumber_", 1);
-            ExAPI.CreateConstantString(vm, "_version_", "ExMat v0.0.1");
+            ExAPI.CreateConstantInt(vm, "_versionnumber_", 1, force);
+            ExAPI.CreateConstantString(vm, "_version_", "ExMat v0.0.1", force);
 
             vm.Pop(1);
+
+            return true;
         }
     }
 }

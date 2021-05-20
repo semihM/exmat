@@ -733,18 +733,6 @@ namespace ExMat.Compiler
 
         }
 
-        private void AddSpaceDefVar(ExFState f_state, ExObjectPtr pname, ExObjectPtr tspc)
-        {
-            if (!f_state._Sstate._spaces.ContainsKey(pname.GetString()))
-            {
-                f_state._Sstate._spaces.Add(pname.GetString(), tspc);
-            }
-            else
-            {
-                f_state._Sstate._spaces[pname.GetString()].Nullify();
-                f_state._Sstate._spaces[pname.GetString()] = tspc;
-            }
-        }
         public bool ExClusterCreate(ExObjectPtr o)
         {
             ExFState f_state = _Fstate.PushChildState(_VM._sState);
@@ -784,13 +772,7 @@ namespace ExMat.Compiler
                         return false;
                     }
 
-                    ExObjectPtr tspc = new() { _type = ExObjType.SPACE };
-                    tspc._val.c_Space = _lexer._space;
-
-                    AddSpaceDefVar(f_state, pname, tspc);
-
                     f_state.AddDefParam(_Fstate.TopTarget());
-
                 }
                 else // TO-DO add = for referencing global and do get ops
                 {
@@ -1953,6 +1935,8 @@ namespace ExMat.Compiler
                         {
                             return false;
                         }
+                        _Fstate.AddInstr(OPC.GETBASE, _Fstate.PushTarget(), 0, 0, 0);
+
                         _Estate._type = ExEType.BASE;
                         _Estate._pos = _Fstate.TopTarget();
                         pos = _Estate._pos;

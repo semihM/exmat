@@ -185,6 +185,10 @@ namespace ExMat
 
                 int ret = CompileString(vm, code);
 
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
                 if (ret > 0)
                 {
                     return ret;

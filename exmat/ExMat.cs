@@ -57,9 +57,9 @@ namespace ExMat
         INTEGER = ExRawType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
         FLOAT = ExRawType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
         BOOL = ExRawType.BOOL | ExObjFlag.BOOLFALSEABLE,
-        STRING = ExRawType.STRING, // | ExObjFlag.REF_COUNTED,
-        DICT = ExRawType.DICT | ExObjFlag.REF_COUNTED,
-        SPACE = ExRawType.SPACE,
+        STRING = ExRawType.STRING,
+        DICT = ExRawType.DICT | ExObjFlag.REF_COUNTED | ExObjFlag.DELEGABLE,
+        SPACE = ExRawType.SPACE | ExObjFlag.REF_COUNTED,
 
         ARRAY = ExRawType.ARRAY | ExObjFlag.REF_COUNTED,
 
@@ -115,22 +115,24 @@ namespace ExMat
 
     public enum ExMetaM
     {
-        ADD,
-        SUB,
-        MLT,
-        DIV,
-        NEG,
-        MOD,
-        SET,
-        GET,
-        TYP,
-        NXT,
-        CMP,
+        ADD,    // +
+        SUB,    // -
+        MLT,    // *
+        DIV,    // /
+        EXP,    // **
+        MOD,    // %
+        NEG,    // -
+        SET,    // []
+        GET,    // []
+        TYPEOF,    // typeof
+        NEXT,
+        COMPARE,
         CALL,
-        NEWS,
-        DELS,
-        NEWM,
-        INH,
+        NEWSLOT,
+        DELSLOT,
+        NEWMEMBER,
+        INHERIT,
+        STRING,
         _LAST
     }
 

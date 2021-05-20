@@ -9,6 +9,9 @@
 			"include": "#strings"
 		},
 		{
+			"include": "#numbers"
+		},
+		{
 			"include": "#reserved-words"
 		},
 		{
@@ -124,11 +127,11 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(print|printl|type|time|string|float|integer|list|range|matrix)\\b"
+				"match": "\\b(print|printl|type|time|date|string|float|integer|list|range|matrix|bytes|bits|map|filter|call|parse)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir)\\b"
+				"match": "\\b(read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
@@ -136,7 +139,11 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(compile|strip|lstrip|rstrip|split)\\b"
+				"match": "\\b(compile|assert|strip|lstrip|rstrip|split)\\b"
+				},
+				{
+				"name": "entity.name.function.exmat",
+				"match": "\\b(reload_lib|reload_func|reload_base)\\b"
 				}
 			]
 		},
@@ -164,6 +171,20 @@
 				{
 					"name": "constant.character.escape.exmat",
 					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": 
+		{
+			"patterns": 
+			[
+				{
+					"name": "constant.numeric.exmat",
+					"match": "\\b(\\d+(\\.\\d+)?((E|e)(\\+|\\-)\\d+)?)\\b"
+				},
+				{
+					"name": "constant.language.exmat",
+					"match": "\\b(INT_MAX|INT_MAXF|INT_MIN|INT_MINF|FLOAT_MAX|FLOAT_MIN|PI|E|NAN|NINF|INF)\\b"
 				}
 			]
 		}

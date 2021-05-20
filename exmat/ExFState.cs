@@ -760,17 +760,6 @@ namespace ExMat.States
 
             funcPro._pvars = _pvars;
 
-            funcPro.n_spaces = _Sstate._spaces.Count;
-            funcPro._spaces = new();
-            foreach (string v in _Sstate._spaces.Keys)
-            {
-                if (funcPro._spaces.ContainsKey(v))
-                {
-                    continue;
-                }
-                funcPro._spaces.Add(v, _Sstate._spaces[v]);
-            }
-
             return funcPro;
         }
 

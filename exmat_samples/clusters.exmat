@@ -1,0 +1,32 @@
+
+cluster A { x : @R'2@ ; x[0] > x[1] => x.append(randf(x[0],x[1]))}
+
+printl("A: "+ string(A))
+
+printl("A([3,2]) : " + string(A( [3, 2] )))
+printl("A([1,4]) : " + string(A( [1, 4] )))
+printl(">>> For now, \"in\" only validates spaces")
+printl("[12, -5] in R'2 ? " + string([12, -5] in A))
+printl("[-50, 0] in R'2 ? " + string([-50, 0] in A))
+
+cluster B { x : @r+@, y: @z+'3@ ; y[0] + y[1] + y[2] < exp(x) => y }
+
+printl("B: "+ string(B))
+
+var elements_1 = [ 3, [10, 11, 12] ]
+printl("----------------------")
+printl("3 in r+ and [10, 11, 12] in z+'3 ? " + string(elements_1 in B))
+printl("resulting element: "+ string(parse(B,elements_1)))
+
+var elements_2 = [ 5, [1, 1, 1] ]
+printl("----------------------")
+printl("5 in r+ and [1, 1, 1] in z+'3 ? " + string(elements_2 in B))
+printl("resulting element: "+ string(parse(B,elements_2)))
+
+var elements_3 = [ 1, [0, -5, 10] ]
+printl("----------------------")
+printl("1 in r+ and [0, -5, 10] in z+'3 ? " + string(elements_3 in B))
+printl("shouldn't be parsed or called, it will throw an error...")
+//printl(parse(B,elements_3))
+// v
+// this will raise an error because [0,-5,10] is not in the z+'3 space

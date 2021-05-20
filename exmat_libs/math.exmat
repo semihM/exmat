@@ -1,0 +1,192 @@
+
+rule Positive(x) x > 0
+
+rule NonZero(x) x != 0
+
+rule Negative(x) x < 0
+
+// Add results of given function using range(m,n+1)
+function Sum(func,m=0,n=0)
+{
+    ::assert(type(func) == "CLOSURE", "expected function as first argument")
+
+    var pcount = func.n_params;
+
+    var total = 0;
+
+    if(pcount == 0)
+    {
+        for(var i = m; i <= n ; i++)
+        {
+            total += func()
+        }
+    }
+    else if(pcount == 1)
+    {
+        for(var i = m; i <= n ; i++)
+        {
+            total += func(i)
+        }
+    }
+    else if(pcount == 2)
+    {
+        for(var i = m; i <= n ; i++)
+        {
+            total += func(i,m)
+        }
+    }
+    else
+    {
+        ::assert(func.n_minargs <= 3,"given function require at least "+func.n_minargs+" arguments")
+
+        for(var i = m; i <= n ; i++)
+        {
+            total += func(i,m,n)
+        }
+    }
+    return total;
+}
+
+// Multiply results of given function using range(m,n+1)
+function Mul(func,m=0,n=0)
+{
+    ::assert(type(func) == "CLOSURE", "expected function as first argument")
+
+    var pcount = func.n_params;
+
+    var total = 1;
+
+    if(pcount == 0)
+    {
+        for(var i = m; i <= n ; i++)
+        {
+            total *= func()
+        }
+    }
+    else if(pcount == 1)
+    {
+        for(var i = m; i <= n ; i++)
+        {
+            total *= func(i)
+        }
+    }
+    else if(pcount == 2)
+    {
+        for(var i = m; i <= n ; i++)
+        {
+            total *= func(i,m)
+        }
+    }
+    else
+    {
+        ::assert(func.n_minargs <= 3,"given function require at least "+func.n_minargs+" arguments")
+
+        for(var i = m; i <= n ; i++)
+        {
+            total *= func(i,m,n)
+        }
+    }
+    return total;
+}
+
+class Vector
+{
+    constructor(_x=0,_y=0,_z=0)
+    {
+        ::assert(type(_x) in NumericTypes, "expected numeric value for 'x' of 'Vector'")
+        ::assert(type(_y) in NumericTypes, "expected numeric value for 'y' of 'Vector'")
+        ::assert(type(_z) in NumericTypes, "expected numeric value for 'z' of 'Vector'")
+        x = _x;
+        y = _y;
+        z = _z;
+    }
+
+    x = 0;
+    y = 0;
+    z = 0;
+    NumericTypes = ["INTEGER", "FLOAT"]
+    function Length()
+    {
+        return (this.x**2 + this.y**2 + this.z**2)**0.5
+    }
+
+    function Scale(scale)
+    {
+        ::assert(type(scale) in NumericTypes, "expected numeric value for 'Scale' of 'Vector'")
+
+        this.x *= scale;
+        this.y *= scale;
+        this.z *= scale;
+        return this;
+    }
+
+    // Meta methods
+    function _ADD(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '+' of 'Vector'")
+
+        return Vector(this.x + vec.x, this.y + vec.y, this.z + vec.z);
+    }
+
+    function _SUB(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '-' of 'Vector'")
+
+        return Vector(this.x + vec.x, this.y + vec.y, this.z + vec.z);
+    }
+
+    function _MLT(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '*' of 'Vector'")
+
+        return Vector(this.x * vec.x, this.y * vec.y, this.z * vec.z);
+    }
+
+    function _DIV(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '/' of 'Vector'")
+
+        return Vector(this.x / vec.x, this.y / vec.y, this.z / vec.z);
+    }
+
+    function _MOD(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '%' of 'Vector'")
+
+        return Vector(this.x % vec.x, this.y % vec.y, this.z % vec.z);
+    }
+
+    function _EXP(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '%' of 'Vector'")
+
+        return Vector(this.x ** vec.x, this.y ** vec.y, this.z ** vec.z);
+    }
+
+    function _STRING()
+    {
+        return "Vector("+this.x+", "+this.y+", "+this.z+")";
+    }
+    //
+
+    function Dot(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Dot' of 'Vector'")
+
+        return (this.x * vec.x + this.y * vec.y + this.z * vec.z);
+    }
+
+    function Cross(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Cross' of 'Vector'")
+
+        return Vector(this.y * vec.z - this.z * vec.y, this.z * vec.x - this.x * vec.z, this.x * vec.y - this.y * vec.x);
+    }
+
+    function AngleBetween(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for 'AngleBetween' of 'Vector'")
+
+        return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
+    }
+}

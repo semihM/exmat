@@ -140,7 +140,6 @@ namespace ExMat.InfoVar
     {
         public ExInstr _instr;
         public List<ExObjectPtr> _lits;
-        public Dictionary<string, ExObjectPtr> _spaces;
         public ExObjectPtr _closure;
         public int _prevbase;
         public int _prevtop;
@@ -178,12 +177,6 @@ namespace ExMat.InfoVar
 
                     _closure.Dispose();
                     _instr.Dispose();
-
-                    foreach (ExObjectPtr o in _spaces.Values)
-                    {
-                        o.Dispose();
-                    }
-                    _spaces = null;
 
                     foreach (ExInstr o in _instrs)
                     {

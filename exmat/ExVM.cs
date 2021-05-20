@@ -70,7 +70,7 @@ namespace ExMat.VM
 
         }
 
-        public bool ToString(ExObjectPtr obj, ref ExObjectPtr res, bool inside = false)
+        public bool ToString(ExObjectPtr obj, ref ExObjectPtr res, int maxdepth = 2, bool dval = false)
         {
             switch (obj._type)
             {
@@ -81,7 +81,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        if(obj.GetFloat() % 1 == 0.0)
+                        if (obj.GetFloat() % 1 == 0.0)
                         {
                             res = new(obj.GetFloat().ToString("0.0"));
                         }
@@ -97,7 +97,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        res = inside ? new("\"" + obj.GetString() + "\"") : new(obj.GetString());
+                        res = maxdepth == 0 || dval ? new("\"" + obj.GetString() + "\"") : new(obj.GetString());
                         break;
                     }
                 case ExObjType.BOOL:
@@ -112,7 +112,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (inside)
+                        if (maxdepth == 0)
                         {
                             res = new("ARRAY(" + (obj._val.l_List == null ? "empty" : obj._val.l_List.Count) + ")");
                             break;
@@ -121,10 +121,10 @@ namespace ExMat.VM
                         string s = "[";
                         int n = 0;
                         int c = obj._val.l_List.Count;
-
+                        maxdepth--;
                         foreach (ExObjectPtr o in obj._val.l_List)
                         {
-                            ToString(o, ref temp, true);
+                            ToString(o, ref temp, maxdepth, true);
 
                             s += temp.GetString();
 
@@ -141,7 +141,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.DICT:
                     {
-                        if (inside)
+                        if (maxdepth == 0)
                         {
                             res = new("DICT(" + (obj._val.l_List == null ? "empty" : obj._val.l_List.Count) + ")");
                             break;
@@ -155,9 +155,10 @@ namespace ExMat.VM
                             s += "\n\t";
                         }
 
+                        maxdepth--;
                         foreach (KeyValuePair<string, ExObjectPtr> pair in obj._val.d_Dict)
                         {
-                            ToString(pair.Value, ref temp, true);
+                            ToString(pair.Value, ref temp, maxdepth, true);
 
                             s += pair.Key + " = " + temp.GetString();
 
@@ -222,6 +223,16 @@ namespace ExMat.VM
                     }
                 default:
                     {
+                        if (obj.IsDelegable() && obj._val._Deleg._delegate != null)
+                        {
+                            ExObjectPtr c = new();
+
+                            if (obj._val._Deleg.GetMetaM(this, ExMetaM.STRING, ref c))
+                            {
+                                Push(obj);
+                                return CallMeta(ref c, ExMetaM.STRING, 1, ref res);
+                            }
+                        }
                         res = new(obj._type.ToString());
                         break;
                     }
@@ -321,7 +332,7 @@ namespace ExMat.VM
 
             if (!braw)
             {
-                ExObjectPtr meta = cls._metas[(int)ExMetaM.NEWM];
+                ExObjectPtr meta = cls._metas[(int)ExMetaM.NEWMEMBER];
                 if (meta._type != ExObjType.NULL)
                 {
                     Push(self);
@@ -329,7 +340,7 @@ namespace ExMat.VM
                     Push(val);
                     Push(attrs);
                     Push(bstat);
-                    return CallMetaMethod(ref meta, ExMetaM.NEWM, 5, ref tmpreg);
+                    return CallMeta(ref meta, ExMetaM.NEWMEMBER, 5, ref tmpreg);
                 }
             }
 
@@ -506,45 +517,49 @@ namespace ExMat.VM
             return true;
         }
 
-        private bool DoClusterParamChecks(ExFuncPro pro, List<ExObjectPtr> lis)
+        private bool DoClusterParamChecks(ExClosure cls, List<ExObjectPtr> lis)
         {
-            int t_n = pro._spaces.Count;
+            int t_n = cls._defparams.Count;
 
-            List<ExObjectPtr> ts = new(t_n);
-            foreach (ExObjectPtr ob in pro._spaces.Values)
-            {
-                ts.Add(ob);
-            }
+            ExFuncPro pro = cls._func;
+            List<ExObjectPtr> ts = cls._defparams;
             int nargs = lis.Count;
 
             if (t_n > 0)
             {
-                if (t_n != nargs)
+                if (t_n == 1)
                 {
-                    AddToErrorMessage("'" + pro._name.GetString() + "' takes " + (t_n) + " arguments");
-                    return false;
-                }
-
-                for (int i = 0; i < nargs; i++)
-                {
-                    if (!IsInSpace(lis[i], ts[i]._val.c_Space, i + 1))
+                    if (!IsInSpace(new(lis), ts[0]._val.c_Space, 1))
                     {
                         return false;
+                    }
+                }
+                else
+                {
+                    if (t_n != nargs)
+                    {
+                        AddToErrorMessage("'" + pro._name.GetString() + "' takes " + (t_n) + " arguments");
+                        return false;
+                    }
+
+                    for (int i = 0; i < nargs; i++)
+                    {
+                        if (!IsInSpace(lis[i], ts[i]._val.c_Space, i + 1))
+                        {
+                            return false;
+                        }
                     }
                 }
             }
             return true;
         }
 
-        private bool DoClusterParamChecks(ExFuncPro pro, int nargs, int sbase)
+        private bool DoClusterParamChecks(ExClosure cls, int nargs, int sbase)
         {
-            int t_n = pro._spaces.Count;
+            int t_n = cls._defparams.Count;
 
-            List<ExObjectPtr> ts = new(t_n);
-            foreach (ExObjectPtr ob in pro._spaces.Values)
-            {
-                ts.Add(ob);
-            }
+            ExFuncPro pro = cls._func;
+            List<ExObjectPtr> ts = cls._defparams;
 
             if (t_n > 0)
             {
@@ -632,7 +647,7 @@ namespace ExMat.VM
             }
             else if (pro.is_cluster)
             {
-                if (!DoClusterParamChecks(pro, nargs, sbase))   // TO-DO currently returns given vector on success, random stuff at failure
+                if (!DoClusterParamChecks(cls, nargs, sbase))   // TO-DO currently returns given vector on success, random stuff at failure
                 {
                     return false;
                 }
@@ -651,7 +666,6 @@ namespace ExMat.VM
 
             ci._val._closure = new(); ci._val._closure.Assign(cls);
             ci._val._lits = pro._lits;
-            ci._val._spaces = pro._spaces;
             ci._val._instrs = pro._instr;
             ci._val._idx_instrs = 0;
             ci._val._target = trg;
@@ -659,20 +673,26 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool IsInSpace(ExObjectPtr argument, ExSpace space, int i)
+        public bool IsInSpace(ExObjectPtr argument, ExSpace space, int i, bool raise = true)
         {
             switch (argument._type)
             {
                 case ExObjType.SPACE:   // TO-DO maybe allow spaces as arguments here ?
                     {
-                        AddToErrorMessage("can't use 'CLUSTER' or 'SPACE' as an argument for parameter " + i);
+                        if (raise)
+                        {
+                            AddToErrorMessage("can't use 'CLUSTER' or 'SPACE' as an argument for parameter " + i);
+                        }
                         return false;
                     }
                 case ExObjType.ARRAY:
                     {
                         if (argument._val.l_List.Count != space.dim)
                         {
-                            AddToErrorMessage("expected " + space.dim + " dimensions for parameter " + i);
+                            if (raise)
+                            {
+                                AddToErrorMessage("expected " + space.dim + " dimensions for parameter " + i);
+                            }
                             return false;
                         }
 
@@ -688,7 +708,10 @@ namespace ExMat.VM
                                                 {
                                                     if (!val.IsNumeric() || val.GetFloat() <= 0)
                                                     {
-                                                        AddToErrorMessage("expected numeric positive non-zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected numeric positive non-zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -700,7 +723,10 @@ namespace ExMat.VM
                                                 {
                                                     if (!val.IsNumeric() || val.GetFloat() >= 0)
                                                     {
-                                                        AddToErrorMessage("expected numeric negative non-zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected numeric negative non-zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -712,7 +738,10 @@ namespace ExMat.VM
                                                 {
                                                     if (!val.IsNumeric() || val.GetFloat() == 0)
                                                     {
-                                                        AddToErrorMessage("expected numeric non-zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected numeric non-zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -720,7 +749,11 @@ namespace ExMat.VM
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -736,7 +769,10 @@ namespace ExMat.VM
                                                 {
                                                     if (!val.IsNumeric() || val.GetFloat() < 0)
                                                     {
-                                                        AddToErrorMessage("expected numeric positive or zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected numeric positive or zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -748,7 +784,10 @@ namespace ExMat.VM
                                                 {
                                                     if (!val.IsNumeric() || val.GetFloat() > 0)
                                                     {
-                                                        AddToErrorMessage("expected numeric negative or zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected numeric negative or zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -760,7 +799,10 @@ namespace ExMat.VM
                                                 {
                                                     if (!val.IsNumeric())
                                                     {
-                                                        AddToErrorMessage("expected numeric values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected numeric values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -768,7 +810,10 @@ namespace ExMat.VM
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -784,7 +829,10 @@ namespace ExMat.VM
                                                 {
                                                     if (val._type != ExObjType.INTEGER || val.GetFloat() < 0)
                                                     {
-                                                        AddToErrorMessage("expected integer positive or zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected integer positive or zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -796,7 +844,10 @@ namespace ExMat.VM
                                                 {
                                                     if (val._type != ExObjType.INTEGER || val.GetFloat() > 0)
                                                     {
-                                                        AddToErrorMessage("expected integer negative or zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected integer negative or zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -808,7 +859,10 @@ namespace ExMat.VM
                                                 {
                                                     if (val._type != ExObjType.INTEGER)
                                                     {
-                                                        AddToErrorMessage("expected integer values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected integer values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -816,7 +870,10 @@ namespace ExMat.VM
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -832,7 +889,10 @@ namespace ExMat.VM
                                                 {
                                                     if (val._type != ExObjType.INTEGER || val.GetInt() <= 0)
                                                     {
-                                                        AddToErrorMessage("expected integer positive non-zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected integer positive non-zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -844,7 +904,10 @@ namespace ExMat.VM
                                                 {
                                                     if (val._type != ExObjType.INTEGER || val.GetInt() >= 0)
                                                     {
-                                                        AddToErrorMessage("expected integer negative non-zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected integer negative non-zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -856,7 +919,10 @@ namespace ExMat.VM
                                                 {
                                                     if (val._type != ExObjType.INTEGER || val.GetInt() == 0)
                                                     {
-                                                        AddToErrorMessage("expected integer non-zero values for parameter " + i);
+                                                        if (raise)
+                                                        {
+                                                            AddToErrorMessage("expected integer non-zero values for parameter " + i);
+                                                        }
                                                         return false;
                                                     }
                                                 }
@@ -864,7 +930,10 @@ namespace ExMat.VM
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -878,7 +947,10 @@ namespace ExMat.VM
                     {
                         if (space.dim != 1)
                         {
-                            AddToErrorMessage("expected " + space.dim + " dimensions for parameter " + i);
+                            if (raise)
+                            {
+                                AddToErrorMessage("expected " + space.dim + " dimensions for parameter " + i);
+                            }
                             return false;
                         }
                         switch (space.space)
@@ -891,7 +963,10 @@ namespace ExMat.VM
                                             {
                                                 if (!argument.IsNumeric() || argument.GetFloat() <= 0)
                                                 {
-                                                    AddToErrorMessage("expected numeric positive non-zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected numeric positive non-zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -900,7 +975,10 @@ namespace ExMat.VM
                                             {
                                                 if (!argument.IsNumeric() || argument.GetFloat() >= 0)
                                                 {
-                                                    AddToErrorMessage("expected numeric negative non-zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected numeric negative non-zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -909,14 +987,21 @@ namespace ExMat.VM
                                             {
                                                 if (!argument.IsNumeric() || argument.GetFloat() == 0)
                                                 {
-                                                    AddToErrorMessage("expected numeric non-zero value for parameter " + i);
+
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected numeric non-zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -930,7 +1015,10 @@ namespace ExMat.VM
                                             {
                                                 if (!argument.IsNumeric() || argument.GetFloat() < 0)
                                                 {
-                                                    AddToErrorMessage("expected numeric positive or zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected numeric positive or zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -939,7 +1027,10 @@ namespace ExMat.VM
                                             {
                                                 if (!argument.IsNumeric() || argument.GetFloat() > 0)
                                                 {
-                                                    AddToErrorMessage("expected numeric negative or zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected numeric negative or zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -948,14 +1039,20 @@ namespace ExMat.VM
                                             {
                                                 if (!argument.IsNumeric())
                                                 {
-                                                    AddToErrorMessage("expected numeric value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected numeric value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -969,7 +1066,10 @@ namespace ExMat.VM
                                             {
                                                 if (argument._type != ExObjType.INTEGER || argument.GetInt() < 0)
                                                 {
-                                                    AddToErrorMessage("expected integer positive or zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected integer positive or zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -978,7 +1078,10 @@ namespace ExMat.VM
                                             {
                                                 if (argument._type != ExObjType.INTEGER || argument.GetInt() > 0)
                                                 {
-                                                    AddToErrorMessage("expected integer negative or zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected integer negative or zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -987,14 +1090,20 @@ namespace ExMat.VM
                                             {
                                                 if (argument._type != ExObjType.INTEGER)
                                                 {
-                                                    AddToErrorMessage("expected integer value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected integer value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -1008,7 +1117,10 @@ namespace ExMat.VM
                                             {
                                                 if (argument._type != ExObjType.INTEGER || argument.GetInt() <= 0)
                                                 {
-                                                    AddToErrorMessage("expected integer positive non-zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected integer positive non-zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -1017,7 +1129,10 @@ namespace ExMat.VM
                                             {
                                                 if (argument._type != ExObjType.INTEGER || argument.GetInt() >= 0)
                                                 {
-                                                    AddToErrorMessage("expected integer negative non-zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected integer negative non-zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
@@ -1026,14 +1141,20 @@ namespace ExMat.VM
                                             {
                                                 if (argument._type != ExObjType.INTEGER || argument.GetInt() == 0)
                                                 {
-                                                    AddToErrorMessage("expected integer non-zero value for parameter " + i);
+                                                    if (raise)
+                                                    {
+                                                        AddToErrorMessage("expected integer non-zero value for parameter " + i);
+                                                    }
                                                     return false;
                                                 }
                                                 break;
                                             }
                                         default:
                                             {
-                                                AddToErrorMessage("expected + or - symbols");
+                                                if (raise)
+                                                {
+                                                    AddToErrorMessage("expected + or - symbols");
+                                                }
                                                 return false;
                                             }
                                     }
@@ -1046,36 +1167,18 @@ namespace ExMat.VM
                     {
                         return false;
                     }
+                default:
+                    {
+                        return false;
+                    }
             }
             return true;
-        }
-
-        public bool CallMetaMethod(ref ExObjectPtr cls, ExMetaM m, int nparams, ref ExObjectPtr res)
-        {
-            _nmetacalls++;
-            if (Call(ref cls, nparams, _top - nparams, ref res))
-            {
-                _nmetacalls--;
-                Pop(nparams);
-                return true;
-            }
-            _nmetacalls--;
-            Pop(nparams);
-            AddToErrorMessage("failed to call meta method " + m.ToString());
-            return false;
         }
 
         private ExObjectPtr FindSpaceObject(int i)
         {
             string name = ci._val._lits[i].GetString();
-            foreach (ExObjectPtr s in ci._val._spaces.Values)
-            {
-                if (s._val.c_Space.GetString() == name)
-                {
-                    return s;
-                }
-            }
-            throw new Exception("unknown space");
+            return new(ExSpace.GetSpaceFromString(name));
         }
 
         public bool FixStackAfterError()
@@ -1281,7 +1384,7 @@ namespace ExMat.VM
                                                 Push(GetTargetInStack(j + i.arg2.GetInt()));
                                             }
 
-                                            if (!CallMetaMethod(ref cls2, ExMetaM.CALL, i.arg3.GetInt() + 1, ref tmp2))
+                                            if (!CallMeta(ref cls2, ExMetaM.CALL, i.arg3.GetInt() + 1, ref tmp2))
                                             {
                                                 AddToErrorMessage("meta method failed call");
                                                 return FixStackAfterError();
@@ -1608,24 +1711,7 @@ namespace ExMat.VM
                             ExObjectPtr s1 = new(GetTargetInStack(i.arg1));
                             ExObjectPtr s2 = new(GetTargetInStack(i.arg2));
 
-                            string tmp = _error;
-                            bool b = Getter(ref s1, ref s2, ref tmpreg, true, ExFallback.DONT, true);
-
-                            if (s1._type == ExObjType.CLOSURE
-                                && s1._val._Closure._func.is_cluster)
-                            {
-                                //TO-DO Find a way to evaluate to condition instructions
-
-                                GetTargetInStack(i).Assign(b);
-                            }
-                            else
-                            {
-                                if (_error != tmp)
-                                {
-                                    return false;
-                                }
-                                GetTargetInStack(i).Assign(b);
-                            }
+                            GetTargetInStack(i).Assign(Getter(ref s1, ref s2, ref tmpreg, true, ExFallback.DONT, true));
 
                             continue;
                         }
@@ -1682,8 +1768,8 @@ namespace ExMat.VM
                         {
                             if (!DoNegateOP(GetTargetInStack(i), GetTargetInStack(i.arg1)))
                             {
-                                AddToErrorMessage("attempted to negate '" + GetTargetInStack(i.arg1) + "'");
-                                return false;
+                                AddToErrorMessage("attempted to negate '" + GetTargetInStack(i.arg1)._type.ToString() + "'");
+                                return FixStackAfterError();
                             }
                             continue;
                         }
@@ -1730,12 +1816,38 @@ namespace ExMat.VM
                             GetTargetInStack(i).Assign(GetTargetInStack(i.arg1)._type.ToString());
                             continue;
                         }
-                    case OPC.RETURNMACRO:
+                    case OPC.INSTANCEOF:
+                        {
+                            if (GetTargetInStack(i.arg1)._type != ExObjType.CLASS)
+                            {
+                                AddToErrorMessage("instanceof operation can only be done with a 'class' type");
+                                return FixStackAfterError();
+                            }
+                            GetTargetInStack(i).Assign(
+                                GetTargetInStack(i.arg2)._type == ExObjType.INSTANCE
+                                        ? GetTargetInStack(i.arg2)._val._Instance.IsInstanceOf(GetTargetInStack(i.arg1)._val._Class)
+                                        : false);
+                            continue;
+                        }
+                    case OPC.RETURNMACRO:   // TO-DO
                         {
                             if (ReturnValue(i.arg0.GetInt(), i.arg1, ref tmpreg, false, true))
                             {
                                 SwapObjects(o, ref tmpreg);
                                 return true;
+                            }
+                            continue;
+                        }
+                    case OPC.GETBASE:
+                        {
+                            ExClosure c = ci._val._closure._val._Closure;
+                            if (c._base != null)
+                            {
+                                GetTargetInStack(i).Assign(c._base);
+                            }
+                            else
+                            {
+                                GetTargetInStack(i).Nullify();
                             }
                             continue;
                         }
@@ -1758,11 +1870,11 @@ namespace ExMat.VM
                         ExObjectPtr cls = new();
                         ExObjectPtr tmp;
 
-                        if (self._val._Deleg != null && self._val._Deleg.GetMetaM(this, ExMetaM.DELS, ref cls))
+                        if (self._val._Deleg != null && self._val._Deleg.GetMetaM(this, ExMetaM.DELSLOT, ref cls))
                         {
                             Push(self);
                             Push(k);
-                            return CallMetaMethod(ref cls, ExMetaM.DELS, 2, ref r);
+                            return CallMeta(ref cls, ExMetaM.DELSLOT, 2, ref r);
                         }
                         else
                         {
@@ -1776,21 +1888,48 @@ namespace ExMat.VM
                                 }
                                 else
                                 {
-                                    throw new Exception(k.GetString() + " doesn't exist");
+                                    AddToErrorMessage(k.GetString() + " doesn't exist");
+                                    return false;
                                 }
                             }
                             else
                             {
-                                throw new Exception("can't delete a slot from " + self._type.ToString());
+                                AddToErrorMessage("can't delete a slot from " + self._type.ToString());
+                                return false;
                             }
                         }
 
                         r = tmp;
                         break;
                     }
+                case ExObjType.ARRAY:
+                    {
+                        if (!k.IsNumeric())
+                        {
+                            AddToErrorMessage("can't use non-numeric index for removing");
+                            return false;
+                        }
+                        else if (self.GetList() == null)
+                        {
+                            AddToErrorMessage("can't remove from null list");
+                            return false;
+                        }
+                        else if (self.GetList().Count <= k.GetInt())
+                        {
+                            AddToErrorMessage("array index error: count " + self.GetList().Count + ", index " + k.GetInt());
+                            return false;
+                        }
+                        else
+                        {
+                            self.GetList()[k.GetInt()].Release();
+                            self.GetList().RemoveAt(k.GetInt());
+                            return true;
+                        }
+                    }
                 default:
                     {
-                        throw new Exception("can't delete a slot from " + self._type.ToString());
+                        AddToErrorMessage("can't delete a slot from " + self._type.ToString());
+                        return false;
                     }
             }
             return true;
@@ -1955,13 +2094,13 @@ namespace ExMat.VM
             target.Assign(ExClass.Create(_sState, cb));
 
             // TO-DO meta methods!
-            if (target._val._Class._metas[(int)ExMetaM.INH]._type != ExObjType.NULL)
+            if (target._val._Class._metas[(int)ExMetaM.INHERIT]._type != ExObjType.NULL)
             {
                 int np = 2;
                 ExObjectPtr r = new();
                 Push(target);
                 Push(atrs);
-                ExObjectPtr mm = target._val._Class._metas[(int)ExMetaM.INH];
+                ExObjectPtr mm = target._val._Class._metas[(int)ExMetaM.INHERIT];
                 Call(ref mm, np, _top - np, ref r);
                 Pop(np);
             }
@@ -2232,7 +2371,6 @@ namespace ExMat.VM
         }
         public bool DoArithmeticOP(OPC op, ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
         {
-            // TO-DO find out why string are nulled
             if (a._type == ExObjType.NULL && a._val.s_String != null)
             {
                 a._type = ExObjType.STRING;
@@ -2283,11 +2421,78 @@ namespace ExMat.VM
                     }
                 default:
                     {
+                        if (DoArithmeticMetaOP(op, a, b, ref res))
+                        {
+                            return true;
+                        }
                         AddToErrorMessage("can't do " + op.ToString() + " operation between " + a._type.ToString() + " and " + b._type.ToString());
                         return false;
                     }
             }
             return true;
+        }
+        public bool DoArithmeticMetaOP(OPC op, ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
+        {
+            ExMetaM meta;
+            switch (op)
+            {
+                case OPC.ADD:
+                    {
+                        meta = ExMetaM.ADD;
+                        break;
+                    }
+                case OPC.SUB:
+                    {
+                        meta = ExMetaM.SUB;
+                        break;
+                    }
+                case OPC.DIV:
+                    {
+                        meta = ExMetaM.DIV;
+                        break;
+                    }
+                case OPC.MLT:
+                    {
+                        meta = ExMetaM.MLT;
+                        break;
+                    }
+                case OPC.MOD:
+                    {
+                        meta = ExMetaM.MOD;
+                        break;
+                    }
+                case OPC.EXP:
+                    {
+                        meta = ExMetaM.EXP;
+                        break;
+                    }
+                default:
+                    {
+                        meta = ExMetaM.ADD;
+                        break;
+                    }
+            }
+            if (a.IsDelegable() && a._val._Deleg._delegate != null)
+            {
+                ExObjectPtr c = new();
+
+                if (a._val._Deleg.GetMetaM(this, meta, ref c))
+                {
+                    Push(a);
+                    Push(b);
+                    return CallMeta(ref c, meta, 2, ref res);
+                }
+            }
+            return false;
+        }
+
+        public bool CallMeta(ref ExObjectPtr cls, ExMetaM meta, int nargs, ref ExObjectPtr res)
+        {
+            _nmetacalls++;
+            bool b = Call(ref cls, nargs, _top - nargs, ref res);
+            _nmetacalls--;
+            Pop(nargs);
+            return b;
         }
 
         public enum ArithmeticMask
@@ -2418,10 +2623,10 @@ namespace ExMat.VM
                             return false;
                         }
 
-                        ExObjectPtr res = new();
-                        if (self._val._Instance._class._members.TryGetValue(k.GetString(), out res) && res.IsField())
+                        if (self._val._Instance._class._members.ContainsKey(k.GetString())
+                            && self._val._Instance._class._members[k.GetString()].IsField())
                         {
-                            self._val._Instance._values[res.GetMemberID()].Assign(new ExObjectPtr(v));
+                            self._val._Instance._values[self._val._Instance._class._members[k.GetString()].GetMemberID()].Assign(new ExObjectPtr(v));
                             return true;
                         }
                         break;
@@ -2643,14 +2848,14 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
+                        if (self._val.l_List == null)
+                        {
+                            AddToErrorMessage("attempted to access null array");
+                            return false;
+                        }
+
                         if (k.IsNumeric() && !b_exist)
                         {
-                            if (self._val.l_List == null)
-                            {
-                                AddToErrorMessage("attempted to access null array");
-                                return false;
-                            }
-
                             if (!b_exist && self._val.l_List.Count != 0 && self._val.l_List.Count > k.GetInt())
                             {
                                 dest.Assign(new ExObjectPtr(self._val.l_List[k.GetInt()]));
@@ -2676,6 +2881,19 @@ namespace ExMat.VM
                                 }
                                 return false;
                             }
+                        }
+                        else if (b_exist)
+                        {
+                            bool found = false;
+                            foreach (ExObjectPtr o in self._val.l_List)
+                            {
+                                CheckEqual(o, k, ref found);
+                                if (found)
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
                         }
                         break;
                     }
@@ -2756,7 +2974,7 @@ namespace ExMat.VM
                     {
                         if (b_exist)
                         {
-                            return IsInSpace(k, self._val.c_Space, 1);
+                            return IsInSpace(k, self._val.c_Space, 1, false);
                         }
 
                         goto default;
@@ -2775,14 +2993,48 @@ namespace ExMat.VM
                                     ? new() { k }
                                     : k._val.l_List;
 
-                            if (!DoClusterParamChecks(self._val._Closure._func, lis))
+                            if (!DoClusterParamChecks(self._val._Closure, lis))
                             {
                                 return false;
                             }
-
+                            // TO-DO call closure
                             return true;
                         }
 
+                        if (k._type == ExObjType.STRING)
+                        {
+                            switch (k.GetString())
+                            {
+                                case "n_params":
+                                    {
+                                        dest = new(self.GetClosure()._func.n_params - 1);
+                                        return true;
+                                    }
+                                case "n_defparams":
+                                    {
+                                        dest = new(self.GetClosure()._func.n_defparams);
+                                        return true;
+                                    }
+                                case "n_minargs":
+                                    {
+                                        dest = new(self.GetClosure()._func.n_params - 1 - self.GetClosure()._func.n_defparams);
+                                        return true;
+                                    }
+                                case "defparams":
+                                    {
+                                        int ndef = self.GetClosure()._func.n_defparams;
+                                        int npar = self.GetClosure()._func.n_params - 1;
+                                        int start = npar - ndef;
+                                        Dictionary<string, ExObjectPtr> dict = new();
+                                        foreach (ExObjectPtr d in self.GetClosure()._defparams)
+                                        {
+                                            dict.Add((++start).ToString(), d);
+                                        }
+                                        dest = new(dict);
+                                        return true;
+                                    }
+                            }
+                        }
                         goto default;
 
                     }
@@ -2814,8 +3066,9 @@ namespace ExMat.VM
             }
             if (f == ExFallback.OK)
             {
-                if (_rootdict._val.d_Dict.TryGetValue(k.GetString(), out dest))
+                if (_rootdict.GetDict().ContainsKey(k.GetString()))
                 {
+                    dest.Assign(_rootdict.GetDict()[k.GetString()]);
                     return true;
                 }
             }
