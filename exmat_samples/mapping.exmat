@@ -1,22 +1,31 @@
 
-var strings = map(string, range(-10,10));
+printl("\n-----------------------")
 
+var strings = map(string, range(-10,10));
 printl( strings )
 
 printl( map("".len, strings) )
+printl( map($(x) abs(x) + x, range(-5,5,0.5)) ) 
 
-var function MapFunc(x) return abs(x) + x
+printl("-----------------------")
 
-printl( map(MapFunc, range(-5,5,0.5)) )
+printl( map( $(x) exp(x) + x, filter( $(x) x > 3, range(-5,10,0.75) ) ) )
 
-var function FilterFunc(x) return x > 3
-
-printl( map(MapFunc, filter(FilterFunc, range(-5,10,0.75))))
+printl("-----------------------")
 
 var function CallMe(x,y,z=20) return abs(x) + abs(y) + abs(z)
-
 printl( call(CallMe, -5, 10 ) )
 
-var function ParseArguments(x,y,z) return x**y + x**z
+printl("As lambda expression:")
+printl( call($(x, y, z=20) abs(x) + abs(y) + abs(z), -5, 10 ) )
 
+printl("-----------------------")
+
+var function ParseArguments(x,y,z) return x**y + x**z
 printl( parse(ParseArguments,range(4,7)) )
+
+printl("-----------------------")
+
+printl( parse($(x1,x2,x3) x1**3 + x2**2 + x1 + rand(x1,x3), [5,10,15]) )
+
+printl("-----------------------")

@@ -63,6 +63,7 @@ namespace ExMat.Closure
         public ExClosure()
         {
             _type = ExObjType.CLOSURE;
+            _refc = 1;
         }
 
         public ExClosure Copy()
@@ -140,6 +141,7 @@ namespace ExMat.Closure
         public ExNativeClosure()
         {
             _type = ExObjType.NATIVECLOSURE;
+            _refc = 1;
         }
 
         public static ExNativeClosure Create(ExSState exS, ExFunc f, int nout)

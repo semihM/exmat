@@ -120,6 +120,8 @@
         CLUSTER,
         ELEMENT_DEF,
         SPACE,
+        
+        LAMBDA,
 
         MACROSTART,
         MACROEND,

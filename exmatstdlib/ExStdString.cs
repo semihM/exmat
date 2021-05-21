@@ -51,6 +51,45 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int STRING_join(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 2).GetString();
+            List<ExObjectPtr> lis = ExAPI.GetFromStack(vm, 3).GetList();
+
+            int depth = 2;
+            if (nargs == 3)
+            {
+                depth = ExAPI.GetFromStack(vm, 4).GetInt();
+                if (depth <= 0)
+                {
+                    depth = 1;
+                }
+            }
+
+            int n = lis != null ? lis.Count : 0;
+            string res = string.Empty;
+
+            for (int i = 0; i < n; i++)
+            {
+                ExObjectPtr str = new();
+                if (vm.ToString(lis[i], ref str, depth))
+                {
+                    res += str.GetString();
+                }
+                else
+                {
+                    return -1;
+                }
+                if (i != n - 1)
+                {
+                    res += s;
+                }
+            }
+
+            vm.Push(res);
+            return 1;
+        }
+
         public static void ReplaceMacroParams(ExMacro m, List<ExObjectPtr> args)
         {
             string[] lines = m.source.Split('\n');
@@ -76,6 +115,37 @@ namespace ExMat.BaseLib
 
             return -1;
         }
+
+        public static int STRING_format(ExVM vm, int nargs)
+        {
+            string format = ExAPI.GetFromStack(vm, 2).GetString();
+            object[] ps = new object[nargs - 1];
+            ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs - 1, 3);
+            for (int i = 0; i < nargs - 1; i++)
+            {
+                ExObjectPtr st = new();
+                if(vm.ToString(args[i], ref st))
+                {
+                    ps[i] = st.GetString();
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+
+            try
+            {
+                vm.Push(string.Format(format, ps));
+                return 1;
+            }
+            catch
+            {
+                vm.AddToErrorMessage("not enough arguments given for format string");
+                return -1;
+            }
+        }
+
         private static readonly List<ExRegFunc> _stdstrfuncs = new()
         {
             new() { name = "compile", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_compile")), n_pchecks = 2, mask = ".s" },
@@ -84,6 +154,8 @@ namespace ExMat.BaseLib
             new() { name = "lstrip", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_lstrip")), n_pchecks = 2, mask = ".s" },
             new() { name = "rstrip", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_rstrip")), n_pchecks = 2, mask = ".s" },
             new() { name = "split", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_split")), n_pchecks = -3, mask = ".ssb" },
+            new() { name = "join", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_join")), n_pchecks = -3, mask = ".sai" },
+            new() { name = "format", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_format")), n_pchecks = -2, mask = null },
 
             new() { name = string.Empty }
         };

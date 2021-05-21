@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using ExMat.API;
 using ExMat.Closure;
 using ExMat.FuncPrototype;
@@ -721,6 +722,12 @@ namespace ExMat.BaseLib
         {
             ExObjectPtr cls = ExAPI.GetFromStack(vm, 2);
             List<ExObjectPtr> args = new ExObjectPtr(ExAPI.GetFromStack(vm, 3))._val.l_List;
+            if(args.Count > vm._stack.Count - vm._top - 2)
+            {
+                vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm._stack.Count);
+                return -1;
+            }
+
             vm.Pop();
 
             nargs = args.Count + 1;
@@ -1002,6 +1009,150 @@ namespace ExMat.BaseLib
             ExObjectPtr old = ExAPI.GetFromStack(vm, 2);
             ExObjectPtr rep = ExAPI.GetFromStack(vm, 3);
             vm.Push(obj.GetString().Replace(old.GetString(), rep.GetString()));
+            return 1;
+        }
+        public static int BASE_string_isAlphabetic(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 1).GetString();
+            if (nargs == 1)
+            {
+                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                if (n < 0 || n >= s.Length)
+                {
+                    vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+                    return -1;
+                }
+                s = s[n].ToString();
+            }
+            vm.Push(Regex.IsMatch(s,"^[A-Za-z]+$"));
+            return 1;
+        }
+        public static int BASE_string_isNumeric(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 1).GetString();
+            if (nargs == 1)
+            {
+                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                if (n < 0 || n >= s.Length)
+                {
+                    vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+                    return -1;
+                }
+                s = s[n].ToString();
+            }
+            vm.Push(Regex.IsMatch(s, @"^\d+(\.\d+)?((E|e)(\+|\-)\d+)?$"));
+            return 1;
+        }
+        public static int BASE_string_isAlphaNumeric(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 1).GetString();
+            if (nargs == 1)
+            {
+                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                if (n < 0 || n >= s.Length)
+                {
+                    vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+                    return -1;
+                }
+                s = s[n].ToString();
+            }
+            vm.Push(Regex.IsMatch(s, "^[A-Za-z0-9]+$"));
+            return 1;
+        }
+        public static int BASE_string_isLower(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 1).GetString();
+            if (nargs == 1)
+            {
+                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                if (n < 0 || n >= s.Length)
+                {
+                    vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+                    return -1;
+                }
+                s = s[n].ToString();
+            }
+            foreach (char c in s)
+            {
+                if(!char.IsLower(c))
+                {
+                    vm.Push(false);
+                    return 1;
+                }
+            }
+            vm.Push(true && !string.IsNullOrEmpty(s));
+            return 1;
+        }
+        public static int BASE_string_isUpper(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 1).GetString();
+            if (nargs == 1)
+            {
+                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                if (n < 0 || n >= s.Length)
+                {
+                    vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+                    return -1;
+                }
+                s = s[n].ToString();
+            }
+            foreach (char c in s)
+            {
+                if (!char.IsUpper(c))
+                {
+                    vm.Push(false);
+                    return 1;
+                }
+            }
+            vm.Push(true && !string.IsNullOrEmpty(s));
+            return 1;
+        }
+        public static int BASE_string_isWhitespace(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 1).GetString();
+            if (nargs == 1)
+            {
+                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                if (n < 0 || n >= s.Length)
+                {
+                    vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+                    return -1;
+                }
+                s = s[n].ToString();
+            }
+            foreach (char c in s)
+            {
+                if (!char.IsWhiteSpace(c))
+                {
+                    vm.Push(false);
+                    return 1;
+                }
+            }
+            vm.Push(true && s.Length > 0);
+            return 1;
+        }
+        public static int BASE_string_isSymbol(ExVM vm, int nargs)
+        {
+            string s = ExAPI.GetFromStack(vm, 1).GetString();
+            if(nargs == 1)
+            {
+                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                if(n < 0 || n >= s.Length)
+                {
+                    vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+                    return -1;
+                }
+                s = s[n].ToString();
+            }
+            foreach (char c in s)
+            {
+                if (!char.IsSymbol(c))
+                {
+                    vm.Push(false);
+                    return 1;
+                }
+            }
+            vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
         // ARRAY

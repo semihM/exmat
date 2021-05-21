@@ -49,21 +49,14 @@ printl("/////////////////////////")
 // Available globally
 ::GlobalFunction = function(x)
 {
-    return x+": this function is in the root dictionary!"
+    return x+": this function is in the root dictionary (like Ex and Bar)!"
 }
 printl(typeof GlobalFunction)
 printl(GlobalFunction)
 printl(GlobalFunction(5))
 
-// Available globally
-function GlobalFunction2(x)
-{
-    return x+": just like this one!"
-}
-printl(typeof GlobalFunction)
-printl(GlobalFunction2)
-printl(GlobalFunction2(5))
-
-printl(Ex)
-printl(Foo)
-printl(Bar)
+var Lambda = $(x,y=3) exp(x + y)
+printl("Lambda is a '$' lambda expression")
+printl(Lambda)
+printl(Lambda(2))
+printl(Lambda(-2,5))

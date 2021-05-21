@@ -6,7 +6,7 @@ rule NonZero(x) x != 0
 rule Negative(x) x < 0
 
 // Add results of given function using range(m,n+1)
-function Sum(func,m=0,n=0)
+function SumOf(func,m=0,n=0)
 {
     ::assert(type(func) == "CLOSURE", "expected function as first argument")
 
@@ -48,7 +48,7 @@ function Sum(func,m=0,n=0)
 }
 
 // Multiply results of given function using range(m,n+1)
-function Mul(func,m=0,n=0)
+function MulOf(func,m=0,n=0)
 {
     ::assert(type(func) == "CLOSURE", "expected function as first argument")
 

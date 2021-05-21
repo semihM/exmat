@@ -9,7 +9,7 @@ namespace ExMat
 {
     internal class Program
     {
-        private static readonly int VM_STACK_SIZE = 5096;
+        private static readonly int VM_STACK_SIZE = 10192;
 
         private static bool CheckCarryOver(string code)
         {
@@ -85,7 +85,7 @@ namespace ExMat
 
         private static int Main(string[] args)
         {
-            Console.ResetColor();
+
             if (args.Length >= 1)
             {
                 string f = File.Exists(args[0]) ? File.ReadAllText(args[0]) : string.Empty;
@@ -106,6 +106,9 @@ namespace ExMat
 
                 return CompileString(v, f);
             }
+
+            Console.Title = "[] ExMat Interactive";
+            Console.ResetColor();
 
             ExVM vm = ExAPI.Start(VM_STACK_SIZE);
             ExAPI.PushRootTable(vm);

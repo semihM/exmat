@@ -89,8 +89,8 @@ namespace ExMat.Lexer
             CreateKeyword("instanceof", TokenType.INSTANCEOF);
             CreateKeyword("delete", TokenType.DELETE);
 
-            CreateKeyword("sum", TokenType.SUM);
-            CreateKeyword("mul", TokenType.MUL);
+            //CreateKeyword("sum", TokenType.SUM);
+            //CreateKeyword("mul", TokenType.MUL);
 
             _lastTokenLine = 1;
             _currLine = 1;
@@ -936,6 +936,11 @@ namespace ExMat.Lexer
                                 return SetAndReturnToken(res);
                             }
                             return TokenType.UNKNOWN;
+                        }
+                    case '$':
+                        {
+                            Next();
+                            return SetAndReturnToken(TokenType.LAMBDA);
                         }
                     case '@':
                         {

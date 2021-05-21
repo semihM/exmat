@@ -2157,6 +2157,7 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
+                case TokenType.LAMBDA:
                 case TokenType.FUNCTION:
                     {
                         if (!ExFuncResolveExp(_currToken))
@@ -2745,13 +2746,14 @@ namespace ExMat.Compiler
 
         public bool ExFuncResolveExp(TokenType typ)
         {
+            bool lambda = _currToken == TokenType.LAMBDA;
             if (!ReadAndSetToken() || Expect(TokenType.R_OPEN) == null)
             {
                 return false;
             }
 
             ExObjectPtr d = new();
-            if (!ExFuncCreate(d))
+            if (!ExFuncCreate(d, lambda))
             {
                 return false;
             }
@@ -2996,7 +2998,7 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ExFuncCreate(ExObjectPtr o)
+        public bool ExFuncCreate(ExObjectPtr o, bool lambda = false)
         {
             ExFState f_state = _Fstate.PushChildState(_VM._sState);
             f_state._name = o;
@@ -3062,9 +3064,20 @@ namespace ExMat.Compiler
             ExFState tmp = _Fstate.Copy();
             _Fstate = f_state;
 
-            if (!ProcessStatement(false))
+            if(lambda)
             {
-                return false;
+                if (!ExExp())
+                {
+                    return false;
+                }
+                f_state.AddInstr(OPC.RETURN, 1, _Fstate.PopTarget(), 0, 0);
+            }
+            else
+            {
+                if (!ProcessStatement(false))
+                {
+                    return false;
+                }
             }
 
             f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);

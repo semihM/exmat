@@ -81,6 +81,14 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int MATH_cbrt(ExVM vm, int nargs)
+        {
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            vm.Push(i._type == ExObjType.INTEGER
+                    ? (float)Math.Cbrt(i.GetInt())
+                    : (float)Math.Cbrt(i.GetFloat()));
+            return 1;
+        }
         public static int MATH_sin(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
@@ -285,6 +293,96 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int MATH_min(ExVM vm, int nargs)
+        {
+            ExObjectPtr b = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr e = ExAPI.GetFromStack(vm, 3);
+
+            vm.Push((float)Math.Min(
+                b._type == ExObjType.INTEGER
+                    ? b.GetInt()
+                    : b.GetFloat(),
+                e._type == ExObjType.INTEGER
+                    ? e.GetInt()
+                    : e.GetFloat()));
+
+            return 1;
+        }
+
+        public static int MATH_max(ExVM vm, int nargs)
+        {
+            ExObjectPtr b = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr e = ExAPI.GetFromStack(vm, 3);
+
+            vm.Push((float)Math.Max(
+                b._type == ExObjType.INTEGER
+                    ? b.GetInt()
+                    : b.GetFloat(),
+                e._type == ExObjType.INTEGER
+                    ? e.GetInt()
+                    : e.GetFloat()));
+
+            return 1;
+        }
+
+        public static int MATH_sum(ExVM vm, int nargs)
+        {
+            ExObjectPtr sum = new((float)0);
+
+            ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs);
+
+            for (int i = 0; i < nargs; i++)
+            {
+                ExObjectPtr res = new();
+                if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
+                {
+                    sum._val.f_Float = res.GetFloat();
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+
+            vm.Push(sum);
+            return 1;
+        }
+
+        public static int MATH_mul(ExVM vm, int nargs)
+        {
+            ExObjectPtr mul = new((float)1);
+
+            ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs);
+
+            for (int i = 0; i < nargs; i++)
+            {
+                ExObjectPtr res = new();
+                if (vm.DoArithmeticOP(OPs.OPC.MLT, args[i], mul, ref res))
+                {
+                    mul._val.f_Float = res.GetFloat();
+                }
+                else
+                {
+                    return -1;
+                }
+            }
+
+            vm.Push(mul);
+            return 1;
+        }
+
+        public static int MATH_sign(ExVM vm, int nargs)
+        {
+            ExObjectPtr b = ExAPI.GetFromStack(vm, 2);
+
+            vm.Push(Math.Sign(
+                b._type == ExObjType.INTEGER
+                    ? b.GetInt()
+                    : b.GetFloat()));
+
+            return 1;
+        }
+
         public static int MATH_isINF(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
@@ -317,6 +415,7 @@ namespace ExMat.BaseLib
 
             new() { name = "abs", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_abs")), n_pchecks = 2, mask = ".n" },
             new() { name = "sqrt", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sqrt")), n_pchecks = 2, mask = ".n" },
+            new() { name = "cbrt", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_cbrt")), n_pchecks = 2, mask = ".n" },
 
             new() { name = "sin", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sin")), n_pchecks = 2, mask = ".n" },
             new() { name = "cos", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_cos")), n_pchecks = 2, mask = ".n" },
@@ -341,6 +440,14 @@ namespace ExMat.BaseLib
             new() { name = "floor", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_floor")), n_pchecks = 2, mask = ".n" },
             new() { name = "ceil", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_ceil")), n_pchecks = 2, mask = ".n" },
             new() { name = "pow", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_pow")), n_pchecks = 3, mask = ".nn" },
+
+            new() { name = "sum", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sum")), n_pchecks = -1, mask = null },
+            new() { name = "mul", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_mul")), n_pchecks = -1, mask = null },
+
+            new() { name = "min", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_min")), n_pchecks = 3, mask = ".nn" },
+            new() { name = "max", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_max")), n_pchecks = 3, mask = ".nn" },
+            new() { name = "sign", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sign")), n_pchecks = 2, mask = ".n" },
+
             new() { name = "isINF", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_isINF")), n_pchecks = 2, mask = ".n" },
             new() { name = "isNINF", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_isNINF")), n_pchecks = 2, mask = ".n" },
             new() { name = "isNAN", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_isNAN")), n_pchecks = 2, mask = ".n" },
@@ -360,6 +467,7 @@ namespace ExMat.BaseLib
             ExAPI.CreateConstantFloat(vm, "INT_MINF", int.MinValue);
             ExAPI.CreateConstantFloat(vm, "FLOAT_MAX", float.MaxValue);
             ExAPI.CreateConstantFloat(vm, "FLOAT_MIN", float.MinValue);
+            ExAPI.CreateConstantFloat(vm, "TAU", (float)Math.Tau);
             ExAPI.CreateConstantFloat(vm, "PI", (float)Math.PI);
             ExAPI.CreateConstantFloat(vm, "E", (float)Math.E);
             ExAPI.CreateConstantFloat(vm, "NAN", float.NaN);

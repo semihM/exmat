@@ -183,7 +183,15 @@ namespace ExMat.VM
                         int n = obj._val._NativeClosure.n_paramscheck;
                         if (n < 0)
                         {
-                            s += (obj._val._NativeClosure._typecheck.Count - 1) + " params (min:" + (-n - 1) + ")";
+                            int tnc = obj._val._NativeClosure._typecheck.Count;
+                            if(tnc == 0)
+                            {
+                                s += "min:" + (-n - 1) + " params";
+                            }
+                            else
+                            {
+                                s += (tnc - 1) + " params (min:" + (-n - 1) + ")";
+                            }
                         }
                         else if (n > 0)
                         {
@@ -1777,7 +1785,7 @@ namespace ExMat.VM
                         {
                             ExClosure cl = ci._val._closure.GetClosure();
                             ExFuncPro fp = cl._func;
-                            if (!DoClosureOP(GetTargetInStack(i), fp._funcs[i.arg1]))
+                            if (!DoClosureOP(GetTargetInStack(i), fp._funcs[i.arg1]))   // CONTINUE HERE, REFERENCES ARE WRONG FOR $
                             {
                                 throw new Exception("failed to create closure");
                             }
@@ -2289,7 +2297,7 @@ namespace ExMat.VM
             }
             return true;
         }
-        private static void InnerDoArithmeticOPInt(OPC op, int a, int b, ref ExObjectPtr res)
+        private bool InnerDoArithmeticOPInt(OPC op, int a, int b, ref ExObjectPtr res)
         {
             switch (op)
             {
@@ -2303,7 +2311,8 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            throw new Exception("division by zero");
+                            AddToErrorMessage("division by zero");
+                            return false;
                         }
 
                         res = new(a / b); break;
@@ -2312,7 +2321,8 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            throw new Exception("modulo by zero");
+                            AddToErrorMessage("modulo by zero");
+                            return false;
                         }
 
                         res = new(a % b); break;
@@ -2326,6 +2336,7 @@ namespace ExMat.VM
                         throw new Exception("unknown arithmetic operation");
                     }
             }
+            return true;
         }
 
         private bool InnerDoArithmeticOPFloat(OPC op, float a, float b, ref ExObjectPtr res)
@@ -2384,7 +2395,10 @@ namespace ExMat.VM
             {
                 case (int)ArithmeticMask.INT:
                     {
-                        InnerDoArithmeticOPInt(op, a.GetInt(), b.GetInt(), ref res);
+                        if(!InnerDoArithmeticOPInt(op, a.GetInt(), b.GetInt(), ref res))
+                        {
+                            return false;
+                        }
                         break;
                     }
                 case (int)ArithmeticMask.FLOATINT:

@@ -309,7 +309,7 @@ namespace ExMat.Class
         public void Init(ExSState exs)
         {
             _hook = new();
-            _delegate = new ExObjectPtr(_class._metas);
+            _delegate = new ExObjectPtr(_class._metas); // TO-DO keep both metas and members
             _class._refc++;
             _next = null;
             _prev = null;

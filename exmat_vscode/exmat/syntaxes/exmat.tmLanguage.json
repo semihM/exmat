@@ -123,7 +123,7 @@
 			[
 				{
 					"name": "storage.type.exmat",
-					"match": "\\b(function|cluster|rule|class|sum|mul)\\b"
+					"match": "\\b(function|cluster|rule|class)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
@@ -135,11 +135,11 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(srand|rand|randf|abs|sqrt|sin|cos|tan|sinh|cosh|tanh|asin|asinh|acos|acosh|atan|atan2|atanh|loge|log2|log10|exp|round|floor|ceil|pow|isINF|isNINF|isNAN)\\b"
+				"match": "\\b(min|max|sign|sum|mul|srand|rand|randf|abs|sqrt|cbrt|sin|cos|tan|sinh|cosh|tanh|asin|asinh|acos|acosh|atan|atan2|atanh|loge|log2|log10|exp|round|floor|ceil|pow|isINF|isNINF|isNAN)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(compile|assert|strip|lstrip|rstrip|split)\\b"
+				"match": "\\b(compile|assert|strip|lstrip|rstrip|split|format|join)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
@@ -184,7 +184,7 @@
 				},
 				{
 					"name": "constant.language.exmat",
-					"match": "\\b(INT_MAX|INT_MAXF|INT_MIN|INT_MINF|FLOAT_MAX|FLOAT_MIN|PI|E|NAN|NINF|INF)\\b"
+					"match": "\\b(INT_MAX|INT_MAXF|INT_MIN|INT_MINF|FLOAT_MAX|FLOAT_MIN|PI|TAU|E|NAN|NINF|INF)\\b"
 				}
 			]
 		}

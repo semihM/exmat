@@ -475,7 +475,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Instance = o;
-            _val._RefC = new() { _refc = _val._Instance._refc };
+            _val._RefC = new() { _refc = _val._Instance._refc++ };
             _type = ExObjType.INSTANCE;
 
             AddReference(_type, _val, true);
@@ -494,7 +494,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val.l_List = o._val.l_List;
-            _val._RefC = new() { _refc = o._val._RefC._refc };
+            _val._RefC = new() { _refc = o._val._RefC._refc++ };
             _type = ExObjType.ARRAY;
 
             AddReference(_type, _val, true);
@@ -513,7 +513,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Class = o;
-            _val._RefC = new() { _refc = _val._Class._refc };
+            _val._RefC = new() { _refc = _val._Class._refc++ };
             _type = ExObjType.CLASS;
 
             AddReference(_type, _val, true);
@@ -533,7 +533,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Closure = o;
-            _val._RefC = new() { _refc = _val._Closure._refc };
+            _val._RefC = new() { _refc = _val._Closure._refc++ };
             _type = ExObjType.CLOSURE;
 
             AddReference(_type, _val, true);
@@ -553,7 +553,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._NativeClosure = o;
-            _val._RefC = new() { _refc = _val._NativeClosure._refc };
+            _val._RefC = new() { _refc = _val._NativeClosure._refc++ };
             _type = ExObjType.NATIVECLOSURE;
 
             AddReference(_type, _val, true);
@@ -572,7 +572,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Outer = o;
-            _val._RefC = new() { _refc = _val._Outer._refc };
+            _val._RefC = new() { _refc = _val._Outer._refc++ };
             _type = ExObjType.OUTER;
 
             AddReference(_type, _val, true);
@@ -591,7 +591,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._WeakRef = o;
-            _val._RefC = new() { _refc = _val._WeakRef._refc };
+            _val._RefC = new() { _refc = _val._WeakRef._refc++ };
             _type = ExObjType.WEAKREF;
 
             AddReference(_type, _val, true);
@@ -610,7 +610,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._FuncPro = o;
-            _val._RefC = new() { _refc = _val._FuncPro._refc };
+            _val._RefC = new() { _refc = _val._FuncPro._refc++ };
             _type = ExObjType.FUNCPRO;
 
             AddReference(_type, _val, true);
@@ -629,7 +629,7 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._UserData = o;
-            _val._RefC = new() { _refc = _val._UserData._refc };
+            _val._RefC = new() { _refc = _val._UserData._refc++ };
             _type = ExObjType.USERDATA;
 
             AddReference(_type, _val, true);

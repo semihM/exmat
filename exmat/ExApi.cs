@@ -58,6 +58,18 @@ namespace ExMat.API
             return true;
         }
 
+        public static ExObjectPtr[] GetNObjects(ExVM vm, int n, int start = 2)
+        {
+            ExObjectPtr[] arr = new ExObjectPtr[n];
+            int i = 0;
+            while(i < n)
+            {
+                arr[i] = GetFromStack(vm, i + start);
+                i++;
+            }
+            return arr;
+        }
+
         public static bool GetString(ExVM vm, int idx, ref string s)
         {
             ExObjectPtr o = new();

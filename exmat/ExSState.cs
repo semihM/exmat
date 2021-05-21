@@ -76,6 +76,15 @@ namespace ExMat.States
             new() { name = "to_lower", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_tolower")) },
             new() { name = "reverse", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_reverse")) },
             new() { name = "replace", n_pchecks = 3, mask = "sss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_replace")) },
+
+            new() { name = "isAlphabetic", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isAlphabetic")) },
+            new() { name = "isNumeric", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isNumeric")) },
+            new() { name = "isAlphaNumeric", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isAlphaNumeric")) },
+            new() { name = "isLower", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isLower")) },
+            new() { name = "isUpper", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isUpper")) },
+            new() { name = "isWhitespace", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isWhitespace")) },
+            new() { name = "isSymbol", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isSymbol")) },
+            
             new() { name = string.Empty }
         };
 
