@@ -124,7 +124,7 @@ namespace ExMat.BaseLib
             for (int i = 0; i < nargs - 1; i++)
             {
                 ExObjectPtr st = new();
-                if(vm.ToString(args[i], ref st))
+                if (vm.ToString(args[i], ref st))
                 {
                     ps[i] = st.GetString();
                 }

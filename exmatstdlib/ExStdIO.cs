@@ -341,7 +341,7 @@ namespace ExMat.BaseLib
             }
 
             vm.Push(new ExObjectPtr(false));
-            return 1;
+            return -1;
         }
         public static int IO_reloadlib(ExVM vm, int nargs)
         {

@@ -39,6 +39,28 @@
 					"name": "comment.line.control.exmat"
 				},
 				{
+					"begin": "/\\.",
+					"end": ".",
+					"captures": {
+						"0":
+						{
+							"name":"punctuation.definition.comment.exmatattrstart"
+						}
+					},
+					"name": "comment.block.control.exmatattrstart"
+				},
+				{
+					"begin": "\\./",
+					"end": "[\\.\\t\\r\\n ]",
+					"captures": {
+						"0":
+						{
+							"name":"punctuation.definition.comment.exmatattrend"
+						}
+					},
+					"name": "comment.block.control.exmatattrend"
+				},
+				{
 					"begin": "/\\*",
 					"end": "\\*/",
 					"captures": {

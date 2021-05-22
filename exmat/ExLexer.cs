@@ -883,11 +883,6 @@ namespace ExMat.Lexer
                                         Next();
                                         return SetAndReturnToken(TokenType.NEWSLOT);
                                     }
-                                case '/':
-                                    {
-                                        Next();
-                                        return SetAndReturnToken(TokenType.A_START);
-                                    }
                             }
                             return SetAndReturnToken(TokenType.LST);
                         }
@@ -974,13 +969,27 @@ namespace ExMat.Lexer
                     case '.':
                         {
                             Next();
-                            if (_currChar != '.')
+                            switch (_currChar)
                             {
-                                return SetAndReturnToken(TokenType.DOT);
-                            }
-                            else
-                            {
-                                throw new Exception("Unknown token: '..'");
+                                case '/':
+                                    {
+                                        Next();
+                                        return SetAndReturnToken(TokenType.A_END);
+                                    }
+                                case '*':
+                                    {
+                                        Next();
+                                        return SetAndReturnToken(TokenType.MMLT);
+                                    }
+                                case '.':   // TO-DO vargs
+                                    {
+                                        _error = "Unknown token: '..'";
+                                        return TokenType.UNKNOWN;
+                                    }
+                                default:
+                                    {
+                                        return SetAndReturnToken(TokenType.DOT);
+                                    }
                             }
                         }
                     case '&':
@@ -1122,10 +1131,10 @@ namespace ExMat.Lexer
                                         }
                                         continue;
                                     }
-                                case '>':
+                                case '.':
                                     {
                                         Next();
-                                        return SetAndReturnToken(TokenType.A_END);
+                                        return SetAndReturnToken(TokenType.A_START);
                                     }
                                 default:
                                     {

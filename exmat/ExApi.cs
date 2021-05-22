@@ -62,7 +62,7 @@ namespace ExMat.API
         {
             ExObjectPtr[] arr = new ExObjectPtr[n];
             int i = 0;
-            while(i < n)
+            while (i < n)
             {
                 arr[i] = GetFromStack(vm, i + start);
                 i++;

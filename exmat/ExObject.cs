@@ -234,7 +234,7 @@ namespace ExMat.Objects
         }
         public virtual void AddReference(ExObjType t, ExObjVal v, bool forced = false)
         {
-            if (!IsRefC(t))
+            if (!IsRefC(t) && !forced)
             {
                 return;
             }
@@ -244,10 +244,7 @@ namespace ExMat.Objects
                 v._RefC = new();
             }
 
-            if (forced || IsRefC(t))
-            {
-                v._RefC._refc++;
-            }
+            v._RefC._refc++;
         }
         public virtual void Release()
         {
@@ -260,8 +257,7 @@ namespace ExMat.Objects
         {
             if (IsRefC(t) && v._RefC != null && (--v._RefC._refc) == 0)
             {
-                _val.i_Int = 0;
-                _type = ExObjType.NULL;
+                v.i_Int = 0;
             }
         }
 

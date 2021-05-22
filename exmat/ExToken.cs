@@ -111,17 +111,17 @@
         ARR_OPEN,   // [
         ARR_CLOSE,   // ]
 
-        TYPEOF,
-        INSTANCEOF,
-        IN,
+        TYPEOF, // typeof
+        INSTANCEOF, // instanceof
+        IN,     // in
 
-        NEWSLOT,
+        NEWSLOT,    // <>
 
-        CLUSTER,
-        ELEMENT_DEF,
-        SPACE,
-        
-        LAMBDA,
+        CLUSTER,    // cluster
+        ELEMENT_DEF,    // =>
+        SPACE,  // @
+
+        LAMBDA, // $
 
         MACROSTART,
         MACROEND,
@@ -130,7 +130,9 @@
         MACROPARAM,
 
         MACROPARAM_NUM,
-        MACROPARAM_STR
+        MACROPARAM_STR,
+
+        MMLT    // .*
     }
 
     public class ExToken

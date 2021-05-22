@@ -33,6 +33,10 @@ namespace ExMat.States
         public ExObjectPtr _class_del = new(new Dictionary<string, ExObjectPtr>());
         public List<ExRegFunc> _class_delF = new()
         {
+            new() { name = "has_attr", n_pchecks = 3, mask = "yss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_class_hasattr")) },
+            new() { name = "get_attr", n_pchecks = 3, mask = "yss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_class_getattr")) },
+            new() { name = "set_attr", n_pchecks = 4, mask = "yss.", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_class_setattr")) },
+
             new() { name = string.Empty }
         };
 
@@ -76,6 +80,7 @@ namespace ExMat.States
             new() { name = "to_lower", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_tolower")) },
             new() { name = "reverse", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_reverse")) },
             new() { name = "replace", n_pchecks = 3, mask = "sss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_replace")) },
+            new() { name = "repeat", n_pchecks = 2, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_repeat")) },
 
             new() { name = "isAlphabetic", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isAlphabetic")) },
             new() { name = "isNumeric", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isNumeric")) },
@@ -84,7 +89,7 @@ namespace ExMat.States
             new() { name = "isUpper", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isUpper")) },
             new() { name = "isWhitespace", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isWhitespace")) },
             new() { name = "isSymbol", n_pchecks = -1, mask = "si", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_string_isSymbol")) },
-            
+
             new() { name = string.Empty }
         };
 
@@ -97,6 +102,10 @@ namespace ExMat.States
         public ExObjectPtr _inst_del = new(new Dictionary<string, ExObjectPtr>());
         public List<ExRegFunc> _inst_delF = new()
         {
+            new() { name = "has_attr", n_pchecks = 3, mask = "xss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_instance_hasattr")) },
+            new() { name = "get_attr", n_pchecks = 3, mask = "xss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_instance_getattr")) },
+            new() { name = "set_attr", n_pchecks = 4, mask = "xss.", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_instance_setattr")) },
+
             new() { name = string.Empty }
         };
 

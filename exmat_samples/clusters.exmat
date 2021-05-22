@@ -1,32 +1,68 @@
-
-cluster A { x : @R'2@ ; x[0] > x[1] => x.append(randf(x[0],x[1]))}
-
+// Cluster with 1 parameter
+printl("----------------------")
+printl("A is in R^3 and defined as: { X = (x0, x1, x1 - x0) | x0 > x1 ; (x0, x1) in R^2 }")
+cluster A { x : @R'2@ ; x[0] > x[1] => [x[0], x[1], x[1] - x[0]] }
 printl("A: "+ string(A))
 
+printl("----------------------")
 printl("A([3,2]) : " + string(A( [3, 2] )))
 printl("A([1,4]) : " + string(A( [1, 4] )))
-printl(">>> For now, \"in\" only validates spaces")
-printl("[12, -5] in R'2 ? " + string([12, -5] in A))
-printl("[-50, 0] in R'2 ? " + string([-50, 0] in A))
 
-cluster B { x : @r+@, y: @z+'3@ ; y[0] + y[1] + y[2] < exp(x) => y }
+printl("----------------------")
+printl(">>> Check if given values exist in the cluster, get their representation if they exist in the cluster")
+var a1 = [ 12, -5]
+var b_a1 = a1 in A
+printl(string(a1,0,3) + " in A ? " + string(b_a1))
+if(b_a1)
+    printl("resulting element: "+ string(parse(A,a1)))
 
+printl("----------------------")
+var a2 = [ -50, 10 ]
+var b_a2 = a2 in A
+printl(string(a2,0,3) + " in A ? " + string(b_a2))
+if(b_a2)
+    printl("resulting element: "+ string(parse(A,a2)))
+
+// Cluster with 2 parameters
+printl("++++++++++++++++++++++")
+printl("B is in Z+^4 - {0} and defined as: { Y = (y0, y1, y2, x) | y0 + y1 + y2 < e^x ; (y0, y1, y2) in Z+^3 - {0} ; x in Z+ - {0} }")
+cluster B { x : @z+@, y: @z+'3@ ; y[0] + y[1] + y[2] < exp(x) => [y[0], y[1], y[2], x] }
 printl("B: "+ string(B))
 
+printl("----------------------")
 var elements_1 = [ 3, [10, 11, 12] ]
-printl("----------------------")
-printl("3 in r+ and [10, 11, 12] in z+'3 ? " + string(elements_1 in B))
-printl("resulting element: "+ string(parse(B,elements_1)))
+var b_e1 = elements_1 in B
+printl(string(elements_1,0,3) + " in B ? " + string(b_e1))
+if(b_e1)
+    printl("resulting element: "+ string(parse(B,elements_1)))
 
+printl("----------------------")
 var elements_2 = [ 5, [1, 1, 1] ]
-printl("----------------------")
-printl("5 in r+ and [1, 1, 1] in z+'3 ? " + string(elements_2 in B))
-printl("resulting element: "+ string(parse(B,elements_2)))
+var b_e2 = elements_2 in B
+printl(string(elements_2,0,3) + " in B ? " + string(b_e2))
+if(b_e2)
+    printl("resulting element: "+ string(parse(B,elements_2)))
 
-var elements_3 = [ 1, [0, -5, 10] ]
 printl("----------------------")
-printl("1 in r+ and [0, -5, 10] in z+'3 ? " + string(elements_3 in B))
-printl("shouldn't be parsed or called, it will throw an error...")
-//printl(parse(B,elements_3))
-// v
-// this will raise an error because [0,-5,10] is not in the z+'3 space
+var elements_3 = [ 1, [0, -5, 10] ]
+var b_e3 = elements_3 in B
+printl(string(elements_3,0,3) + " in B ? " + string(b_e3))
+if(b_e3)
+    printl("resulting element: "+ string(parse(B,elements_3)))
+
+printl("++++++++++++++++++++++")
+printl("C is in R+^3 and defined as: { X = (x2, x1, x0) | (x0, x1, x2) in R^3 }")
+cluster C { X : @R+'3@ ; X => X.reverse() }
+printl(C)
+printl([0,2,3] in C ? C([0,2,3]) : false)
+printl([-7,22,3] in C ? C([-7,22,3]) : false)
+printl([11,3] in C ? C([11,3]) : false)
+
+printl("++++++++++++++++++++++")
+printl("D is in Z-^2 - {0} and defined as: { Z = (z0, z1) | (z0, z1) in Z-^2 - {0} }")
+cluster D { Z : @z-'2@ ; Z => Z }
+printl(D)
+printl([-100,-93] in D ? D([-100,-93]) : false)
+printl([-11,-1] in D ? call(D,[-11,-1]) : false)
+printl([-0.5,-PI] in D ? call(D,[-0.5,-PI]) : false)
+printl([0,-90] in D ? call(D,[0,-90]) : false)

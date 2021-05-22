@@ -184,7 +184,7 @@ namespace ExMat.VM
                         if (n < 0)
                         {
                             int tnc = obj._val._NativeClosure._typecheck.Count;
-                            if(tnc == 0)
+                            if (tnc == 0)
                             {
                                 s += "min:" + (-n - 1) + " params";
                             }
@@ -537,7 +537,7 @@ namespace ExMat.VM
             {
                 if (t_n == 1)
                 {
-                    if (!IsInSpace(new(lis), ts[0]._val.c_Space, 1))
+                    if (!IsInSpace(new(lis), ts[0]._val.c_Space, 1, false))
                     {
                         return false;
                     }
@@ -552,7 +552,7 @@ namespace ExMat.VM
 
                     for (int i = 0; i < nargs; i++)
                     {
-                        if (!IsInSpace(lis[i], ts[i]._val.c_Space, i + 1))
+                        if (!IsInSpace(lis[i], ts[i]._val.c_Space, i + 1, false))
                         {
                             return false;
                         }
@@ -655,7 +655,7 @@ namespace ExMat.VM
             }
             else if (pro.is_cluster)
             {
-                if (!DoClusterParamChecks(cls, nargs, sbase))   // TO-DO currently returns given vector on success, random stuff at failure
+                if (!DoClusterParamChecks(cls, nargs, sbase))
                 {
                     return false;
                 }
@@ -1250,6 +1250,7 @@ namespace ExMat.VM
                     //throw new Exception("instruction index error");
                 }
 
+
                 ExInstr i = ci._val._instrs[ci._val._idx_instrs++];
                 switch (i.op)
                 {
@@ -1520,6 +1521,16 @@ namespace ExMat.VM
                         {
                             ExObjectPtr res = new();
                             if (!DoArithmeticOP(i.op, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
+                            {
+                                return FixStackAfterError();
+                            }
+                            GetTargetInStack(i).Assign(res);
+                            continue;
+                        }
+                    case OPC.MMLT:
+                        {
+                            ExObjectPtr res = new();
+                            if (!DoMatrixMltOP(OPC.MMLT, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
                             {
                                 return FixStackAfterError();
                             }
@@ -2116,7 +2127,7 @@ namespace ExMat.VM
             return true;
         }
 
-        private static bool InnerDoCompareOP(ExObjectPtr a, ExObjectPtr b, ref int t)
+        private bool InnerDoCompareOP(ExObjectPtr a, ExObjectPtr b, ref int t)
         {
             ExObjType at = a._type;
             ExObjType bt = b._type;
@@ -2200,7 +2211,8 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    throw new Exception("failed to compare " + at.ToString() + " and " + bt.ToString());
+                    AddToErrorMessage("failed to compare " + at.ToString() + " and " + bt.ToString());
+                    return false;
                 }
             }
         }
@@ -2380,6 +2392,102 @@ namespace ExMat.VM
             }
             return true;
         }
+
+        public bool DoMatrixMltChecks(List<ExObjectPtr> M, ref int cols)
+        {
+            cols = 0;
+            foreach (ExObjectPtr row in M)
+            {
+                if (row._type != ExObjType.ARRAY)
+                {
+                    AddToErrorMessage("given list have to contain lists");
+                    return false;
+                }
+                else
+                {
+                    foreach (ExObjectPtr num in row.GetList())
+                    {
+                        if (!num.IsNumeric())
+                        {
+                            AddToErrorMessage("given list have to contain lists of numeric values");
+                            return false;
+                        }
+                    }
+
+                    if (cols != 0 && row.GetList().Count != cols)
+                    {
+                        AddToErrorMessage("given list have varying length of lists");
+                        return false;
+                    }
+                    else
+                    {
+                        cols = row.GetList().Count;
+                    }
+                }
+            }
+
+            if (cols == 0)
+            {
+                AddToErrorMessage("empty list can't be used for matrix multiplication");
+                return false;
+            }
+
+            return true;
+        }
+
+        public bool MatrixMultiplication(List<ExObjectPtr> A, List<ExObjectPtr> B, ref ExObjectPtr res)
+        {
+            int rA = A.Count;
+            int rB = B.Count;
+            int cA = -1;
+            int cB = -1;
+
+            if (!DoMatrixMltChecks(A, ref cA) || !DoMatrixMltChecks(B, ref cB))
+            {
+                return false;
+            }
+
+            if (cA != rB)
+            {
+                AddToErrorMessage("dimensions don't match for matrix multiplication");
+                return false;
+            }
+
+            List<ExObjectPtr> r = new(rA);
+
+            for (int i = 0; i < rA; i++)
+            {
+                r.Add(new(new List<ExObjectPtr>(cB)));
+                List<ExObjectPtr> row = A[i].GetList();
+
+                for (int j = 0; j < cB; j++)
+                {
+                    float total = 0;
+                    for (int k = 0; k < cA; k++)
+                    {
+                        total += row[k].GetFloat() * B[k]._val.l_List[j].GetFloat();
+                    }
+
+                    r[i]._val.l_List.Add(new(total));
+                }
+
+            }
+
+            res = new(r);
+            return true;
+        }
+
+        public bool DoMatrixMltOP(OPC op, ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
+        {
+            if (a._type != ExObjType.ARRAY || b._type != ExObjType.ARRAY)
+            {
+                AddToErrorMessage("can't do matrix multiplication with non-list types");
+                return false;
+            }
+
+            return MatrixMultiplication(a.GetList(), b.GetList(), ref res);
+        }
+
         public bool DoArithmeticOP(OPC op, ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
         {
             if (a._type == ExObjType.NULL && a._val.s_String != null)
@@ -2395,7 +2503,7 @@ namespace ExMat.VM
             {
                 case (int)ArithmeticMask.INT:
                     {
-                        if(!InnerDoArithmeticOPInt(op, a.GetInt(), b.GetInt(), ref res))
+                        if (!InnerDoArithmeticOPInt(op, a.GetInt(), b.GetInt(), ref res))
                         {
                             return false;
                         }
@@ -2418,6 +2526,11 @@ namespace ExMat.VM
                 case (int)ArithmeticMask.STRINGNULL:
                     {
                         res = new(a._type == ExObjType.NULL ? ("null" + b.GetString()) : (a.GetString() + "null"));
+                        break;
+                    }
+                case (int)ArithmeticMask.STRINGBOOL:
+                    {
+                        res = new(a._type == ExObjType.BOOL ? (a.GetBool().ToString().ToLower() + b.GetString()) : (a.GetString() + b.GetBool().ToString().ToLower()));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGINT:
@@ -2503,7 +2616,7 @@ namespace ExMat.VM
         public bool CallMeta(ref ExObjectPtr cls, ExMetaM meta, int nargs, ref ExObjectPtr res)
         {
             _nmetacalls++;
-            bool b = Call(ref cls, nargs, _top - nargs, ref res);
+            bool b = Call(ref cls, nargs, _top - nargs, ref res, true);
             _nmetacalls--;
             Pop(nargs);
             return b;
@@ -2517,6 +2630,7 @@ namespace ExMat.VM
             STRING = ExObjType.STRING,
             STRINGINT = ExObjType.STRING | ExObjType.INTEGER,
             STRINGFLOAT = ExObjType.STRING | ExObjType.FLOAT,
+            STRINGBOOL = ExObjType.STRING | ExObjType.BOOL,
             STRINGNULL = ExObjType.STRING | ExObjType.NULL
         }
 
@@ -2662,6 +2776,26 @@ namespace ExMat.VM
                             }
                             AddToErrorMessage("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
                             return false;
+                        }
+                        break;
+                    }
+                case ExObjType.CLOSURE:
+                    {
+                        if (k._type == ExObjType.STRING)
+                        {
+                            foreach (ExClassMem c in self.GetClosure()._base._methods)
+                            {
+                                if (c.val.GetClosure()._func._name.GetString() == self.GetClosure()._func._name.GetString())
+                                {
+                                    if (c.attrs._type == ExObjType.DICT && c.attrs.GetDict().ContainsKey(k.GetString()))
+                                    {
+                                        c.attrs.GetDict()[k.GetString()].Assign(v);
+                                        return true;
+                                    }
+                                    AddToErrorMessage("unknown attribute '" + k.GetString() + "'");
+                                    return false;
+                                }
+                            }
                         }
                         break;
                     }
@@ -3011,8 +3145,29 @@ namespace ExMat.VM
                             {
                                 return false;
                             }
-                            // TO-DO call closure
-                            return true;
+
+                            ExObjectPtr tmp = new();
+                            Push(self);
+                            Push(_rootdict);
+
+                            int nargs = 2;
+                            if (self._val._Closure._defparams.Count == 1)
+                            {
+                                Push(lis);
+                            }
+                            else
+                            {
+                                nargs += lis.Count - 1;
+                                PushParse(lis);
+                            }
+
+                            if (!Call(ref self, nargs, _top - nargs, ref tmp, true))
+                            {
+                                Pop(nargs + 1);
+                                return false;
+                            }
+                            Pop(nargs + 1);
+                            return tmp.GetBool();
                         }
 
                         if (k._type == ExObjType.STRING)
@@ -3046,6 +3201,23 @@ namespace ExMat.VM
                                         }
                                         dest = new(dict);
                                         return true;
+                                    }
+                                default:
+                                    {
+                                        ExClass c = self.GetClosure()._base;
+
+                                        string mem = self.GetClosure()._func._name.GetString();
+                                        string attr = k.GetString();
+                                        int memid = c._members[mem].GetMemberID();
+
+                                        if (c._methods[memid].attrs.GetDict().ContainsKey(attr))
+                                        {
+                                            dest = new ExObjectPtr(c._methods[memid].attrs.GetDict()[attr]);
+                                            return true;
+                                        }
+
+                                        AddToErrorMessage("unknown attribute '" + attr + "'");
+                                        return false;
                                     }
                             }
                         }

@@ -100,11 +100,27 @@ class Vector
         y = _y;
         z = _z;
     }
-
+    
+    /. 
+        is_coordinate = true 
+    ./
     x = 0;
+
+    /. 
+        is_coordinate = true 
+    ./
     y = 0;
+
+    /. 
+        is_coordinate = true 
+    ./
     z = 0;
+
+    /. 
+        is_coordinate = false 
+    ./
     NumericTypes = ["INTEGER", "FLOAT"]
+
     function Length()
     {
         return (this.x**2 + this.y**2 + this.z**2)**0.5
@@ -114,10 +130,7 @@ class Vector
     {
         ::assert(type(scale) in NumericTypes, "expected numeric value for 'Scale' of 'Vector'")
 
-        this.x *= scale;
-        this.y *= scale;
-        this.z *= scale;
-        return this;
+        return Vector(this.x * scale, this.y * scale, this.z * scale);;
     }
 
     // Meta methods

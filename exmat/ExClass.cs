@@ -209,8 +209,13 @@ namespace ExMat.Class
                     if (_base != null && val._type == ExObjType.CLOSURE)
                     {
                         tmpv.Assign(val._val._Closure);
-                        tmpv._val._Closure._base.Assign(_base);
+                        tmpv.GetClosure()._base = _base;
                         _base._refc++;
+                    }
+                    else
+                    {
+                        tmpv.GetClosure()._base = this;
+                        _refc++;
                     }
 
                     if (tmp._type == ExObjType.NULL)
