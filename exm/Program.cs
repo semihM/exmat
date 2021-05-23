@@ -19,25 +19,19 @@ namespace ExMat
         private static int CompileString(ExVM vm, string code)
         {
             int tp = vm._top - vm._stackbase;
-            int ret = -1;
+            int ret = 0;
 
             if (ExAPI.CompileFile(vm, code))
             {
                 ExAPI.PushRootTable(vm);
-                if (ExAPI.Call(vm, 1, true))
+                if (ExAPI.Call(vm, 1, true, true))
                 {
-                    ExObjType type = ExAPI.GetFromStack(vm, -1)._type;
-                    if (type == ExObjType.INTEGER)  // TO-DO maybe always print an additional line?
+                    ExObjType type = vm._lastreturn._type;
+                    if (type != ExObjType.NULL && !vm._printed)
                     {
-                        ExObjectPtr t = ExAPI.GetFromStack(vm, -1);
-                        if (t.IsNumeric())
-                        {
-                            ret = t.GetInt();
-                        }
-                    }
-                    else
-                    {
-                        ret = 0;
+                        ExObjectPtr s = new();
+                        vm.ToString(vm._lastreturn, ref s);
+                        Console.Write(s.GetString());
                     }
                 }
                 else
@@ -53,6 +47,8 @@ namespace ExMat
             }
 
             FixStackTopAfterCalls(vm, tp);
+            vm._printed = false;
+            vm._lastreturn.Assign(new ExObjectPtr());
             return ret;
         }
 
@@ -82,6 +78,33 @@ namespace ExMat
             Console.WriteLine(new string('-', 60));
             Console.ResetColor();
         }
+
+        private static void WriteOut(int count)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("OUT[");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(count);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("]: ");
+            Console.ResetColor();
+        }
+
+        private static void WriteIn(int count)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            if (count > 0)
+            {
+                Console.Write("\n");
+            }
+            Console.Write("\nIN [");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(count);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("]: ");
+            Console.ResetColor();
+        }
+
 
         private static int Main(string[] args)
         {
@@ -140,17 +163,7 @@ namespace ExMat
                 else
                 {
                     ///////////
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    if (count > 0)
-                    {
-                        Console.Write("\n");
-                    }
-                    Console.Write("\nIN [");
-                    Console.ForegroundColor = ConsoleColor.White;
-                    Console.Write(count);
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.Write("]: ");
-                    Console.ResetColor();
+                    WriteIn(count);
                     ///////////
 
                     code = Console.ReadLine().TrimEnd(' ', '\t');
@@ -174,13 +187,7 @@ namespace ExMat
                 }
 
                 ///////////
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("OUT[");
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.Write(count);
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("]: ");
-                Console.ResetColor();
+                WriteOut(count);
                 ///////////
 
                 carryover = false;
@@ -194,7 +201,7 @@ namespace ExMat
 
                 if (ret > 0)
                 {
-                    return ret;
+                    //return ret;
                 }
             }
         }

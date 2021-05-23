@@ -43,6 +43,24 @@ namespace ExMat.VM
 
         public bool _got_input = false;
 
+        public bool _printed = false;
+
+        public ExObjectPtr _lastreturn = new();
+        public int n_return = 0;
+        public bool b_main = true;
+
+        public void Print(string str)
+        {
+            Console.Write(str);
+            _printed = true;
+        }
+
+        public void PrintLine(string str)
+        {
+            Console.WriteLine(str);
+            _printed = true;
+        }
+
         public void AddToErrorMessage(string msg)
         {
             if (string.IsNullOrEmpty(_error))
@@ -1844,8 +1862,7 @@ namespace ExMat.VM
                             }
                             GetTargetInStack(i).Assign(
                                 GetTargetInStack(i.arg2)._type == ExObjType.INSTANCE
-                                        ? GetTargetInStack(i.arg2)._val._Instance.IsInstanceOf(GetTargetInStack(i.arg1)._val._Class)
-                                        : false);
+                                && GetTargetInStack(i.arg2)._val._Instance.IsInstanceOf(GetTargetInStack(i.arg1)._val._Class));
                             continue;
                         }
                     case OPC.RETURNMACRO:   // TO-DO
@@ -2268,12 +2285,19 @@ namespace ExMat.VM
                     {
                         p.Assign(make_bool ? new(_stack[_stackbase + a1].GetBool()) : _stack[_stackbase + a1]);
                     }
+
+                    if (b_main && (_lastreturn._type == ExObjType.NULL || n_return > 0)) // return for main
+                    {
+                        _lastreturn.Assign(p);
+                        n_return--;
+                    }
                 }
                 else
                 {
                     p.Nullify();
                 }
             }
+
 
             LeaveFrame();
             return r;
@@ -2309,7 +2333,7 @@ namespace ExMat.VM
             }
             return true;
         }
-        private bool InnerDoArithmeticOPInt(OPC op, int a, int b, ref ExObjectPtr res)
+        private static bool InnerDoArithmeticOPInt(OPC op, int a, int b, ref ExObjectPtr res)
         {
             switch (op)
             {
@@ -2323,8 +2347,9 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            AddToErrorMessage("division by zero");
-                            return false;
+                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            //AddToErrorMessage("division by zero");
+                            break;
                         }
 
                         res = new(a / b); break;
@@ -2333,8 +2358,9 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            AddToErrorMessage("modulo by zero");
-                            return false;
+                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            //AddToErrorMessage("modulo by zero");
+                            break;
                         }
 
                         res = new(a % b); break;
@@ -2351,7 +2377,7 @@ namespace ExMat.VM
             return true;
         }
 
-        private bool InnerDoArithmeticOPFloat(OPC op, float a, float b, ref ExObjectPtr res)
+        private static bool InnerDoArithmeticOPFloat(OPC op, float a, float b, ref ExObjectPtr res)
         {
             switch (op)
             {
@@ -2365,8 +2391,9 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            AddToErrorMessage("division by zero");
-                            return false;
+                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            //AddToErrorMessage("division by zero");
+                            break;
                         }
 
                         res = new(a / b); break;
@@ -2375,8 +2402,9 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            AddToErrorMessage("modulo by zero");
-                            return false;
+                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            //AddToErrorMessage("modulo by zero");
+                            break;
                         }
 
                         res = new(a % b); break;
@@ -2520,22 +2548,38 @@ namespace ExMat.VM
                     }
                 case (int)ArithmeticMask.STRING:
                     {
+                        if (op != OPC.ADD)
+                        {
+                            goto default;
+                        }
                         res = new(a.GetString() + b.GetString());
                         break;
                     }
                 case (int)ArithmeticMask.STRINGNULL:
                     {
+                        if (op != OPC.ADD)
+                        {
+                            goto default;
+                        }
                         res = new(a._type == ExObjType.NULL ? ("null" + b.GetString()) : (a.GetString() + "null"));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGBOOL:
                     {
+                        if (op != OPC.ADD)
+                        {
+                            goto default;
+                        }
                         res = new(a._type == ExObjType.BOOL ? (a.GetBool().ToString().ToLower() + b.GetString()) : (a.GetString() + b.GetBool().ToString().ToLower()));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGINT:
                 case (int)ArithmeticMask.STRINGFLOAT:
                     {
+                        if (op != OPC.ADD)
+                        {
+                            goto default;
+                        }
                         if (a._type == ExObjType.STRING)
                         {
                             res = new(a.GetString() + (b._type == ExObjType.INTEGER ? b.GetInt() : b.GetFloat()));
@@ -3466,6 +3510,7 @@ namespace ExMat.VM
 
         public bool Call(ref ExObjectPtr cls, int nparams, int stackbase, ref ExObjectPtr o, bool forcereturn = false)
         {
+            bool f = _forcereturn;
             _forcereturn = forcereturn;
             switch (cls._type)
             {
@@ -3476,13 +3521,13 @@ namespace ExMat.VM
                         {
                             _nnativecalls--;
                         }
-                        _forcereturn = false;
+                        _forcereturn = f;
                         return state;
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
                         bool s = CallNative(cls._val._NativeClosure, nparams, stackbase, ref o);
-                        _forcereturn = false;
+                        _forcereturn = f;
                         return s;
                     }
                 case ExObjType.CLASS:
@@ -3495,14 +3540,14 @@ namespace ExMat.VM
                         {
                             _stack[stackbase].Assign(o);
                             bool s = Call(ref cn, nparams, stackbase, ref tmp);
-                            _forcereturn = false;
+                            _forcereturn = f;
                             return s;
                         }
-                        _forcereturn = false;
+                        _forcereturn = f;
                         return true;
                     }
                 default:
-                    return _forcereturn = false;
+                    return _forcereturn = f;
             }
 
         }

@@ -12,12 +12,14 @@ namespace ExMat.BaseLib
         public static int STRING_strip(ExVM vm, int nargs)
         {
             ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            vm.Pop(nargs + 2);
             vm.Push(s.GetString().Trim());
             return 1;
         }
         public static int STRING_lstrip(ExVM vm, int nargs)
         {
             ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            vm.Pop(nargs + 2);
             vm.Push(s.GetString().TrimStart());
             return 1;
         }
@@ -25,6 +27,7 @@ namespace ExMat.BaseLib
         public static int STRING_rstrip(ExVM vm, int nargs)
         {
             ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            vm.Pop(nargs + 2);
             vm.Push(s.GetString().TrimEnd());
             return 1;
         }
@@ -47,6 +50,7 @@ namespace ExMat.BaseLib
                 lis.Add(new(arr[i]));
             }
 
+            vm.Pop(nargs + 2);
             vm.Push(new ExObjectPtr(lis));
             return 1;
         }
@@ -86,6 +90,7 @@ namespace ExMat.BaseLib
                 }
             }
 
+            vm.Pop(nargs + 2);
             vm.Push(res);
             return 1;
         }
@@ -110,6 +115,9 @@ namespace ExMat.BaseLib
 
             if (ExAPI.CompileFile(vm, code))
             {
+                ExObjectPtr m = new(vm.GetAbove(-1));
+                vm.Pop(nargs + 3);
+                vm.Push(m);
                 return 1;
             }
 
@@ -136,6 +144,7 @@ namespace ExMat.BaseLib
 
             try
             {
+                vm.Pop(nargs + 2);
                 vm.Push(string.Format(format, ps));
                 return 1;
             }

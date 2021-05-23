@@ -22,7 +22,7 @@ namespace ExMat.API
             return true;
         }
 
-        public static bool ToString(ExVM vm, int i, int maxdepth = 1)
+        public static bool ToString(ExVM vm, int i, int maxdepth = 1, int pop = 0)
         {
             ExObjectPtr o = GetFromStack(vm, i);
             ExObjectPtr res = new(string.Empty);
@@ -30,11 +30,12 @@ namespace ExMat.API
             {
                 return false;
             }
+            vm.Pop(pop);
             vm.Push(res);
             return true;
         }
 
-        public static bool ToFloat(ExVM vm, int i)
+        public static bool ToFloat(ExVM vm, int i, int pop = 0)
         {
             ExObjectPtr o = GetFromStack(vm, i);
             ExObjectPtr res = null;
@@ -42,11 +43,12 @@ namespace ExMat.API
             {
                 return false;
             }
+            vm.Pop(pop);
             vm.Push(res);
             return true;
         }
 
-        public static bool ToInteger(ExVM vm, int i)
+        public static bool ToInteger(ExVM vm, int i, int pop = 0)
         {
             ExObjectPtr o = GetFromStack(vm, i);
             ExObjectPtr res = null;
@@ -54,6 +56,7 @@ namespace ExMat.API
             {
                 return false;
             }
+            vm.Pop(pop);
             vm.Push(res);
             return true;
         }
@@ -386,11 +389,11 @@ namespace ExMat.API
             return vm._top - vm._stackbase;
         }
 
-        public static bool Call(ExVM vm, int pcount, bool ret)
+        public static bool Call(ExVM vm, int pcount, bool ret, bool force = false)
         {
             ExObjectPtr res = new();
             ExObjectPtr tmp = vm.GetAbove(-(pcount + 1));
-            if (vm.Call(ref tmp, pcount, vm._top - pcount, ref res))
+            if (vm.Call(ref tmp, pcount, vm._top - pcount, ref res, force))
             {
                 vm.Pop(pcount);
                 if (ret)
@@ -457,21 +460,6 @@ namespace ExMat.API
             return false;
         }
 
-        public static bool Call(ExVM vm, int pcount, bool ret, bool parsing = false, bool cls = false)
-        {
-            ExObjectPtr res = new();
-            ExObjectPtr tmp = vm.GetAbove(-(pcount + 1 - (parsing && cls ? 1 : 0)));
-            if (vm.Call(ref tmp, pcount - (parsing ? (cls ? 1 : (tmp.GetNClosure().n_paramscheck == 1 ? 2 : 1)) : 0), vm._top - pcount + (parsing ? 1 : 0), ref res, cls))
-            {
-                vm.Pop(pcount - (parsing ? 1 : 0));
-                if (ret)
-                {
-                    vm.Push(res);
-                }
-                return true;
-            }
-            return false;
-        }
 
         // VM START
         public static ExVM Start(int stacksize)

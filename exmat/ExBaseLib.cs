@@ -30,7 +30,7 @@ namespace ExMat.BaseLib
                 return -1;
             }
 
-            Console.Write(s);
+            vm.Print(s);
             return 0;
         }
         public static int BASE_printl(ExVM vm, int nargs)
@@ -49,7 +49,7 @@ namespace ExMat.BaseLib
                 return -1;
             }
 
-            Console.WriteLine(s);
+            vm.PrintLine(s);
             return 0;
         }
 
@@ -57,12 +57,14 @@ namespace ExMat.BaseLib
         {
             ExObjectPtr o = ExAPI.GetFromStack(vm, 2);
             string t = o._type.ToString();
+            vm.Pop(nargs + 2);
             vm.Push(new ExObjectPtr(t));
             return 1;
         }
 
         public static int BASE_time(ExVM vm, int nargs)
         {
+            vm.Pop(nargs + 2);
             vm.Push(new ExObjectPtr((float)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
             return 1;
         }
@@ -159,6 +161,13 @@ namespace ExMat.BaseLib
                                         res.Add(new ExObjectPtr(now.Millisecond.ToString()));
                                         break;
                                     }
+                                case "utc":
+                                    {
+                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
+                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
+                                        res.Add(new ExObjectPtr(utcnow.Millisecond.ToString()));
+                                        break;
+                                    }
                                 case "utc-today":
                                     {
                                         res.Add(new ExObjectPtr(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
@@ -196,9 +205,10 @@ namespace ExMat.BaseLib
                                         res.Add(new ExObjectPtr(utcnow.DayOfYear.ToString()));
                                         break;
                                     }
+                                case "utc-h":
                                 case "utc-hh":
-                                case "utc-hours":
                                 case "utc-hour":
+                                case "utc-hours":
                                     {
                                         res.Add(new ExObjectPtr(utcnow.Hour.ToString()));
                                         break;
@@ -207,17 +217,20 @@ namespace ExMat.BaseLib
                         }
                         if (res.Count == 1)
                         {
+                            vm.Pop(nargs + 2);
                             vm.Push(new ExObjectPtr(res[0]));
                         }
                         else
                         {
+                            vm.Pop(nargs + 2);
                             vm.Push(new ExObjectPtr(res));
                         }
                         break;
                     }
                 default:
                     {
-                        vm.Push(new ExObjectPtr(new List<ExObjectPtr>() { new(DateTime.Today.ToLongDateString()), new(now.ToLongTimeString()), new(now.Millisecond.ToString()) }));
+                        vm.Pop(nargs + 2);
+                        vm.Push(new ExObjectPtr(new List<ExObjectPtr>() { new(today.ToLongDateString()), new(now.ToLongTimeString()), new(now.Millisecond.ToString()) }));
                         break;
                     }
             }
@@ -230,15 +243,21 @@ namespace ExMat.BaseLib
             {
                 if (ExAPI.GetFromStack(vm, 2).GetBool())
                 {
+                    vm.Pop(4);
                     return 0;
                 }
                 else
                 {
-                    vm.AddToErrorMessage("ASSERT FAILED: " + ExAPI.GetFromStack(vm, 3).GetString());
+                    string m = ExAPI.GetFromStack(vm, 3).GetString();
+                    vm.Pop(4);
+                    vm.AddToErrorMessage("ASSERT FAILED: " + m);
                     return -1;
                 }
             }
-            return ExAPI.GetFromStack(vm, 2).GetBool() ? 0 : -1;
+            bool b = ExAPI.GetFromStack(vm, 2).GetBool();
+            vm.Pop(3);
+            vm.AddToErrorMessage("ASSERT FAILED!");
+            return b ? 0 : -1;
         }
 
         // BASIC CLASS-LIKE FUNCTIONS
@@ -248,11 +267,14 @@ namespace ExMat.BaseLib
             {
                 case 1:
                     {
-                        vm.Push(ExAPI.GetFromStack(vm, 2).GetBool());
+                        bool b = ExAPI.GetFromStack(vm, 2).GetBool();
+                        vm.Pop(3);
+                        vm.Push(b);
                         break;
                     }
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(true);
                         break;
                     }
@@ -300,10 +322,11 @@ namespace ExMat.BaseLib
                                 }
                             }
 
+                            vm.Pop(nargs + 2);
                             vm.Push(str);
                             break;
                         }
-                        else if (!ExAPI.ToString(vm, 2, depth))
+                        else if (!ExAPI.ToString(vm, 2, depth, nargs + 2))
                         {
                             return -1;
                         }
@@ -311,6 +334,7 @@ namespace ExMat.BaseLib
                     }
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(string.Empty);
                         break;
                     }
@@ -324,7 +348,7 @@ namespace ExMat.BaseLib
             {
                 case 1:
                     {
-                        if (!ExAPI.ToFloat(vm, 2))
+                        if (!ExAPI.ToFloat(vm, 2, 3))
                         {
                             return -1;
                         }
@@ -332,6 +356,7 @@ namespace ExMat.BaseLib
                     }
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(0.0);
                         break;
                     }
@@ -345,7 +370,7 @@ namespace ExMat.BaseLib
             {
                 case 1:
                     {
-                        if (!ExAPI.ToInteger(vm, 2))
+                        if (!ExAPI.ToInteger(vm, 2, 3))
                         {
                             return -1;
                         }
@@ -353,6 +378,7 @@ namespace ExMat.BaseLib
                     }
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(0);
                         break;
                     }
@@ -401,6 +427,7 @@ namespace ExMat.BaseLib
                                         l.Reverse();
                                     }
 
+                                    vm.Pop(nargs + 2);
                                     vm.Push(l);
                                     break;
                                 }
@@ -409,6 +436,7 @@ namespace ExMat.BaseLib
                     }
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(new ExList());
                         break;
                     }
@@ -445,6 +473,7 @@ namespace ExMat.BaseLib
                                     {
                                         b.Add(new(i));
                                     }
+                                    vm.Pop(nargs + 2);
                                     vm.Push(b);
                                     break;
                                 }
@@ -455,6 +484,7 @@ namespace ExMat.BaseLib
                                     {
                                         b.Add(new(i));
                                     }
+                                    vm.Pop(nargs + 2);
                                     vm.Push(b);
                                     break;
                                 }
@@ -463,6 +493,7 @@ namespace ExMat.BaseLib
                     }
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(new ExList());
                         break;
                     }
@@ -477,59 +508,50 @@ namespace ExMat.BaseLib
             ExObjectPtr obj = new(ExAPI.GetFromStack(vm, 3));
             List<ExObjectPtr> l = new(obj._val.l_List.Count);
 
-            int n = 0;
-            bool need_b;
+            vm.Pop();
+
+            ExObjectPtr res = new();
+
             bool iscls = cls._type == ExObjType.CLOSURE;
 
-            if (iscls)
+            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
             {
-                need_b = cls.GetClosure()._func.n_params > 1;
-                vm.Pop();
+                vm.AddToErrorMessage("can't call non-closure type");
+                return -1;
             }
-            else
+
+            ExObjectPtr tmp = new();
+
+            int n = 2;
+            int m = 0;
+            if (!iscls && cls.GetNClosure().b_deleg)
             {
-                if (cls.GetNClosure().b_deleg)
+                n--;
+                m++;
+            }
+            bool bm = vm.b_main;
+            vm.b_main = false;
+            foreach (ExObjectPtr o in obj._val.l_List)
+            {
+                vm.Push(cls);
+                vm.Push(vm._rootdict);
+
+                vm.Push(o);
+                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
                 {
-                    need_b = cls.GetNClosure().n_paramscheck == 1;
-                }
-                else if (cls.GetNClosure().n_paramscheck > 0)
-                {
-                    need_b = cls.GetNClosure().n_paramscheck == 2;
+                    vm.Pop();
+                    vm.b_main = bm;
+                    return -1;
                 }
                 else
                 {
-                    need_b = cls.GetNClosure().n_paramscheck == -1;
+                    vm.Pop(n + 1 + m);
+                    l.Add(new(tmp));
                 }
             }
 
-            foreach (ExObjectPtr o in obj._val.l_List)
-            {
-                if (iscls)  //TO-DO fix this mess
-                {
-                    vm.Push(vm.GetAbove(-2));
-                    vm.Push(o);
-                }
-                else if (cls.GetNClosure().n_paramscheck == 1)
-                {
-                    vm.Push(o);
-                    vm.Push(new ExObjectPtr());
-                }
-                else
-                {
-                    vm.Push(new ExObjectPtr());
-                    vm.Push(o);
-                }
-                if (ExAPI.Call(vm, 3, true, need_b, iscls))
-                {
-                    l.Add(new(ExAPI.GetFromStack(vm, 4 - (iscls ? 1 : 0))));
-                    vm.Pop();
-                    n++;
-                }
-                else
-                {
-                    return -1;
-                }
-            }
+            vm.b_main = bm;
+            vm.Pop(n + m + 1);
             vm.Push(new ExObjectPtr(l));
             return 1;
         }
@@ -540,62 +562,53 @@ namespace ExMat.BaseLib
             ExObjectPtr obj = new(ExAPI.GetFromStack(vm, 3));
             List<ExObjectPtr> l = new(obj._val.l_List.Count);
 
-            int n = 0;
-            bool need_b;
+            vm.Pop();
+
+            ExObjectPtr res = new();
+
             bool iscls = cls._type == ExObjType.CLOSURE;
 
-            if (iscls)
+            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
             {
-                need_b = cls.GetClosure()._func.n_params > 1;
-                vm.Pop();
+                vm.AddToErrorMessage("can't call non-closure type");
+                return -1;
             }
-            else
+
+            ExObjectPtr tmp = new();
+
+            int n = 2;
+            int m = 0;
+            if (!iscls && cls.GetNClosure().b_deleg)
             {
-                if (cls.GetNClosure().b_deleg)
+                n--;
+                m++;
+            }
+            bool bm = vm.b_main;
+            vm.b_main = false;
+            foreach (ExObjectPtr o in obj._val.l_List)
+            {
+                vm.Push(cls);
+                vm.Push(vm._rootdict);
+
+                vm.Push(o);
+                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
                 {
-                    need_b = cls.GetNClosure().n_paramscheck == 1;
-                }
-                else if (cls.GetNClosure().n_paramscheck > 0)
-                {
-                    need_b = cls.GetNClosure().n_paramscheck == 2;
+                    vm.Pop();
+                    vm.b_main = bm;
+                    return -1;
                 }
                 else
                 {
-                    need_b = cls.GetNClosure().n_paramscheck == -1;
+                    vm.Pop(n + 1 + m);
+                    if (tmp.GetBool())
+                    {
+                        l.Add(new(o));
+                    }
                 }
             }
 
-            foreach (ExObjectPtr o in obj._val.l_List)
-            {
-                if (iscls)  //TO-DO fix this mess
-                {
-                    vm.Push(vm.GetAbove(-2));
-                    vm.Push(o);
-                }
-                else if (cls.GetNClosure().n_paramscheck == 1)
-                {
-                    vm.Push(o);
-                    vm.Push(new ExObjectPtr());
-                }
-                else
-                {
-                    vm.Push(new ExObjectPtr());
-                    vm.Push(o);
-                }
-                if (ExAPI.Call(vm, 3, true, need_b, iscls))
-                {
-                    if (ExAPI.GetFromStack(vm, 4 - (iscls ? 1 : 0)).GetBool())
-                    {
-                        l.Add(o);
-                    }
-                    vm.Pop();
-                    n++;
-                }
-                else
-                {
-                    return -1;
-                }
-            }
+            vm.b_main = bm;
+            vm.Pop(n + m + 1);
             vm.Push(new ExObjectPtr(l));
             return 1;
         }
@@ -682,6 +695,9 @@ namespace ExMat.BaseLib
                 vm.PushParse(args);
                 nargs = args.Count + 1;
             }
+
+            bool bm = vm.b_main;
+            vm.b_main = false;
             if (ExAPI.Call(vm, 3, true, need_b, iscls, nargs))
             {
                 res.Assign(vm.GetAbove(-1)); // ExAPI.GetFromStack(vm, nargs - (iscls ? 1 : 0))
@@ -689,9 +705,12 @@ namespace ExMat.BaseLib
             }
             else
             {
+                vm.b_main = bm;
                 return -1;
             }
 
+            vm.b_main = bm;
+            vm.Pop(3);
             vm.Push(res);
             return 1;
         }
@@ -776,13 +795,17 @@ namespace ExMat.BaseLib
             }
 
             ExObjectPtr tmp = new();
+            bool bm = vm.b_main;
+            vm.b_main = false;
             if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
             {
                 vm.Pop(n + (iscls ? 1 : 0));
+                vm.b_main = bm;
                 return -1;
             }
 
-            vm.Pop(n + (iscls ? 1 : 0));
+            vm.b_main = bm;
+            vm.Pop(n + (iscls ? 4 : 3));
             vm.Push(tmp);
             return 1;
         }
@@ -801,6 +824,7 @@ namespace ExMat.BaseLib
                 l._val.l_List = new(s.GetInt());
                 ExUtils.InitList(ref l._val.l_List, s.GetInt());
             }
+            vm.Pop(nargs + 2);
             vm.Push(l);
             return 1;
         }
@@ -863,6 +887,7 @@ namespace ExMat.BaseLib
                         break;
                     }
             }
+            vm.Pop(nargs + 2);
             vm.Push(l);
             return 1;
         }
@@ -902,6 +927,8 @@ namespace ExMat.BaseLib
                                         return -1;
                                     }
 
+                                    bool bm = vm.b_main;
+                                    vm.b_main = false;
                                     for (int i = 0; i < m; i++)
                                     {
                                         List<ExObjectPtr> lis = new(n);
@@ -913,6 +940,7 @@ namespace ExMat.BaseLib
                                             vm.Push(j);
                                             if (!vm.Call(ref filler, 3, vm._top - 3, ref res, true))
                                             {
+                                                vm.b_main = bm;
                                                 return -1;
                                             }
                                             vm.Pop(3);
@@ -922,6 +950,7 @@ namespace ExMat.BaseLib
                                         l._val.l_List.Add(new ExObjectPtr(lis));
                                     }
 
+                                    vm.b_main = bm;
                                     break;
                                 }
                             case ExObjType.NATIVECLOSURE:
@@ -939,6 +968,8 @@ namespace ExMat.BaseLib
                                         return -1;
                                     }
 
+                                    bool bm = vm.b_main;
+                                    vm.b_main = false;
                                     for (int i = 0; i < m; i++)
                                     {
                                         List<ExObjectPtr> lis = new(n);
@@ -957,6 +988,8 @@ namespace ExMat.BaseLib
                                         }
                                         l._val.l_List.Add(new ExObjectPtr(lis));
                                     }
+
+                                    vm.b_main = bm;
                                     break;
                                 }
                             default:
@@ -973,6 +1006,7 @@ namespace ExMat.BaseLib
                         break;
                     }
             }
+            vm.Pop(nargs + 2);
             vm.Push(l);
             return 1;
         }
@@ -1014,6 +1048,7 @@ namespace ExMat.BaseLib
                         break; // TO-DO
                     }
             }
+            vm.Pop(nargs + 2);
             vm.Push(new ExObjectPtr(size));
             return 1;
         }
@@ -1024,6 +1059,7 @@ namespace ExMat.BaseLib
             ExObjectPtr res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.STRING, ref res);
             string sub = vm.GetAbove(-1).GetString();
+            string s = res.GetString();
             vm.Pop();
             vm.Push(res.GetString().IndexOf(sub));
             return 1;
@@ -1031,30 +1067,34 @@ namespace ExMat.BaseLib
 
         public static int BASE_string_toupper(ExVM vm, int nargs)
         {
-            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
-            vm.Push(obj.GetString().ToUpper());
+            string obj = ExAPI.GetFromStack(vm, 1).GetString();
+            vm.Pop(nargs + 2);
+            vm.Push(obj.ToUpper());
             return 1;
         }
         public static int BASE_string_tolower(ExVM vm, int nargs)
         {
-            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
-            vm.Push(obj.GetString().ToLower());
+            string obj = ExAPI.GetFromStack(vm, 1).GetString();
+            vm.Pop(nargs + 2);
+            vm.Push(obj.ToLower());
             return 1;
         }
         public static int BASE_string_reverse(ExVM vm, int nargs)
         {
-            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
-            char[] ch = obj.GetString().ToCharArray();
+            string obj = ExAPI.GetFromStack(vm, 1).GetString();
+            char[] ch = obj.ToCharArray();
             Array.Reverse(ch);
+            vm.Pop(nargs + 2);
             vm.Push(new string(ch));
             return 1;
         }
         public static int BASE_string_replace(ExVM vm, int nargs)
         {
-            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
-            ExObjectPtr old = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr rep = ExAPI.GetFromStack(vm, 3);
-            vm.Push(obj.GetString().Replace(old.GetString(), rep.GetString()));
+            string obj = ExAPI.GetFromStack(vm, 1).GetString();
+            string old = ExAPI.GetFromStack(vm, 2).GetString();
+            string rep = ExAPI.GetFromStack(vm, 3).GetString();
+            vm.Pop(nargs + 2);
+            vm.Push(obj.Replace(old, rep));
             return 1;
         }
 
@@ -1068,6 +1108,7 @@ namespace ExMat.BaseLib
                 res += obj;
                 rep--;
             }
+            vm.Pop(nargs + 2);
             vm.Push(res);
             return 1;
         }
@@ -1085,6 +1126,7 @@ namespace ExMat.BaseLib
                 }
                 s = s[n].ToString();
             }
+            vm.Pop(nargs + 2);
             vm.Push(Regex.IsMatch(s, "^[A-Za-z]+$"));
             return 1;
         }
@@ -1101,6 +1143,7 @@ namespace ExMat.BaseLib
                 }
                 s = s[n].ToString();
             }
+            vm.Pop(nargs + 2);
             vm.Push(Regex.IsMatch(s, @"^\d+(\.\d+)?((E|e)(\+|\-)\d+)?$"));
             return 1;
         }
@@ -1117,6 +1160,7 @@ namespace ExMat.BaseLib
                 }
                 s = s[n].ToString();
             }
+            vm.Pop(nargs + 2);
             vm.Push(Regex.IsMatch(s, "^[A-Za-z0-9]+$"));
             return 1;
         }
@@ -1137,10 +1181,12 @@ namespace ExMat.BaseLib
             {
                 if (!char.IsLower(c))
                 {
+                    vm.Pop(nargs + 2);
                     vm.Push(false);
                     return 1;
                 }
             }
+            vm.Pop(nargs + 2);
             vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
@@ -1161,10 +1207,12 @@ namespace ExMat.BaseLib
             {
                 if (!char.IsUpper(c))
                 {
+                    vm.Pop(nargs + 2);
                     vm.Push(false);
                     return 1;
                 }
             }
+            vm.Pop(nargs + 2);
             vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
@@ -1185,10 +1233,12 @@ namespace ExMat.BaseLib
             {
                 if (!char.IsWhiteSpace(c))
                 {
+                    vm.Pop(nargs + 2);
                     vm.Push(false);
                     return 1;
                 }
             }
+            vm.Pop(nargs + 2);
             vm.Push(true && s.Length > 0);
             return 1;
         }
@@ -1209,10 +1259,12 @@ namespace ExMat.BaseLib
             {
                 if (!char.IsSymbol(c))
                 {
+                    vm.Pop(nargs + 2);
                     vm.Push(false);
                     return 1;
                 }
             }
+            vm.Pop(nargs + 2);
             vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
@@ -1222,7 +1274,8 @@ namespace ExMat.BaseLib
             ExObjectPtr res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             res._val.l_List.Add(new(vm.GetAbove(-1)));
-            vm.Pop();
+            vm.Pop(nargs + 2);
+            vm.Push(res);
             return 1;
         }
         public static int BASE_array_extend(ExVM vm, int nargs)
@@ -1230,7 +1283,8 @@ namespace ExMat.BaseLib
             ExObjectPtr res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             res._val.l_List.AddRange(vm.GetAbove(-1)._val.l_List);
-            vm.Pop();
+            vm.Pop(nargs + 2);
+            vm.Push(res);
             return 1;
         }
         public static int BASE_array_pop(ExVM vm, int nargs)
@@ -1239,6 +1293,7 @@ namespace ExMat.BaseLib
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
             if (res._val.l_List.Count > 0)
             {
+                vm.Pop(nargs + 2);
                 vm.Push(res._val.l_List[^1]); // TO-DO make this optional
                 res._val.l_List.RemoveAt(res._val.l_List.Count - 1);
                 return 1;
@@ -1302,8 +1357,10 @@ namespace ExMat.BaseLib
             ExObjectPtr res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             using ExObjectPtr obj = new(vm.GetAbove(-1));
-            vm.Pop();
-            vm.Push(ExAPI.GetValueIndexFromArray(res._val.l_List, obj));
+
+            int i = ExAPI.GetValueIndexFromArray(res._val.l_List, obj);
+            vm.Pop(nargs + 2);
+            vm.Push(i);
             return 1;
         }
 
@@ -1316,6 +1373,7 @@ namespace ExMat.BaseLib
             {
                 res.Add(new(lis[i]));
             }
+            vm.Pop(nargs + 2);
             vm.Push(res);
             return 1;
         }
@@ -1325,8 +1383,10 @@ namespace ExMat.BaseLib
             ExObjectPtr res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.DICT, ref res);
             string key = vm.GetAbove(-1).GetString();
-            vm.Pop();
-            vm.Push(res._val.d_Dict.ContainsKey(key));
+            bool b = res._val.d_Dict.ContainsKey(key);
+
+            vm.Pop(nargs + 2);
+            vm.Push(b);
             return 1;
         }
         public static int BASE_dict_keys(ExVM vm, int nargs)
@@ -1338,6 +1398,7 @@ namespace ExMat.BaseLib
             {
                 keys.Add(new(key));
             }
+            vm.Pop(nargs + 2);
             vm.Push(keys);
             return 1;
         }
@@ -1351,6 +1412,7 @@ namespace ExMat.BaseLib
             {
                 vals.Add(new(val));
             }
+            vm.Pop(nargs + 2);
             vm.Push(vals);
             return 1;
         }
@@ -1372,6 +1434,7 @@ namespace ExMat.BaseLib
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
+                        vm.Pop(nargs + 2);
                         vm.Push(true);
                         return 1;
                     }
@@ -1380,10 +1443,12 @@ namespace ExMat.BaseLib
                 {
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
+                        vm.Pop(nargs + 2);
                         vm.Push(true);
                         return 1;
                     }
                 }
+                vm.Pop(nargs + 2);
                 vm.Push(false);
                 return 1;
             }
@@ -1407,7 +1472,9 @@ namespace ExMat.BaseLib
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        vm.Push(new ExObjectPtr(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]));
+                        ExObjectPtr val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
+                        vm.Pop(nargs + 2);
+                        vm.Push(val);
                         return 1;
                     }
                 }
@@ -1415,7 +1482,9 @@ namespace ExMat.BaseLib
                 {
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        vm.Push(new ExObjectPtr(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]));
+                        ExObjectPtr val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
+                        vm.Pop(nargs + 2);
+                        vm.Push(val);
                         return 1;
                     }
                 }
@@ -1445,6 +1514,7 @@ namespace ExMat.BaseLib
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
                         cls._defvals[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        vm.Pop(nargs + 2);
                         return 1;
                     }
                 }
@@ -1453,6 +1523,7 @@ namespace ExMat.BaseLib
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
                         cls._methods[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        vm.Pop(nargs + 2);
                         return 1;
                     }
                 }
@@ -1481,6 +1552,7 @@ namespace ExMat.BaseLib
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
+                        vm.Pop(nargs + 2);
                         vm.Push(true);
                         return 1;
                     }
@@ -1489,10 +1561,12 @@ namespace ExMat.BaseLib
                 {
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
+                        vm.Pop(nargs + 2);
                         vm.Push(true);
                         return 1;
                     }
                 }
+                vm.Pop(nargs + 2);
                 vm.Push(false);
                 return 1;
             }
@@ -1516,7 +1590,9 @@ namespace ExMat.BaseLib
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        vm.Push(new ExObjectPtr(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]));
+                        ExObjectPtr val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
+                        vm.Pop(nargs + 2);
+                        vm.Push(val);
                         return 1;
                     }
                 }
@@ -1524,7 +1600,9 @@ namespace ExMat.BaseLib
                 {
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        vm.Push(new ExObjectPtr(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]));
+                        ExObjectPtr val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
+                        vm.Pop(nargs + 2);
+                        vm.Push(val);
                         return 1;
                     }
                 }
@@ -1553,6 +1631,7 @@ namespace ExMat.BaseLib
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
                         cls._defvals[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        vm.Pop(nargs + 2);
                         return 1;
                     }
                 }
@@ -1561,6 +1640,7 @@ namespace ExMat.BaseLib
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
                         cls._methods[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        vm.Pop(nargs + 2);
                         return 1;
                     }
                 }
@@ -1579,7 +1659,9 @@ namespace ExMat.BaseLib
                 string name = ExAPI.GetFromStack(vm, 2).GetString();
                 if (name == ReloadBaseFunc)
                 {
-                    return 0;
+                    vm.Pop(nargs + 2);
+                    vm.Push(vm._rootdict);
+                    return 1;
                 }
 
                 ExAPI.PushRootTable(vm);
@@ -1594,7 +1676,9 @@ namespace ExMat.BaseLib
                     return -1;
                 }
             }
-            return 0;
+            vm.Pop(nargs + 2);
+            vm.Push(vm._rootdict);
+            return 1;
         }
 
         public static MethodInfo GetBaseLibMethod(string name)

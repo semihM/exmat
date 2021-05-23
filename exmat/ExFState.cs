@@ -60,6 +60,7 @@ namespace ExMat.States
         private const int MAX_STACK_SIZE = 255;
         private const int MAX_LITERALS = int.MaxValue;
 
+        public int n_statement = 0;
 
         public ExFState() { }
 

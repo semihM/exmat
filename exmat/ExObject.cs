@@ -253,7 +253,7 @@ namespace ExMat.Objects
                 Nullify();
             }
         }
-        public void Release(ExObjType t, ExObjVal v)
+        public static void Release(ExObjType t, ExObjVal v)
         {
             if (IsRefC(t) && v._RefC != null && (--v._RefC._refc) == 0)
             {

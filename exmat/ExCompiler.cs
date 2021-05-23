@@ -29,6 +29,7 @@ namespace ExMat.Compiler
 
         public string _error;
 
+
         public void AddToErrorMessage(string msg)
         {
             if (string.IsNullOrEmpty(_error))
@@ -93,6 +94,8 @@ namespace ExMat.Compiler
             _lexer = new ExLexer(src);
 
             bool state = Compile(ref o);
+            vm.n_return = _Fstate.n_statement;
+
             if (!state)
             {
                 if (_currToken == TokenType.ENDLINE)
@@ -121,14 +124,14 @@ namespace ExMat.Compiler
             {
                 return false;
             }
-
+            int s_count = 0;
             while (_currToken != TokenType.ENDLINE)
             {
                 if (!ProcessStatement())
                 {
                     return false;
                 }
-
+                s_count++;
                 if (_lexer._prevToken != TokenType.CLS_CLOSE && _lexer._prevToken != TokenType.SMC)
                 {
                     if (!CheckSMC())
@@ -137,12 +140,15 @@ namespace ExMat.Compiler
                     }
                 }
             }
+            _Fstate.n_statement = s_count;
 
             _Fstate.SetLocalStackSize(s_size);
             _Fstate.AddLineInfo(_lexer._currLine, _lineinfo, true);
-            _Fstate.AddInstr(OPC.RETURN, 985, 0, 0, 0);
+            _Fstate.AddInstr(OPC.RETURN, 1, _Fstate._localvs.Count + _Fstate._localinfos.Count, 0, 0);   //0,1 = root, main | 2 == stackbase == this | 3: varg | 4: result
             _Fstate.SetLocalStackSize(0);
+
             o._val._FuncPro = _Fstate.CreatePrototype();
+
             return true;
         }
 
@@ -809,7 +815,7 @@ namespace ExMat.Compiler
 
             if (_currToken == TokenType.ELEMENT_DEF)
             {
-                AddToErrorMessage("expected '; [expression] => [return value] }' after space specifications of cluster");
+                AddToErrorMessage("expected '; [expression] => [return_value] }' after space specifications of cluster");
                 return false;
             }
             else
@@ -1001,7 +1007,7 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ProcessSumStatement()
+        public static bool ProcessSumStatement()
         {
             return false;
         }

@@ -12,7 +12,10 @@ namespace ExMat.BaseLib
 
         public static int MATH_srand(ExVM vm, int nargs)
         {
-            Rand = new(ExAPI.GetFromStack(vm, 2).GetInt());
+            int seed = ExAPI.GetFromStack(vm, 2).GetInt();
+            vm.Pop(3);
+            vm.Push(true);
+            Rand = new(seed);
             return 0;
         }
 
@@ -22,17 +25,23 @@ namespace ExMat.BaseLib
             {
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(Rand.Next());
                         break;
                     }
                 case 1:
                     {
-                        vm.Push(Rand.Next(ExAPI.GetFromStack(vm, 2).GetInt()));
+                        int i = ExAPI.GetFromStack(vm, 2).GetInt();
+                        vm.Pop(3);
+                        vm.Push(Rand.Next(i));
                         break;
                     }
                 case 2:
                     {
-                        vm.Push(Rand.Next(ExAPI.GetFromStack(vm, 2).GetInt(), ExAPI.GetFromStack(vm, 3).GetInt()));
+                        int i = ExAPI.GetFromStack(vm, 2).GetInt();
+                        int j = ExAPI.GetFromStack(vm, 3).GetInt();
+                        vm.Pop(4);
+                        vm.Push(Rand.Next(i, j));
                         break;
                     }
             }
@@ -45,18 +54,23 @@ namespace ExMat.BaseLib
             {
                 case 0:
                     {
+                        vm.Pop(2);
                         vm.Push(Rand.NextDouble());
                         break;
                     }
                 case 1:
                     {
-                        vm.Push(Rand.NextDouble() * ExAPI.GetFromStack(vm, 2).GetFloat());
+                        float i = ExAPI.GetFromStack(vm, 2).GetFloat();
+                        vm.Pop(3);
+                        vm.Push(Rand.NextDouble() * i);
                         break;
                     }
                 case 2:
                     {
                         float min = ExAPI.GetFromStack(vm, 2).GetFloat();
-                        vm.Push((Rand.NextDouble() * (ExAPI.GetFromStack(vm, 3).GetFloat() - min)) + min);
+                        float max = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        vm.Pop(4);
+                        vm.Push((Rand.NextDouble() * (max - min)) + min);
                         break;
                     }
             }
@@ -66,128 +80,278 @@ namespace ExMat.BaseLib
         public static int MATH_abs(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? Math.Abs(i.GetInt())
-                    : Math.Abs(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Abs(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Abs(o));
+            }
+
             return 1;
         }
 
         public static int MATH_sqrt(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Sqrt(i.GetInt())
-                    : (float)Math.Sqrt(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sqrt(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sqrt(o));
+            }
+
             return 1;
         }
 
         public static int MATH_cbrt(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Cbrt(i.GetInt())
-                    : (float)Math.Cbrt(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Cbrt(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Cbrt(o));
+            }
+
             return 1;
         }
         public static int MATH_sin(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Sin(i.GetInt())
-                    : (float)Math.Sin(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sin(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sin(o));
+            }
+
             return 1;
         }
         public static int MATH_sinh(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Sinh(i.GetInt())
-                    : (float)Math.Sinh(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sinh(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sinh(o));
+            }
+
             return 1;
         }
 
         public static int MATH_cos(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Cos(i.GetInt())
-                    : (float)Math.Cos(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Cos(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Cos(o));
+            }
+
             return 1;
         }
         public static int MATH_cosh(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Cosh(i.GetInt())
-                    : (float)Math.Cosh(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Cosh(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Cosh(o));
+            }
+
             return 1;
         }
 
         public static int MATH_tan(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Tan(i.GetInt())
-                    : (float)Math.Tan(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Tan(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Tan(o));
+            }
+
             return 1;
         }
         public static int MATH_tanh(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Tanh(i.GetInt())
-                    : (float)Math.Tanh(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Tanh(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Tanh(o));
+            }
+
             return 1;
         }
 
         public static int MATH_acos(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Acos(i.GetInt())
-                    : (float)Math.Acos(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Acos(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Acos(o));
+            }
+
             return 1;
         }
         public static int MATH_acosh(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Acosh(i.GetInt())
-                    : (float)Math.Acosh(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Acosh(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Acosh(o));
+            }
+
             return 1;
         }
 
         public static int MATH_asin(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Asin(i.GetInt())
-                    : (float)Math.Asin(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Asin(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Asin(o));
+            }
+
             return 1;
         }
         public static int MATH_asinh(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Asinh(i.GetInt())
-                    : (float)Math.Asinh(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Asinh(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Asinh(o));
+            }
+
             return 1;
         }
 
         public static int MATH_atan(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Atan(i.GetInt())
-                    : (float)Math.Atan(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Atan(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Atan(o));
+            }
+
             return 1;
         }
         public static int MATH_atanh(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Atanh(i.GetInt())
-                    : (float)Math.Atanh(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Atanh(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Atanh(o));
+            }
+
             return 1;
         }
 
@@ -198,15 +362,36 @@ namespace ExMat.BaseLib
 
             if (i._type == ExObjType.INTEGER)
             {
-                vm.Push(i2._type == ExObjType.INTEGER
-                        ? (float)Math.Atan2(i.GetInt(), i2.GetInt())
-                        : (float)Math.Atan2(i.GetInt(), i2.GetFloat()));
+                int b = i.GetInt();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Atan2(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Atan2(b, o));
+                }
+
             }
             else
             {
-                vm.Push(i2._type == ExObjType.INTEGER
-                        ? (float)Math.Atan2(i.GetFloat(), i2.GetInt())
-                        : (float)Math.Atan2(i.GetFloat(), i2.GetFloat()));
+                float b = i.GetFloat();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Atan2(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Atan2(b, o));
+                }
             }
 
             return 1;
@@ -215,36 +400,76 @@ namespace ExMat.BaseLib
         public static int MATH_loge(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Log(i.GetInt())
-                    : (float)Math.Log(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Log(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Log(o));
+            }
+
             return 1;
         }
 
         public static int MATH_log2(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Log2(i.GetInt())
-                    : (float)Math.Log2(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Log2(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Log2(o));
+            }
+
             return 1;
         }
 
         public static int MATH_log10(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Log10(i.GetInt())
-                    : (float)Math.Log10(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Log10(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Log10(o));
+            }
+
             return 1;
         }
 
         public static int MATH_exp(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER
-                    ? (float)Math.Exp(i.GetInt())
-                    : (float)Math.Exp(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Exp(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Exp(o));
+            }
+
             return 1;
         }
 
@@ -257,70 +482,182 @@ namespace ExMat.BaseLib
                 dec = ExAPI.GetFromStack(vm, 3).GetInt();
             }
 
-            vm.Push((float)(i._type == ExObjType.INTEGER
-                    ? Math.Round((double)i.GetInt(), dec)
-                    : Math.Round(i.GetFloat(), dec)));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push((float)Math.Round((double)o, dec));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push((float)Math.Round(o, dec));
+            }
+
             return 1;
         }
 
         public static int MATH_floor(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER ? i.GetInt() : (int)Math.Floor(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(o);
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push((int)Math.Floor(o));
+            }
+
             return 1;
         }
 
         public static int MATH_ceil(ExVM vm, int nargs)
         {
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            vm.Push(i._type == ExObjType.INTEGER ? i.GetInt() : (int)Math.Ceiling(i.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(o);
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push((int)Math.Ceiling(o));
+            }
+
             return 1;
         }
 
         public static int MATH_pow(ExVM vm, int nargs)
         {
-            ExObjectPtr b = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr e = ExAPI.GetFromStack(vm, 3);
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr i2 = ExAPI.GetFromStack(vm, 3);
 
-            vm.Push((float)Math.Pow(
-                b._type == ExObjType.INTEGER
-                    ? b.GetInt()
-                    : b.GetFloat(),
-                e._type == ExObjType.INTEGER
-                    ? e.GetInt()
-                    : e.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int b = i.GetInt();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push((int)Math.Pow(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Pow(b, o));
+                }
+
+            }
+            else
+            {
+                float b = i.GetFloat();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Pow(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Pow(b, o));
+                }
+            }
 
             return 1;
         }
 
         public static int MATH_min(ExVM vm, int nargs)
         {
-            ExObjectPtr b = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr e = ExAPI.GetFromStack(vm, 3);
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr i2 = ExAPI.GetFromStack(vm, 3);
 
-            vm.Push((float)Math.Min(
-                b._type == ExObjType.INTEGER
-                    ? b.GetInt()
-                    : b.GetFloat(),
-                e._type == ExObjType.INTEGER
-                    ? e.GetInt()
-                    : e.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int b = i.GetInt();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push(Math.Min(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Min(b, o));
+                }
+
+            }
+            else
+            {
+                float b = i.GetFloat();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Min(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Min(b, o));
+                }
+            }
 
             return 1;
         }
 
         public static int MATH_max(ExVM vm, int nargs)
         {
-            ExObjectPtr b = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr e = ExAPI.GetFromStack(vm, 3);
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr i2 = ExAPI.GetFromStack(vm, 3);
 
-            vm.Push((float)Math.Max(
-                b._type == ExObjType.INTEGER
-                    ? b.GetInt()
-                    : b.GetFloat(),
-                e._type == ExObjType.INTEGER
-                    ? e.GetInt()
-                    : e.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int b = i.GetInt();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push(Math.Max(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Max(b, o));
+                }
+
+            }
+            else
+            {
+                float b = i.GetFloat();
+                if (i2._type == ExObjType.INTEGER)
+                {
+                    int o = i2.GetInt();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Max(b, o));
+                }
+                else
+                {
+                    float o = i2.GetFloat();
+                    vm.Pop(nargs + 2);
+                    vm.Push((float)Math.Max(b, o));
+                }
+            }
 
             return 1;
         }
@@ -344,6 +681,7 @@ namespace ExMat.BaseLib
                 }
             }
 
+            vm.Pop(nargs + 2);
             vm.Push(sum);
             return 1;
         }
@@ -367,43 +705,55 @@ namespace ExMat.BaseLib
                 }
             }
 
+            vm.Pop(nargs + 2);
             vm.Push(mul);
             return 1;
         }
 
         public static int MATH_sign(ExVM vm, int nargs)
         {
-            ExObjectPtr b = ExAPI.GetFromStack(vm, 2);
+            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
 
-            vm.Push(Math.Sign(
-                b._type == ExObjType.INTEGER
-                    ? b.GetInt()
-                    : b.GetFloat()));
+            if (i._type == ExObjType.INTEGER)
+            {
+                int o = i.GetInt();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sign(o));
+            }
+            else
+            {
+                float o = i.GetFloat();
+                vm.Pop(nargs + 2);
+                vm.Push(Math.Sign(o));
+            }
 
             return 1;
         }
 
         public static int MATH_isINF(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            bool i = float.IsFinite(ExAPI.GetFromStack(vm, 2).GetFloat());
 
-            vm.Push(float.IsFinite(i.GetFloat()));
+            vm.Pop(nargs + 2);
+            vm.Push(i);
             return 1;
         }
 
         public static int MATH_isNINF(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            bool i = float.IsNegativeInfinity(ExAPI.GetFromStack(vm, 2).GetFloat());
 
-            vm.Push(float.IsNegativeInfinity(i.GetFloat()));
+            vm.Pop(nargs + 2);
+            vm.Push(i);
             return 1;
         }
 
         public static int MATH_isNAN(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            bool i = float.IsNaN(ExAPI.GetFromStack(vm, 2).GetFloat());
 
-            vm.Push(float.IsNaN(i.GetFloat()));
+            vm.Pop(nargs + 2);
+            vm.Push(i);
             return 1;
         }
 

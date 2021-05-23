@@ -67,9 +67,10 @@ namespace ExMat.BaseLib
 
         public static int IO_writefile(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string i = ExAPI.GetFromStack(vm, 2).GetString();
             ExObjectPtr c = null;
             vm.ToString(ExAPI.GetFromStack(vm, 3), ref c);
+            string code = c.GetString();
 
             string enc = null;
             if (nargs == 3)
@@ -79,12 +80,13 @@ namespace ExMat.BaseLib
 
             Encoding e = DecideEncodingFromString(enc);
 
-            File.WriteAllText(i.GetString(), c.GetString(), e);
+            vm.Pop(nargs + 2);
+            File.WriteAllText(i, code, e);
             return 0;
         }
         public static int IO_writefilelines(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string i = ExAPI.GetFromStack(vm, 2).GetString();
             ExObjectPtr lis = ExAPI.GetFromStack(vm, 3);
 
             string enc = null;
@@ -106,12 +108,13 @@ namespace ExMat.BaseLib
                 lines[l] = line.GetString();
             }
 
-            File.WriteAllLines(i.GetString(), lines, e);
+            vm.Pop(nargs + 2);
+            File.WriteAllLines(i, lines, e);
             return 0;
         }
         public static int IO_writefilebytes(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string i = ExAPI.GetFromStack(vm, 2).GetString();
             ExObjectPtr lis = ExAPI.GetFromStack(vm, 3);
             int n = lis._val.l_List.Count;
 
@@ -124,15 +127,18 @@ namespace ExMat.BaseLib
                 bytes[l] = Convert.ToByte(b.GetInt());
             }
 
-            File.WriteAllBytes(i.GetString(), bytes);
+            vm.Pop(nargs + 2);
+            File.WriteAllBytes(i, bytes);
             return 0;
         }
 
         public static int IO_appendfile(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string i = ExAPI.GetFromStack(vm, 2).GetString();
+
             ExObjectPtr c = null;
             vm.ToString(ExAPI.GetFromStack(vm, 3), ref c);
+            string code = c.GetString();
 
             string enc = null;
             if (nargs == 3)
@@ -142,12 +148,13 @@ namespace ExMat.BaseLib
 
             Encoding e = DecideEncodingFromString(enc);
 
-            File.AppendAllText(i.GetString(), c.GetString(), e);
+            vm.Pop(nargs + 2);
+            File.AppendAllText(i, code, e);
             return 0;
         }
         public static int IO_appendfilelines(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string f = ExAPI.GetFromStack(vm, 2).GetString();
             ExObjectPtr lis = ExAPI.GetFromStack(vm, 3);
 
             string enc = null;
@@ -169,15 +176,16 @@ namespace ExMat.BaseLib
                 lines[l] = line.GetString();
             }
 
-            File.AppendAllLines(i.GetString(), lines, e);
+            vm.Pop(nargs + 2);
+            File.AppendAllLines(f, lines, e);
             return 0;
         }
 
         public static int IO_readfile(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string f = ExAPI.GetFromStack(vm, 2).GetString();
 
-            if (File.Exists(i.GetString()))
+            if (File.Exists(f))
             {
                 string enc = null;
                 if (nargs == 2)
@@ -187,10 +195,12 @@ namespace ExMat.BaseLib
 
                 Encoding e = DecideEncodingFromString(enc);
 
-                vm.Push(File.ReadAllText(i.GetString(), e));
+                vm.Pop(nargs + 2);
+                vm.Push(File.ReadAllText(f, e));
             }
             else
             {
+                vm.Pop(nargs + 2);
                 vm.Push(new ExObjectPtr());
             }
             return 1;
@@ -198,10 +208,11 @@ namespace ExMat.BaseLib
 
         public static int IO_readfilelines(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            string f = ExAPI.GetFromStack(vm, 2).GetString();
 
-            if (!File.Exists(i.GetString()))
+            if (!File.Exists(f))
             {
+                vm.Pop(nargs + 2);
                 vm.Push(new ExObjectPtr());
                 return 1;
             }
@@ -214,7 +225,7 @@ namespace ExMat.BaseLib
 
             Encoding e = DecideEncodingFromString(enc);
 
-            string[] lines = File.ReadAllLines(i.GetString(), e);
+            string[] lines = File.ReadAllLines(f, e);
 
             List<ExObjectPtr> l_list = new(lines.Length);
             for (int b = 0; b < lines.Length; b++)
@@ -224,6 +235,7 @@ namespace ExMat.BaseLib
             ExObjectPtr res = new ExList();
             res._val.l_List = l_list;
 
+            vm.Pop(nargs + 2);
             vm.Push(res);
 
             return 1;
@@ -231,14 +243,15 @@ namespace ExMat.BaseLib
 
         public static int IO_readfilebytes(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            if (!File.Exists(i.GetString()))
+            string f = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!File.Exists(f))
             {
+                vm.Pop(nargs + 2);
                 vm.Push(new ExObjectPtr());
                 return 1;
             }
 
-            byte[] bytes = File.ReadAllBytes(i.GetString());
+            byte[] bytes = File.ReadAllBytes(f);
 
             List<ExObjectPtr> blist = new(bytes.Length);
             for (int b = 0; b < bytes.Length; b++)
@@ -248,6 +261,7 @@ namespace ExMat.BaseLib
             ExObjectPtr res = new ExList();
             res._val.l_List = blist;
 
+            vm.Pop(nargs + 2);
             vm.Push(res);
 
             return 1;
@@ -255,13 +269,16 @@ namespace ExMat.BaseLib
 
         public static int IO_fileexists(ExVM vm, int nargs)
         {
-            vm.Push(File.Exists(ExAPI.GetFromStack(vm, 2).GetString()));
+            string f = ExAPI.GetFromStack(vm, 2).GetString();
+            vm.Pop(nargs + 2);
+            vm.Push(File.Exists(f));
 
             return 1;
         }
 
         public static int IO_currentdir(ExVM vm, int nargs)
         {
+            vm.Pop(nargs + 2);
             vm.Push(Directory.GetCurrentDirectory());
 
             return 1;
@@ -277,12 +294,14 @@ namespace ExMat.BaseLib
                 {
                     Directory.CreateDirectory(dir);
                 }
+                vm.Pop(nargs + 2);
                 vm.Push(false);
                 return 1;
             }
 
             Directory.SetCurrentDirectory(dir);
 
+            vm.Pop(nargs + 2);
             vm.Push(Directory.GetCurrentDirectory());
             return 1;
         }
@@ -308,6 +327,7 @@ namespace ExMat.BaseLib
             all = new(Directory.GetDirectories(cd));
             all.AddRange(Directory.GetFiles(cd));
 
+            vm.Pop(nargs + 2);
             vm.Push(new ExList(all));
 
             return 1;
@@ -315,8 +335,7 @@ namespace ExMat.BaseLib
 
         public static int IO_includefile(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            string fname = i.GetString();
+            string fname = ExAPI.GetFromStack(vm, 2).GetString();
             if (!File.Exists(fname))
             {
                 if (!File.Exists(fname + ".exmat"))
@@ -330,23 +349,24 @@ namespace ExMat.BaseLib
             if (ExAPI.CompileFile(vm, File.ReadAllText(fname)))
             {
                 ExAPI.PushRootTable(vm);
-                if (!ExAPI.Call(vm, 1, false))
+                if (!ExAPI.Call(vm, 1, false, false))
                 {
                     ExAPI.WriteErrorMessages(vm, "EXECUTE");
                 }
 
+                vm.Pop(nargs + 2);
                 vm.Push(new ExObjectPtr(true));
 
                 return 1;
             }
 
+            vm.Pop(nargs + 2);
             vm.Push(new ExObjectPtr(false));
             return -1;
         }
         public static int IO_reloadlib(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            string lname = i.GetString();
+            string lname = ExAPI.GetFromStack(vm, 2).GetString();
             string fname = null;
             if (nargs == 2)
             {
@@ -410,8 +430,7 @@ namespace ExMat.BaseLib
 
         public static int IO_reloadlibfunc(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            string fname = i.GetString();
+            string fname = ExAPI.GetFromStack(vm, 2).GetString();
 
             if (fname != ReloadLibFunc
                 && fname != ReloadLib
@@ -469,7 +488,7 @@ namespace ExMat.BaseLib
         {
             if (nargs == 1)
             {
-                Console.Write(ExAPI.GetFromStack(vm, 2).GetString());
+                vm.Print(ExAPI.GetFromStack(vm, 2).GetString());
             }
 
             string input = string.Empty;
@@ -489,6 +508,7 @@ namespace ExMat.BaseLib
                 }
             }
 
+            vm.Pop(nargs + 2);
             vm.Push(new ExObjectPtr(input));
 
             vm._got_input = true;
