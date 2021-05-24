@@ -88,7 +88,12 @@ namespace ExMat.VM
 
         }
 
-        public bool ToString(ExObjectPtr obj, ref ExObjectPtr res, int maxdepth = 2, bool dval = false)
+        public bool ToString(ExObjectPtr obj,
+                             ref ExObjectPtr res,
+                             int maxdepth = 2,
+                             bool dval = false,
+                             bool beauty = false,
+                             string prefix = "")
         {
             switch (obj._type)
             {
@@ -115,7 +120,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        res = maxdepth == 0 || dval ? new("\"" + obj.GetString() + "\"") : new(obj.GetString());
+                        res = maxdepth <= 1 || dval ? new("\"" + obj.GetString() + "\"") : new(obj.GetString());
                         break;
                     }
                 case ExObjType.BOOL:
@@ -140,11 +145,32 @@ namespace ExMat.VM
                         int n = 0;
                         int c = obj._val.l_List.Count;
                         maxdepth--;
+
+                        if (beauty && !dval && c > 0)
+                        {
+                            if (prefix != string.Empty)
+                            {
+                                s = "\n" + prefix + s;
+                            }
+                        }
+
                         foreach (ExObjectPtr o in obj._val.l_List)
                         {
-                            ToString(o, ref temp, maxdepth, true);
+                            ToString(o, ref temp, maxdepth, !beauty, beauty, prefix + " ");
 
-                            s += temp.GetString();
+                            string ts = temp.GetString();
+                            if (beauty && !dval)
+                            {
+                                if (ts.Length < 4)
+                                {
+                                    ts = (new string(' ', 8 - ts.Length)) + ts;
+                                }
+                                s += prefix + ts;
+                            }
+                            else
+                            {
+                                s += ts;
+                            }
 
                             n++;
                             if (n != c)
@@ -152,7 +178,22 @@ namespace ExMat.VM
                                 s += ", ";
                             }
                         }
-                        s += "]";
+
+                        if (beauty && !dval)
+                        {
+                            if (prefix == string.Empty)
+                            {
+                                s += "]";
+                            }
+                            else
+                            {
+                                s += prefix + "]";
+                            }
+                        }
+                        else
+                        {
+                            s += "]";
+                        }
 
                         res = new(s);
                         break;
@@ -168,6 +209,13 @@ namespace ExMat.VM
                         string s = "{";
                         int n = 0;
                         int c = obj._val.d_Dict.Count;
+                        if (beauty && c > 0)
+                        {
+                            if (prefix != string.Empty)
+                            {
+                                s = "\n" + prefix + s;
+                            }
+                        }
                         if (c > 0)
                         {
                             s += "\n\t";
@@ -176,18 +224,34 @@ namespace ExMat.VM
                         maxdepth--;
                         foreach (KeyValuePair<string, ExObjectPtr> pair in obj._val.d_Dict)
                         {
-                            ToString(pair.Value, ref temp, maxdepth, true);
+                            ToString(pair.Value, ref temp, maxdepth, true, beauty, prefix + "\t");
 
-                            s += pair.Key + " = " + temp.GetString();
+                            if (beauty)
+                            {
+                                s += prefix + pair.Key + " = " + temp.GetString();
+                            }
+                            else
+                            {
+                                s += pair.Key + " = " + temp.GetString();
+                            }
 
                             n++;
+
                             if (n != c)
                             {
                                 s += "\n\t";
+                                if (beauty)
+                                {
+                                    s += prefix;
+                                }
                             }
                             else
                             {
                                 s += "\n";
+                                if (beauty)
+                                {
+                                    s += prefix;
+                                }
                             }
                         }
                         s += "}";
@@ -327,8 +391,15 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            AddToErrorMessage("failed to parse string as integer");
-                            return false;
+                            if (obj.GetString().Length == 1)
+                            {
+                                res = new(obj.GetString()[0]);
+                            }
+                            else
+                            {
+                                AddToErrorMessage("failed to parse string as integer");
+                                return false;
+                            }
                         }
                         break;
                     }
@@ -637,31 +708,70 @@ namespace ExMat.VM
 
                 _stack[sbase + p].Assign(new ExList(varglis));
             }
-            else if (p != nargs && !pro.is_cluster && !pro.is_rule)
+            else if (!pro.is_cluster && !pro.is_rule)
             {
-                int n_def = pro.n_defparams;
-                int diff;
-                if (n_def > 0 && nargs < p && (diff = p - nargs) <= n_def)
+                if (p != nargs)
                 {
-                    for (int n = n_def - diff; n < n_def; n++)
+                    int n_def = pro.n_defparams;
+                    int diff;
+                    int defstart = p - n_def;
+                    if (n_def > 0 && nargs < p && (diff = p - nargs) <= n_def)
                     {
-                        _stack[sbase + nargs++].Assign(cls._defparams[n]);
+                        for (int n = 1; n < p; n++)
+                        {
+                            if (_stack[sbase + n]._type == ExObjType.DEFAULT)
+                            {
+                                if (n >= defstart)
+                                {
+                                    _stack[sbase + n].Assign(cls._defparams[n - defstart]);
+                                }
+                                else
+                                {
+                                    AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
+                                    return false;
+                                }
+                            }
+                            else if (n >= defstart)
+                            {
+                                _stack[sbase + n].Assign(cls._defparams[n - defstart]);
+                                nargs++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (n_def > 0 && !pro.is_rule && !pro.is_cluster)
+                        {
+                            AddToErrorMessage("'" + pro._name.GetString() + "' takes min: " + (p - n_def - 1) + ", max:" + (p - 1) + " arguments");
+                        }
+                        else
+                        {
+                            AddToErrorMessage("'" + pro._name.GetString() + "' takes exactly " + (p - 1) + " arguments");
+                        }
+                        return false;
                     }
                 }
                 else
                 {
-                    if (n_def > 0 && !pro.is_rule && !pro.is_cluster)
+                    int n_def = pro.n_defparams;
+                    int defstart = p - n_def;
+                    for (int n = 1; n < p; n++)
                     {
-                        AddToErrorMessage("'" + pro._name.GetString() + "' takes min: " + (p - n_def - 1) + ", max:" + (p - 1) + " arguments");
+                        if (_stack[sbase + n]._type == ExObjType.DEFAULT)
+                        {
+                            if (n >= defstart)
+                            {
+                                _stack[sbase + n].Assign(cls._defparams[n - defstart]);
+                            }
+                            else
+                            {
+                                AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
+                                return false;
+                            }
+                        }
                     }
-                    else
-                    {
-                        AddToErrorMessage("'" + pro._name.GetString() + "' takes exactly " + (p - 1) + " arguments");
-                    }
-                    return false;
                 }
             }
-
             if (pro.is_rule)
             {
                 int t_n = pro._localinfos.Count;
@@ -724,6 +834,10 @@ namespace ExMat.VM
 
                         switch (space.space)
                         {
+                            case "A":
+                                {
+                                    return true;
+                                }
                             case "r":
                                 {
                                     switch (space.sign)
@@ -981,6 +1095,10 @@ namespace ExMat.VM
                         }
                         switch (space.space)
                         {
+                            case "A":
+                                {
+                                    return true;
+                                }
                             case "r":
                                 {
                                     switch (space.sign)
@@ -1555,6 +1673,16 @@ namespace ExMat.VM
                             GetTargetInStack(i).Assign(res);
                             continue;
                         }
+                    case OPC.CARTESIAN:
+                        {
+                            ExObjectPtr res = new();
+                            if (!DoCartesianProductOP(GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
+                            {
+                                return FixStackAfterError();
+                            }
+                            GetTargetInStack(i).Assign(res);
+                            continue;
+                        }
                     case OPC.BITWISE:
                         {
                             if (!DoBitwiseOP(i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
@@ -1576,9 +1704,20 @@ namespace ExMat.VM
                         }
                     case OPC.LOAD_NULL:
                         {
-                            for (int n = 0; n < i.arg1; n++)
+                            if (i.arg2.GetInt() == 1)
                             {
-                                GetTargetInStack(i.arg0.GetInt() + n).Nullify();
+                                for (int n = 0; n < i.arg1; n++)
+                                {
+                                    GetTargetInStack(i.arg0.GetInt() + n).Nullify();
+                                    GetTargetInStack(i.arg0.GetInt() + n).Assign(new ExObjectPtr() { _type = ExObjType.DEFAULT });
+                                }
+                            }
+                            else
+                            {
+                                for (int n = 0; n < i.arg1; n++)
+                                {
+                                    GetTargetInStack(i.arg0.GetInt() + n).Nullify();
+                                }
                             }
                             continue;
                         }
@@ -1695,6 +1834,15 @@ namespace ExMat.VM
                                     }
                             }
                             GetTargetInStack(i.arg0)._val.l_List.Add(val);
+                            continue;
+                        }
+                    case OPC.TRANSPOSE:
+                        {
+                            ExObjectPtr s1 = new(GetTargetInStack(i.arg1));
+                            if (!DoMatrixTranspose(GetTargetInStack(i), ref s1, (ExFallback)i.arg1))
+                            {
+                                return false;
+                            }
                             continue;
                         }
                     case OPC.INC:
@@ -2073,6 +2221,28 @@ namespace ExMat.VM
             }
             // Attempt to negate val._type
             return false;
+        }
+
+        public bool DoMatrixTranspose(ExObjectPtr t, ref ExObjectPtr mat, ExFallback idx)
+        {
+            if (mat._type != ExObjType.ARRAY)
+            {
+                AddToErrorMessage("expected matrix for transpose op");
+                return false;
+            }
+
+            List<ExObjectPtr> vals = mat.GetList();
+            int rows = vals.Count;
+            int cols = 0;
+
+            if (!ExAPI.DoMatrixTransposeChecks(this, vals, ref cols))
+            {
+                return false;
+            }
+
+            t.Assign(ExAPI.TransposeMatrix(rows, cols, vals));
+
+            return true;
         }
 
         public bool DoDerefInc(OPC op, ExObjectPtr t, ref ExObjectPtr self, ref ExObjectPtr k, ref ExObjectPtr inc, bool post, ExFallback idx)
@@ -2514,6 +2684,31 @@ namespace ExMat.VM
             }
 
             return MatrixMultiplication(a.GetList(), b.GetList(), ref res);
+        }
+
+        public bool DoCartesianProductOP(ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
+        {
+            if (a._type != ExObjType.ARRAY || b._type != ExObjType.ARRAY)
+            {
+                AddToErrorMessage("can't get cartesian product of non-list types");
+                return false;
+            }
+
+            int ac = a.GetList().Count;
+            int bc = b.GetList().Count;
+            List<ExObjectPtr> r = new(ac * bc);
+
+            for (int i = 0; i < ac; i++)
+            {
+                ExObjectPtr ar = a._val.l_List[i];
+                for (int j = 0; j < bc; j++)
+                {
+                    r.Add(new(new List<ExObjectPtr>(2) { new(ar), new(b._val.l_List[j]) }));
+                }
+            }
+            res = new(r);
+
+            return true;
         }
 
         public bool DoArithmeticOP(OPC op, ExObjectPtr a, ExObjectPtr b, ref ExObjectPtr res)
@@ -3459,7 +3654,20 @@ namespace ExMat.VM
 
                 for (int i = 0; i < narg && i < t_n; i++)
                 {
-                    if (ts[i] != -1 && !IncludesType((int)_stack[newb + i]._type, ts[i]))
+                    ExObjType typ = _stack[newb + i]._type;
+                    if (typ == ExObjType.DEFAULT)
+                    {
+                        if (cls.d_defaults.ContainsKey(i))
+                        {
+                            _stack[newb + i].Assign(cls.d_defaults[i]);
+                        }
+                        else
+                        {
+                            AddToErrorMessage("can't use non-existant default value for parameter " + (i));
+                            return false;
+                        }
+                    }
+                    else if (ts[i] != -1 && !IncludesType((int)typ, ts[i]))
                     {
                         AddToErrorMessage("invalid parameter type, expected one of " + ExAPI.GetExpectedTypes(ts[i]) + ", got: " + _stack[newb + i]._type.ToString());
                         return false;

@@ -1,27 +1,99 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ExMat.Objects;
 using ExMat.Token;
 
 namespace ExMat.Lexer
 {
-    public class ExMacroParam
+    public class ExMacroParam : IDisposable
     {
         public List<int> lines = new();
         public List<int> cols = new();
         public string name;
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    name = null;
+                    cols = null;
+                    lines = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExMacroParam()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class ExMacro
+    public class ExMacro : IDisposable
     {
         public List<ExMacroParam> _params = new();
         public string name;
         public string source;
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    name = null;
+                    source = null;
+                    Disposer.DisposeList(ref _params);
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExMacro()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class ExLexer
+    public class ExLexer : IDisposable
     {
-        private readonly string _source;
+        private string _source_;
+        public string Source
+        {
+            get
+            {
+                return _source_;
+            }
+        }
         private readonly int _sourcelen = 0;
         private int _sourceidx = 0;
 
@@ -52,6 +124,34 @@ namespace ExMat.Lexer
         public string _error;
 
         private ExLexer _lookahead;
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    Disposer.DisposeList(ref m_params);
+
+                    _keyWordsDict = null;
+                    _lookahead.Dispose();
+                    _space.Dispose();
+
+                    _error = null;
+                    _aStr = null;
+                    str_val = null;
+                    m_pname = null;
+                    m_block = null;
+
+                    _source_ = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
 
         public ExLexer(string source)
         {
@@ -98,7 +198,7 @@ namespace ExMat.Lexer
             _currCol = 0;
             _reached_end = false;
 
-            _source = source;
+            _source_ = source;
             _sourceidx = 0;
             _sourcelen = source.Length;
 
@@ -168,7 +268,7 @@ namespace ExMat.Lexer
                 return ExMat._END;
             }
 
-            char next = _source[_sourceidx];
+            char next = Source[_sourceidx];
             _sourceidx++;
             return next;
         }
@@ -568,7 +668,7 @@ namespace ExMat.Lexer
             typ = GetIdType();
             if (typ == TokenType.EQU)
             {
-                _lookahead = new(_source) { _sourceidx = _sourceidx, _currChar = _currChar, _currCol = _currCol, _currToken = _currToken, _lastTokenLine = _lastTokenLine, _aStr = _aStr };
+                _lookahead = new(Source) { _sourceidx = _sourceidx, _currChar = _currChar, _currCol = _currCol, _currToken = _currToken, _lastTokenLine = _lastTokenLine, _aStr = _aStr };
                 _lookahead.Lex();
                 if (_lookahead._currToken == TokenType.NEQ && _lookahead._aStr == "not")
                 {
@@ -775,6 +875,10 @@ namespace ExMat.Lexer
                     return TokenType.R_CLOSE;
                 case '?':
                     return TokenType.QMARK;
+                case '\'':
+                    return TokenType.MTRS;
+                case '$':
+                    return TokenType.LAMBDA;
                 default:
                     return TokenType.UNKNOWN;
             }
@@ -922,8 +1026,12 @@ namespace ExMat.Lexer
                             _error = "escape char outside string";
                             return TokenType.UNKNOWN;
                         }
-                    case '"':
                     case '\'':
+                        {
+                            Next();
+                            return SetAndReturnToken(TokenType.MTRS);
+                        }
+                    case '"':
                         {
                             TokenType res;
                             if ((res = ReadString(_currChar)) != TokenType.UNKNOWN)
@@ -947,7 +1055,7 @@ namespace ExMat.Lexer
                             }
                             else
                             {
-                                _error = "expected the pattern @(Z|R|N)[+-]?('\\d+)?@ for spaces";
+                                _error = "expected the pattern @(Z|R|N|A)[+-]?('\\d+)?@ for spaces";
                                 return TokenType.UNKNOWN;
                             }
                         }
@@ -981,10 +1089,10 @@ namespace ExMat.Lexer
                                         Next();
                                         return SetAndReturnToken(TokenType.MMLT);
                                     }
-                                case '.':   // TO-DO vargs
+                                case '.':
                                     {
-                                        _error = "Unknown token: '..'";
-                                        return TokenType.UNKNOWN;
+                                        Next();
+                                        return SetAndReturnToken(TokenType.DEFAULT);
                                     }
                                 default:
                                     {
@@ -1091,6 +1199,16 @@ namespace ExMat.Lexer
                             Next();
                             switch (_currChar)
                             {
+                                case '.':
+                                    {
+                                        Next();
+                                        if (_currChar != '*')
+                                        {
+                                            return TokenType.UNKNOWN;
+                                        }
+                                        Next();
+                                        return SetAndReturnToken(TokenType.CARTESIAN);
+                                    }
                                 case '*':
                                     {
                                         Next();
@@ -1187,5 +1305,19 @@ namespace ExMat.Lexer
             return TokenType.ENDLINE;
         }
 
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExLexer()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

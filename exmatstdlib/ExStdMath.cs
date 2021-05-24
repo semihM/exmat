@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
@@ -757,50 +758,279 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static MethodInfo GetStdMathMethod(string name)
+        {
+            return Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod(name);
+        }
+
         private static readonly List<ExRegFunc> _stdmathfuncs = new()
         {
-            new() { name = "srand", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_srand")), n_pchecks = 2, mask = ".n" },
-            new() { name = "rand", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_rand")), n_pchecks = -1, mask = ".nn" },
-            new() { name = "randf", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_randf")), n_pchecks = -1, mask = ".nn" },
+            new()
+            {
+                name = "srand",
+                func = new(GetStdMathMethod("MATH_srand")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "rand",
+                func = new(GetStdMathMethod("MATH_rand")),
+                n_pchecks = -1,
+                mask = ".nn",
+                d_defaults = new()
+                {
+                    { 1, new(0) },
+                    { 2, new(int.MaxValue) }
+                }
+            },
+            new()
+            {
+                name = "randf",
+                func = new(GetStdMathMethod("MATH_randf")),
+                n_pchecks = -1,
+                mask = ".nn",
+                d_defaults = new()
+                {
+                    { 1, new(0) },
+                    { 2, new(1) }
+                }
+            },
 
-            new() { name = "abs", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_abs")), n_pchecks = 2, mask = ".n" },
-            new() { name = "sqrt", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sqrt")), n_pchecks = 2, mask = ".n" },
-            new() { name = "cbrt", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_cbrt")), n_pchecks = 2, mask = ".n" },
+            new()
+            {
+                name = "abs",
+                func = new(GetStdMathMethod("MATH_abs")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "sqrt",
+                func = new(GetStdMathMethod("MATH_sqrt")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "cbrt",
+                func = new(GetStdMathMethod("MATH_cbrt")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
 
-            new() { name = "sin", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sin")), n_pchecks = 2, mask = ".n" },
-            new() { name = "cos", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_cos")), n_pchecks = 2, mask = ".n" },
-            new() { name = "tan", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_tan")), n_pchecks = 2, mask = ".n" },
-            new() { name = "sinh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sinh")), n_pchecks = 2, mask = ".n" },
-            new() { name = "cosh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_cosh")), n_pchecks = 2, mask = ".n" },
-            new() { name = "tanh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_tanh")), n_pchecks = 2, mask = ".n" },
+            new()
+            {
+                name = "sin",
+                func = new(GetStdMathMethod("MATH_sin")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "cos",
+                func = new(GetStdMathMethod("MATH_cos")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "tan",
+                func = new(GetStdMathMethod("MATH_tan")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "sinh",
+                func = new(GetStdMathMethod("MATH_sinh")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "cosh",
+                func = new(GetStdMathMethod("MATH_cosh")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "tanh",
+                func = new(GetStdMathMethod("MATH_tanh")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
 
-            new() { name = "asin", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_asin")), n_pchecks = 2, mask = ".n" },
-            new() { name = "acos", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_acos")), n_pchecks = 2, mask = ".n" },
-            new() { name = "atan", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_atan")), n_pchecks = 2, mask = ".n" },
-            new() { name = "atan2", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_atan2")), n_pchecks = 3, mask = ".nn" },
-            new() { name = "asinh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_asinh")), n_pchecks = 2, mask = ".n" },
-            new() { name = "acosh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_acosh")), n_pchecks = 2, mask = ".n" },
-            new() { name = "atanh", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_atanh")), n_pchecks = 2, mask = ".n" },
+            new()
+            {
+                name = "asin",
+                func = new(GetStdMathMethod("MATH_asin")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "acos",
+                func = new(GetStdMathMethod("MATH_acos")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "atan",
+                func = new(GetStdMathMethod("MATH_atan")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "atan2",
+                func = new(GetStdMathMethod("MATH_atan2")),
+                n_pchecks = 3,
+                mask = ".nn"
+            },
+            new()
+            {
+                name = "asinh",
+                func = new(GetStdMathMethod("MATH_asinh")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "acosh",
+                func = new(GetStdMathMethod("MATH_acosh")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "atanh",
+                func = new(GetStdMathMethod("MATH_atanh")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
 
-            new() { name = "loge", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_loge")), n_pchecks = 2, mask = ".n" },
-            new() { name = "log2", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_log2")), n_pchecks = 2, mask = ".n" },
-            new() { name = "log10", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_log10")), n_pchecks = 2, mask = ".n" },
-            new() { name = "exp", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_exp")), n_pchecks = 2, mask = ".n" },
-            new() { name = "round", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_round")), n_pchecks = -2, mask = ".nn" },
-            new() { name = "floor", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_floor")), n_pchecks = 2, mask = ".n" },
-            new() { name = "ceil", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_ceil")), n_pchecks = 2, mask = ".n" },
-            new() { name = "pow", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_pow")), n_pchecks = 3, mask = ".nn" },
+            new()
+            {
+                name = "loge",
+                func = new(GetStdMathMethod("MATH_loge")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "log2",
+                func = new(GetStdMathMethod("MATH_log2")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "log10",
+                func = new(GetStdMathMethod("MATH_log10")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "exp",
+                func = new(GetStdMathMethod("MATH_exp")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "round",
+                func = new(GetStdMathMethod("MATH_round")),
+                n_pchecks = -2,
+                mask = ".nn",
+                d_defaults = new()
+                {
+                    { 2, new(0) }
+                }
+            },
+            new()
+            {
+                name = "floor",
+                func = new(GetStdMathMethod("MATH_floor")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "ceil",
+                func = new(GetStdMathMethod("MATH_ceil")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "pow",
+                func = new(GetStdMathMethod("MATH_pow")),
+                n_pchecks = 3,
+                mask = ".nn"
+            },
 
-            new() { name = "sum", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sum")), n_pchecks = -1, mask = null },
-            new() { name = "mul", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_mul")), n_pchecks = -1, mask = null },
+            new()
+            {
+                name = "sum",
+                func = new(GetStdMathMethod("MATH_sum")),
+                n_pchecks = -1,
+                mask = null
+            },
+            new()
+            {
+                name = "mul",
+                func = new(GetStdMathMethod("MATH_mul")),
+                n_pchecks = -1,
+                mask = null
+            },
 
-            new() { name = "min", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_min")), n_pchecks = 3, mask = ".nn" },
-            new() { name = "max", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_max")), n_pchecks = 3, mask = ".nn" },
-            new() { name = "sign", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_sign")), n_pchecks = 2, mask = ".n" },
+            new()
+            {
+                name = "min",
+                func = new(GetStdMathMethod("MATH_min")),
+                n_pchecks = 3,
+                mask = ".nn"
+            },
+            new()
+            {
+                name = "max",
+                func = new(GetStdMathMethod("MATH_max")),
+                n_pchecks = 3,
+                mask = ".nn"
+            },
+            new()
+            {
+                name = "sign",
+                func = new(GetStdMathMethod("MATH_sign")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
 
-            new() { name = "isINF", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_isINF")), n_pchecks = 2, mask = ".n" },
-            new() { name = "isNINF", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_isNINF")), n_pchecks = 2, mask = ".n" },
-            new() { name = "isNAN", func = new(Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod("MATH_isNAN")), n_pchecks = 2, mask = ".n" },
+            new()
+            {
+                name = "isINF",
+                func = new(GetStdMathMethod("MATH_isINF")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "isNINF",
+                func = new(GetStdMathMethod("MATH_isNINF")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "isNAN",
+                func = new(GetStdMathMethod("MATH_isNAN")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
 
             new() { name = string.Empty }
         };

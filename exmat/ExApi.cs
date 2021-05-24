@@ -22,11 +22,11 @@ namespace ExMat.API
             return true;
         }
 
-        public static bool ToString(ExVM vm, int i, int maxdepth = 1, int pop = 0)
+        public static bool ToString(ExVM vm, int i, int maxdepth = 1, int pop = 0, bool beauty = false)
         {
             ExObjectPtr o = GetFromStack(vm, i);
             ExObjectPtr res = new(string.Empty);
-            if (!vm.ToString(o, ref res, maxdepth))
+            if (!vm.ToString(o, ref res, maxdepth, beauty: beauty))
             {
                 return false;
             }
@@ -113,6 +113,7 @@ namespace ExMat.API
             CreateClosure(vm, func.func, 0, force);
             SetNativeClosureName(vm, -1, func.name);
             SetParamCheck(vm, func.n_pchecks, func.mask);
+            SetDefaultValues(vm, func.d_defaults);
             CreateNewSlot(vm, -3, false);
         }
 
@@ -313,6 +314,16 @@ namespace ExMat.API
                 nc._typecheck = new();
             }
         }
+        public static void SetDefaultValues(ExVM vm, Dictionary<int, ExObjectPtr> d)
+        {
+            ExObject o = GetFromStack(vm, -1);
+
+            if (o._type != ExObjType.NATIVECLOSURE)
+            {
+                throw new Exception("native closure expected");
+            }
+            o.GetNClosure().d_defaults = d;
+        }
         public static void DoParamChecks(ExVM vm, int n)
         {
             if (GetTopOfStack(vm) < n)
@@ -460,6 +471,59 @@ namespace ExMat.API
             return false;
         }
 
+        public static List<ExObjectPtr> TransposeMatrix(int rows, int cols, List<ExObjectPtr> vals)
+        {
+            List<ExObjectPtr> lis = new(cols);
+            for (int i = 0; i < cols; i++)
+            {
+                lis.Add(new ExObjectPtr(new List<ExObjectPtr>(rows)));
+                for (int j = 0; j < rows; j++)
+                {
+                    lis[i]._val.l_List.Add(vals[j]._val.l_List[i]);
+                }
+            }
+            return lis;
+        }
+
+        public static bool DoMatrixTransposeChecks(ExVM vm, List<ExObjectPtr> vals, ref int cols)
+        {
+            foreach (ExObjectPtr row in vals)
+            {
+                if (row._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("given list have to contain lists");
+                    return false;
+                }
+                else
+                {
+                    foreach (ExObjectPtr num in row.GetList())
+                    {
+                        if (!num.IsNumeric())
+                        {
+                            vm.AddToErrorMessage("given list have to contain lists of numeric values");
+                            return false;
+                        }
+                    }
+
+                    if (cols != 0 && row.GetList().Count != cols)
+                    {
+                        vm.AddToErrorMessage("given list have varying length of lists");
+                        return false;
+                    }
+                    else
+                    {
+                        cols = row.GetList().Count;
+                    }
+                }
+            }
+
+            if (cols == 0)
+            {
+                vm.AddToErrorMessage("empty list can't be used for transposing");
+                return false;
+            }
+            return true;
+        }
 
         // VM START
         public static ExVM Start(int stacksize)

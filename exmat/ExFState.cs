@@ -9,16 +9,16 @@ using ExMat.OPs;
 
 namespace ExMat.States
 {
-    public class ExFState
+    public class ExFState : IDisposable
     {
         public ExObjectPtr _source;
 
         public ExObjectPtr _name;
 
-        public Dictionary<string, dynamic> _names = new();
+        public Dictionary<string, ExObjectPtr> _names = new();
 
         public int _nliterals;
-        public Dictionary<string, dynamic> _literals = new();
+        public Dictionary<string, ExObjectPtr> _literals = new();
 
         public List<ExLocalInfo> _localvs = new();
         public List<ExLocalInfo> _localinfos = new();
@@ -61,7 +61,44 @@ namespace ExMat.States
         private const int MAX_LITERALS = int.MaxValue;
 
         public int n_statement = 0;
+        private bool disposedValue;
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _breaks = null;
+                    _continues = null;
+                    _breaktargs = null;
+                    _continuetargs = null;
+                    _Sstate = null;
+                    _SstateB = null;
+                    _lineinfos = null;
+
+                    _parent.Dispose();
+                    _tStack.Dispose();
+                    _source.Dispose();
+                    _name.Dispose();
+
+                    Disposer.DisposeList(ref _children);
+                    Disposer.DisposeList(ref _instructions);
+                    Disposer.DisposeList(ref _localvs);
+                    Disposer.DisposeList(ref _localinfos);
+                    Disposer.DisposeList(ref _outerinfos);
+                    Disposer.DisposeList(ref _params);
+                    Disposer.DisposeList(ref _funcs);
+
+                    Disposer.DisposeDict(ref _literals);
+                    Disposer.DisposeDict(ref _names);
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
         public ExFState() { }
 
         public ExFState(ExSState sState, ExFState parent)
@@ -181,10 +218,10 @@ namespace ExMat.States
             }
             else
             {
-                dynamic val = _literals[name];
+                ExObjectPtr val = _literals[name];
                 if (val._type == ExObjType.WEAKREF)
                 {
-                    v = val._WeakRef.obj;
+                    v = ((ExWeakRef)val)._weakref.obj;
                 }
                 else
                 {
@@ -362,7 +399,7 @@ namespace ExMat.States
         {
             int n = _localvs.Count;
             ExLocalInfo l = new();
-            l.name = v;
+            l.name.Assign(v.GetString());
             l._sopc = GetCurrPos() + 1;
             l._pos = _localvs.Count;
             _localvs.Add(l);
@@ -706,11 +743,11 @@ namespace ExMat.States
             funcPro._source = _source;
             funcPro._name = _name;
 
-            foreach (KeyValuePair<string, dynamic> pair in _literals)
+            foreach (KeyValuePair<string, ExObjectPtr> pair in _literals)
             {
                 if (pair.Value._type == ExObjType.WEAKREF)
                 {
-                    int ind = pair.Value._WeakRef.obj._val.i_Int;
+                    int ind = ((ExWeakRef)pair.Value)._weakref.obj._val.i_Int;
                     while (funcPro._lits.Count <= ind)
                     {
                         funcPro._lits.Add(new(string.Empty));
@@ -793,6 +830,21 @@ namespace ExMat.States
                 _stacksize = _stacksize,
                 _tStack = _tStack
             };
+        }
+
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExFState()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

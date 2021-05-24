@@ -70,12 +70,27 @@ namespace ExMat
 
         private static void WriteVersion(ExVM vm)
         {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(new string('-', 60));
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(vm._rootdict.GetDict()["_version_"].GetString());
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine(new string('-', 60));
+            string version = vm._rootdict.GetDict()["_version_"].GetString();
+            string date = DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString();
+            int width = 60;
+            int vlen = version.Length;
+            int dlen = date.Length;
+
+            Console.BackgroundColor = ConsoleColor.DarkGreen;
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(new string('/', width + 2));
+            Console.Write("/");
+
+            Console.ForegroundColor = ConsoleColor.DarkBlue;
+            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', (width - vlen) / 2));
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("/");
+            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', (width - dlen) / 2) + "/\n");
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(new string('/', width + 2));
+
             Console.ResetColor();
         }
 

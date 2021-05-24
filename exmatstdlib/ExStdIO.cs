@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using ExMat.API;
 using ExMat.Objects;
@@ -451,31 +452,170 @@ namespace ExMat.BaseLib
             return -1;
         }
 
+        public static MethodInfo GetStdIOMethod(string name)
+        {
+            return Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod(name);
+        }
         private static readonly List<ExRegFunc> _stdiofuncs = new()
         {
-            new() { name = "read_bytes", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_readfilebytes")), n_pchecks = 2, mask = ".s" },
-            new() { name = "read_text", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_readfile")), n_pchecks = -2, mask = ".ss" },
-            new() { name = "read_lines", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_readfilelines")), n_pchecks = -2, mask = ".ss" },
+            new()
+            {
+                name = "read_bytes",
+                func = new(GetStdIOMethod("IO_readfilebytes")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
+            new()
+            {
+                name = "read_text",
+                func = new(GetStdIOMethod("IO_readfile")),
+                n_pchecks = -2,
+                mask = ".ss",
+                d_defaults = new()
+                {
+                    { 2, new("") }
+                }
+            },
+            new()
+            {
+                name = "read_lines",
+                func = new(GetStdIOMethod("IO_readfilelines")),
+                n_pchecks = -2,
+                mask = ".ss",
+                d_defaults = new()
+                {
+                    { 2, new("") }
+                }
+            },
 
-            new() { name = "write_bytes", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_writefilebytes")), n_pchecks = -2, mask = ".sa" },
-            new() { name = "write_text", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_writefile")), n_pchecks = -3, mask = ".sss" },
-            new() { name = "write_lines", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_writefilelines")), n_pchecks = -3, mask = ".sas" },
+            new()
+            {
+                name = "write_bytes",
+                func = new(GetStdIOMethod("IO_writefilebytes")),
+                n_pchecks = 3,
+                mask = ".sa"
+            },
+            new()
+            {
+                name = "write_text",
+                func = new(GetStdIOMethod("IO_writefile")),
+                n_pchecks = -3,
+                mask = ".sss",
+                d_defaults = new()
+                {
+                    { 3, new("") }
+                }
+            },
+            new()
+            {
+                name = "write_lines",
+                func = new(GetStdIOMethod("IO_writefilelines")),
+                n_pchecks = -3,
+                mask = ".sas",
+                d_defaults = new()
+                {
+                    { 3, new("") }
+                }
+            },
 
-            new() { name = "append_text", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_appendfile")), n_pchecks = -3, mask = ".sss" },
-            new() { name = "append_lines", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_appendfilelines")), n_pchecks = -3, mask = ".sas" },
+            new()
+            {
+                name = "append_text",
+                func = new(GetStdIOMethod("IO_appendfile")),
+                n_pchecks = -3,
+                mask = ".sss",
+                d_defaults = new()
+                {
+                    { 3, new("") }
+                }
+            },
+            new()
+            {
+                name = "append_lines",
+                func = new(GetStdIOMethod("IO_appendfilelines")),
+                n_pchecks = -3,
+                mask = ".sas",
+                d_defaults = new()
+                {
+                    { 3, new("") }
+                }
+            },
 
-            new() { name = "current_dir", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_currentdir")), n_pchecks = 1, mask = "." },
-            new() { name = "dir_content", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_showdir")), n_pchecks = -1, mask = ".s" },
-            new() { name = "change_dir", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_changedir")), n_pchecks = -2, mask = ".sb" },
+            new()
+            {
+                name = "current_dir",
+                func = new(GetStdIOMethod("IO_currentdir")),
+                n_pchecks = 1,
+                mask = "."
+            },
+            new()
+            {
+                name = "dir_content",
+                func = new(GetStdIOMethod("IO_showdir")),
+                n_pchecks = -1,
+                mask = ".s",
+                d_defaults = new()
+                {
+                    { 1, new("") }
+                }
+            },
+            new()
+            {
+                name = "change_dir",
+                func = new(GetStdIOMethod("IO_changedir")),
+                n_pchecks = -2,
+                mask = ".sb",
+                d_defaults = new()
+                {
+                    { 2, new(false) }
+                }
+            },
 
-            new() { name = "raw_input", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_rawinput")), n_pchecks = -1, mask = ".s" },
+            new()
+            {
+                name = "raw_input",
+                func = new(GetStdIOMethod("IO_rawinput")),
+                n_pchecks = -1,
+                mask = ".s",
+                d_defaults = new()
+                {
+                    { 1, new("") }
+                }
+            },
 
-            new() { name = "file_exists", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_fileexists")), n_pchecks = 2, mask = ".s" },
-            new() { name = "include_file", func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_includefile")), n_pchecks = 2, mask = ".s" },
-            new() { name = ReloadLib, func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_reloadlib")), n_pchecks = -2, mask = ".ss" },
-            new() { name = ReloadLibFunc, func = new(Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod("IO_reloadlibfunc")), n_pchecks = 2, mask = ".s" },
+            new()
+            {
+                name = "file_exists",
+                func = new(GetStdIOMethod("IO_fileexists")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
+            new()
+            {
+                name = "include_file",
+                func = new(GetStdIOMethod("IO_includefile")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
+            new()
+            {
+                name = ReloadLib,
+                func = new(GetStdIOMethod("IO_reloadlib")),
+                n_pchecks = -2,
+                mask = ".ss"
+            },
+            new()
+            {
+                name = ReloadLibFunc,
+                func = new(GetStdIOMethod("IO_reloadlibfunc")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
 
-            new() { name = string.Empty }
+            new()
+            {
+                name = string.Empty
+            }
         };
 
         private const string _reloadlib = "reload_lib";

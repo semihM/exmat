@@ -43,7 +43,7 @@ namespace ExMat.BaseLib
             }
 
             string s = string.Empty;
-            ExAPI.ToString(vm, 2, maxdepth);
+            ExAPI.ToString(vm, 2, maxdepth, 0, true);
             if (!ExAPI.GetString(vm, -1, ref s))
             {
                 return -1;
@@ -812,21 +812,44 @@ namespace ExMat.BaseLib
 
         public static int BASE_list(ExVM vm, int nargs)
         {
-            ExList l = new();
-            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
-            if (ExAPI.GetTopOfStack(vm) > 2)
+            ExObjectPtr o = ExAPI.GetFromStack(vm, 2);
+            if (o._type == ExObjType.STRING)
             {
-                l._val.l_List = new(s.GetInt());
-                ExUtils.InitList(ref l._val.l_List, s.GetInt(), ExAPI.GetFromStack(vm, 3));
+                char[] s = o.GetString().ToCharArray();
+
+                List<ExObjectPtr> lis = new(s.Length);
+
+                foreach (char c in s)
+                {
+                    lis.Add(new(c.ToString()));
+                }
+
+                vm.Pop(nargs + 2);
+                vm.Push(lis);
+                return 1;
             }
             else
             {
-                l._val.l_List = new(s.GetInt());
-                ExUtils.InitList(ref l._val.l_List, s.GetInt());
+                ExList l = new();
+                int s = o.GetInt();
+                if (s < 0)
+                {
+                    s = 0;
+                }
+                if (ExAPI.GetTopOfStack(vm) > 2)
+                {
+                    l._val.l_List = new(s);
+                    ExUtils.InitList(ref l._val.l_List, s, ExAPI.GetFromStack(vm, 3));
+                }
+                else
+                {
+                    l._val.l_List = new(s);
+                    ExUtils.InitList(ref l._val.l_List, s);
+                }
+                vm.Pop(nargs + 2);
+                vm.Push(l);
+                return 1;
             }
-            vm.Pop(nargs + 2);
-            vm.Push(l);
-            return 1;
         }
         public static int BASE_range(ExVM vm, int nargs)
         {
@@ -1293,9 +1316,10 @@ namespace ExMat.BaseLib
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
             if (res._val.l_List.Count > 0)
             {
-                vm.Pop(nargs + 2);
-                vm.Push(res._val.l_List[^1]); // TO-DO make this optional
+                ExObjectPtr p = new(res._val.l_List[^1]);
                 res._val.l_List.RemoveAt(res._val.l_List.Count - 1);
+                vm.Pop(nargs + 2);
+                vm.Push(p); // TO-DO make this optional
                 return 1;
             }
             else
@@ -1414,6 +1438,26 @@ namespace ExMat.BaseLib
             }
             vm.Pop(nargs + 2);
             vm.Push(vals);
+            return 1;
+        }
+
+        public static int BASE_array_transpose(ExVM vm, int nargs)
+        {
+            ExObjectPtr res = new();
+            ExAPI.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res);
+            List<ExObjectPtr> vals = res.GetList();
+            int rows = vals.Count;
+            int cols = 0;
+
+            if (!ExAPI.DoMatrixTransposeChecks(vm, vals, ref cols))
+            {
+                return -1;
+            }
+
+            List<ExObjectPtr> lis = ExAPI.TransposeMatrix(rows, cols, vals);
+
+            vm.Pop(nargs + 2);
+            vm.Push(lis);
             return 1;
         }
 
@@ -1688,34 +1732,220 @@ namespace ExMat.BaseLib
         //
         private static readonly List<ExRegFunc> _exRegFuncs = new()
         {
-            new() { name = "print", func = new(GetBaseLibMethod("BASE_print")), n_pchecks = -2, mask = "..n" },
-            new() { name = "printl", func = new(GetBaseLibMethod("BASE_printl")), n_pchecks = -2, mask = "..n" },
+            new()
+            {
+                name = "print",
+                func = new(GetBaseLibMethod("BASE_print")),
+                n_pchecks = -2,
+                mask = "..n",
+                d_defaults = new()
+                {
+                    { 2, new() }
+                }
+            },
 
-            new() { name = "time", func = new(GetBaseLibMethod("BASE_time")), n_pchecks = 1, mask = null },
-            new() { name = "date", func = new(GetBaseLibMethod("BASE_date")), n_pchecks = -1, mask = ".s." },
+            new()
+            {
+                name = "printl",
+                func = new(GetBaseLibMethod("BASE_printl")),
+                n_pchecks = -2,
+                mask = "..n",
+                d_defaults = new()
+                {
+                    { 2, new() }
+                }
+            },
 
-            new() { name = "type", func = new(GetBaseLibMethod("BASE_type")), n_pchecks = 2, mask = null },
-            new() { name = "assert", func = new(GetBaseLibMethod("BASE_assert")), n_pchecks = -2, mask = "..s" },
+            new()
+            {
+                name = "time",
+                func = new(GetBaseLibMethod("BASE_time")),
+                n_pchecks = 1,
+                mask = null
+            },
+            new()
+            {
+                name = "date",
+                func = new(GetBaseLibMethod("BASE_date")),
+                n_pchecks = -1,
+                mask = ".s.",
+                d_defaults = new()
+                {
+                    { 1, new("today") },
+                    { 2, new(false) }
+                }
+            },
 
-            new() { name = "string", func = new(GetBaseLibMethod("BASE_string")), n_pchecks = -1, mask = "...i" },
-            new() { name = "float", func = new(GetBaseLibMethod("BASE_float")), n_pchecks = -1, mask = ".." },
-            new() { name = "integer", func = new(GetBaseLibMethod("BASE_integer")), n_pchecks = -1, mask = ".." },
-            new() { name = "bool", func = new(GetBaseLibMethod("BASE_bool")), n_pchecks = -1, mask = ".." },
-            new() { name = "bits", func = new(GetBaseLibMethod("BASE_bits")), n_pchecks = -1, mask = ".n." },
-            new() { name = "bytes", func = new(GetBaseLibMethod("BASE_bytes")), n_pchecks = -1, mask = ".n|s" },
+            new()
+            {
+                name = "type",
+                func = new(GetBaseLibMethod("BASE_type")),
+                n_pchecks = 2,
+                mask = null
+            },
+            new()
+            {
+                name = "assert",
+                func = new(GetBaseLibMethod("BASE_assert")),
+                n_pchecks = -2,
+                mask = "..s",
+                d_defaults = new()
+                {
+                    { 1, new(true) },
+                    { 2, new("") }
+                }
+            },
 
-            new() { name = "list", func = new(GetBaseLibMethod("BASE_list")), n_pchecks = -1, mask = ".n." },
-            new() { name = "range", func = new(GetBaseLibMethod("BASE_range")), n_pchecks = -2, mask = ".nnn" },
-            new() { name = "matrix", func = new(GetBaseLibMethod("BASE_matrix")), n_pchecks = -3, mask = ".ii." },
+            new()
+            {
+                name = "string",
+                func = new(GetBaseLibMethod("BASE_string")),
+                n_pchecks = -1,
+                mask = "...i",
+                d_defaults = new()
+                {
+                    { 1, new("") },
+                    { 2, new(false) },
+                    { 3, new(2) }
+                }
+            },
+            new()
+            {
+                name = "float",
+                func = new(GetBaseLibMethod("BASE_float")),
+                n_pchecks = -1,
+                mask = "..",
+                d_defaults = new()
+                {
+                    { 1, new(0) }
+                }
+            },
+            new()
+            {
+                name = "integer",
+                func = new(GetBaseLibMethod("BASE_integer")),
+                n_pchecks = -1,
+                mask = "..",
+                d_defaults = new()
+                {
+                    { 1, new(0) }
+                }
+            },
+            new()
+            {
+                name = "bool",
+                func = new(GetBaseLibMethod("BASE_bool")),
+                n_pchecks = -1,
+                mask = "..",
+                d_defaults = new()
+                {
+                    { 1, new(true) }
+                }
+            },
+            new()
+            {
+                name = "bits",
+                func = new(GetBaseLibMethod("BASE_bits")),
+                n_pchecks = -1,
+                mask = ".n.",
+                d_defaults = new()
+                {
+                    { 1, new(0) },
+                    { 2, new(false) }
+                }
+            },
+            new()
+            {
+                name = "bytes",
+                func = new(GetBaseLibMethod("BASE_bytes")),
+                n_pchecks = -1,
+                mask = ".n|s",
+                d_defaults = new()
+                {
+                    { 1, new(0) }
+                }
+            },
 
-            new() { name = "map", func = new(GetBaseLibMethod("BASE_map")), n_pchecks = 3, mask = ".ca" },
-            new() { name = "filter", func = new(GetBaseLibMethod("BASE_filter")), n_pchecks = 3, mask = ".ca" },
-            new() { name = "call", func = new(GetBaseLibMethod("BASE_call")), n_pchecks = -2, mask = null },
-            new() { name = "parse", func = new(GetBaseLibMethod("BASE_parse")), n_pchecks = 3, mask = ".ca" },
+            new()
+            {
+                name = "list",
+                func = new(GetBaseLibMethod("BASE_list")),
+                n_pchecks = -1,
+                mask = ".n|s.",
+                d_defaults = new()
+                {
+                    { 1, new(0) },
+                    { 2, new() }
+                }
+            },
+            new()
+            {
+                name = "range",
+                func = new(GetBaseLibMethod("BASE_range")),
+                n_pchecks = -2,
+                mask = ".nnn",
+                d_defaults = new()
+                {
+                    { 1, new(0) },
+                    { 2, new(0) },
+                    { 3, new(1) }
+                }
+            },
+            new()
+            {
+                name = "matrix",
+                func = new(GetBaseLibMethod("BASE_matrix")),
+                n_pchecks = -3,
+                mask = ".ii.",
+                d_defaults = new()
+                {
+                    { 1, new(0) },
+                    { 2, new(0) },
+                    { 3, new() }
+                }
+            },
 
-            new() { name = ReloadBaseFunc, func = new(GetBaseLibMethod("BASE_reloadbase")), n_pchecks = -1, mask = ".s" },
+            new()
+            {
+                name = "map",
+                func = new(GetBaseLibMethod("BASE_map")),
+                n_pchecks = 3,
+                mask = ".ca"
+            },
+            new()
+            {
+                name = "filter",
+                func = new(GetBaseLibMethod("BASE_filter")),
+                n_pchecks = 3,
+                mask = ".ca"
+            },
+            new()
+            {
+                name = "call",
+                func = new(GetBaseLibMethod("BASE_call")),
+                n_pchecks = -2,
+                mask = null
+            },
+            new()
+            {
+                name = "parse",
+                func = new(GetBaseLibMethod("BASE_parse")),
+                n_pchecks = 3,
+                mask = ".ca"
+            },
 
-            new() { name = string.Empty }
+            new()
+            {
+                name = ReloadBaseFunc,
+                func = new(GetBaseLibMethod("BASE_reloadbase")),
+                n_pchecks = -1,
+                mask = ".s"
+            },
+
+            new()
+            {
+                name = string.Empty
+            }
         };
         public static List<ExRegFunc> BaseFuncs { get => _exRegFuncs; }
 

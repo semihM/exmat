@@ -132,25 +132,10 @@
         MACROPARAM_NUM,
         MACROPARAM_STR,
 
-        MMLT    // .*
-    }
+        MMLT,    // .*
+        MTRS,    // '
 
-    public class ExToken
-    {
-        public TokenType e_type = TokenType.NULL;
-
-        public dynamic d_value;
-
-        public OperatorAssociativity e_assoc = OperatorAssociativity.LEFT;
-
-        public ExToken() { }
-
-        public ExToken(TokenType type, dynamic value, OperatorAssociativity assoc = OperatorAssociativity.LEFT)
-        {
-            e_type = type;
-            d_value = value;
-            e_assoc = assoc;
-        }
-
+        DEFAULT, // ..
+        CARTESIAN // *.*
     }
 }

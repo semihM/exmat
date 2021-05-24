@@ -89,13 +89,13 @@ function MulOf(func,m=0,n=0)
     return total;
 }
 
-class Vector
+class Vector3D
 {
     constructor(_x=0,_y=0,_z=0)
     {
-        ::assert(type(_x) in NumericTypes, "expected numeric value for 'x' of 'Vector'")
-        ::assert(type(_y) in NumericTypes, "expected numeric value for 'y' of 'Vector'")
-        ::assert(type(_z) in NumericTypes, "expected numeric value for 'z' of 'Vector'")
+        ::assert(type(_x) in NumericTypes, "expected numeric value for 'x' of 'Vector3D'")
+        ::assert(type(_y) in NumericTypes, "expected numeric value for 'y' of 'Vector3D'")
+        ::assert(type(_z) in NumericTypes, "expected numeric value for 'z' of 'Vector3D'")
         x = _x;
         y = _y;
         z = _z;
@@ -128,77 +128,77 @@ class Vector
 
     function Scale(scale)
     {
-        ::assert(type(scale) in NumericTypes, "expected numeric value for 'Scale' of 'Vector'")
+        ::assert(type(scale) in NumericTypes, "expected numeric value for 'Scale' of 'Vector3D'")
 
-        return Vector(this.x * scale, this.y * scale, this.z * scale);;
+        return Vector3D(this.x * scale, this.y * scale, this.z * scale);;
     }
 
     // Meta methods
     function _ADD(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '+' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '+' of 'Vector3D'")
 
-        return Vector(this.x + vec.x, this.y + vec.y, this.z + vec.z);
+        return Vector3D(this.x + vec.x, this.y + vec.y, this.z + vec.z);
     }
 
     function _SUB(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '-' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '-' of 'Vector3D'")
 
-        return Vector(this.x + vec.x, this.y + vec.y, this.z + vec.z);
+        return Vector3D(this.x + vec.x, this.y + vec.y, this.z + vec.z);
     }
 
     function _MLT(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '*' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '*' of 'Vector3D'")
 
-        return Vector(this.x * vec.x, this.y * vec.y, this.z * vec.z);
+        return Vector3D(this.x * vec.x, this.y * vec.y, this.z * vec.z);
     }
 
     function _DIV(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '/' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '/' of 'Vector3D'")
 
-        return Vector(this.x / vec.x, this.y / vec.y, this.z / vec.z);
+        return Vector3D(this.x / vec.x, this.y / vec.y, this.z / vec.z);
     }
 
     function _MOD(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '%' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '%' of 'Vector3D'")
 
-        return Vector(this.x % vec.x, this.y % vec.y, this.z % vec.z);
+        return Vector3D(this.x % vec.x, this.y % vec.y, this.z % vec.z);
     }
 
     function _EXP(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '%' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '%' of 'Vector3D'")
 
-        return Vector(this.x ** vec.x, this.y ** vec.y, this.z ** vec.z);
+        return Vector3D(this.x ** vec.x, this.y ** vec.y, this.z ** vec.z);
     }
 
     function _STRING()
     {
-        return "Vector("+this.x+", "+this.y+", "+this.z+")";
+        return "Vector3D("+this.x+", "+this.y+", "+this.z+")";
     }
     //
 
     function Dot(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Dot' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for 'Dot' of 'Vector3D'")
 
         return (this.x * vec.x + this.y * vec.y + this.z * vec.z);
     }
 
     function Cross(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Cross' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for 'Cross' of 'Vector3D'")
 
-        return Vector(this.y * vec.z - this.z * vec.y, this.z * vec.x - this.x * vec.z, this.x * vec.y - this.y * vec.x);
+        return Vector3D(this.y * vec.z - this.z * vec.y, this.z * vec.x - this.x * vec.z, this.x * vec.y - this.y * vec.x);
     }
 
     function AngleBetween(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for 'AngleBetween' of 'Vector'")
+        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for 'AngleBetween' of 'Vector3D'")
 
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
     }

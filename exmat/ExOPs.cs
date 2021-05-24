@@ -87,6 +87,9 @@ namespace ExMat.OPs
         JZS,
         RETURNMACRO,
         MMLT,
+        TRANSPOSE,
+        DEFAULT,
+        CARTESIAN,
         CLOSE = 984
     }
 

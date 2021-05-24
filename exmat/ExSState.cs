@@ -7,7 +7,7 @@ using ExMat.VM;
 
 namespace ExMat.States
 {
-    public class ExSState
+    public class ExSState : IDisposable
     {
         public Dictionary<string, ExObjectPtr> _strings = new();
         public Dictionary<string, ExObjectPtr> _macros = new();
@@ -61,6 +61,7 @@ namespace ExMat.States
             new() { name = "resize", n_pchecks = 2, mask = "ai", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_resize")) },
             new() { name = "index_of", n_pchecks = 2, mask = "a.", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_index_of")) },
             new() { name = "reverse", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_reverse")) },
+            new() { name = "transpose", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_array_transpose")) },
 
             new() { name = string.Empty }
         };
@@ -114,6 +115,7 @@ namespace ExMat.States
         {
             new() { name = string.Empty }
         };
+        private bool disposedValue;
 
         public void Initialize()
         {
@@ -167,6 +169,65 @@ namespace ExMat.States
         public int GetMetaIdx(string mname)
         {
             return _metaMethodsMap != null && _metaMethodsMap.GetDict() != null && _metaMethodsMap.GetDict().ContainsKey(mname) ? _metaMethodsMap.GetDict()[mname].GetInt() : -1;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _rootVM = null;
+
+                    Disposer.DisposeObjects(_constructid,
+                                            _reg,
+                                            _constdict,
+                                            _GC_CHAIN,
+                                            _metaMethodsMap,
+                                            _wref_del,
+                                            _inst_del,
+                                            _closure_del,
+                                            _str_del,
+                                            _num_del,
+                                            _list_del,
+                                            _dict_del,
+                                            _class_del);
+
+                    Disposer.DisposeDict(ref _consts);
+                    Disposer.DisposeDict(ref _blockmacros);
+                    Disposer.DisposeDict(ref _macros);
+                    Disposer.DisposeDict(ref _strings);
+
+                    Disposer.DisposeList(ref _metaMethods);
+                    Disposer.DisposeList(ref _types);
+                    Disposer.DisposeList(ref _wref_delF);
+                    Disposer.DisposeList(ref _inst_delF);
+                    Disposer.DisposeList(ref _closure_delF);
+                    Disposer.DisposeList(ref _str_delF);
+                    Disposer.DisposeList(ref _num_delF);
+                    Disposer.DisposeList(ref _list_delF);
+                    Disposer.DisposeList(ref _dict_delF);
+                    Disposer.DisposeList(ref _class_delF);
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExSState()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

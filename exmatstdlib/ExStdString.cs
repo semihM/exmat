@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using ExMat.API;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -11,38 +12,38 @@ namespace ExMat.BaseLib
     {
         public static int STRING_strip(ExVM vm, int nargs)
         {
-            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            string s = ExAPI.GetFromStack(vm, 2).GetString();
             vm.Pop(nargs + 2);
-            vm.Push(s.GetString().Trim());
+            vm.Push(s.Trim());
             return 1;
         }
         public static int STRING_lstrip(ExVM vm, int nargs)
         {
-            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            string s = ExAPI.GetFromStack(vm, 2).GetString();
             vm.Pop(nargs + 2);
-            vm.Push(s.GetString().TrimStart());
+            vm.Push(s.TrimStart());
             return 1;
         }
 
         public static int STRING_rstrip(ExVM vm, int nargs)
         {
-            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            string s = ExAPI.GetFromStack(vm, 2).GetString();
             vm.Pop(nargs + 2);
-            vm.Push(s.GetString().TrimEnd());
+            vm.Push(s.TrimEnd());
             return 1;
         }
 
         public static int STRING_split(ExVM vm, int nargs)
         {
-            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr c = ExAPI.GetFromStack(vm, 3);
+            string s = ExAPI.GetFromStack(vm, 2).GetString();
+            string c = ExAPI.GetFromStack(vm, 3).GetString();
             StringSplitOptions remove_empty = nargs == 3
                 ? (ExAPI.GetFromStack(vm, 4).GetBool()
                     ? StringSplitOptions.RemoveEmptyEntries
                     : StringSplitOptions.None)
                 : StringSplitOptions.None;
 
-            string[] arr = s.GetString().Split(c.GetString(), remove_empty);
+            string[] arr = s.Split(c, remove_empty);
 
             List<ExObjectPtr> lis = new(arr.Length);
             for (int i = 0; i < arr.Length; i++)
@@ -155,16 +156,70 @@ namespace ExMat.BaseLib
             }
         }
 
+        public static MethodInfo GetStdStringMethod(string name)
+        {
+            return Type.GetType("ExMat.BaseLib.ExStdString").GetMethod(name);
+        }
         private static readonly List<ExRegFunc> _stdstrfuncs = new()
         {
-            new() { name = "compile", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_compile")), n_pchecks = 2, mask = ".s" },
+            new()
+            {
+                name = "compile",
+                func = new(GetStdStringMethod("STRING_compile")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
 
-            new() { name = "strip", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_strip")), n_pchecks = 2, mask = ".s" },
-            new() { name = "lstrip", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_lstrip")), n_pchecks = 2, mask = ".s" },
-            new() { name = "rstrip", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_rstrip")), n_pchecks = 2, mask = ".s" },
-            new() { name = "split", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_split")), n_pchecks = -3, mask = ".ssb" },
-            new() { name = "join", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_join")), n_pchecks = -3, mask = ".sai" },
-            new() { name = "format", func = new(Type.GetType("ExMat.BaseLib.ExStdString").GetMethod("STRING_format")), n_pchecks = -2, mask = null },
+            new()
+            {
+                name = "strip",
+                func = new(GetStdStringMethod("STRING_strip")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
+            new()
+            {
+                name = "lstrip",
+                func = new(GetStdStringMethod("STRING_lstrip")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
+            new()
+            {
+                name = "rstrip",
+                func = new(GetStdStringMethod("STRING_rstrip")),
+                n_pchecks = 2,
+                mask = ".s"
+            },
+            new()
+            {
+                name = "split",
+                func = new(GetStdStringMethod("STRING_split")),
+                n_pchecks = -3,
+                mask = ".ssb",
+                d_defaults = new()
+                {
+                    { 3, new(false) }
+                }
+            },
+            new()
+            {
+                name = "join",
+                func = new(GetStdStringMethod("STRING_join")),
+                n_pchecks = -3,
+                mask = ".sai",
+                d_defaults = new()
+                {
+                    { 3, new(2) }
+                }
+            },
+            new()
+            {
+                name = "format",
+                func = new(GetStdStringMethod("STRING_format")),
+                n_pchecks = -2,
+                mask = null
+            },
 
             new() { name = string.Empty }
         };

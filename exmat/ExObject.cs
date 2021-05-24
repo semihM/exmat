@@ -9,6 +9,47 @@ using ExMat.VM;
 
 namespace ExMat.Objects
 {
+    public static class Disposer
+    {
+        public static void DisposeList<T>(ref List<T> lis) where T : IDisposable, new()
+        {
+            if (lis == null)
+            {
+                return;
+            }
+            foreach (T o in lis)
+            {
+                o.Dispose();
+            }
+            lis.RemoveRange(0, lis.Count);
+            lis = null;
+        }
+        public static void DisposeDict<R, T>(ref Dictionary<R, T> dict)
+            where T : IDisposable, new()
+        {
+            if (dict == null)
+            {
+                return;
+            }
+            foreach (KeyValuePair<R, T> pair in dict)
+            {
+                pair.Value.Dispose();
+            }
+            dict = null;
+        }
+
+        public static void DisposeObjects<T>(params T[] ps) where T : IDisposable, new()
+        {
+            foreach (T o in ps)
+            {
+                if (o != null)
+                {
+                    o.Dispose();
+                }
+            }
+        }
+    }
+
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExObject : IDisposable
     {
@@ -69,9 +110,13 @@ namespace ExMat.Objects
             _val.s_String = s;
         }
 
+        public bool IsFalseable()
+        {
+            return ((int)_type & (int)ExObjFlag.BOOLFALSEABLE) != 0;
+        }
         public bool GetBool()
         {
-            if (((int)_type & (int)ExObjFlag.BOOLFALSEABLE) != 0)
+            if (IsFalseable())
             {
                 switch (_type)
                 {
@@ -80,9 +125,9 @@ namespace ExMat.Objects
                     case ExObjType.NULL:
                         return false;
                     case ExObjType.INTEGER:
-                        return _val.i_Int == 1;
+                        return _val.i_Int != 0;
                     case ExObjType.FLOAT:
-                        return _val.f_Float == 1;
+                        return _val.f_Float != 0;
                     default:
                         return true;
                 }
@@ -150,28 +195,12 @@ namespace ExMat.Objects
                             }
                         case ExObjType.ARRAY:
                             {
-                                if (GetList() != null)
-                                {
-                                    foreach (ExObjectPtr o in _val.l_List)
-                                    {
-                                        o.Dispose();
-                                    }
-                                    _val.l_List.RemoveRange(0, _val.l_List.Count);
-                                }
-                                _val.l_List = null;
+                                Disposer.DisposeList(ref _val.l_List);
                                 break;
                             }
                         case ExObjType.DICT:
                             {
-                                if (_val.d_Dict != null)
-                                {
-                                    foreach (KeyValuePair<string, ExObjectPtr> pair in _val.d_Dict)
-                                    {
-                                        pair.Value.Dispose();
-                                        _val.d_Dict[pair.Key] = null;
-                                    }
-                                }
-                                _val.d_Dict = null;
+                                Disposer.DisposeDict(ref _val.d_Dict);
                                 break;
                             }
                         default:
@@ -704,7 +733,7 @@ namespace ExMat.Objects
 
     public class ExWeakRef : ExRefC
     {
-        public ExObject obj;
+        public ExObjectPtr obj;
 
         public ExWeakRef()
         {
@@ -799,6 +828,24 @@ namespace ExMat.Objects
 
             c._prev = null;
             c._next = null;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (_prev != null)
+            {
+                _prev._next = _next;
+                _prev = null;
+            }
+
+            if (_next != null)
+            {
+                _next._prev = _prev;
+                _next = null;
+            }
+
+            _sState = null;
         }
     }
 
@@ -1014,6 +1061,7 @@ namespace ExMat.Objects
         public string name;
         public ExFunc func;
         public int n_pchecks;
+        public Dictionary<int, ExObjectPtr> d_defaults = new();
         public bool b_isdeleg = false;
         public string mask;
         private bool disposedValue;
@@ -1215,16 +1263,9 @@ namespace ExMat.Objects
         {
             if (!disposedValue)
             {
-                if (disposing && _values != null)
+                if (disposing)
                 {
-                    foreach (ExObjectPtr o in _values)
-                    {
-                        o.Dispose();
-                    }
-
-                    _values.RemoveAll((ExObjectPtr e) => true);
-                    _values = null;
-
+                    Disposer.DisposeList(ref _values);
                     _alloc = 0;
                     _size = 0;
                 }

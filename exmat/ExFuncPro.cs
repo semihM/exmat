@@ -107,55 +107,18 @@ namespace ExMat.FuncPrototype
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            _source.Dispose();
-            _name.Dispose();
 
-            foreach (ExOuterInfo o in _outers)
-            {
-                o.Dispose();
-            }
-            _outers.RemoveAll((ExOuterInfo o) => true);
-            _outers = null;
+            Disposer.DisposeObjects(_source, _name);
 
-            _lineinfos.RemoveAll((ExLineInfo o) => true);
             _lineinfos = null;
-
-            foreach (ExLocalInfo o in _localinfos)
-            {
-                o.Dispose();
-            }
-            _localinfos.RemoveAll((ExLocalInfo o) => true);
-            _localinfos = null;
-
-            foreach (ExFuncPro o in _funcs)
-            {
-                o.Dispose();
-            }
-            _funcs.RemoveAll((ExFuncPro o) => true);
-            _funcs = null;
-
             _defparams = null;
 
-            foreach (ExObjectPtr o in _params)
-            {
-                o.Dispose();
-            }
-            _params.RemoveAll((ExObjectPtr o) => true);
-            _params = null;
-
-            foreach (ExObjectPtr o in _lits)
-            {
-                o.Dispose();
-            }
-            _lits.RemoveAll((ExObjectPtr o) => true);
-            _lits = null;
-
-            foreach (ExInstr o in _instr)
-            {
-                o.Dispose();
-            }
-            _instr.RemoveAll((ExInstr o) => true);
-            _instr = null;
+            Disposer.DisposeList(ref _outers);
+            Disposer.DisposeList(ref _localinfos);
+            Disposer.DisposeList(ref _funcs);
+            Disposer.DisposeList(ref _params);
+            Disposer.DisposeList(ref _lits);
+            Disposer.DisposeList(ref _instr);
         }
     }
 

@@ -15,7 +15,7 @@ namespace ExMat.InfoVar
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExLocalInfo : IDisposable
     {
-        public ExObject name = new();
+        public ExObjectPtr name = new();
         public int _sopc = 0;
         public int _eopc = 0;
         public int _pos = 0;
@@ -96,8 +96,7 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    name.Dispose();
-                    _src.Dispose();
+                    Disposer.DisposeObjects(name, _src);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -168,22 +167,10 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    foreach (ExObjectPtr o in _lits)
-                    {
-                        o.Dispose();
-                    }
-                    _lits.RemoveAll((ExObjectPtr o) => true);
-                    _lits = null;
-
-                    _closure.Dispose();
-                    _instr.Dispose();
-
-                    foreach (ExInstr o in _instrs)
-                    {
-                        o.Dispose();
-                    }
-                    _instrs.RemoveAll((ExInstr o) => true);
-                    _instrs = null;
+                    Disposer.DisposeList(ref _lits);
+                    Disposer.DisposeList(ref _instrs);
+                    Disposer.DisposeObjects(_closure);
+                    Disposer.DisposeObjects(_instr);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

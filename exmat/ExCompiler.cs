@@ -10,8 +10,7 @@ using ExMat.VM;
 
 namespace ExMat.Compiler
 {
-
-    public class ExCompiler
+    public class ExCompiler : IDisposable
     {
         private ExVM _VM;
         private string _source;
@@ -28,7 +27,27 @@ namespace ExMat.Compiler
         private ExScope _scope = new();
 
         public string _error;
+        private bool disposedValue;
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _Fstate = null;
+                    _Estate = null;
+                    _lexer.Dispose();
+                    _VM = null;
+                    _scope = null;
+                    _error = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
 
         public void AddToErrorMessage(string msg)
         {
@@ -759,7 +778,7 @@ namespace ExMat.Compiler
                 pcount++;
                 f_state.AddParam(pname);
 
-                if (_currToken == TokenType.COL)
+                if (_currToken == TokenType.IN)
                 {
                     if (!ReadAndSetToken())
                     {
@@ -768,21 +787,27 @@ namespace ExMat.Compiler
 
                     if (_currToken != TokenType.SPACE)
                     {
-                        AddToErrorMessage("expected a constant SPACE for parameter " + pcount + "'s domain");
-                        return false;
+                        //AddToErrorMessage("expected a constant SPACE for parameter " + pcount + "'s domain");
+                        //return false;
+                        if (!ExExp())
+                        {
+                            return false;
+                        }
                     }
-
-                    AddSpaceConstLoadInstr(_lexer._space, -1);
-                    if (!ReadAndSetToken())
+                    else
                     {
-                        return false;
+                        AddSpaceConstLoadInstr(_lexer._space, -1);
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
                     }
 
                     f_state.AddDefParam(_Fstate.TopTarget());
                 }
                 else // TO-DO add = for referencing global and do get ops
                 {
-                    AddToErrorMessage("expected ':' for a domain reference");
+                    AddToErrorMessage("expected 'in' for a domain reference");
                     return false;
                 }
 
@@ -1697,6 +1722,7 @@ namespace ExMat.Compiler
             {
                 switch (_currToken)
                 {
+                    case TokenType.CARTESIAN:
                     case TokenType.EXP:
                     case TokenType.MLT:
                     case TokenType.MMLT:
@@ -1735,6 +1761,8 @@ namespace ExMat.Compiler
                     return OPC.MOD;
                 case TokenType.MMLT:
                     return OPC.MMLT;
+                case TokenType.CARTESIAN:
+                    return OPC.CARTESIAN;
                 default:
                     return OPC.ADD;
             }
@@ -1837,6 +1865,40 @@ namespace ExMat.Compiler
                             }
                             break;
                         }
+                    case TokenType.MTRS:
+                        {
+                            if (!ReadAndSetToken())
+                            {
+                                return false;
+                            }
+
+                            switch (_Estate._type)
+                            {
+                                case ExEType.EXPRESSION:
+                                //{
+                                //    AddToErrorMessage("can't get transpose of an expression");
+                                //    return false;
+                                //}
+                                case ExEType.OBJECT:
+                                case ExEType.BASE:
+                                case ExEType.VAR:
+                                    {
+                                        int s = _Fstate.PopTarget();
+                                        _Fstate.AddInstr(OPC.TRANSPOSE, _Fstate.PushTarget(), s, 0, 0);
+                                        break;
+                                    }
+                                case ExEType.OUTER:
+                                    {
+                                        int t1 = _Fstate.PushTarget();
+                                        int t2 = _Fstate.PushTarget();
+                                        _Fstate.AddInstr(OPC.GETOUTER, t2, _Estate._pos, 0, 0);
+                                        _Fstate.AddInstr(OPC.TRANSPOSE, t1, t2, 0, 0);
+                                        _Fstate.PopTarget();
+                                        break;
+                                    }
+                            }
+                            return true;
+                        }
                     case TokenType.INC:
                     case TokenType.DEC:
                         {
@@ -1855,7 +1917,8 @@ namespace ExMat.Compiler
                             {
                                 case ExEType.EXPRESSION:
                                     {
-                                        throw new Exception("can't increment or decrement an expression");
+                                        AddToErrorMessage("can't increment or decrement an expression");
+                                        return false;
                                     }
                                 case ExEType.OBJECT:
                                 case ExEType.BASE:
@@ -2084,9 +2147,10 @@ namespace ExMat.Compiler
                         pos = _Estate._pos;
                         return true;
                     }
+                case TokenType.DEFAULT:
                 case TokenType.NULL:
                     {
-                        _Fstate.AddInstr(OPC.LOAD_NULL, _Fstate.PushTarget(), 1, 0, 0);
+                        _Fstate.AddInstr(OPC.LOAD_NULL, _Fstate.PushTarget(), 1, _currToken == TokenType.DEFAULT ? 1 : 0, 0);
                         if (!ReadAndSetToken())
                         {
                             return false;
@@ -2691,6 +2755,7 @@ namespace ExMat.Compiler
         public bool ExFuncCall()
         {
             int _this = 1;
+
             while (_currToken != TokenType.R_CLOSE)
             {
                 if (!ExExp())
@@ -3140,5 +3205,19 @@ namespace ExMat.Compiler
             return true;
         }
 
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExCompiler()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

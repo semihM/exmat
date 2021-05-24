@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using ExMat.Class;
 using ExMat.FuncPrototype;
@@ -47,11 +48,48 @@ namespace ExMat.Closure
         {
             return "OUTER(" + idx + ", *(" + _valptr.ToString() + "), " + _v.ToString() + ")";
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+
+            Disposer.DisposeObjects(_valptr, _v);
+
+            if (_prev != null)
+            {
+                _prev._next = _next;
+                _prev = null;
+            }
+            if (_next != null)
+            {
+                _next._prev = _prev;
+                _next = null;
+            }
+
+            f_next = null;
+        }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClosure : ExCollectable
     {
+        public ExWeakRef _envweakref;
+        public ExClass _base;
+        public ExFuncPro _func;
+        public List<ExObjectPtr> _outervals;
+        public List<ExObjectPtr> _defparams;
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            _base = null;
+
+            _envweakref = null;
+            Disposer.DisposeObjects(_func);
+            Disposer.DisposeList(ref _outervals);
+            Disposer.DisposeList(ref _defparams);
+        }
+
         public static ExClosure Create(ExSState exS, ExFuncPro fpro)
         {
             ExClosure cls = new() { _sState = exS, _func = fpro };
@@ -119,25 +157,35 @@ namespace ExMat.Closure
             return "CLOSURE(" + _func._name.GetString() + ")";
         }
 
-        public ExWeakRef _envweakref;
-        public ExClass _base;
-        public ExFuncPro _func;
-        public List<ExObjectPtr> _outervals;
-        public List<ExObjectPtr> _defparams;
 
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExNativeClosure : ExCollectable
+    public class ExNativeClosure : ExCollectable, IDisposable
     {
         public ExWeakRef _envweakref;
         public ExObjectPtr _name;
         public ExFunc _func;
         public List<ExObjectPtr> _outervals;
         public List<int> _typecheck = new();
+        public Dictionary<int, ExObjectPtr> d_defaults = new();
         public int n_outervals;
         public int n_paramscheck;
         public bool b_deleg = false;
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            _envweakref = null;
+            _typecheck = null;
+            n_outervals = 0;
+            n_paramscheck = 0;
+
+            Disposer.DisposeObjects(_name, _func);
+            Disposer.DisposeList(ref _outervals);
+            Disposer.DisposeDict(ref d_defaults);
+        }
+
         public ExNativeClosure()
         {
             _type = ExObjType.NATIVECLOSURE;

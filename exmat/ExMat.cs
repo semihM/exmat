@@ -40,7 +40,8 @@ namespace ExMat
         WEAKREF = 1 << 15,
         OUTER = 1 << 16,
         FUNCPRO = 1 << 17,
-        DICT = 1 << 18
+        DICT = 1 << 18,
+        DEFAULT = 1 << 19
     }
 
     public enum ExObjFlag
@@ -53,6 +54,7 @@ namespace ExMat
 
     public enum ExObjType
     {
+        DEFAULT = ExRawType.DEFAULT | ExObjFlag.BOOLFALSEABLE,
         NULL = ExRawType.NULL | ExObjFlag.BOOLFALSEABLE,
         INTEGER = ExRawType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
         FLOAT = ExRawType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,

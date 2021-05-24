@@ -377,7 +377,7 @@ printl("-----------------------")
 var dir = "./test.txt"
 var dir1 = "./test1.txt"
 var dir2 = "./test2.txt"
-var content = "hello test\twriting files"
+var content = "hello test\n\twriting files"
 
 write_text(dir,content)
 
@@ -404,4 +404,4 @@ printl(split("   12345 789  "," ",true))
 printl("-----------------------")
 printl("Execution time(ms):"+(time()-start))
 
-print("-----------------------")
+printl("-----------------------")

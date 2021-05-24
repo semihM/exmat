@@ -38,8 +38,7 @@ namespace ExMat.Class
             {
                 if (disposing)
                 {
-                    val.Dispose();
-                    attrs.Dispose();
+                    Disposer.DisposeObjects(val, attrs);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -261,35 +260,11 @@ namespace ExMat.Class
         {
             base.Dispose(disposing);
 
-            if (_base != null)
-            {
-                _base.Dispose();
-            }
+            Disposer.DisposeObjects(_base, _attrs, _hook);
 
-            _attrs.Dispose();
-            _hook.Dispose();
-
-            foreach (ExClassMem o in _methods)
-            {
-                o.Dispose();
-            }
-            _methods.RemoveAll((ExClassMem o) => true);
-            _methods = null;
-
-            foreach (ExClassMem o in _defvals)
-            {
-                o.Dispose();
-            }
-            _defvals.RemoveAll((ExClassMem o) => true);
-            _defvals = null;
-
-            foreach (ExObjectPtr o in _metas)
-            {
-                o.Dispose();
-            }
-            _metas.RemoveAll((ExObjectPtr o) => true);
-            _metas = null;
-
+            Disposer.DisposeList(ref _methods);
+            Disposer.DisposeList(ref _defvals);
+            Disposer.DisposeList(ref _metas);
         }
     }
 
@@ -388,21 +363,8 @@ namespace ExMat.Class
         {
             base.Dispose(disposing);
 
-            if (_class != null)
-            {
-                _class.Dispose();
-            }
-
-            _hook.Dispose();
-            _up.Dispose();
-
-            foreach (ExObjectPtr o in _values)
-            {
-                o.Dispose();
-            }
-            _values.RemoveAll((ExObjectPtr o) => true);
-            _values = null;
-
+            Disposer.DisposeObjects(_class, _hook, _up);
+            Disposer.DisposeList(ref _values);
         }
     }
 }

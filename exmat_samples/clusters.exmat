@@ -1,7 +1,20 @@
+// Space variables
+var R = @R@
+var R2 = @R'2@
+var Rp3 = @R+'3@
+
+var zp = @z+@
+var zp3 = @z+'3@
+var zn2 = @z-'2@
+
+var A2 = @A'2@
+
+///////////////////////////////////////////////////////////////////
+
 // Cluster with 1 parameter
 printl("----------------------")
 printl("A is in R^3 and defined as: { X = (x0, x1, x1 - x0) | x0 > x1 ; (x0, x1) in R^2 }")
-cluster A { x : @R'2@ ; x[0] > x[1] => [x[0], x[1], x[1] - x[0]] }
+cluster A { x in R2 ; x[0] > x[1] => [x[0], x[1], x[1] - x[0]] }
 printl("A: "+ string(A))
 
 printl("----------------------")
@@ -23,10 +36,12 @@ printl(string(a2,0,3) + " in A ? " + string(b_a2))
 if(b_a2)
     printl("resulting element: "+ string(parse(A,a2)))
 
+///////////////////////////////////////////////////////////////////
+
 // Cluster with 2 parameters
 printl("++++++++++++++++++++++")
 printl("B is in Z+^4 - {0} and defined as: { Y = (y0, y1, y2, x) | y0 + y1 + y2 < e^x ; (y0, y1, y2) in Z+^3 - {0} ; x in Z+ - {0} }")
-cluster B { x : @z+@, y: @z+'3@ ; y[0] + y[1] + y[2] < exp(x) => [y[0], y[1], y[2], x] }
+cluster B { x in zp, y in zp3 ; y[0] + y[1] + y[2] < exp(x) => [y[0], y[1], y[2], x] }
 printl("B: "+ string(B))
 
 printl("----------------------")
@@ -36,12 +51,16 @@ printl(string(elements_1,0,3) + " in B ? " + string(b_e1))
 if(b_e1)
     printl("resulting element: "+ string(parse(B,elements_1)))
 
+///////////////////////////////////////////////////////////////////
+
 printl("----------------------")
 var elements_2 = [ 5, [1, 1, 1] ]
 var b_e2 = elements_2 in B
 printl(string(elements_2,0,3) + " in B ? " + string(b_e2))
 if(b_e2)
     printl("resulting element: "+ string(parse(B,elements_2)))
+
+///////////////////////////////////////////////////////////////////
 
 printl("----------------------")
 var elements_3 = [ 1, [0, -5, 10] ]
@@ -50,19 +69,32 @@ printl(string(elements_3,0,3) + " in B ? " + string(b_e3))
 if(b_e3)
     printl("resulting element: "+ string(parse(B,elements_3)))
 
+///////////////////////////////////////////////////////////////////
+
 printl("++++++++++++++++++++++")
 printl("C is in R+^3 and defined as: { X = (x2, x1, x0) | (x0, x1, x2) in R^3 }")
-cluster C { X : @R+'3@ ; X => X.reverse() }
+cluster C { X in Rp3 ; X => X.reverse() }
+
 printl(C)
 printl([0,2,3] in C ? C([0,2,3]) : false)
 printl([-7,22,3] in C ? C([-7,22,3]) : false)
 printl([11,3] in C ? C([11,3]) : false)
 
+///////////////////////////////////////////////////////////////////
+
 printl("++++++++++++++++++++++")
 printl("D is in Z-^2 - {0} and defined as: { Z = (z0, z1) | (z0, z1) in Z-^2 - {0} }")
-cluster D { Z : @z-'2@ ; Z => Z }
+cluster D { Z in zn2 ; Z => Z }
 printl(D)
 printl([-100,-93] in D ? D([-100,-93]) : false)
 printl([-11,-1] in D ? call(D,[-11,-1]) : false)
 printl([-0.5,-PI] in D ? call(D,[-0.5,-PI]) : false)
 printl([0,-90] in D ? call(D,[0,-90]) : false)
+
+///////////////////////////////////////////////////////////////////
+
+printl("++++++++++++++++++++++")
+printl("F is the cartesian product of A and B : { (a,b) | a in A and b in B}")
+cluster F{x in R2, y in A2 ; true => x*.*y }
+printl(F)
+printl(F([1,2],["x","y"]))
