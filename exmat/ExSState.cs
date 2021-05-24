@@ -168,7 +168,7 @@ namespace ExMat.States
 
         public int GetMetaIdx(string mname)
         {
-            return _metaMethodsMap != null && _metaMethodsMap.GetDict() != null && _metaMethodsMap.GetDict().ContainsKey(mname) ? _metaMethodsMap.GetDict()[mname].GetInt() : -1;
+            return _metaMethodsMap != null && _metaMethodsMap.GetDict() != null && _metaMethodsMap.GetDict().ContainsKey(mname) ? (int)_metaMethodsMap.GetDict()[mname].GetInt() : -1;
         }
 
         protected virtual void Dispose(bool disposing)

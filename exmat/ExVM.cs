@@ -48,6 +48,7 @@ namespace ExMat.VM
         public ExObjectPtr _lastreturn = new();
         public int n_return = 0;
         public bool b_main = true;
+        public bool _skip_sequence_returnmain = false;
 
         public void Print(string str)
         {
@@ -104,17 +105,29 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        if (obj.GetFloat() % 1 == 0.0)
+                        double r = obj.GetFloat();
+                        if (r % 1 == 0.0)
                         {
-                            res = new(obj.GetFloat().ToString("0.0"));
+                            if (r < 1e+14)
+                            {
+                                res = new(obj.GetFloat().ToString());
+                            }
+                            else
+                            {
+                                res = new(obj.GetFloat().ToString("E14"));
+                            }
                         }
-                        else if (obj.GetFloat() >= (float)0.000001)
+                        else if (r >= (double)1e-14)
                         {
-                            res = new(obj.GetFloat().ToString("0.000000"));
+                            res = new(obj.GetFloat().ToString("0.00000000000000"));
+                        }
+                        else if (r < 1e+14)
+                        {
+                            res = new(obj.GetFloat().ToString());
                         }
                         else
                         {
-                            res = new(obj.GetFloat().ToString());
+                            res = new(obj.GetFloat().ToString("E14"));
                         }
                         break;
                     }
@@ -292,21 +305,53 @@ namespace ExMat.VM
                 case ExObjType.CLOSURE:
                     {
                         ExFuncPro tmp = obj._val._Closure._func;
-                        string s = (tmp.is_rule ? "RULE"
-                                                : tmp.is_cluster ? "CLUSTER"
-                                                                 : tmp.is_macro ? "MACRO"
-                                                                                : obj._type.ToString())
-                                + "(" + obj._val._Closure._func._name.GetString() + ", ";
-
-                        if (tmp.n_defparams > 0 && !tmp.is_cluster && !tmp.is_rule)
+                        string s = string.Empty;
+                        switch (tmp.type)
                         {
-                            s += (tmp.n_params - 1) + " params (min:" + (tmp.n_params - tmp.n_defparams - 1) + ")";
+                            case ExClosureType.FUNCTION:
+                                {
+                                    s = "FUNCTION(" + tmp._name.GetString() + ", ";
+                                    if (tmp.n_defparams > 0)
+                                    {
+                                        s += (tmp.n_params - 1) + " params (min:" + (tmp.n_params - tmp.n_defparams - 1) + "))";
+                                    }
+                                    else
+                                    {
+                                        s += (tmp.n_params - 1) + " params)";
+                                    }
+                                    break;
+                                }
+                            case ExClosureType.RULE:
+                                {
+                                    s = "RULE(" + tmp._name.GetString() + ", ";
+                                    s += (tmp.n_params - 1) + " params)";
+                                    break;
+                                }
+                            case ExClosureType.MACRO:
+                                {
+                                    s = "MACRO(" + tmp._name.GetString() + ", ";
+                                    if (tmp.n_defparams > 0)
+                                    {
+                                        s += (tmp.n_params - 1) + " params (min:" + (tmp.n_params - tmp.n_defparams - 1) + ")";
+                                    }
+                                    else
+                                    {
+                                        s += ")";
+                                    }
+                                    break;
+                                }
+                            case ExClosureType.CLUSTER:
+                                {
+                                    s = "CLUSTER(" + tmp._name.GetString() + ", ";
+                                    s += (tmp.n_params - 1) + " params)";
+                                    break;
+                                }
+                            case ExClosureType.SEQUENCE:
+                                {
+                                    s = "SEQUENCE(" + tmp._name.GetString() + ", 1 params)";
+                                    break;
+                                }
                         }
-                        else if (!tmp.is_macro)
-                        {
-                            s += (tmp.n_params - 1) + " params";
-                        }
-                        s += ")";
 
                         res = new(s);
                         break;
@@ -335,7 +380,7 @@ namespace ExMat.VM
             {
                 case ExObjType.INTEGER:
                     {
-                        res = new((float)obj.GetInt());
+                        res = new(obj.GetInt());
                         break;
                     }
                 case ExObjType.FLOAT:
@@ -345,25 +390,25 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        if (float.TryParse(obj.GetString(), out float r))
+                        if (double.TryParse(obj.GetString(), out double r))
                         {
                             res = new(r);
                         }
                         else
                         {
-                            AddToErrorMessage("failed to parse string as float");
+                            AddToErrorMessage("failed to parse string as double");
                             return false;
                         }
                         break;
                     }
                 case ExObjType.BOOL:
                     {
-                        res = new((float)(obj._val.b_Bool ? 1.0 : 0.0));
+                        res = new((double)(obj._val.b_Bool ? 1.0 : 0.0));
                         break;
                     }
                 default:
                     {
-                        AddToErrorMessage("failed to parse " + obj._type.ToString() + " as float");
+                        AddToErrorMessage("failed to parse " + obj._type.ToString() + " as double");
                         return false;
                     }
             }
@@ -517,6 +562,11 @@ namespace ExMat.VM
             return true;
         }
 
+        public void Pop(long n)
+        {
+            Pop((int)n);
+        }
+
         public void Pop(int n)
         {
             for (int i = 0; i < n; i++)
@@ -555,8 +605,7 @@ namespace ExMat.VM
         public void Push(string o) => _stack[_top++].Assign(o);
         public void Push(int o) => _stack[_top++].Assign(o);
         public void Push(long o) => _stack[_top++].Assign((int)o);
-        public void Push(float o) => _stack[_top++].Assign(o);
-        public void Push(double o) => _stack[_top++].Assign((float)o);
+        public void Push(double o) => _stack[_top++].Assign(o);
         public void Push(bool o) => _stack[_top++].Assign(o);
         public void Push(ExObject o) => _stack[_top++].Assign(o);
         public void Push(ExObjectPtr o) => _stack[_top++].Assign(o);
@@ -677,6 +726,11 @@ namespace ExMat.VM
             return true;
         }
 
+        public bool StartCall(ExClosure cls, long trg, long args, long sbase, bool tail)
+        {
+            return StartCall(cls, (int)trg, (int)args, (int)sbase,tail);
+        }
+
         public bool StartCall(ExClosure cls, int trg, int args, int sbase, bool tail)
         {
             ExFuncPro pro = cls._func;
@@ -708,7 +762,9 @@ namespace ExMat.VM
 
                 _stack[sbase + p].Assign(new ExList(varglis));
             }
-            else if (!pro.is_cluster && !pro.is_rule)
+            else if (!pro.IsCluster()
+                     && !pro.IsRule()
+                     && !pro.IsSequence())
             {
                 if (p != nargs)
                 {
@@ -740,7 +796,7 @@ namespace ExMat.VM
                     }
                     else
                     {
-                        if (n_def > 0 && !pro.is_rule && !pro.is_cluster)
+                        if (n_def > 0 && !pro.IsCluster() && !pro.IsCluster())
                         {
                             AddToErrorMessage("'" + pro._name.GetString() + "' takes min: " + (p - n_def - 1) + ", max:" + (p - 1) + " arguments");
                         }
@@ -772,7 +828,8 @@ namespace ExMat.VM
                     }
                 }
             }
-            if (pro.is_rule)
+            
+            if (pro.IsRule())
             {
                 int t_n = pro._localinfos.Count;
                 if (t_n != nargs)
@@ -781,11 +838,50 @@ namespace ExMat.VM
                     return false;
                 }
             }
-            else if (pro.is_cluster)
+            else if (pro.IsCluster())
             {
                 if (!DoClusterParamChecks(cls, nargs, sbase))
                 {
                     return false;
+                }
+            }
+            else if(pro.IsSequence())
+            {
+                if(nargs != 2)
+                {
+                    AddToErrorMessage("sequences require an argument to be called");
+                    return false;
+                }
+                else
+                {
+                    if(!_stack[sbase + 1].IsNumeric())
+                    {
+                        AddToErrorMessage("expected integer or float as sequence argument");
+                        return false;
+                    }
+                    else
+                    {
+                        _skip_sequence_returnmain = false;
+                        long ind = _stack[sbase + 1].GetInt();
+                        if(ind < 0)
+                        {
+                            AddToErrorMessage("index can't be negative");
+                            return false;
+                        }
+                        string idx = ind.ToString();
+                        for (int i = 2; i < cls._func.n_params; i++)
+                        {
+                            ExObjectPtr c = cls._func._params[i];
+                            if (c.GetString() == idx)
+                            {
+                                // TO-DO doesnt return to main, also refactor this
+                                // TO-DO optimize
+                                _stack[sbase - 1].Assign(cls._defparams[i - 2]);
+                                _skip_sequence_returnmain = true;
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1335,7 +1431,10 @@ namespace ExMat.VM
                 }
 
                 bool end = ci._val != null && ci._val._root;
-                LeaveFrame();
+                if(!LeaveFrame())
+                {
+                    throw new Exception("something went wrong with the stack!");
+                }
                 if (end)
                 {
                     break;
@@ -1394,7 +1493,7 @@ namespace ExMat.VM
                         continue;
                     case OPC.LOAD:
                         {
-                            GetTargetInStack(i).Assign(ci._val._lits[i.arg1]);
+                            GetTargetInStack(i).Assign(ci._val._lits[(int)i.arg1]);
                             continue;
                         }
                     case OPC.LOAD_INT:
@@ -1414,13 +1513,13 @@ namespace ExMat.VM
                         }
                     case OPC.LOAD_SPACE:
                         {
-                            GetTargetInStack(i).Assign(FindSpaceObject(i.arg1));
+                            GetTargetInStack(i).Assign(FindSpaceObject((int)i.arg1));
                             continue;
                         }
                     case OPC.DLOAD:
                         {
-                            GetTargetInStack(i).Assign(ci._val._lits[i.arg1]);
-                            GetTargetInStack(i.arg2.GetInt()).Assign(ci._val._lits[i.arg3.GetInt()]);
+                            GetTargetInStack(i).Assign(ci._val._lits[(int)i.arg1]);
+                            GetTargetInStack(i.arg2.GetInt()).Assign(ci._val._lits[(int)i.arg3.GetInt()]);
                             continue;
                         }
                     case OPC.CALL_TAIL:
@@ -1492,7 +1591,7 @@ namespace ExMat.VM
                                         {
                                             case ExObjType.CLOSURE:
                                                 {
-                                                    sbase = _stackbase + i.arg2.GetInt();
+                                                    sbase = _stackbase + (int)i.arg2.GetInt();
                                                     _stack[sbase].Assign(instance);
                                                     if (!StartCall(tmp2._val._Closure, -1, i.arg3.GetInt(), sbase, false))
                                                     {
@@ -1503,7 +1602,7 @@ namespace ExMat.VM
                                                 }
                                             case ExObjType.NATIVECLOSURE:
                                                 {
-                                                    sbase = _stackbase + i.arg2.GetInt();
+                                                    sbase = _stackbase + (int)i.arg2.GetInt();
                                                     _stack[sbase].Assign(instance);
                                                     if (!CallNative(tmp2._val._NativeClosure, i.arg3.GetInt(), sbase, ref tmp2))
                                                     {
@@ -1554,7 +1653,7 @@ namespace ExMat.VM
                     case OPC.PREPCALL:
                     case OPC.PREPCALLK:
                         {
-                            ExObjectPtr k = i.op == OPC.PREPCALLK ? ci._val._lits[i.arg1] : GetTargetInStack(i.arg1);
+                            ExObjectPtr k = i.op == OPC.PREPCALLK ? ci._val._lits[(int)i.arg1] : GetTargetInStack(i.arg1);
                             ExObjectPtr obj = GetTargetInStack(i.arg2);
 
                             if (!Getter(ref obj, ref k, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
@@ -1570,7 +1669,7 @@ namespace ExMat.VM
                     case OPC.GETK:
                         {
                             ExObjectPtr tmp = GetTargetInStack(i.arg2);
-                            ExObjectPtr lit = ci._val._lits[i.arg1];
+                            ExObjectPtr lit = ci._val._lits[(int)i.arg1];
 
                             if (!Getter(ref tmp, ref lit, ref tmpreg, false, (ExFallback)i.arg2.GetInt()))
                             {
@@ -1695,7 +1794,7 @@ namespace ExMat.VM
                     case OPC.RETURNBOOL:
                     case OPC.RETURN:
                         {
-                            if (ReturnValue(i.arg0.GetInt(), i.arg1, ref tmpreg, i.op == OPC.RETURNBOOL))
+                            if (ReturnValue((int)i.arg0.GetInt(), (int)i.arg1, ref tmpreg, i.op == OPC.RETURNBOOL))
                             {
                                 SwapObjects(o, ref tmpreg);
                                 return true;
@@ -1736,13 +1835,13 @@ namespace ExMat.VM
                         {
                             if (!GetTargetInStack(i.arg0).GetBool())
                             {
-                                ci._val._idx_instrs += i.arg1;
+                                ci._val._idx_instrs += (int)i.arg1;
                             }
                             continue;
                         }
                     case OPC.JMP:
                         {
-                            ci._val._idx_instrs += i.arg1;
+                            ci._val._idx_instrs += (int)i.arg1;
                             continue;
                         }
                     case OPC.JCMP:
@@ -1753,7 +1852,7 @@ namespace ExMat.VM
                             }
                             if (!tmpreg.GetBool())
                             {
-                                ci._val._idx_instrs += i.arg1;
+                                ci._val._idx_instrs += (int)i.arg1;
                             }
                             continue;
                         }
@@ -1761,21 +1860,21 @@ namespace ExMat.VM
                         {
                             if (!GetTargetInStack(i.arg0).GetBool())
                             {
-                                ci._val._idx_instrs += i.arg1;
+                                ci._val._idx_instrs += (int)i.arg1;
                             }
                             continue;
                         }
                     case OPC.GETOUTER:
                         {
                             ExClosure currcls = ci._val._closure.GetClosure();
-                            ExOuter outr = currcls._outervals[i.arg1]._val._Outer;
+                            ExOuter outr = currcls._outervals[(int)i.arg1]._val._Outer;
                             GetTargetInStack(i).Assign(outr._valptr);
                             continue;
                         }
                     case OPC.SETOUTER:
                         {
                             ExClosure currcls = ci._val._closure.GetClosure();
-                            ExOuter outr = currcls._outervals[i.arg1]._val._Outer;
+                            ExOuter outr = currcls._outervals[(int)i.arg1]._val._Outer;
                             outr._valptr.Assign(GetTargetInStack(i.arg2));
                             if (i.arg0.GetInt() != 985)
                             {
@@ -1794,12 +1893,12 @@ namespace ExMat.VM
                                     }
                                 case (int)ExNOT.ARRAY:
                                     {
-                                        GetTargetInStack(i).Assign(new List<ExObjectPtr>(i.arg1));
+                                        GetTargetInStack(i).Assign(new List<ExObjectPtr>((int)i.arg1));
                                         continue;
                                     }
                                 case (int)ExNOT.CLASS:
                                     {
-                                        if (!DoClassOP(GetTargetInStack(i), i.arg1, i.arg2.GetInt()))
+                                        if (!DoClassOP(GetTargetInStack(i), (int)i.arg1, (int)i.arg2.GetInt()))
                                         {
                                             AddToErrorMessage("failed to create class");
                                             return FixStackAfterError();
@@ -1821,7 +1920,7 @@ namespace ExMat.VM
                                 case (int)ArrayAType.STACK:
                                     val.Assign(GetTargetInStack(i.arg1)); break;
                                 case (int)ArrayAType.LITERAL:
-                                    val.Assign(ci._val._lits[i.arg1]); break;
+                                    val.Assign(ci._val._lits[(int)i.arg1]); break;
                                 case (int)ArrayAType.INTEGER:
                                     val.Assign(i.arg1); break;
                                 case (int)ArrayAType.FLOAT:
@@ -1922,7 +2021,7 @@ namespace ExMat.VM
                         {
                             if (_openouters != null)
                             {
-                                CloseOuters(GetTargetInStack(i.arg1).GetInt());
+                                CloseOuters((int)GetTargetInStack(i.arg1).GetInt());
                             }
                             continue;
                         }
@@ -1931,7 +2030,7 @@ namespace ExMat.VM
                             if (!GetTargetInStack(i.arg2).GetBool())
                             {
                                 GetTargetInStack(i).Assign(i.arg2);
-                                ci._val._idx_instrs += i.arg1;
+                                ci._val._idx_instrs += (int)i.arg1;
                             }
                             continue;
                         }
@@ -1940,7 +2039,7 @@ namespace ExMat.VM
                             if (GetTargetInStack(i.arg2).GetBool())
                             {
                                 GetTargetInStack(i).Assign(i.arg2);
-                                ci._val._idx_instrs += i.arg1;
+                                ci._val._idx_instrs += (int)i.arg1;
                             }
                             continue;
                         }
@@ -1962,7 +2061,7 @@ namespace ExMat.VM
                         {
                             ExClosure cl = ci._val._closure.GetClosure();
                             ExFuncPro fp = cl._func;
-                            if (!DoClosureOP(GetTargetInStack(i), fp._funcs[i.arg1]))   // CONTINUE HERE, REFERENCES ARE WRONG FOR $
+                            if (!DoClosureOP(GetTargetInStack(i), fp._funcs[(int)i.arg1]))   // CONTINUE HERE, REFERENCES ARE WRONG FOR $
                             {
                                 throw new Exception("failed to create closure");
                             }
@@ -2015,7 +2114,7 @@ namespace ExMat.VM
                         }
                     case OPC.RETURNMACRO:   // TO-DO
                         {
-                            if (ReturnValue(i.arg0.GetInt(), i.arg1, ref tmpreg, false, true))
+                            if (ReturnValue((int)i.arg0.GetInt(), (int)i.arg1, ref tmpreg, false, true))
                             {
                                 SwapObjects(o, ref tmpreg);
                                 return true;
@@ -2105,8 +2204,8 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            self.GetList()[k.GetInt()].Release();
-                            self.GetList().RemoveAt(k.GetInt());
+                            self.GetList()[(int)k.GetInt()].Release();
+                            self.GetList().RemoveAt((int)k.GetInt());
                             return true;
                         }
                     }
@@ -2140,7 +2239,7 @@ namespace ExMat.VM
 
             tmp = ExOuter.Create(_sState, sidx);
             tmp._next = opo;
-            tmp.idx = sidx.GetInt() - FindFirstNullInStack();
+            tmp.idx = (int)sidx.GetInt() - FindFirstNullInStack();
             //tmp._refc++;
             opo.Assign(tmp);
             target.Assign(new ExObjectPtr(tmp));
@@ -2177,7 +2276,7 @@ namespace ExMat.VM
                             }
                         case ExOuterType.OUTER:
                             {
-                                cl._outervals[i].Assign(ci._val._closure._val._Closure._outervals[ov._src.GetInt()]);
+                                cl._outervals[i].Assign(ci._val._closure._val._Closure._outervals[(int)ov._src.GetInt()]);
                                 break;
                             }
                     }
@@ -2456,7 +2555,8 @@ namespace ExMat.VM
                         p.Assign(make_bool ? new(_stack[_stackbase + a1].GetBool()) : _stack[_stackbase + a1]);
                     }
 
-                    if (b_main && (_lastreturn._type == ExObjType.NULL || n_return > 0)) // return for main
+                    // TO-DO instances and vars are 1 idx off
+                    if (b_main && !_skip_sequence_returnmain && (_lastreturn._type == ExObjType.NULL || n_return > 0)) // return for main
                     {
                         _lastreturn.Assign(p);
                         n_return--;
@@ -2468,12 +2568,14 @@ namespace ExMat.VM
                 }
             }
 
-
-            LeaveFrame();
+            if(!LeaveFrame())
+            {
+                throw new Exception("something went wrong with the stack!");
+            }
             return r;
         }
 
-        public bool DoBitwiseOP(int iop, ExObjectPtr a, ExObjectPtr b, ExObjectPtr res)
+        public bool DoBitwiseOP(long iop, ExObjectPtr a, ExObjectPtr b, ExObjectPtr res)
         {
             int a_mask = (int)a._type | (int)b._type;
             if (a_mask == (int)ExObjType.INTEGER)
@@ -2487,9 +2589,9 @@ namespace ExMat.VM
                     case BitOP.XOR:
                         res.Assign(a.GetInt() ^ b.GetInt()); break;
                     case BitOP.SHIFTL:
-                        res.Assign(a.GetInt() << b.GetInt()); break;
+                        res.Assign(a.GetInt() << (int)b.GetInt()); break;
                     case BitOP.SHIFTR:
-                        res.Assign(a.GetInt() >> b.GetInt()); break;
+                        res.Assign(a.GetInt() >> (int)b.GetInt()); break;
                     default:
                         {
                             throw new Exception("unknown bitwise operation");
@@ -2503,7 +2605,7 @@ namespace ExMat.VM
             }
             return true;
         }
-        private static bool InnerDoArithmeticOPInt(OPC op, int a, int b, ref ExObjectPtr res)
+        private static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObjectPtr res)
         {
             switch (op)
             {
@@ -2517,7 +2619,7 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
                             //AddToErrorMessage("division by zero");
                             break;
                         }
@@ -2528,7 +2630,7 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
                             //AddToErrorMessage("modulo by zero");
                             break;
                         }
@@ -2547,7 +2649,7 @@ namespace ExMat.VM
             return true;
         }
 
-        private static bool InnerDoArithmeticOPFloat(OPC op, float a, float b, ref ExObjectPtr res)
+        private static bool InnerDoArithmeticOPFloat(OPC op, double a, double b, ref ExObjectPtr res)
         {
             switch (op)
             {
@@ -2561,7 +2663,7 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
                             //AddToErrorMessage("division by zero");
                             break;
                         }
@@ -2572,7 +2674,7 @@ namespace ExMat.VM
                     {
                         if (b == 0)
                         {
-                            res = new(a > 0 ? float.PositiveInfinity : (a == 0 ? float.NaN : float.NegativeInfinity));
+                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
                             //AddToErrorMessage("modulo by zero");
                             break;
                         }
@@ -2581,7 +2683,7 @@ namespace ExMat.VM
                     }
                 case OPC.EXP:
                     {
-                        res = new((float)Math.Pow(a, b)); break;
+                        res = new((double)Math.Pow(a, b)); break;
                     }
                 default:
                     {
@@ -2660,7 +2762,7 @@ namespace ExMat.VM
 
                 for (int j = 0; j < cB; j++)
                 {
-                    float total = 0;
+                    double total = 0;
                     for (int k = 0; k < cA; k++)
                     {
                         total += row[k].GetFloat() * B[k]._val.l_List[j].GetFloat();
@@ -2852,7 +2954,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool CallMeta(ref ExObjectPtr cls, ExMetaM meta, int nargs, ref ExObjectPtr res)
+        public bool CallMeta(ref ExObjectPtr cls, ExMetaM meta, long nargs, ref ExObjectPtr res)
         {
             _nmetacalls++;
             bool b = Call(ref cls, nargs, _top - nargs, ref res, true);
@@ -2922,7 +3024,7 @@ namespace ExMat.VM
 
         public ExObjectPtr GetConditionFromInstr(ExInstr i)
         {
-            return i.arg3.GetInt() != 0 ? ci._val._lits[i.arg1] : GetTargetInStack(i.arg1);
+            return i.arg3.GetInt() != 0 ? ci._val._lits[(int)i.arg1] : GetTargetInStack(i.arg1);
         }
 
         public enum ExFallback
@@ -2962,7 +3064,7 @@ namespace ExMat.VM
                                 return false;
                             }
 
-                            int n = k.GetInt();
+                            int n = (int)k.GetInt();
                             int l = self._val.l_List.Count;
                             if (Math.Abs(n) < l)
                             {
@@ -3002,7 +3104,7 @@ namespace ExMat.VM
                     {
                         if (k.IsNumeric())
                         {
-                            int n = k.GetInt();
+                            int n = (int)k.GetInt();
                             int l = self.GetString().Length;
                             if (Math.Abs(n) < l)
                             {
@@ -3245,7 +3347,7 @@ namespace ExMat.VM
                         {
                             if (!b_exist && self._val.l_List.Count != 0 && self._val.l_List.Count > k.GetInt())
                             {
-                                dest.Assign(new ExObjectPtr(self._val.l_List[k.GetInt()]));
+                                dest.Assign(new ExObjectPtr(self._val.l_List[(int)k.GetInt()]));
                                 return true;
                             }
                             else
@@ -3335,7 +3437,7 @@ namespace ExMat.VM
                     {
                         if (k.IsNumeric())   // TO-DO stack index is wrong
                         {
-                            int n = k.GetInt();
+                            int n = (int)k.GetInt();
                             if (Math.Abs(n) < self.GetString().Length)
                             {
                                 if (n < 0)
@@ -3371,7 +3473,7 @@ namespace ExMat.VM
                     {
                         if (b_exist)
                         {
-                            if (!self._val._Closure._func.is_cluster)
+                            if (!self.GetClosure()._func.IsCluster())
                             {
                                 goto default;
                             }
@@ -3503,16 +3605,20 @@ namespace ExMat.VM
 
         public ExObjectPtr GetTargetInStack(ExInstr i)
         {
-            return _stack[_stackbase + i.arg0.GetInt()];
+            return _stack[_stackbase + (int)i.arg0.GetInt()];
         }
         public ExObjectPtr GetTargetInStack(int i)
         {
             return _stack[_stackbase + i];
         }
+        public ExObjectPtr GetTargetInStack(long i)
+        {
+            return _stack[_stackbase + (int)i];
+        }
 
         public ExObjectPtr GetTargetInStack(ExInt i)
         {
-            return _stack[_stackbase + i.GetInt()];
+            return _stack[_stackbase + (int)i.GetInt()];
         }
         public static void SwapObjects(ExObjectPtr x, ref ExObjectPtr y)
         {
@@ -3580,7 +3686,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public void LeaveFrame()
+        public bool LeaveFrame()
         {
             int last_t = _top;
             int last_b = _stackbase;
@@ -3606,12 +3712,19 @@ namespace ExMat.VM
 
             if (last_t >= _stack.Count)
             {
-                throw new Exception("stack overflow! Allocate more stack room for these operations");
+                AddToErrorMessage("stack overflow! Allocate more stack room for these operations");
+                return false;
             }
             while (last_t >= _top)
             {
                 _stack[last_t--].Nullify();
             }
+            return true;
+        }
+
+        public bool CallNative(ExNativeClosure cls, long narg, long newb, ref ExObjectPtr o)
+        {
+            return CallNative(cls, (int)narg, (int)newb, ref o);
         }
 
         public bool CallNative(ExNativeClosure cls, int narg, int newb, ref ExObjectPtr o)
@@ -3698,7 +3811,10 @@ namespace ExMat.VM
 
             if (ret < 0)
             {
-                LeaveFrame();
+                if (!LeaveFrame())
+                {
+                    throw new Exception("something went wrong with the stack!");
+                }
                 return false;
             }
 
@@ -3710,11 +3826,20 @@ namespace ExMat.VM
             {
                 o.Assign(_stack[_top - 1]);
             }
-            LeaveFrame();
+
+            if (!LeaveFrame())
+            {
+                throw new Exception("something went wrong with the stack!");
+            }
             return true;
         }
 
         public bool _forcereturn = false;
+
+        public bool Call(ref ExObjectPtr cls, long nparams, long stackbase, ref ExObjectPtr o, bool forcereturn = false)
+        {
+            return Call(ref cls, (int)nparams, (int)stackbase, ref o, forcereturn);
+        }
 
         public bool Call(ref ExObjectPtr cls, int nparams, int stackbase, ref ExObjectPtr o, bool forcereturn = false)
         {

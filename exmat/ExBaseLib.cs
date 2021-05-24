@@ -20,7 +20,7 @@ namespace ExMat.BaseLib
             int maxdepth = 2;
             if (nargs == 2)
             {
-                maxdepth = ExAPI.GetFromStack(vm, 3).GetInt();
+                maxdepth = (int)ExAPI.GetFromStack(vm, 3).GetInt();
                 maxdepth = maxdepth < 1 ? 1 : maxdepth;
             }
             string s = string.Empty;
@@ -38,7 +38,7 @@ namespace ExMat.BaseLib
             int maxdepth = 2;
             if (nargs == 2)
             {
-                maxdepth = ExAPI.GetFromStack(vm, 3).GetInt();
+                maxdepth = (int)ExAPI.GetFromStack(vm, 3).GetInt();
                 maxdepth = maxdepth < 1 ? 1 : maxdepth;
             }
 
@@ -65,7 +65,7 @@ namespace ExMat.BaseLib
         public static int BASE_time(ExVM vm, int nargs)
         {
             vm.Pop(nargs + 2);
-            vm.Push(new ExObjectPtr((float)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
+            vm.Push(new ExObjectPtr((double)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
             return 1;
         }
 
@@ -291,7 +291,7 @@ namespace ExMat.BaseLib
             {
                 case 3:
                     {
-                        depth = ExAPI.GetFromStack(vm, 4).GetInt();
+                        depth = (int)ExAPI.GetFromStack(vm, 4).GetInt();
                         goto case 2;
                     }
                 case 2:
@@ -400,12 +400,12 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         ExObjectPtr v = ExAPI.GetFromStack(vm, 2);
-                        int b = 0;
+                        long b = 0;
                         switch (v._type)
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    b = v.GetInt();
+                                    b = (int)v.GetInt();
                                     goto default;
                                 }
                             case ExObjType.FLOAT:
@@ -415,9 +415,9 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    List<ExObjectPtr> l = new(32);
+                                    List<ExObjectPtr> l = new(64);
 
-                                    for (int i = 0; i < 32; i++)
+                                    for (int i = 0; i < 64; i++)
                                     {
                                         l.Add(new((b >> i) % 2 == 0 ? 0 : 1));
                                     }
@@ -447,8 +447,14 @@ namespace ExMat.BaseLib
 
         public static int BASE_bytes(ExVM vm, int nargs)
         {
+            bool reverse = false;
             switch (nargs)
             {
+                case 2:
+                    {
+                        reverse = ExAPI.GetFromStack(vm, 3).GetBool();
+                        goto case 1;
+                    }
                 case 1:
                     {
                         ExObjectPtr v = ExAPI.GetFromStack(vm, 2);
@@ -473,6 +479,10 @@ namespace ExMat.BaseLib
                                     {
                                         b.Add(new(i));
                                     }
+                                    if(!reverse)
+                                    {
+                                        b.Reverse();
+                                    }
                                     vm.Pop(nargs + 2);
                                     vm.Push(b);
                                     break;
@@ -483,6 +493,10 @@ namespace ExMat.BaseLib
                                     foreach (byte i in bytes)
                                     {
                                         b.Add(new(i));
+                                    }
+                                    if (!reverse)
+                                    {
+                                        b.Reverse();
                                     }
                                     vm.Pop(nargs + 2);
                                     vm.Push(b);
@@ -529,24 +543,62 @@ namespace ExMat.BaseLib
                 n--;
                 m++;
             }
+            bool is_seq = cls.GetClosure()._func.IsSequence();
             bool bm = vm.b_main;
             vm.b_main = false;
-            foreach (ExObjectPtr o in obj._val.l_List)
-            {
-                vm.Push(cls);
-                vm.Push(vm._rootdict);
 
-                vm.Push(o);
-                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+            if(is_seq)
+            {
+                List<ExObjectPtr> _defs = cls.GetClosure()._func._params;
+                List<string> defs = new(_defs.Count);
+                for(int i = 0; i < _defs.Count; i++)
                 {
-                    vm.Pop();
-                    vm.b_main = bm;
-                    return -1;
+                    defs.Add(_defs[i].GetString());
                 }
-                else
+
+                foreach (ExObjectPtr o in obj._val.l_List)
                 {
-                    vm.Pop(n + 1 + m);
-                    l.Add(new(tmp));
+                    vm.Push(cls);
+                    vm.Push(vm._rootdict);
+
+                    vm.Push(o);
+                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                    {
+                        vm.Pop();
+                        vm.b_main = bm;
+                        return -1;
+                    }
+                    else if ( defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
+                    {
+                        l.Add(new(vm.GetAt(vm._top - n - 1)));
+                        vm.Pop(n + 1 + m);
+                    }
+                    else
+                    {
+                        vm.Pop(n + 1 + m);
+                        l.Add(new(tmp));
+                    }
+                }
+            }
+            else
+            {
+                foreach (ExObjectPtr o in obj._val.l_List)
+                {
+                    vm.Push(cls);
+                    vm.Push(vm._rootdict);
+
+                    vm.Push(o);
+                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                    {
+                        vm.Pop();
+                        vm.b_main = bm;
+                        return -1;
+                    }
+                    else
+                    {
+                        vm.Pop(n + 1 + m);
+                        l.Add(new(tmp));
+                    }
                 }
             }
 
@@ -782,7 +834,7 @@ namespace ExMat.BaseLib
             else
             {
                 if (iscls
-                    && cls.GetClosure()._func.is_cluster
+                    && cls.GetClosure()._func.IsCluster()
                     && cls.GetClosure()._defparams.Count == 1)
                 {
                     vm.Push(args); // Handle 1 parameter clusters => [args]
@@ -831,7 +883,7 @@ namespace ExMat.BaseLib
             else
             {
                 ExList l = new();
-                int s = o.GetInt();
+                int s = (int)o.GetInt();
                 if (s < 0)
                 {
                     s = 0;
@@ -860,9 +912,9 @@ namespace ExMat.BaseLib
             {
                 case 3:
                     {
-                        float start = s.GetFloat();
-                        float end = ExAPI.GetFromStack(vm, 3).GetFloat();
-                        float step = ExAPI.GetFromStack(vm, 4).GetFloat();
+                        double start = s.GetFloat();
+                        double end = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        double step = ExAPI.GetFromStack(vm, 4).GetFloat();
                         l._val.l_List = new();
 
                         if (end > start)
@@ -880,8 +932,8 @@ namespace ExMat.BaseLib
 
                 case 2:
                     {
-                        float start = s.GetFloat();
-                        float end = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        double start = s.GetFloat();
+                        double end = ExAPI.GetFromStack(vm, 3).GetFloat();
                         l._val.l_List = new();
 
                         if (end > start)
@@ -898,7 +950,7 @@ namespace ExMat.BaseLib
 
                 case 1:
                     {
-                        float end = s.GetFloat();
+                        double end = s.GetFloat();
                         l._val.l_List = new();
 
                         int count = (int)end;
@@ -924,13 +976,13 @@ namespace ExMat.BaseLib
                 case 2:
                 case 3:
                     {
-                        int m = s.GetInt();
+                        int m = (int)s.GetInt();
                         if (m < 0)
                         {
                             m = 0;
                         }
 
-                        int n = ExAPI.GetFromStack(vm, 3).GetInt();
+                        int n = (int)ExAPI.GetFromStack(vm, 3).GetInt();
                         if (n < 0)
                         {
                             n = 0;
@@ -1124,7 +1176,7 @@ namespace ExMat.BaseLib
         public static int BASE_string_repeat(ExVM vm, int nargs)
         {
             string obj = ExAPI.GetFromStack(vm, 1).GetString();
-            int rep = ExAPI.GetFromStack(vm, 2).GetInt();
+            int rep = (int)ExAPI.GetFromStack(vm, 2).GetInt();
             string res = string.Empty;
             while (rep > 0)
             {
@@ -1141,7 +1193,7 @@ namespace ExMat.BaseLib
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
             {
-                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                int n = (int)ExAPI.GetFromStack(vm, 2).GetInt();
                 if (n < 0 || n >= s.Length)
                 {
                     vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
@@ -1158,7 +1210,7 @@ namespace ExMat.BaseLib
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
             {
-                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                int n = (int)ExAPI.GetFromStack(vm, 2).GetInt();
                 if (n < 0 || n >= s.Length)
                 {
                     vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
@@ -1175,7 +1227,7 @@ namespace ExMat.BaseLib
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
             {
-                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                int n = (int)ExAPI.GetFromStack(vm, 2).GetInt();
                 if (n < 0 || n >= s.Length)
                 {
                     vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
@@ -1192,7 +1244,7 @@ namespace ExMat.BaseLib
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
             {
-                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                int n = (int)ExAPI.GetFromStack(vm, 2).GetInt();
                 if (n < 0 || n >= s.Length)
                 {
                     vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
@@ -1218,7 +1270,7 @@ namespace ExMat.BaseLib
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
             {
-                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                int n = (int)ExAPI.GetFromStack(vm, 2).GetInt();
                 if (n < 0 || n >= s.Length)
                 {
                     vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
@@ -1244,7 +1296,7 @@ namespace ExMat.BaseLib
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
             {
-                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                int n = (int)ExAPI.GetFromStack(vm, 2).GetInt();
                 if (n < 0 || n >= s.Length)
                 {
                     vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
@@ -1270,7 +1322,7 @@ namespace ExMat.BaseLib
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
             {
-                int n = ExAPI.GetFromStack(vm, 2).GetInt();
+                int n = (int)ExAPI.GetFromStack(vm, 2).GetInt();
                 if (n < 0 || n >= s.Length)
                 {
                     vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
@@ -1333,7 +1385,7 @@ namespace ExMat.BaseLib
         {
             ExObjectPtr res = new();
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
-            int newsize = ExAPI.GetFromStack(vm, 2).GetInt();
+            int newsize = (int)ExAPI.GetFromStack(vm, 2).GetInt();
             if (newsize < 0)
             {
                 newsize = 0;
@@ -1859,10 +1911,11 @@ namespace ExMat.BaseLib
                 name = "bytes",
                 func = new(GetBaseLibMethod("BASE_bytes")),
                 n_pchecks = -1,
-                mask = ".n|s",
+                mask = ".n|s.",
                 d_defaults = new()
                 {
-                    { 1, new(0) }
+                    { 1, new(0) },
+                    { 2, new(false) }
                 }
             },
 

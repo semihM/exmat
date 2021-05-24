@@ -86,15 +86,15 @@ namespace ExMat
     [StructLayout(LayoutKind.Explicit)]
     public struct FloatInt
     {
-        [FieldOffset(0)] public float f;
-        [FieldOffset(0)] public int i;
+        [FieldOffset(0)] public double f;
+        [FieldOffset(0)] public long i;
     }
 
     [StructLayout(LayoutKind.Explicit)]
     public struct ExObjVal
     {
-        [FieldOffset(0)] public int i_Int;
-        [FieldOffset(0)] public float f_Float;
+        [FieldOffset(0)] public long i_Int;
+        [FieldOffset(0)] public double f_Float;
         [FieldOffset(0)] public bool b_Bool;
         [FieldOffset(8)] public string s_String;
         [FieldOffset(24)] public ExSpace c_Space;

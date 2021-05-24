@@ -9,6 +9,15 @@ using ExMat.VM;
 
 namespace ExMat.FuncPrototype
 {
+    public enum ExClosureType
+    {
+        FUNCTION,
+        RULE,
+        CLUSTER,
+        MACRO,
+        SEQUENCE
+    }
+
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExFuncPro : ExCollectable
     {
@@ -24,12 +33,9 @@ namespace ExMat.FuncPrototype
 
         public bool _pvars;
 
-        public bool is_rule;
-
-        public bool is_cluster;
         public int i_optstart;
 
-        public bool is_macro;
+        public ExClosureType type = ExClosureType.FUNCTION;
 
         public ExObjectPtr _name;
         public ExObjectPtr _source;
@@ -103,6 +109,26 @@ namespace ExMat.FuncPrototype
             return "FPRO(" + _name.GetString() + ", n_func: " + n_funcs + ", n_lits: " + n_lits + ", n_instr: " + n_instr + ")";
         }
 
+        public bool IsFunction()
+        {
+            return type == ExClosureType.FUNCTION;
+        }
+        public bool IsCluster()
+        {
+            return type == ExClosureType.CLUSTER;
+        }
+        public bool IsRule()
+        {
+            return type == ExClosureType.RULE;
+        }
+        public bool IsMacro()
+        {
+            return type == ExClosureType.MACRO;
+        }
+        public bool IsSequence()
+        {
+            return type == ExClosureType.SEQUENCE;
+        }
 
         protected override void Dispose(bool disposing)
         {

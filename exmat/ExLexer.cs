@@ -106,8 +106,8 @@ namespace ExMat.Lexer
         public string _aStr;
         public string str_val;
         public string m_pname;
-        public float f_val;
-        public int i_val;
+        public double f_val;
+        public long i_val;
         public Objects.ExSpace _space;
         public string m_block;
         public List<ExMacroParam> m_params = new();
@@ -188,6 +188,8 @@ namespace ExMat.Lexer
             CreateKeyword("typeof", TokenType.TYPEOF);
             CreateKeyword("instanceof", TokenType.INSTANCEOF);
             CreateKeyword("delete", TokenType.DELETE);
+
+            CreateKeyword("seq", TokenType.SEQUENCE);
 
             //CreateKeyword("sum", TokenType.SUM);
             //CreateKeyword("mul", TokenType.MUL);
@@ -303,7 +305,7 @@ namespace ExMat.Lexer
                             _error = "dimension can't be less than zero";
                             return TokenType.UNKNOWN;
                         }
-                        _space.dim = i_val;
+                        _space.dim = (int)i_val;
                         break;
                     }
                 default:
@@ -734,7 +736,7 @@ namespace ExMat.Lexer
                     {
                         if (typ != TokenType.FLOAT)
                         {
-                            _error = "Wrong float number format";
+                            _error = "Wrong double number format";
                             return TokenType.UNKNOWN;
                         }
 
@@ -775,7 +777,7 @@ namespace ExMat.Lexer
                     {
                         if (typ != TokenType.FLOAT)
                         {
-                            _error = "Wrong float number format";
+                            _error = "Wrong double number format";
                             return TokenType.UNKNOWN;
                         }
 
@@ -800,23 +802,33 @@ namespace ExMat.Lexer
                     _aStr += _currChar;
                     Next();
                 }
-
+                if(_aStr[^1] == '.')
+                {
+                    _error = "expected digits after '.' ";
+                    return TokenType.UNKNOWN;
+                }
                 switch (typ)
                 {
                     case TokenType.FLOAT:
                     case TokenType.SCI:
                         {
-                            if (!float.TryParse(_aStr, out f_val))
+                            if (!double.TryParse(_aStr, out f_val))
                             {
+                                _error = "failed to parse as float";
                                 return TokenType.UNKNOWN;
                             }
                             return TokenType.FLOAT;
                         }
                     case TokenType.INTEGER:
                         {
-                            if (!int.TryParse(_aStr, out i_val))
+                            if (!long.TryParse(_aStr, out i_val))
                             {
-                                return TokenType.UNKNOWN;
+                                if (!double.TryParse(_aStr, out f_val))
+                                {
+                                    _error = "failed to parse as integer";
+                                    return TokenType.UNKNOWN;
+                                }
+                                return TokenType.FLOAT;
                             }
                             return TokenType.INTEGER;
                         }

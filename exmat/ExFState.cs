@@ -192,7 +192,7 @@ namespace ExMat.States
             }
         }
 
-        public int GetConst(ExObjectPtr o)
+        public long GetConst(ExObjectPtr o)
         {
             string name;
             if (o._type == ExObjType.SPACE)
@@ -321,12 +321,12 @@ namespace ExMat.States
 
         public int TopTarget()
         {
-            return _tStack.Back().GetInt();
+            return (int)_tStack.Back().GetInt();
         }
 
         public int PopTarget()
         {
-            int n = _tStack.Back().GetInt();
+            int n = (int)_tStack.Back().GetInt();
 
             if (n >= _localvs.Count)
             {
@@ -390,6 +390,10 @@ namespace ExMat.States
             return false;
         }
 
+        public bool IsLocalArg(long pos)
+        {
+            return pos < _localvs.Count && _localvs[(int)pos].name._type != ExObjType.NULL;
+        }
         public bool IsLocalArg(int pos)
         {
             return pos < _localvs.Count && _localvs[pos].name._type != ExObjType.NULL;
@@ -527,7 +531,7 @@ namespace ExMat.States
                         }
                     case OPC.GET:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg2._val.i_Int && (!IsLocalArg(prev.arg0._val.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg2._val.i_Int && (!IsLocalArg((int)prev.arg0._val.i_Int)))
                             {
                                 prev.arg2 = new(curr.arg1);
                                 prev.op = OPC.GETK;
@@ -539,7 +543,7 @@ namespace ExMat.States
                         }
                     case OPC.PREPCALL:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg(prev.arg0._val.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0._val.i_Int)))
                             {
                                 prev.op = OPC.PREPCALLK;
                                 prev.arg0._val.i_Int = curr.arg0._val.i_Int;
@@ -579,7 +583,7 @@ namespace ExMat.States
                                     break;
                             }
 
-                            if (idx != ArrayAType.INVALID && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg(prev.arg0._val.i_Int)))
+                            if (idx != ArrayAType.INVALID && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0._val.i_Int)))
                             {
                                 prev.op = OPC.ARRAY_APPEND;
                                 prev.arg0._val.i_Int = curr.arg0._val.i_Int;
@@ -644,7 +648,7 @@ namespace ExMat.States
                     case OPC.EQ:
                     case OPC.NEQ:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg(prev.arg0._val.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0._val.i_Int)))
                             {
                                 prev.op = curr.op;
                                 prev.arg0._val.i_Int = curr.arg0._val.i_Int;
@@ -682,13 +686,7 @@ namespace ExMat.States
             _instructions.Add(curr);
         }
 
-        public void AddInstr(OPC op, int arg0, int arg1, int arg2, int arg3)
-        {
-            ExInstr instr = new() { op = op, arg0 = new(arg0), arg1 = arg1, arg2 = new(arg2), arg3 = new(arg3) };
-            AddInstr(instr);
-        }
-
-        public void AddInstr(OPC op, int arg0, int arg1, dynamic arg2, dynamic arg3)
+        public void AddInstr(OPC op, int arg0, long arg1, int arg2, int arg3)
         {
             ExInstr instr = new() { op = op, arg0 = new(arg0), arg1 = arg1, arg2 = new(arg2), arg3 = new(arg3) };
             AddInstr(instr);
@@ -747,7 +745,7 @@ namespace ExMat.States
             {
                 if (pair.Value._type == ExObjType.WEAKREF)
                 {
-                    int ind = ((ExWeakRef)pair.Value)._weakref.obj._val.i_Int;
+                    int ind = (int)((ExWeakRef)pair.Value)._weakref.obj._val.i_Int;
                     while (funcPro._lits.Count <= ind)
                     {
                         funcPro._lits.Add(new(string.Empty));
@@ -756,7 +754,7 @@ namespace ExMat.States
                 }
                 else
                 {
-                    int ind = pair.Value._val.i_Int;
+                    int ind = (int)pair.Value._val.i_Int;
                     while (funcPro._lits.Count <= ind)
                     {
                         funcPro._lits.Add(new(string.Empty));

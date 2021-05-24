@@ -13,7 +13,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_srand(ExVM vm, int nargs)
         {
-            int seed = ExAPI.GetFromStack(vm, 2).GetInt();
+            int seed = (int)ExAPI.GetFromStack(vm, 2).GetInt();
             vm.Pop(3);
             vm.Push(true);
             Rand = new(seed);
@@ -32,15 +32,17 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        int i = ExAPI.GetFromStack(vm, 2).GetInt();
+                        int i = (int)ExAPI.GetFromStack(vm, 2).GetInt();
+                        i = i < 0 ? (i > int.MinValue ? Math.Abs(i) : 0 ) : i;
+
                         vm.Pop(3);
                         vm.Push(Rand.Next(i));
                         break;
                     }
                 case 2:
                     {
-                        int i = ExAPI.GetFromStack(vm, 2).GetInt();
-                        int j = ExAPI.GetFromStack(vm, 3).GetInt();
+                        int i = (int)ExAPI.GetFromStack(vm, 2).GetInt();
+                        int j = (int)ExAPI.GetFromStack(vm, 3).GetInt();
                         vm.Pop(4);
                         vm.Push(Rand.Next(i, j));
                         break;
@@ -61,15 +63,15 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        float i = ExAPI.GetFromStack(vm, 2).GetFloat();
+                        double i = ExAPI.GetFromStack(vm, 2).GetFloat();
                         vm.Pop(3);
                         vm.Push(Rand.NextDouble() * i);
                         break;
                     }
                 case 2:
                     {
-                        float min = ExAPI.GetFromStack(vm, 2).GetFloat();
-                        float max = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        double min = ExAPI.GetFromStack(vm, 2).GetFloat();
+                        double max = ExAPI.GetFromStack(vm, 3).GetFloat();
                         vm.Pop(4);
                         vm.Push((Rand.NextDouble() * (max - min)) + min);
                         break;
@@ -83,13 +85,14 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
+                o = o < 0 ? (o > long.MinValue ? Math.Abs(o) : 0) : Math.Abs(o);
                 vm.Pop(nargs + 2);
-                vm.Push(Math.Abs(o));
+                vm.Push(o);
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Abs(o));
             }
@@ -102,13 +105,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sqrt(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sqrt(o));
             }
@@ -121,13 +124,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Cbrt(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Cbrt(o));
             }
@@ -139,13 +142,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sin(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sin(o));
             }
@@ -157,13 +160,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sinh(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sinh(o));
             }
@@ -176,13 +179,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Cos(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Cos(o));
             }
@@ -194,13 +197,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Cosh(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Cosh(o));
             }
@@ -213,13 +216,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Tan(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Tan(o));
             }
@@ -231,13 +234,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Tanh(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Tanh(o));
             }
@@ -250,13 +253,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Acos(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Acos(o));
             }
@@ -268,13 +271,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Acosh(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Acosh(o));
             }
@@ -287,13 +290,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Asin(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Asin(o));
             }
@@ -305,13 +308,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Asinh(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Asinh(o));
             }
@@ -324,13 +327,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Atan(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Atan(o));
             }
@@ -342,13 +345,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Atanh(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Atanh(o));
             }
@@ -363,35 +366,35 @@ namespace ExMat.BaseLib
 
             if (i._type == ExObjType.INTEGER)
             {
-                int b = i.GetInt();
+                long b = i.GetInt();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Atan2(b, o));
+                    vm.Push((double)Math.Atan2(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Atan2(b, o));
+                    vm.Push((double)Math.Atan2(b, o));
                 }
 
             }
             else
             {
-                float b = i.GetFloat();
+                double b = i.GetFloat();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Atan2(b, o));
+                    vm.Push((double)Math.Atan2(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Atan2(b, o));
+                    vm.Push((double)Math.Atan2(b, o));
                 }
             }
 
@@ -403,13 +406,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Log(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Log(o));
             }
@@ -422,13 +425,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Log2(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Log2(o));
             }
@@ -441,13 +444,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Log10(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Log10(o));
             }
@@ -460,13 +463,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Exp(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Exp(o));
             }
@@ -480,20 +483,20 @@ namespace ExMat.BaseLib
             int dec = 0;
             if (nargs == 2)
             {
-                dec = ExAPI.GetFromStack(vm, 3).GetInt();
+                dec = (int)ExAPI.GetFromStack(vm, 3).GetInt();
             }
 
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
-                vm.Push((float)Math.Round((double)o, dec));
+                vm.Push((double)Math.Round((double)o, dec));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
-                vm.Push((float)Math.Round(o, dec));
+                vm.Push((double)Math.Round(o, dec));
             }
 
             return 1;
@@ -504,13 +507,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(o);
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push((int)Math.Floor(o));
             }
@@ -523,13 +526,13 @@ namespace ExMat.BaseLib
             ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(o);
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push((int)Math.Ceiling(o));
             }
@@ -544,35 +547,35 @@ namespace ExMat.BaseLib
 
             if (i._type == ExObjType.INTEGER)
             {
-                int b = i.GetInt();
+                long b = i.GetInt();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
                     vm.Push((int)Math.Pow(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Pow(b, o));
+                    vm.Push((double)Math.Pow(b, o));
                 }
 
             }
             else
             {
-                float b = i.GetFloat();
+                double b = i.GetFloat();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Pow(b, o));
+                    vm.Push((double)Math.Pow(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Pow(b, o));
+                    vm.Push((double)Math.Pow(b, o));
                 }
             }
 
@@ -586,35 +589,35 @@ namespace ExMat.BaseLib
 
             if (i._type == ExObjType.INTEGER)
             {
-                int b = i.GetInt();
+                long b = i.GetInt();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
                     vm.Push(Math.Min(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Min(b, o));
+                    vm.Push((double)Math.Min(b, o));
                 }
 
             }
             else
             {
-                float b = i.GetFloat();
+                double b = i.GetFloat();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Min(b, o));
+                    vm.Push((double)Math.Min(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Min(b, o));
+                    vm.Push((double)Math.Min(b, o));
                 }
             }
 
@@ -628,35 +631,35 @@ namespace ExMat.BaseLib
 
             if (i._type == ExObjType.INTEGER)
             {
-                int b = i.GetInt();
+                long b = i.GetInt();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
                     vm.Push(Math.Max(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Max(b, o));
+                    vm.Push((double)Math.Max(b, o));
                 }
 
             }
             else
             {
-                float b = i.GetFloat();
+                double b = i.GetFloat();
                 if (i2._type == ExObjType.INTEGER)
                 {
-                    int o = i2.GetInt();
+                    long o = i2.GetInt();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Max(b, o));
+                    vm.Push((double)Math.Max(b, o));
                 }
                 else
                 {
-                    float o = i2.GetFloat();
+                    double o = i2.GetFloat();
                     vm.Pop(nargs + 2);
-                    vm.Push((float)Math.Max(b, o));
+                    vm.Push((double)Math.Max(b, o));
                 }
             }
 
@@ -665,7 +668,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_sum(ExVM vm, int nargs)
         {
-            ExObjectPtr sum = new((float)0);
+            ExObjectPtr sum = new(0);
 
             ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs);
 
@@ -689,7 +692,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_mul(ExVM vm, int nargs)
         {
-            ExObjectPtr mul = new((float)1);
+            ExObjectPtr mul = new(1);
 
             ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs);
 
@@ -717,13 +720,13 @@ namespace ExMat.BaseLib
 
             if (i._type == ExObjType.INTEGER)
             {
-                int o = i.GetInt();
+                long o = i.GetInt();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sign(o));
             }
             else
             {
-                float o = i.GetFloat();
+                double o = i.GetFloat();
                 vm.Pop(nargs + 2);
                 vm.Push(Math.Sign(o));
             }
@@ -733,7 +736,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_isINF(ExVM vm, int nargs)
         {
-            bool i = float.IsFinite(ExAPI.GetFromStack(vm, 2).GetFloat());
+            bool i = double.IsFinite(ExAPI.GetFromStack(vm, 2).GetFloat());
 
             vm.Pop(nargs + 2);
             vm.Push(i);
@@ -742,7 +745,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_isNINF(ExVM vm, int nargs)
         {
-            bool i = float.IsNegativeInfinity(ExAPI.GetFromStack(vm, 2).GetFloat());
+            bool i = double.IsNegativeInfinity(ExAPI.GetFromStack(vm, 2).GetFloat());
 
             vm.Pop(nargs + 2);
             vm.Push(i);
@@ -751,7 +754,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_isNAN(ExVM vm, int nargs)
         {
-            bool i = float.IsNaN(ExAPI.GetFromStack(vm, 2).GetFloat());
+            bool i = double.IsNaN(ExAPI.GetFromStack(vm, 2).GetFloat());
 
             vm.Pop(nargs + 2);
             vm.Push(i);
@@ -1045,14 +1048,18 @@ namespace ExMat.BaseLib
             ExAPI.CreateConstantInt(vm, "INT_MIN", int.MinValue);
             ExAPI.CreateConstantFloat(vm, "INT_MAXF", int.MaxValue);
             ExAPI.CreateConstantFloat(vm, "INT_MINF", int.MinValue);
-            ExAPI.CreateConstantFloat(vm, "FLOAT_MAX", float.MaxValue);
-            ExAPI.CreateConstantFloat(vm, "FLOAT_MIN", float.MinValue);
-            ExAPI.CreateConstantFloat(vm, "TAU", (float)Math.Tau);
-            ExAPI.CreateConstantFloat(vm, "PI", (float)Math.PI);
-            ExAPI.CreateConstantFloat(vm, "E", (float)Math.E);
-            ExAPI.CreateConstantFloat(vm, "NAN", float.NaN);
-            ExAPI.CreateConstantFloat(vm, "NINF", float.NegativeInfinity);
-            ExAPI.CreateConstantFloat(vm, "INF", float.PositiveInfinity);
+            ExAPI.CreateConstantInt(vm, "LONG_MAX", long.MaxValue);
+            ExAPI.CreateConstantInt(vm, "LONG_MIN", long.MinValue);
+            ExAPI.CreateConstantFloat(vm, "LONG_MAXF", long.MaxValue);
+            ExAPI.CreateConstantFloat(vm, "LONG_MINF", long.MinValue);
+            ExAPI.CreateConstantFloat(vm, "FLOAT_MAX", double.MaxValue);
+            ExAPI.CreateConstantFloat(vm, "FLOAT_MIN", double.MinValue);
+            ExAPI.CreateConstantFloat(vm, "TAU", Math.Tau);
+            ExAPI.CreateConstantFloat(vm, "PI", Math.PI);
+            ExAPI.CreateConstantFloat(vm, "E", Math.E);
+            ExAPI.CreateConstantFloat(vm, "NAN", double.NaN);
+            ExAPI.CreateConstantFloat(vm, "NINF", double.NegativeInfinity);
+            ExAPI.CreateConstantFloat(vm, "INF", double.PositiveInfinity);
 
             return true;
         }

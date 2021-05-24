@@ -64,7 +64,7 @@ namespace ExMat.BaseLib
             int depth = 2;
             if (nargs == 3)
             {
-                depth = ExAPI.GetFromStack(vm, 4).GetInt();
+                depth = (int)ExAPI.GetFromStack(vm, 4).GetInt();
                 if (depth <= 0)
                 {
                     depth = 1;

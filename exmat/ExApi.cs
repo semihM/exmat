@@ -128,17 +128,17 @@ namespace ExMat.API
             }
         }
 
-        public static void CreateConstantInt(ExVM vm, string name, int val, bool force = false)
+        public static void CreateConstantInt(ExVM vm, string name, long val, bool force = false)
         {
             PushString(vm, name, -1, force);
-            PushInt(vm, val);
+            vm.Push(val);
             CreateNewSlot(vm, -3, false);
         }
 
-        public static void CreateConstantFloat(ExVM vm, string name, float val, bool force = false)
+        public static void CreateConstantFloat(ExVM vm, string name, double val, bool force = false)
         {
             PushString(vm, name, -1, force);
-            PushFloat(vm, val);
+            vm.Push(val);
             CreateNewSlot(vm, -3, false);
         }
 
@@ -149,18 +149,6 @@ namespace ExMat.API
             CreateNewSlot(vm, -3, false);
         }
 
-        public static void PushBool(ExVM vm, bool b)
-        {
-            vm.Push(new ExBool(b));
-        }
-        public static void PushFloat(ExVM vm, float f)
-        {
-            vm.Push(new ExFloat(f));
-        }
-        public static void PushInt(ExVM vm, int n)
-        {
-            vm.Push(new ExInt(n));
-        }
         public static void PushString(ExVM vm, string str, int len, bool force = false)
         {
             if (string.IsNullOrEmpty(str))

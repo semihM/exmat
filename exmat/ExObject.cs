@@ -64,7 +64,7 @@ namespace ExMat.Objects
             _type = ExObjType.INTEGER;
             _val.i_Int = i;
         }
-        public ExObject(float f)
+        public ExObject(double f)
         {
             _type = ExObjType.FLOAT;
             _val.f_Float = f;
@@ -90,12 +90,12 @@ namespace ExMat.Objects
             return ((int)_type & (int)ExObjFlag.NUMERIC) != 0;
         }
 
-        public int GetInt()
+        public long GetInt()
         {
-            return _type == ExObjType.INTEGER ? _val.i_Int : (int)_val.f_Float;
+            return _type == ExObjType.INTEGER ? _val.i_Int : (long)_val.f_Float;
         }
 
-        public float GetFloat()
+        public double GetFloat()
         {
             return _type == ExObjType.FLOAT ? _val.f_Float : _val.i_Int;
         }
@@ -254,7 +254,7 @@ namespace ExMat.Objects
         }
         public int GetMemberID()
         {
-            return GetInt() & 0x00FFFFFF;
+            return (int)GetInt() & 0x00FFFFFF;
         }
 
         public static bool IsRefC(ExObjType t)
@@ -337,23 +337,23 @@ namespace ExMat.Objects
         ///////////////////////////////
         /// SCALAR
         ///////////////////////////////
-        public ExObjectPtr(int i)
+        public ExObjectPtr(long i)
         {
             _type = ExObjType.INTEGER;
             _val.i_Int = i;
         }
-        public void Assign(int i)
+        public void Assign(long i)
         {
             Release(_type, _val);
             _val.i_Int = i;
             _type = ExObjType.INTEGER;
         }
-        public ExObjectPtr(float f)
+        public ExObjectPtr(double f)
         {
             _type = ExObjType.FLOAT;
             _val.f_Float = f;
         }
-        public void Assign(float f)
+        public void Assign(double f)
         {
             Release(_type, _val);
             _val.f_Float = f;
@@ -936,7 +936,12 @@ namespace ExMat.Objects
             _val.i_Int = 0;
         }
 
-        public ExInt(int n)
+        public ExInt(double n)
+        {
+            _type = ExObjType.INTEGER;
+            _val.i_Int = n > long.MaxValue ? long.MaxValue : ( n < long.MinValue ? long.MinValue : (long)n);
+        }
+        public ExInt(long n)
         {
             _type = ExObjType.INTEGER;
             _val.i_Int = n;
@@ -951,11 +956,6 @@ namespace ExMat.Objects
             _type = ExObjType.INTEGER;
             _val.i_Int = e._val.i_Int;
         }
-        public ExInt(dynamic o)
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = (int)o;
-        }
     }
 
     public class ExFloat : ExObjectPtr
@@ -966,7 +966,12 @@ namespace ExMat.Objects
             _val.f_Float = 0;
         }
 
-        public ExFloat(float n)
+        public ExFloat(long n)
+        {
+            _type = ExObjType.FLOAT;
+            _val.f_Float = n;
+        }
+        public ExFloat(double n)
         {
             _type = ExObjType.FLOAT;
             _val.f_Float = n;
@@ -980,11 +985,6 @@ namespace ExMat.Objects
         {
             _type = ExObjType.FLOAT;
             _val.f_Float = e._val.f_Float;
-        }
-        public ExFloat(dynamic o)
-        {
-            _type = ExObjType.FLOAT;
-            _val.f_Float = (float)o;
         }
     }
 

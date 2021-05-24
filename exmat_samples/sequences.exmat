@@ -1,0 +1,22 @@
+// Infinite sequences
+// Recursive
+seq RecursiveSeq(0:1, 1:5) ArithSeq(n-2) + ArithSeq(n-1) + 5
+printl(RecursiveSeq)
+print(map(RecursiveSeq, range(10)));
+
+// Geometric
+printl("\n------------");
+seq Factorial(0:1, 1:1) Factorial(n-1) * n
+printl(Factorial)
+print(map(Factorial, range(10)));
+
+// Arithmetic
+printl("\n------------");
+seq OddNumbers() 2*n + 1
+printl(OddNumbers)
+print(map(OddNumbers,range(10)))
+
+printl("\n------------");
+seq EvenNumbers() 2*n
+printl(EvenNumbers)
+print(map(EvenNumbers,range(10)))

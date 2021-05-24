@@ -118,7 +118,7 @@ namespace ExMat.OPs
         public ExInt arg0;
         public ExInt arg2;
         public ExInt arg3;
-        public int arg1;
+        public long arg1;
         private bool disposedValue;
 
         public ExInstr() { }

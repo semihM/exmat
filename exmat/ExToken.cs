@@ -136,6 +136,8 @@
         MTRS,    // '
 
         DEFAULT, // ..
-        CARTESIAN // *.*
+        CARTESIAN, // *.*
+        
+        SEQUENCE   // seq
     }
 }

@@ -145,7 +145,7 @@
 			[
 				{
 					"name": "storage.type.exmat",
-					"match": "\\b(function|cluster|rule|class)\\b"
+					"match": "\\b(function|cluster|rule|class|seq)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
