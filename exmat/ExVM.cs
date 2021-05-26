@@ -601,21 +601,80 @@ namespace ExMat.VM
                 Push(ob);
             }
         }
-        public void Push(string o) => _stack[_top++].Assign(o);
-        public void Push(int o) => _stack[_top++].Assign(o);
-        public void Push(long o) => _stack[_top++].Assign(o);
-        public void Push(double o) => _stack[_top++].Assign(o);
-        public void Push(bool o) => _stack[_top++].Assign(o);
-        public void Push(ExObject o) => _stack[_top++].Assign(o);
-        public void Push(Dictionary<string, ExObject> o) => _stack[_top++].Assign(o);
-        public void Push(List<ExObject> o) => _stack[_top++].Assign(o);
-        public void Push(ExInstance o) => _stack[_top++].Assign(o);
-        public void Push(ExClass o) => _stack[_top++].Assign(o);
-        public void Push(ExClosure o) => _stack[_top++].Assign(o);
-        public void Push(ExNativeClosure o) => _stack[_top++].Assign(o);
-        public void Push(ExOuter o) => _stack[_top++].Assign(o);
-        public void Push(ExWeakRef o) => _stack[_top++].Assign(o);
-        public void Push(ExFuncPro o) => _stack[_top++].Assign(o);
+        public void Push(string o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(int o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(long o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(double o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(bool o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExObject o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(Dictionary<string, ExObject> o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(List<ExObject> o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExInstance o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExClass o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExClosure o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExNativeClosure o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExOuter o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExWeakRef o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(ExFuncPro o)
+        {
+            _stack[_top++].Assign(o);
+        }
 
         public void PushNull()
         {

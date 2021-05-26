@@ -2000,10 +2000,10 @@ namespace ExMat.BaseLib
                 name = string.Empty
             }
         };
-        public static List<ExRegFunc> BaseFuncs { get => _exRegFuncs; }
+        public static List<ExRegFunc> BaseFuncs => _exRegFuncs;
 
         private const string _reloadbase = "reload_base";
-        public static string ReloadBaseFunc { get => _reloadbase; }
+        public static string ReloadBaseFunc => _reloadbase;
 
         public static bool RegisterStdBase(ExVM vm, bool force = false)
         {

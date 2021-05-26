@@ -622,10 +622,10 @@ namespace ExMat.BaseLib
         };
 
         private const string _reloadlib = "reload_lib";
-        public static string ReloadLib { get => _reloadlib; }
+        public static string ReloadLib => _reloadlib;
 
         private const string _reloadlibfunc = "reload_func";
-        public static string ReloadLibFunc { get => _reloadlibfunc; }
+        public static string ReloadLibFunc => _reloadlibfunc;
 
         public static int IO_rawinput(ExVM vm, int nargs)
         {
@@ -658,7 +658,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static List<ExRegFunc> IOFuncs { get => _stdiofuncs; }
+        public static List<ExRegFunc> IOFuncs => _stdiofuncs;
 
         public static bool RegisterStdIO(ExVM vm, bool force = false)
         {

@@ -87,13 +87,8 @@ namespace ExMat.Lexer
     public class ExLexer : IDisposable
     {
         private string _source_;
-        public string Source
-        {
-            get
-            {
-                return _source_;
-            }
-        }
+        public string Source => _source_;
+
         private readonly int _sourcelen = 0;
         private int _sourceidx = 0;
 
@@ -689,8 +684,15 @@ namespace ExMat.Lexer
             return typ;
         }
 
-        private static bool IsExp(char c) => c == 'e' || c == 'E';
-        private static bool IsSign(char c) => c == '+' || c == '-';
+        private static bool IsExp(char c)
+        {
+            return c == 'e' || c == 'E';
+        }
+
+        private static bool IsSign(char c)
+        {
+            return c == '+' || c == '-';
+        }
 
         private TokenType ReadNumber()
         {

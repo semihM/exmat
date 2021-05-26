@@ -892,7 +892,10 @@ namespace ExMat.Objects
             _size = stc._size;
         }
 
-        public ExObject Back() => _values[_size - 1];
+        public ExObject Back()
+        {
+            return _values[_size - 1];
+        }
 
         public ExObject Push(ExObject o)
         {

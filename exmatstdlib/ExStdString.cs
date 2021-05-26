@@ -223,7 +223,7 @@ namespace ExMat.BaseLib
 
             new() { name = string.Empty }
         };
-        public static List<ExRegFunc> StringFuncs { get => _stdstrfuncs; }
+        public static List<ExRegFunc> StringFuncs => _stdstrfuncs;
 
         public static bool RegisterStdString(ExVM vm, bool force = false)
         {

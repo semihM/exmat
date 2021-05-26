@@ -1317,7 +1317,7 @@ namespace ExMat.BaseLib
 
             new() { name = string.Empty }
         };
-        public static List<ExRegFunc> MathFuncs { get => _stdmathfuncs; }
+        public static List<ExRegFunc> MathFuncs => _stdmathfuncs;
         public static Random Rand { get => rand; set => rand = value; }
 
         public static bool RegisterStdMath(ExVM vm, bool force = false)
