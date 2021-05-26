@@ -179,7 +179,7 @@
 			[
 				{
 				"name": "variable.language.exmat",
-				"match": "\\b(constructor|this|base|vargv)\\b"
+				"match": "\\b(init|this|base|vargs)\\b"
 				},
 				{
 				"name": "constant.language.exmat",
@@ -206,11 +206,11 @@
 			[
 				{
 					"name": "constant.numeric.exmat",
-					"match": "\\b(\\d+(\\.\\d+)?((E|e)(\\+|\\-)\\d+)?)\\b"
+					"match": "\\b(\\d+(\\.\\d+)?((E|e)(\\+|\\-)\\d+)?(i)?)\\b"
 				},
 				{
 					"name": "constant.language.exmat",
-					"match": "\\b(INT_MAX|INT_MAXF|INT_MIN|INT_MINF|FLOAT_MAX|FLOAT_MIN|PI|TAU|E|NAN|NINF|INF)\\b"
+					"match": "\\b(INT_MAX|INT_MAXF|INT_MIN|INT_MINF|LONG_MAX|LONG_MAXF|LONG_MIN|LONG_MINF|FLOAT_MAX|FLOAT_MIN|DEGREE|EPSILON|PI|TAU|GOLDEN|E|NAN|NINF|INF)\\b"
 				}
 			]
 		}

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.Class;
@@ -97,6 +98,11 @@ namespace ExMat.VM
         {
             switch (obj._type)
             {
+                case ExObjType.COMPLEX:
+                    {
+                        res = new(obj.GetComplexString());
+                        break;
+                    }
                 case ExObjType.INTEGER:
                     {
                         res = new(obj.GetInt().ToString());
@@ -309,10 +315,16 @@ namespace ExMat.VM
                         {
                             case ExClosureType.FUNCTION:
                                 {
-                                    s = "FUNCTION(" + tmp._name.GetString() + ", ";
+                                    string name = tmp._name.GetString();
+                                    s = string.IsNullOrWhiteSpace(name) ? "LAMBDA(" : "FUNCTION(" + name + ", ";
+
                                     if (tmp.n_defparams > 0)
                                     {
                                         s += (tmp.n_params - 1) + " params (min:" + (tmp.n_params - tmp.n_defparams - 1) + "))";
+                                    }
+                                    else if (tmp._pvars)
+                                    {
+                                        s += "vargs, min:" + (tmp.n_params - 2) + " params)";
                                     }
                                     else
                                     {
@@ -357,11 +369,11 @@ namespace ExMat.VM
                     }
                 default:
                     {
-                        if (obj.IsDelegable() && obj._val._Deleg._delegate != null)
+                        if (obj.IsDelegable())
                         {
                             ExObject c = new();
 
-                            if (obj._val._Deleg.GetMetaM(this, ExMetaM.STRING, ref c))
+                            if (obj.GetInstance().GetMetaM(this, ExMetaM.STRING, ref c))
                             {
                                 Push(obj);
                                 return CallMeta(ref c, ExMetaM.STRING, 1, ref res);
@@ -377,6 +389,16 @@ namespace ExMat.VM
         {
             switch (obj._type)
             {
+                case ExObjType.COMPLEX:
+                    {
+                        if (obj.GetComplex().Imaginary != 0.0)
+                        {
+                            AddToErrorMessage("can't parse non-zero imaginary part complex number as float");
+                            return false;
+                        }
+                        res = new(obj.GetComplex().Real);
+                        break;
+                    }
                 case ExObjType.INTEGER:
                     {
                         res = new(obj.GetInt());
@@ -417,6 +439,16 @@ namespace ExMat.VM
         {
             switch (obj._type)
             {
+                case ExObjType.COMPLEX:
+                    {
+                        if (obj.GetComplex().Imaginary != 0.0)
+                        {
+                            AddToErrorMessage("can't parse non-zero imaginary part complex number as integer");
+                            return false;
+                        }
+                        res = new((long)obj.GetComplex().Real);
+                        break;
+                    }
                 case ExObjType.INTEGER:
                     {
                         res = new(obj.GetInt());
@@ -602,6 +634,11 @@ namespace ExMat.VM
             }
         }
         public void Push(string o)
+        {
+            _stack[_top++].Assign(o);
+        }
+
+        public void Push(Complex o)
         {
             _stack[_top++].Assign(o);
         }
@@ -799,7 +836,7 @@ namespace ExMat.VM
                 p--;
                 if (nargs < p)
                 {
-                    AddToErrorMessage("'" + pro._name.GetString() + "' takes at least " + p + " arguments");
+                    AddToErrorMessage("'" + pro._name.GetString() + "' takes at least " + (p - 1) + " arguments");
                     return false;
                 }
 
@@ -808,14 +845,12 @@ namespace ExMat.VM
                 int pb = sbase + p;
                 for (int n = 0; n < nvargs; n++)
                 {
-                    ExObject varg = new();
-                    varg.Assign(_stack[pb]);
-                    varglis.Add(varg);
+                    varglis.Add(new(_stack[pb]));
                     _stack[pb].Nullify();
                     pb++;
                 }
 
-                _stack[sbase + p].Assign(new ExList(varglis));
+                _stack[sbase + p].Assign(varglis);
             }
             else if (!pro.IsCluster()
                      && !pro.IsRule()
@@ -1559,6 +1594,18 @@ namespace ExMat.VM
                             GetTargetInStack(i).Assign(new FloatInt() { i = i.arg1 }.f);
                             continue;
                         }
+                    case OPC.LOAD_COMPLEX:
+                        {
+                            if (i.arg2.GetInt() == 1)
+                            {
+                                GetTargetInStack(i).Assign(new Complex(0.0, new FloatInt() { i = i.arg1 }.f));
+                            }
+                            else
+                            {
+                                GetTargetInStack(i).Assign(new Complex(0.0, i.arg1));
+                            }
+                            continue;
+                        }
                     case OPC.LOAD_BOOL:
                         {
                             GetTargetInStack(i).Assign(i.arg1 == 1);
@@ -1668,11 +1715,13 @@ namespace ExMat.VM
                                         break;
                                     }
                                 case ExObjType.DICT:
+                                    {
+                                        goto default;
+                                    }
                                 case ExObjType.INSTANCE:
                                     {
                                         ExObject cls2 = null;
-                                        if (tmp2._val._Deleg != null
-                                            && tmp2._val._Deleg.GetMetaM(this, ExMetaM.CALL, ref cls2))
+                                        if (tmp2.GetInstance().GetMetaM(this, ExMetaM.CALL, ref cls2))
                                         {
                                             Push(tmp2);
                                             for (int j = 0; j < i.arg3.GetInt(); j++)
@@ -2204,7 +2253,8 @@ namespace ExMat.VM
                         ExObject cls = new();
                         ExObject tmp;
 
-                        if (self._val._Deleg != null && self._val._Deleg.GetMetaM(this, ExMetaM.DELSLOT, ref cls))
+                        // TO-DO allow dict deleg ?
+                        if (self._type == ExObjType.INSTANCE && self.GetInstance().GetMetaM(this, ExMetaM.DELSLOT, ref cls))
                         {
                             Push(self);
                             Push(k);
@@ -2248,14 +2298,14 @@ namespace ExMat.VM
                             AddToErrorMessage("can't remove from null list");
                             return false;
                         }
-                        else if (self.GetList().Count <= k.GetInt())
+                        else if (self.GetList().Count <= k.GetInt() || k.GetInt() < 0)
                         {
                             AddToErrorMessage("array index error: count " + self.GetList().Count + ", index " + k.GetInt());
                             return false;
                         }
                         else
                         {
-                            self.GetList()[(int)k.GetInt()].Release();
+                            self.GetList()[(int)k.GetFloat()].Release();
                             self.GetList().RemoveAt((int)k.GetInt());
                             return true;
                         }
@@ -2358,6 +2408,11 @@ namespace ExMat.VM
                 case ExObjType.FLOAT:
                     {
                         target.Assign(-val.GetFloat());
+                        return true;
+                    }
+                case ExObjType.COMPLEX:
+                    {
+                        target.Assign(-val.GetComplex());
                         return true;
                     }
                 case ExObjType.DICT:
@@ -2466,6 +2521,11 @@ namespace ExMat.VM
         {
             ExObjType at = a._type;
             ExObjType bt = b._type;
+            if (at == ExObjType.COMPLEX || bt == ExObjType.COMPLEX)
+            {
+                AddToErrorMessage("can't compare complex numbers");
+                return false;
+            }
             if (at == bt)
             {
                 if (a._val.i_Int == b._val.i_Int)
@@ -2568,7 +2628,6 @@ namespace ExMat.VM
                         res.Assign(t <= 0); return true;
                 }
             }
-            AddToErrorMessage("failed comparison operation " + cop.ToString());
             return false;
         }
 
@@ -2695,7 +2754,73 @@ namespace ExMat.VM
                     }
                 case OPC.EXP:
                     {
-                        res = new((int)Math.Pow(a, b)); break;
+                        res = new(Math.Pow(a, b)); break;
+                    }
+                default:
+                    {
+                        throw new Exception("unknown arithmetic operation");
+                    }
+            }
+            return true;
+        }
+        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
+        {
+            switch (op)
+            {
+                case OPC.ADD:
+                    res = new(a + b); break;
+                case OPC.SUB:
+                    res = new(a - b); break;
+                case OPC.MLT:
+                    res = new(a * b); break;
+                case OPC.DIV:
+                    {
+                        if (b == 0)
+                        {
+                            res = new(double.NaN);
+                            break;
+                        }
+
+                        res = new(a / b); break;
+                    }
+                case OPC.EXP:
+                case OPC.MOD:
+                    {
+                        return false;
+                    }
+                default:
+                    {
+                        throw new Exception("unknown arithmetic operation");
+                    }
+            }
+            return true;
+        }
+
+        private static bool InnerDoArithmeticOPComplex(OPC op, double a, Complex b, ref ExObject res)
+        {
+            switch (op)
+            {
+                case OPC.ADD:
+                    res = new(a + b); break;
+                case OPC.SUB:
+                    res = new(a - b); break;
+                case OPC.MLT:
+                    res = new(a * b); break;
+                case OPC.DIV:
+                    {
+                        if (b == 0)
+                        {
+                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
+                            //AddToErrorMessage("division by zero");
+                            break;
+                        }
+
+                        res = new(a / b); break;
+                    }
+                case OPC.EXP:
+                case OPC.MOD:
+                    {
+                        return false;
                     }
                 default:
                     {
@@ -2890,6 +3015,24 @@ namespace ExMat.VM
                         }
                         break;
                     }
+                case (int)ArithmeticMask.INTCOMPLEX:
+                    {
+                        if (a._type == ExObjType.INTEGER)
+                        {
+                            if (!InnerDoArithmeticOPComplex(op, a.GetInt(), b.GetComplex(), ref res))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!InnerDoArithmeticOPComplex(op, b.GetInt(), a.GetComplex(), ref res))
+                            {
+                                return false;
+                            }
+                        }
+                        break;
+                    }
                 case (int)ArithmeticMask.FLOATINT:
                 case (int)ArithmeticMask.FLOAT:
                     {
@@ -2897,6 +3040,32 @@ namespace ExMat.VM
                         {
                             return false;
                         };
+                        break;
+                    }
+                case (int)ArithmeticMask.FLOATCOMPLEX:
+                    {
+                        if (a._type == ExObjType.FLOAT)
+                        {
+                            if (!InnerDoArithmeticOPComplex(op, a.GetFloat(), b.GetComplex(), ref res))
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (!InnerDoArithmeticOPComplex(op, b.GetFloat(), a.GetComplex(), ref res))
+                            {
+                                return false;
+                            }
+                        }
+                        break;
+                    }
+                case (int)ArithmeticMask.COMPLEX:
+                    {
+                        if (!InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetComplex(), ref res))
+                        {
+                            return false;
+                        }
                         break;
                     }
                 case (int)ArithmeticMask.STRING:
@@ -2924,6 +3093,22 @@ namespace ExMat.VM
                             goto default;
                         }
                         res = new(a._type == ExObjType.BOOL ? (a.GetBool().ToString().ToLower() + b.GetString()) : (a.GetString() + b.GetBool().ToString().ToLower()));
+                        break;
+                    }
+                case (int)ArithmeticMask.STRINGCOMPLEX:
+                    {
+                        if (op != OPC.ADD)
+                        {
+                            goto default;
+                        }
+                        if (a._type == ExObjType.STRING)
+                        {
+                            res = new(a.GetString() + b.GetComplexString());
+                        }
+                        else
+                        {
+                            res = new(a.GetComplexString() + b.GetString());
+                        }
                         break;
                     }
                 case (int)ArithmeticMask.STRINGINT:
@@ -2996,11 +3181,11 @@ namespace ExMat.VM
                         break;
                     }
             }
-            if (a.IsDelegable() && a._val._Deleg._delegate != null)
+            if (a.IsDelegable())
             {
                 ExObject c = new();
 
-                if (a._val._Deleg.GetMetaM(this, meta, ref c))
+                if (a.GetInstance().GetMetaM(this, meta, ref c))
                 {
                     Push(a);
                     Push(b);
@@ -3022,11 +3207,15 @@ namespace ExMat.VM
         public enum ArithmeticMask
         {
             INT = ExObjType.INTEGER,
+            INTCOMPLEX = ExObjType.COMPLEX | ExObjType.INTEGER,
             FLOATINT = ExObjType.INTEGER | ExObjType.FLOAT,
+            FLOATCOMPLEX = ExObjType.COMPLEX | ExObjType.FLOAT,
             FLOAT = ExObjType.FLOAT,
+            COMPLEX = ExObjType.COMPLEX,
             STRING = ExObjType.STRING,
             STRINGINT = ExObjType.STRING | ExObjType.INTEGER,
             STRINGFLOAT = ExObjType.STRING | ExObjType.FLOAT,
+            STRINGCOMPLEX = ExObjType.STRING | ExObjType.COMPLEX,
             STRINGBOOL = ExObjType.STRING | ExObjType.BOOL,
             STRINGNULL = ExObjType.STRING | ExObjType.NULL
         }
@@ -3044,11 +3233,29 @@ namespace ExMat.VM
                     case ExObjType.STRING:
                         res = x.GetString() == y.GetString();
                         break;
+                    case ExObjType.COMPLEX:
+                        res = x.GetComplex() == y.GetComplex();
+                        break;
                     case ExObjType.INTEGER:
                         res = x.GetInt() == y.GetInt();
                         break;
                     case ExObjType.FLOAT:
-                        res = x.GetFloat() == y.GetFloat();
+                        {
+                            double xv = x.GetFloat();
+                            double yv = y.GetFloat();
+                            if (double.IsNaN(xv))
+                            {
+                                res = double.IsNaN(yv);
+                            }
+                            else if (double.IsNaN(yv))
+                            {
+                                res = double.IsNaN(xv);
+                            }
+                            else
+                            {
+                                res = x.GetFloat() == y.GetFloat();
+                            }
+                        }
                         break;
                     case ExObjType.NULL:
                         res = true;
@@ -3066,7 +3273,17 @@ namespace ExMat.VM
             }
             else
             {
-                if (x.IsNumeric() && y.IsNumeric())
+                bool bx = x.IsNumeric();
+                bool by = y.IsNumeric();
+                if (by && x._type == ExObjType.COMPLEX)
+                {
+                    res = x.GetComplex() == y.GetFloat();
+                }
+                else if (bx && y._type == ExObjType.COMPLEX)
+                {
+                    res = x.GetFloat() == y.GetComplex();
+                }
+                else if (bx && by)
                 {
                     res = x.GetFloat() == y.GetFloat();
                 }
@@ -3228,9 +3445,9 @@ namespace ExMat.VM
             {
                 case ExObjType.DICT:
                     {
-                        if (self._val._Deleg != null && self._val._Deleg._delegate != null)
+                        if (self.GetInstance()._delegate != null)
                         {
-                            if (Setter(self._val._Deleg._delegate, k, ref v, ExFallback.DONT))
+                            if (Setter(self.GetInstance()._delegate, k, ref v, ExFallback.DONT))
                             {
                                 return ExFallback.OK;
                             }
@@ -3245,7 +3462,7 @@ namespace ExMat.VM
                     {
                         ExObject cls = null;
                         ExObject t = new();
-                        if (self._val._Deleg != null && self._val._Deleg.GetMetaM(this, ExMetaM.SET, ref cls))
+                        if (self.GetInstance().GetMetaM(this, ExMetaM.SET, ref cls))
                         {
                             Push(self);
                             Push(k);
@@ -3298,6 +3515,11 @@ namespace ExMat.VM
                         del = _sState._str_del._val.d_Dict;
                         break;
                     }
+                case ExObjType.COMPLEX:
+                    {
+                        del = _sState._complex_del._val.d_Dict;
+                        break;
+                    }
                 case ExObjType.INTEGER:
                 case ExObjType.FLOAT:
                 case ExObjType.BOOL:
@@ -3332,23 +3554,23 @@ namespace ExMat.VM
             {
                 case ExObjType.DICT:
                     {
-                        if (self._val._Deleg != null && self._val._Deleg._delegate != null)
-                        {
-                            if (Getter(ref self._val._Deleg._delegate, ref k, ref dest, false, ExFallback.DONT))
-                            {
-                                return ExFallback.OK;
-                            }
-                        }
-                        else
-                        {
-                            return ExFallback.NOMATCH;
-                        }
-                        goto case ExObjType.INSTANCE;
+                        //if (self.GetInstance()._delegate != null)
+                        //{
+                        //    if (Getter(ref self.GetInstance()._delegate, ref k, ref dest, false, ExFallback.DONT))
+                        //    {
+                        //        return ExFallback.OK;
+                        //    }
+                        //}
+                        //else
+                        //{
+                        return ExFallback.NOMATCH;
+                        //}
+                        //goto case ExObjType.INSTANCE;
                     }
                 case ExObjType.INSTANCE:
                     {
                         ExObject cls = null;
-                        if (self._val._Deleg != null && self._val._Deleg.GetMetaM(this, ExMetaM.GET, ref cls))
+                        if (self.GetInstance().GetMetaM(this, ExMetaM.GET, ref cls))
                         {
                             Push(self);
                             Push(k);
@@ -3569,6 +3791,11 @@ namespace ExMat.VM
                         {
                             switch (k.GetString())
                             {
+                                case "vargs":
+                                    {
+                                        dest = new(self.GetClosure()._func._pvars);
+                                        return true;
+                                    }
                                 case "n_params":
                                     {
                                         dest = new(self.GetClosure()._func.n_params - 1);
@@ -3618,6 +3845,10 @@ namespace ExMat.VM
                         }
                         goto default;
 
+                    }
+                case ExObjType.COMPLEX:
+                    {
+                        break;
                     }
                 default:
                     {

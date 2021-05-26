@@ -1,3 +1,5 @@
+
+/// Default scatter plots
 // Single data plot
 var axis_1 = range(0.1, 10, 0.2)
 save_scatter("plot_single",
@@ -23,3 +25,49 @@ save_scatters("plot_multiple.png",
         [axis_2, map($(x) 2**x, axis_2), "purple", "two"]
     ],
     1200, 800)
+
+/// Lines only plot
+var axis_3 = range(-5, 5, 0.1)
+save_scatter_line("plot_line",
+    axis_3,
+    map(tanh, axis_3),
+    900, 500,
+    "purple",
+    "tanh")
+
+/// Points only plot
+var axis_4 = range(-24,24.5,0.5)
+var axis_4len = axis_4.len();
+var axis_4x = []
+for(var i = 0; i < axis_4len; i++)
+{
+    axis_4x.extend(axis_4)
+}
+
+var axis_4y = map($(arr) round(complex(arr[0],arr[1]).abs()*sign(arr[0])*4,2)%5, axis_4*.*axis_4)
+save_scatter_point("plot_point",
+    axis_4x,
+    axis_4y,
+    1400, 1400,
+    "black",
+    "points")
+
+/// Step scatter
+var axis_5x = range(0,1.01,0.01)
+var axis_5y = map($(x) x**x, axis_5x)
+for(;;)
+{
+    var i
+    if((i = axis_5y.index_of(NAN)) == -1)
+        break;
+    
+    delete axis_5x[i];
+    delete axis_5y[i];
+}
+
+save_scatter_step("plot_step",
+    axis_5x,
+    axis_5y,
+    900, 1200,
+    ..,
+    "x**x")

@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Numerics;
 using ExMat.Class;
 using ExMat.Closure;
 using ExMat.FuncPrototype;
-using ExMat.VM;
 
 namespace ExMat.Objects
 {
@@ -84,6 +84,35 @@ namespace ExMat.Objects
             return _type == ExObjType.FLOAT ? _val.f_Float : _val.i_Int;
         }
 
+        public Complex GetComplex()
+        {
+            return new(_val.f_Float, _val.c_Float);
+        }
+        public Complex GetComplexConj()
+        {
+            return new(_val.f_Float, -_val.c_Float);
+        }
+
+        public string GetComplexString()
+        {
+            if (_val.f_Float == 0.0)
+            {
+                return _val.c_Float + "i";
+            }
+            else if (_val.c_Float > 0)
+            {
+                return _val.f_Float + "+" + _val.c_Float + "i";
+            }
+            else if (_val.c_Float == 0.0)
+            {
+                return _val.f_Float.ToString();
+            }
+            else
+            {
+                return _val.f_Float + _val.c_Float.ToString() + "i";
+            }
+        }
+
         public string GetString()
         {
             return _type == ExObjType.STRING ? _val.s_String : (_type == ExObjType.NULL && _val.s_String != null ? _val.s_String : string.Empty);
@@ -139,6 +168,11 @@ namespace ExMat.Objects
             return _val._NativeClosure;
         }
 
+        public ExInstance GetInstance()
+        {
+            return _val._Instance;
+        }
+
         public virtual string GetDebuggerDisplay()
         {
             string s = _type.ToString();
@@ -162,40 +196,23 @@ namespace ExMat.Objects
             {
                 if (disposing)
                 {
+                    _val.i_Int = 0;
+                    _val.f_Float = 0;
+                    _val.c_Float = 0;
+                    _val.s_String = null;
+
                     _val._RefC = null;
-                    switch (_type)
-                    {
-                        case ExObjType.INTEGER:
-                        case ExObjType.FLOAT:
-                        case ExObjType.BOOL:
-                            {
-                                _val.i_Int = 0;
-                                break;
-                            }
-                        case ExObjType.STRING:
-                            {
-                                _val.s_String = null;
-                                break;
-                            }
-                        case ExObjType.ARRAY:
-                            {
-                                _val._RefC = null;
-                                Disposer.DisposeList(ref _val.l_List);
-                                break;
-                            }
-                        case ExObjType.DICT:
-                            {
-                                _val._RefC = null;
-                                Disposer.DisposeDict(ref _val.d_Dict);
-                                break;
-                            }
-                        default:
-                            {
-                                _val._RefC = null;
-                                _val.c_Space = null;
-                                break;
-                            }
-                    }
+                    _val.c_Space = null;
+                    Disposer.DisposeList(ref _val.l_List);
+                    Disposer.DisposeDict(ref _val.d_Dict);
+                    _val._Method = null;
+                    _val._Closure = null;
+                    _val._Outer = null;
+                    _val._NativeClosure = null;
+                    _val._FuncPro = null;
+                    _val._Class = null;
+                    _val._Instance = null;
+                    _val._WeakRef = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -330,7 +347,19 @@ namespace ExMat.Objects
             _val.s_String = s;
             _type = ExObjType.STRING;
         }
-
+        public ExObject(Complex f)
+        {
+            _type = ExObjType.COMPLEX;
+            _val.f_Float = f.Real;
+            _val.c_Float = f.Imaginary;
+        }
+        public void Assign(Complex f)
+        {
+            Release(_type, _val);
+            _val.f_Float = f.Real;
+            _val.c_Float = f.Imaginary;
+            _type = ExObjType.COMPLEX;
+        }
         ///////////////////////////////
         /// EXREF
         ///////////////////////////////
@@ -641,44 +670,6 @@ namespace ExMat.Objects
             {
                 obj._val._WeakRef = null;
             }
-        }
-    }
-
-    public class ExDeleg : ExObject
-    {
-        public ExObject _delegate;
-
-        public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObject res)
-        {
-            if (_delegate != null)
-            {
-                if (_delegate._type == ExObjType.DICT)
-                {
-                    string k = vm._sState._metaMethods[(int)m].GetString();
-                    if (_delegate.GetDict().ContainsKey(k))
-                    {
-                        res.Assign(_delegate.GetDict()[k]);
-                        return true;
-                    }
-                }
-                else if (_delegate._type == ExObjType.ARRAY)
-                {
-                    int k = vm._sState.GetMetaIdx(vm._sState._metaMethods[(int)m].GetString());
-                    if (_delegate.GetList()[k]._type != ExObjType.NULL)
-                    {
-                        res.Assign(_delegate.GetList()[k]);
-                        return true;
-                    }
-                }
-                return false;
-            }
-            return false;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            Disposer.DisposeObjects(_delegate);
         }
     }
 

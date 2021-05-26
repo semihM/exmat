@@ -3,7 +3,7 @@
 */
 class MyClass
 {
-    constructor(m1, m2=false, m3=15)
+    init(m1, m2=false, m3=15)
     {
         // Do type checks
         ::assert(type(m3) in ["INTEGER", "FLOAT"], "expected INTEGER or FLOAT for member_3")

@@ -93,14 +93,14 @@ function MulOf(func,m=0,n=0)
 
 class Vector3D
 {
-    constructor(_x=0,_y=0,_z=0)
+    init(_x=0,_y=0,_z=0)
     {
         ::assert(type(_x) in NumericTypes, "expected numeric value for 'x' of 'Vector3D'")
         ::assert(type(_y) in NumericTypes, "expected numeric value for 'y' of 'Vector3D'")
         ::assert(type(_z) in NumericTypes, "expected numeric value for 'z' of 'Vector3D'")
-        x = _x;
-        y = _y;
-        z = _z;
+        this.x = _x;
+        this.y = _y;
+        this.z = _z;
     }
     
     /. 

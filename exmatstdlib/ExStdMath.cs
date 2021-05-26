@@ -829,6 +829,7 @@ namespace ExMat.BaseLib
             return true;
         }
 
+        // TO-DO extremely redundant, refactor...
         public static int MATHPLOT_save_scatters(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
@@ -936,9 +937,16 @@ namespace ExMat.BaseLib
                 }
             }
 
-            plt.Legend(hadlabels);
-
-            plt.SaveFig(name);
+            try
+            {
+                plt.Legend(hadlabels);
+                plt.SaveFig(name);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
 
             vm.Pop(nargs + 2);
             vm.Push(name);
@@ -1000,15 +1008,594 @@ namespace ExMat.BaseLib
             try
             {
                 plot.AddScatter(X, Y, color, label: label);
+                plot.Legend(!string.IsNullOrWhiteSpace(label));
+
+                plot.SaveFig(name);
             }
             catch (Exception e)
             {
                 vm.AddToErrorMessage("plot error: " + e.Message);
                 return -1;
             }
-            plot.Legend(!string.IsNullOrWhiteSpace(label));
 
-            plot.SaveFig(name);
+            vm.Pop(nargs + 2);
+            vm.Push(name);
+            return 1;
+        }
+
+        public static int MATHPLOT_save_scatter_lines(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            ScottPlot.Plot plt = new(width, height);
+            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            bool hadlabels = false;
+
+            foreach (ExObject plot in plots)
+            {
+                if (plot._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list of lists containing plot data");
+                    return -1;
+                }
+
+                List<ExObject> plotdata = plot.GetList();
+                int ndata = plotdata.Count;
+                System.Drawing.Color color = System.Drawing.Color.Blue;
+                string label = null;
+
+                switch (ndata)
+                {
+                    case 4:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for label");
+                                return -1;
+                            }
+                            label = plotdata[3].GetString();
+                            hadlabels = true;
+                            goto case 3;
+                        }
+                    case 3:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for color name");
+                                return -1;
+                            }
+                            color = System.Drawing.Color.FromName(plotdata[2].GetString());
+                            break;
+                        }
+                    case 2:
+                        {
+                            break;
+                        }
+                    default:
+                        {
+                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
+                            return -1;
+                        }
+                }
+
+                if (plotdata[0]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for X axis");
+                    return -1;
+                }
+                List<ExObject> x = plotdata[0].GetList();
+
+                if (plotdata[1]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for Y axis");
+                    return -1;
+                }
+                List<ExObject> y = plotdata[1].GetList();
+
+                double[] X = CreateNumArr(vm, x);
+                if (X == null)
+                {
+                    return -1;
+                }
+                double[] Y = CreateNumArr(vm, y);
+                if (X == null)
+                {
+                    return -1;
+                }
+
+                try
+                {
+                    plt.AddScatterLines(X, Y, color, label: label);
+                }
+                catch (Exception e)
+                {
+                    vm.AddToErrorMessage("plot error: " + e.Message);
+                    return -1;
+                }
+            }
+
+            try
+            {
+                plt.Legend(hadlabels);
+                plt.SaveFig(name);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
+
+            vm.Pop(nargs + 2);
+            vm.Push(name);
+            return 1;
+        }
+
+        public static int MATHPLOT_save_scatter_line(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
+            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+
+            System.Drawing.Color color = System.Drawing.Color.Blue;
+            string label = null;
+
+            switch (nargs)
+            {
+                case 7:
+                    {
+                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        goto case 6;
+                    }
+                case 6:
+                    {
+                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        break;
+                    }
+            }
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            double[] X = CreateNumArr(vm, x);
+            if (X == null)
+            {
+                return -1;
+            }
+            double[] Y = CreateNumArr(vm, y);
+            if (X == null)
+            {
+                return -1;
+            }
+
+            ScottPlot.Plot plot = new(width, height);
+
+            try
+            {
+                plot.AddScatterLines(X, Y, color, label: label);
+                plot.Legend(!string.IsNullOrWhiteSpace(label));
+
+                plot.SaveFig(name);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
+
+            vm.Pop(nargs + 2);
+            vm.Push(name);
+            return 1;
+        }
+
+        public static int MATHPLOT_save_scatter_points(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            ScottPlot.Plot plt = new(width, height);
+            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            bool hadlabels = false;
+
+            foreach (ExObject plot in plots)
+            {
+                if (plot._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list of lists containing plot data");
+                    return -1;
+                }
+
+                List<ExObject> plotdata = plot.GetList();
+                int ndata = plotdata.Count;
+                System.Drawing.Color color = System.Drawing.Color.Blue;
+                string label = null;
+
+                switch (ndata)
+                {
+                    case 4:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for label");
+                                return -1;
+                            }
+                            label = plotdata[3].GetString();
+                            hadlabels = true;
+                            goto case 3;
+                        }
+                    case 3:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for color name");
+                                return -1;
+                            }
+                            color = System.Drawing.Color.FromName(plotdata[2].GetString());
+                            break;
+                        }
+                    case 2:
+                        {
+                            break;
+                        }
+                    default:
+                        {
+                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
+                            return -1;
+                        }
+                }
+
+                if (plotdata[0]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for X axis");
+                    return -1;
+                }
+                List<ExObject> x = plotdata[0].GetList();
+
+                if (plotdata[1]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for Y axis");
+                    return -1;
+                }
+                List<ExObject> y = plotdata[1].GetList();
+
+                double[] X = CreateNumArr(vm, x);
+                if (X == null)
+                {
+                    return -1;
+                }
+                double[] Y = CreateNumArr(vm, y);
+                if (X == null)
+                {
+                    return -1;
+                }
+
+                try
+                {
+                    plt.AddScatterPoints(X, Y, color, label: label);
+                }
+                catch (Exception e)
+                {
+                    vm.AddToErrorMessage("plot error: " + e.Message);
+                    return -1;
+                }
+            }
+
+            try
+            {
+                plt.Legend(hadlabels);
+                plt.SaveFig(name);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
+
+            vm.Pop(nargs + 2);
+            vm.Push(name);
+            return 1;
+        }
+
+        public static int MATHPLOT_save_scatter_point(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
+            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+
+            System.Drawing.Color color = System.Drawing.Color.Blue;
+            string label = null;
+
+            switch (nargs)
+            {
+                case 7:
+                    {
+                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        goto case 6;
+                    }
+                case 6:
+                    {
+                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        break;
+                    }
+            }
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            double[] X = CreateNumArr(vm, x);
+            if (X == null)
+            {
+                return -1;
+            }
+            double[] Y = CreateNumArr(vm, y);
+            if (X == null)
+            {
+                return -1;
+            }
+
+            ScottPlot.Plot plot = new(width, height);
+
+            try
+            {
+                plot.AddScatterPoints(X, Y, color, label: label);
+                plot.Legend(!string.IsNullOrWhiteSpace(label));
+
+                plot.SaveFig(name);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
+
+            vm.Pop(nargs + 2);
+            vm.Push(name);
+            return 1;
+        }
+
+        public static int MATHPLOT_save_scatter_steps(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            ScottPlot.Plot plt = new(width, height);
+            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            bool hadlabels = false;
+
+            foreach (ExObject plot in plots)
+            {
+                if (plot._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list of lists containing plot data");
+                    return -1;
+                }
+
+                List<ExObject> plotdata = plot.GetList();
+                int ndata = plotdata.Count;
+                System.Drawing.Color color = System.Drawing.Color.Blue;
+                string label = null;
+
+                switch (ndata)
+                {
+                    case 4:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for label");
+                                return -1;
+                            }
+                            label = plotdata[3].GetString();
+                            hadlabels = true;
+                            goto case 3;
+                        }
+                    case 3:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for color name");
+                                return -1;
+                            }
+                            color = System.Drawing.Color.FromName(plotdata[2].GetString());
+                            break;
+                        }
+                    case 2:
+                        {
+                            break;
+                        }
+                    default:
+                        {
+                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
+                            return -1;
+                        }
+                }
+
+                if (plotdata[0]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for X axis");
+                    return -1;
+                }
+                List<ExObject> x = plotdata[0].GetList();
+
+                if (plotdata[1]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for Y axis");
+                    return -1;
+                }
+                List<ExObject> y = plotdata[1].GetList();
+
+                double[] X = CreateNumArr(vm, x);
+                if (X == null)
+                {
+                    return -1;
+                }
+                double[] Y = CreateNumArr(vm, y);
+                if (X == null)
+                {
+                    return -1;
+                }
+
+                try
+                {
+                    plt.AddScatterStep(X, Y, color, label: label);
+                }
+                catch (Exception e)
+                {
+                    vm.AddToErrorMessage("plot error: " + e.Message);
+                    return -1;
+                }
+            }
+
+            try
+            {
+                plt.Legend(hadlabels);
+                plt.SaveFig(name);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
+
+            vm.Pop(nargs + 2);
+            vm.Push(name);
+            return 1;
+        }
+
+        public static int MATHPLOT_save_scatter_step(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
+            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+
+            System.Drawing.Color color = System.Drawing.Color.Blue;
+            string label = null;
+
+            switch (nargs)
+            {
+                case 7:
+                    {
+                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        goto case 6;
+                    }
+                case 6:
+                    {
+                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        break;
+                    }
+            }
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            double[] X = CreateNumArr(vm, x);
+            if (X == null)
+            {
+                return -1;
+            }
+            double[] Y = CreateNumArr(vm, y);
+            if (X == null)
+            {
+                return -1;
+            }
+
+            ScottPlot.Plot plot = new(width, height);
+
+            try
+            {
+                plot.AddScatterStep(X, Y, color, label: label);
+                plot.Legend(!string.IsNullOrWhiteSpace(label));
+
+                plot.SaveFig(name);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
 
             vm.Pop(nargs + 2);
             vm.Push(name);
@@ -1314,6 +1901,84 @@ namespace ExMat.BaseLib
                     { 4, new(800) }
                 }
             },
+            new()
+            {
+                name = "save_scatter_step",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatter_step")),
+                n_pchecks = -4,
+                mask = ".saannss",
+                d_defaults = new()
+                {
+                    { 4, new(1200) },
+                    { 5, new(800) },
+                    { 6, new("blue") },
+                    { 7, new(s: null) }
+                }
+            },
+            new()
+            {
+                name = "save_scatter_steps",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatter_steps")),
+                n_pchecks = -3,
+                mask = ".sann",
+                d_defaults = new()
+                {
+                    { 3, new(1200) },
+                    { 4, new(800) }
+                }
+            },
+            new()
+            {
+                name = "save_scatter_point",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatter_point")),
+                n_pchecks = -4,
+                mask = ".saannss",
+                d_defaults = new()
+                {
+                    { 4, new(1200) },
+                    { 5, new(800) },
+                    { 6, new("blue") },
+                    { 7, new(s: null) }
+                }
+            },
+            new()
+            {
+                name = "save_scatter_points",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatter_points")),
+                n_pchecks = -3,
+                mask = ".sann",
+                d_defaults = new()
+                {
+                    { 3, new(1200) },
+                    { 4, new(800) }
+                }
+            },
+            new()
+            {
+                name = "save_scatter_line",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatter_line")),
+                n_pchecks = -4,
+                mask = ".saannss",
+                d_defaults = new()
+                {
+                    { 4, new(1200) },
+                    { 5, new(800) },
+                    { 6, new("blue") },
+                    { 7, new(s: null) }
+                }
+            },
+            new()
+            {
+                name = "save_scatter_lines",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatter_lines")),
+                n_pchecks = -3,
+                mask = ".sann",
+                d_defaults = new()
+                {
+                    { 3, new(1200) },
+                    { 4, new(800) }
+                }
+            },
 
             new() { name = string.Empty }
         };
@@ -1328,15 +1993,22 @@ namespace ExMat.BaseLib
             ExAPI.CreateConstantInt(vm, "INT_MIN", int.MinValue);
             ExAPI.CreateConstantFloat(vm, "INT_MAXF", int.MaxValue);
             ExAPI.CreateConstantFloat(vm, "INT_MINF", int.MinValue);
+
             ExAPI.CreateConstantInt(vm, "LONG_MAX", long.MaxValue);
             ExAPI.CreateConstantInt(vm, "LONG_MIN", long.MinValue);
             ExAPI.CreateConstantFloat(vm, "LONG_MAXF", long.MaxValue);
             ExAPI.CreateConstantFloat(vm, "LONG_MINF", long.MinValue);
+
             ExAPI.CreateConstantFloat(vm, "FLOAT_MAX", double.MaxValue);
             ExAPI.CreateConstantFloat(vm, "FLOAT_MIN", double.MinValue);
+
             ExAPI.CreateConstantFloat(vm, "TAU", Math.Tau);
             ExAPI.CreateConstantFloat(vm, "PI", Math.PI);
             ExAPI.CreateConstantFloat(vm, "E", Math.E);
+            ExAPI.CreateConstantFloat(vm, "GOLDEN", (1.0 + Math.Sqrt(5)) / 2.0);
+            ExAPI.CreateConstantFloat(vm, "DEGREE", Math.PI / 180.0);
+            ExAPI.CreateConstantFloat(vm, "EPSILON", double.Epsilon);
+
             ExAPI.CreateConstantFloat(vm, "NAN", double.NaN);
             ExAPI.CreateConstantFloat(vm, "NINF", double.NegativeInfinity);
             ExAPI.CreateConstantFloat(vm, "INF", double.PositiveInfinity);

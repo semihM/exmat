@@ -55,8 +55,20 @@ printl(typeof GlobalFunction)
 printl(GlobalFunction)
 printl(GlobalFunction(5))
 
+// Lambda expressions
 var Lambda = $(x,y=3) exp(x + y)
 printl("Lambda is a '$' lambda expression")
 printl(Lambda)
 printl(Lambda(2))
 printl(Lambda(-2,5))
+
+// Variable parameter count
+function VFunc(p1,p2,...)
+{
+    return string(p1) + " " + string(p2) + " | vargs: " + string(vargs);
+}
+printl("VFunc has variable parameter count")
+printl(VFunc)
+printl(VFunc.vargs)
+printl(VFunc(2,5,"this is in vargs list!","here are some numbers next",1,2,3,4))
+printl(VFunc(-5555,"nothing will be in vargs =>"))

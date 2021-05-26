@@ -90,6 +90,7 @@ namespace ExMat.OPs
         TRANSPOSE,
         DEFAULT,
         CARTESIAN,
+        LOAD_COMPLEX,
         CLOSE = 984
     }
 

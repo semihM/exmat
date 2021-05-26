@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using ExMat.API;
@@ -261,6 +262,50 @@ namespace ExMat.BaseLib
         }
 
         // BASIC CLASS-LIKE FUNCTIONS
+        public static int BASE_complex(ExVM vm, int nargs)
+        {
+            switch (nargs)
+            {
+                case 2:
+                    {
+                        ExObject o = ExAPI.GetFromStack(vm, 2);
+                        if (o._type == ExObjType.COMPLEX)
+                        {
+                            vm.AddToErrorMessage("can't use complex number as real part");
+                            return -1;
+                        }
+                        double real = o.GetFloat();
+                        double img = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        vm.Pop(4);
+                        vm.Push(new Complex(real, img));
+                        break;
+                    }
+                case 1:
+                    {
+                        ExObject obj = ExAPI.GetFromStack(vm, 2);
+                        Complex c;
+                        if (obj._type == ExObjType.COMPLEX)
+                        {
+                            c = new(obj.GetComplex().Real, obj.GetComplex().Imaginary);
+                        }
+                        else
+                        {
+                            c = new(obj.GetFloat(), 0);
+                        }
+                        vm.Pop(3);
+                        vm.Push(c);
+                        break;
+                    }
+                case 0:
+                    {
+                        vm.Pop(2);
+                        vm.Push(new Complex());
+                        break;
+                    }
+            }
+
+            return 1;
+        }
         public static int BASE_bool(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -543,7 +588,8 @@ namespace ExMat.BaseLib
                 n--;
                 m++;
             }
-            bool is_seq = cls.GetClosure()._func.IsSequence();
+
+            bool is_seq = iscls && cls.GetClosure()._func.IsSequence();
             bool bm = vm.b_main;
             vm.b_main = false;
 
@@ -1083,6 +1129,42 @@ namespace ExMat.BaseLib
             }
             vm.Pop(nargs + 2);
             vm.Push(l);
+            return 1;
+        }
+        // COMPLEX
+        public static int BASE_complex_phase(ExVM vm, int nargs)
+        {
+            double size = ExAPI.GetFromStack(vm, 1).GetComplex().Phase;
+            vm.Pop(nargs + 2);
+            vm.Push(new ExObject(size));
+            return 1;
+        }
+        public static int BASE_complex_magnitude(ExVM vm, int nargs)
+        {
+            double size = ExAPI.GetFromStack(vm, 1).GetComplex().Magnitude;
+            vm.Pop(nargs + 2);
+            vm.Push(new ExObject(size));
+            return 1;
+        }
+        public static int BASE_complex_img(ExVM vm, int nargs)
+        {
+            double size = ExAPI.GetFromStack(vm, 1)._val.c_Float;
+            vm.Pop(nargs + 2);
+            vm.Push(new ExObject(size));
+            return 1;
+        }
+        public static int BASE_complex_real(ExVM vm, int nargs)
+        {
+            double size = ExAPI.GetFromStack(vm, 1)._val.f_Float;
+            vm.Pop(nargs + 2);
+            vm.Push(new ExObject(size));
+            return 1;
+        }
+        public static int BASE_complex_conjugate(ExVM vm, int nargs)
+        {
+            Complex c = ExAPI.GetFromStack(vm, 1).GetComplexConj();
+            vm.Pop(nargs + 2);
+            vm.Push(c);
             return 1;
         }
 
@@ -1863,6 +1945,18 @@ namespace ExMat.BaseLib
             },
             new()
             {
+                name = "complex",
+                func = new(GetBaseLibMethod("BASE_complex")),
+                n_pchecks = -1,
+                mask = ".n|Cn",
+                d_defaults = new()
+                {
+                    { 1, new(0.0) },
+                    { 2, new(0.0) }
+                }
+            },
+            new()
+            {
                 name = "float",
                 func = new(GetBaseLibMethod("BASE_float")),
                 n_pchecks = -1,
@@ -2010,8 +2104,8 @@ namespace ExMat.BaseLib
             ExAPI.PushRootTable(vm);
             ExAPI.RegisterNativeFunctions(vm, BaseFuncs, force);
 
-            ExAPI.CreateConstantInt(vm, "_versionnumber_", 1, force);
-            ExAPI.CreateConstantString(vm, "_version_", "ExMat v0.0.1", force);
+            ExAPI.CreateConstantInt(vm, "_versionnumber_", 1);
+            ExAPI.CreateConstantString(vm, "_version_", "ExMat v0.0.1");
 
             vm.Pop(1);
 

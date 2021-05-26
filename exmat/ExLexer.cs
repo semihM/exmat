@@ -98,6 +98,8 @@ namespace ExMat.Lexer
 
         public int _lastTokenLine;
 
+        public TokenType c_type;
+
         public string _aStr;
         public string str_val;
         public string m_pname;
@@ -805,39 +807,60 @@ namespace ExMat.Lexer
                     _aStr += _currChar;
                     Next();
                 }
+
                 if (_aStr[^1] == '.')
                 {
                     _error = "expected digits after '.' ";
                     return TokenType.UNKNOWN;
                 }
-                switch (typ)
+
+                if (_currChar == 'i')
                 {
-                    case TokenType.FLOAT:
-                    case TokenType.SCI:
+                    c_type = typ == TokenType.INTEGER ? TokenType.INTEGER : TokenType.FLOAT;
+                    Next();
+                    return ParseNumberString(typ, true);
+                }
+                else
+                {
+                    return ParseNumberString(typ, false);
+                }
+            }
+        }
+
+        private TokenType ParseNumberString(TokenType typ, bool c = false)
+        {
+            switch (typ)
+            {
+                case TokenType.FLOAT:
+                case TokenType.SCI:
+                    {
+                        if (!double.TryParse(_aStr, out f_val))
+                        {
+                            _error = "failed to parse as float";
+                            return TokenType.UNKNOWN;
+                        }
+                        return c ? TokenType.COMPLEX : TokenType.FLOAT;
+                    }
+                case TokenType.INTEGER:
+                    {
+                        if (!long.TryParse(_aStr, out i_val))
                         {
                             if (!double.TryParse(_aStr, out f_val))
                             {
-                                _error = "failed to parse as float";
+                                _error = "failed to parse as integer";
                                 return TokenType.UNKNOWN;
+                            }
+                            if (c)
+                            {
+                                c_type = TokenType.FLOAT;
+                                return TokenType.COMPLEX;
                             }
                             return TokenType.FLOAT;
                         }
-                    case TokenType.INTEGER:
-                        {
-                            if (!long.TryParse(_aStr, out i_val))
-                            {
-                                if (!double.TryParse(_aStr, out f_val))
-                                {
-                                    _error = "failed to parse as integer";
-                                    return TokenType.UNKNOWN;
-                                }
-                                return TokenType.FLOAT;
-                            }
-                            return TokenType.INTEGER;
-                        }
-                }
-                return TokenType.ENDLINE;
+                        return c ? TokenType.COMPLEX : TokenType.INTEGER;
+                    }
             }
+            return TokenType.UNKNOWN;
         }
 
         public static TokenType GetTokenTypeForChar(char c)
@@ -1107,6 +1130,11 @@ namespace ExMat.Lexer
                                 case '.':
                                     {
                                         Next();
+                                        if (_currChar == '.')
+                                        {
+                                            Next();
+                                            return SetAndReturnToken(TokenType.VARGS);
+                                        }
                                         return SetAndReturnToken(TokenType.DEFAULT);
                                     }
                                 default:

@@ -133,7 +133,7 @@ namespace ExMat.Compiler
             _FuncState = fst;
 
             _FuncState.AddParam(_FuncState.CreateString(ExMat._THIS));
-            _FuncState.AddParam(_FuncState.CreateString("vargv"));
+            _FuncState.AddParam(_FuncState.CreateString(ExMat._VARGS));
             _FuncState._pvars = true;
             _FuncState._source = new(_source);
 
@@ -209,7 +209,7 @@ namespace ExMat.Compiler
                             }
                         case TokenType.LITERAL:
                             {
-                                expmsg = "STRING_LITERAL";
+                                expmsg = "STRING";
                                 break;
                             }
                         case TokenType.INTEGER:
@@ -254,6 +254,11 @@ namespace ExMat.Compiler
                 case TokenType.FLOAT:
                     {
                         res = new(_lexer.f_val);
+                        break;
+                    }
+                case TokenType.COMPLEX:
+                    {
+                        res = new(_lexer.c_type == TokenType.INTEGER ? _lexer.i_val : _lexer.f_val);
                         break;
                     }
             }
@@ -2248,7 +2253,7 @@ namespace ExMat.Compiler
                             {
                                 case ExObjType.INTEGER:
                                     {
-                                        AddIntConstLoadInstr((int)cval._val.i_Int, _ExpState._pos);
+                                        AddIntConstLoadInstr(cval._val.i_Int, _ExpState._pos);
                                         break;
                                     }
                                 case ExObjType.FLOAT:
@@ -2320,6 +2325,24 @@ namespace ExMat.Compiler
                 case TokenType.FLOAT:
                     {
                         AddFloatConstLoadInstr(new FloatInt() { f = _lexer.f_val }.i, -1);
+
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
+                case TokenType.COMPLEX:
+                    {
+                        if (_lexer.c_type == TokenType.INTEGER)
+                        {
+                            AddComplexConstLoadInstr(_lexer.i_val, -1);
+                        }
+                        else
+                        {
+                            AddComplexConstLoadInstr(new FloatInt() { f = _lexer.f_val }.i, -1, true);
+                        }
+
                         if (!ReadAndSetToken())
                         {
                             return false;
@@ -2452,6 +2475,23 @@ namespace ExMat.Compiler
                             case TokenType.FLOAT:
                                 {
                                     AddFloatConstLoadInstr(new FloatInt() { f = -_lexer.f_val }.i, -1);
+                                    if (!ReadAndSetToken())
+                                    {
+                                        return false;
+                                    }
+                                    break;
+                                }
+                            case TokenType.COMPLEX:
+                                {
+                                    if (_lexer.c_type == TokenType.INTEGER)
+                                    {
+                                        AddComplexConstLoadInstr(_lexer.i_val, -1);
+                                    }
+                                    else
+                                    {
+                                        AddComplexConstLoadInstr(new FloatInt() { f = _lexer.f_val }.i, -1, true);
+                                    }
+
                                     if (!ReadAndSetToken())
                                     {
                                         return false;
@@ -2708,6 +2748,16 @@ namespace ExMat.Compiler
             }
 
             _FuncState.AddInstr(OPC.LOAD_FLOAT, p, cval, 0, 0);
+        }
+
+        public void AddComplexConstLoadInstr(long cval, int p, bool isfloat = false)
+        {
+            if (p < 0)
+            {
+                p = _FuncState.PushTarget();
+            }
+
+            _FuncState.AddInstr(OPC.LOAD_COMPLEX, p, cval, isfloat ? 1 : 0, 0);
         }
 
         public void AddBasicDerefInstr(OPC op)
@@ -3254,6 +3304,26 @@ namespace ExMat.Compiler
 
             while (_currToken != TokenType.R_CLOSE)
             {
+                if (_currToken == TokenType.VARGS)
+                {
+                    if (def_param_count > 0)
+                    {
+                        AddToErrorMessage("can't use vargs alongside default valued parameters");
+                        return false;
+                    }
+                    f_state.AddParam(_FuncState.CreateString(ExMat._VARGS));
+                    f_state._pvars = true;
+                    if (!ReadAndSetToken())
+                    {
+                        return false;
+                    }
+                    if (_currToken != TokenType.R_CLOSE)
+                    {
+                        AddToErrorMessage("expected ')' after vargs '...'");
+                        return false;
+                    }
+                    break;
+                }
                 if ((pname = Expect(TokenType.IDENTIFIER)) == null)
                 {
                     return false;

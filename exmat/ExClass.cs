@@ -4,6 +4,7 @@ using System.Diagnostics;
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.Utils;
+using ExMat.VM;
 
 namespace ExMat.Class
 {
@@ -272,12 +273,14 @@ namespace ExMat.Class
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExInstance : ExDeleg
+    public class ExInstance : ExObject
     {
+        public ExObject _delegate;
         public ExSState _sState;
         public ExClass _class;
         public ExObject _hook;
         public List<ExObject> _values;
+
         public ExInstance()
         {
             _type = ExObjType.INSTANCE;
@@ -288,6 +291,33 @@ namespace ExMat.Class
         public static new ExObjType GetType()
         {
             return ExObjType.INSTANCE;
+        }
+
+        public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObject res)
+        {
+            if (_delegate != null)
+            {
+                if (_delegate._type == ExObjType.DICT)
+                {
+                    string k = vm._sState._metaMethods[(int)m].GetString();
+                    if (_delegate.GetDict().ContainsKey(k))
+                    {
+                        res.Assign(_delegate.GetDict()[k]);
+                        return true;
+                    }
+                }
+                else if (_delegate._type == ExObjType.ARRAY)
+                {
+                    int k = vm._sState.GetMetaIdx(vm._sState._metaMethods[(int)m].GetString());
+                    if (_delegate.GetList()[k]._type != ExObjType.NULL)
+                    {
+                        res.Assign(_delegate.GetList()[k]);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
         }
 
         public void Init(ExSState exs)

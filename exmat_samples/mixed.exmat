@@ -136,7 +136,7 @@ printl(this)
 printl("-----------------------")
 class Test
 {
-	constructor(abc)
+	init(abc)
 	{
 		_abc = abc
 	}
@@ -257,9 +257,9 @@ printl("-----------------------")
 
 class Vector
 {
-	constructor(_x,_y,_z)
+	init(_x,_y,_z)
 	{
-		this.x = _x
+		this.x = _x	// Using "this" because x exist as an outer
 		this.y = _y
 		this.z = _z
 	}

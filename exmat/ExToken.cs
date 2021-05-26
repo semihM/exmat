@@ -28,6 +28,7 @@
         INTEGER,
         FLOAT,
         SCI,
+        COMPLEX,
 
         // #
         COMMENT,
@@ -132,6 +133,7 @@
         DEFAULT, // ..
         CARTESIAN, // *.*
 
-        SEQUENCE   // seq
+        SEQUENCE,   // seq
+        VARGS
     }
 }

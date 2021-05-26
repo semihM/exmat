@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -310,6 +311,61 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int IO_mkdir(ExVM vm, int nargs)
+        {
+            string dir = ExAPI.GetFromStack(vm, 2).GetString();
+
+            if (Directory.Exists(dir))
+            {
+                vm.Pop(nargs + 2);
+                vm.Push(false);
+                return 1;
+            }
+            Directory.CreateDirectory(dir);
+
+            vm.Pop(nargs + 2);
+            vm.Push(true);
+            return 1;
+        }
+
+        public static int IO_opendir(ExVM vm, int nargs)
+        {
+            string dir = ExAPI.GetFromStack(vm, 2).GetString();
+
+            try
+            {
+                if (!Directory.Exists(dir))
+                {
+                    if (nargs == 2 && ExAPI.GetFromStack(vm, 3).GetBool())
+                    {
+                        Directory.CreateDirectory(dir);
+                        Directory.SetCurrentDirectory(dir);
+                        Process.Start("./");
+
+                        vm.Pop(nargs + 2);
+                        vm.Push(true);
+                        return 1;
+                    }
+
+                    vm.Pop(nargs + 2);
+                    vm.Push(false);
+                    return 1;
+                }
+
+                Directory.SetCurrentDirectory(dir);
+                Process.Start("./");
+
+                vm.Pop(nargs + 2);
+                vm.Push(Directory.GetCurrentDirectory());
+                return 1;
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("Error: " + e.Message);
+                return -1;
+            }
+        }
+
         public static int IO_showdir(ExVM vm, int nargs)
         {
             string cd;
@@ -566,6 +622,24 @@ namespace ExMat.BaseLib
             {
                 name = "change_dir",
                 func = new(GetStdIOMethod("IO_changedir")),
+                n_pchecks = -2,
+                mask = ".sb",
+                d_defaults = new()
+                {
+                    { 2, new(false) }
+                }
+            },
+            new()
+            {
+                name = "make_dir",
+                func = new(GetStdIOMethod("IO_mkdir")),
+                n_pchecks = -2,
+                mask = ".s"
+            },
+            new()
+            {
+                name = "open_dir",
+                func = new(GetStdIOMethod("IO_opendir")),
                 n_pchecks = -2,
                 mask = ".sb",
                 d_defaults = new()

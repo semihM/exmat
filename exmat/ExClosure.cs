@@ -22,6 +22,7 @@ namespace ExMat.Closure
         public ExOuter()
         {
             _type = ExObjType.OUTER;
+            _val._RefC = new();
         }
 
         public static ExOuter Create(ExSState exS, ExObject o)

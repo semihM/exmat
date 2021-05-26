@@ -18,6 +18,8 @@ namespace ExMat
 
         public static readonly string _THIS = "this";
 
+        public static readonly string _VARGS = "vargs";
+
         public static ExBaseType GetRawType(ExObjType typ)
         {
             return (ExBaseType)((int)typ & 0x00FFFFFF);
@@ -29,23 +31,24 @@ namespace ExMat
         NULL = 1 << 0,
         INTEGER = 1 << 1,
         FLOAT = 1 << 2,
-        BOOL = 1 << 3,
-        STRING = 1 << 4,
-        SPACE = 1 << 5,
-        ARRAY = 1 << 6,
-        USERDATA = 1 << 7,
-        CLOSURE = 1 << 8,
-        NATIVECLOSURE = 1 << 9,
-        USERPTR = 1 << 10,
-        THREAD = 1 << 11,
-        FUNCINFO = 1 << 12,
-        CLASS = 1 << 13,
-        INSTANCE = 1 << 14,
-        WEAKREF = 1 << 15,
-        OUTER = 1 << 16,
-        FUNCPRO = 1 << 17,
-        DICT = 1 << 18,
-        DEFAULT = 1 << 19
+        COMPLEX = 1 << 3,
+        BOOL = 1 << 4,
+        STRING = 1 << 5,
+        SPACE = 1 << 6,
+        ARRAY = 1 << 7,
+        USERDATA = 1 << 8,
+        CLOSURE = 1 << 9,
+        NATIVECLOSURE = 1 << 10,
+        USERPTR = 1 << 11,
+        THREAD = 1 << 12,
+        FUNCINFO = 1 << 13,
+        CLASS = 1 << 14,
+        INSTANCE = 1 << 15,
+        WEAKREF = 1 << 16,
+        OUTER = 1 << 17,
+        FUNCPRO = 1 << 18,
+        DICT = 1 << 19,
+        DEFAULT = 1 << 20
     }
 
     public enum ExObjFlag
@@ -62,10 +65,11 @@ namespace ExMat
         NULL = ExBaseType.NULL | ExObjFlag.CANBEFALSE,
         INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
         FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
+        COMPLEX = ExBaseType.COMPLEX | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
         BOOL = ExBaseType.BOOL | ExObjFlag.CANBEFALSE,
         STRING = ExBaseType.STRING,
-        SPACE = ExBaseType.SPACE | ExObjFlag.COUNTREFERENCES,
 
+        SPACE = ExBaseType.SPACE | ExObjFlag.COUNTREFERENCES,
         ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES,
         DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
 
@@ -88,27 +92,28 @@ namespace ExMat
         [FieldOffset(0)] public long i;
     }
 
-    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    [StructLayout(LayoutKind.Auto)]
     public struct ExObjVal
     {
-        [FieldOffset(0)] public long i_Int;
-        [FieldOffset(0)] public double f_Float;
-        [FieldOffset(0)] public bool b_Bool;
-        [FieldOffset(8)] public string s_String;
-        [FieldOffset(8)] public ExRefC _RefC;
+        public bool b_Bool;    // 4 
+        public long i_Int;     // 8 
+        public double f_Float; // 8 
+        public double c_Float;  // 8 
+        public string s_String;
 
-        [FieldOffset(16)] public ExSpace c_Space;
-        [FieldOffset(16)] public List<ExObject> l_List;
-        [FieldOffset(16)] public Dictionary<string, ExObject> d_Dict;
-        [FieldOffset(16)] public MethodInfo _Method;
-        [FieldOffset(16)] public ExClosure _Closure;
-        [FieldOffset(16)] public ExOuter _Outer;
-        [FieldOffset(16)] public ExNativeClosure _NativeClosure;
-        [FieldOffset(16)] public ExFuncPro _FuncPro;
-        [FieldOffset(16)] public ExDeleg _Deleg;
-        [FieldOffset(16)] public ExClass _Class;
-        [FieldOffset(16)] public ExInstance _Instance;
-        [FieldOffset(16)] public ExWeakRef _WeakRef;
+        public ExRefC _RefC;  // 40
+        public ExSpace c_Space;   // 48
+        public List<ExObject> l_List; // 40
+        public Dictionary<string, ExObject> d_Dict;   // 88
+
+        public MethodInfo _Method;
+        public ExClosure _Closure;    // 144
+        public ExOuter _Outer;    // 152
+        public ExNativeClosure _NativeClosure;    // 280
+        public ExFuncPro _FuncPro;    // 200
+        public ExClass _Class;    // 1640
+        public ExInstance _Instance;  // 168
+        public ExWeakRef _WeakRef;    // 104
     }
 
     public enum ExMetaM

@@ -109,7 +109,7 @@ namespace ExMat.API
 
         public static void RegisterNativeFunction(ExVM vm, ExRegFunc func, bool force = false)
         {
-            PushString(vm, func.name, -1, force);
+            PushString(vm, func.name, -1);
             CreateClosure(vm, func.func, 0, force);
             SetNativeClosureName(vm, -1, func.name);
             SetParamCheck(vm, func.n_pchecks, func.mask);
@@ -128,28 +128,28 @@ namespace ExMat.API
             }
         }
 
-        public static void CreateConstantInt(ExVM vm, string name, long val, bool force = false)
+        public static void CreateConstantInt(ExVM vm, string name, long val)
         {
-            PushString(vm, name, -1, force);
+            PushString(vm, name, -1);
             vm.Push(val);
             CreateNewSlot(vm, -3, false);
         }
 
-        public static void CreateConstantFloat(ExVM vm, string name, double val, bool force = false)
+        public static void CreateConstantFloat(ExVM vm, string name, double val)
         {
-            PushString(vm, name, -1, force);
+            PushString(vm, name, -1);
             vm.Push(val);
             CreateNewSlot(vm, -3, false);
         }
 
-        public static void CreateConstantString(ExVM vm, string name, string val, bool force = false)
+        public static void CreateConstantString(ExVM vm, string name, string val)
         {
-            PushString(vm, name, -1, force);
-            PushString(vm, val, -1, force);
+            PushString(vm, name, -1);
+            PushString(vm, val, -1);
             CreateNewSlot(vm, -3, false);
         }
 
-        public static void PushString(ExVM vm, string str, int len, bool force = false)
+        public static void PushString(ExVM vm, string str, int len)
         {
             if (string.IsNullOrEmpty(str))
             {
@@ -162,20 +162,13 @@ namespace ExMat.API
                 {
                     str = str[new Range(0, len)];
                 }
-                if (force)
+                if (!vm._sState._strings.ContainsKey(str))
                 {
-                    if (!vm._sState._strings.ContainsKey(str))
-                    {
-                        vm._sState._strings.Add(str, new(str));
-                    }
-                    else
-                    {
-                        vm._sState._strings[str] = new(str);
-                    }
+                    vm._sState._strings.Add(str, new(str));
                 }
                 else
                 {
-                    vm._sState._strings.Add(str, new(str));
+                    vm._sState._strings[str] = new(str);
                 }
                 vm.Push(str);
             }
@@ -247,6 +240,7 @@ namespace ExMat.API
                     case 'e': m |= (int)ExBaseType.NULL; break;
                     case 'i': m |= (int)ExBaseType.INTEGER; break;
                     case 'f': m |= (int)ExBaseType.FLOAT; break;
+                    case 'C': m |= (int)ExBaseType.COMPLEX; break;
                     case 'b': m |= (int)ExBaseType.BOOL; break;
                     case 'n': m |= (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT; break;
                     case 's': m |= (int)ExBaseType.STRING; break;
