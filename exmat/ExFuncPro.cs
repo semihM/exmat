@@ -19,7 +19,7 @@ namespace ExMat.FuncPrototype
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExFuncPro : ExCollectable
+    public class ExFuncPro : ExObject
     {
         public int n_instr;
         public int n_lits;
@@ -37,12 +37,13 @@ namespace ExMat.FuncPrototype
 
         public ExClosureType type = ExClosureType.FUNCTION;
 
-        public ExObjectPtr _name;
-        public ExObjectPtr _source;
+        public ExObject _name;
+        public ExObject _source;
+        public ExSState _sState;
 
         public List<ExInstr> _instr;
-        public List<ExObjectPtr> _lits;
-        public List<ExObjectPtr> _params;
+        public List<ExObject> _lits;
+        public List<ExObject> _params;
         public List<int> _defparams;
         public List<ExFuncPro> _funcs;
         public List<ExLocalInfo> _localinfos;
@@ -98,10 +99,7 @@ namespace ExMat.FuncPrototype
         {
             _type = ExObjType.FUNCPRO;
             _stacksize = 0;
-            _next = null;
-            _prev = null;
             _sState = ss;
-            AddToChain(_sState._GC_CHAIN, this);
         }
 
         public new string GetDebuggerDisplay()
@@ -148,7 +146,7 @@ namespace ExMat.FuncPrototype
         }
     }
 
-    public class ExFunc : ExObjectPtr
+    public class ExFunc : ExObject
     {
         public ExFunc()
         {

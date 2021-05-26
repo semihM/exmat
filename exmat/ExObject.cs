@@ -4,7 +4,6 @@ using System.Diagnostics;
 using ExMat.Class;
 using ExMat.Closure;
 using ExMat.FuncPrototype;
-using ExMat.States;
 using ExMat.VM;
 
 namespace ExMat.Objects
@@ -50,35 +49,20 @@ namespace ExMat.Objects
         }
     }
 
+    public enum ExMemberFlag
+    {
+        METHOD = 0x01000000,
+        FIELD = 0x02000000
+    }
+
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExObject : IDisposable
     {
         public ExObjType _type = ExObjType.NULL;
 
         public ExObjVal _val;
-        private bool disposedValue;
 
-        public ExObject() { }
-        public ExObject(int i)
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = i;
-        }
-        public ExObject(double f)
-        {
-            _type = ExObjType.FLOAT;
-            _val.f_Float = f;
-        }
-        public ExObject(bool b)
-        {
-            _type = ExObjType.BOOL;
-            _val.b_Bool = b;
-        }
-        public ExObject(string s)
-        {
-            _type = ExObjType.STRING;
-            _val.s_String = s;
-        }
+        private bool disposedValue;
 
         public bool IsDelegable()
         {
@@ -112,7 +96,7 @@ namespace ExMat.Objects
 
         public bool IsFalseable()
         {
-            return ((int)_type & (int)ExObjFlag.BOOLFALSEABLE) != 0;
+            return ((int)_type & (int)ExObjFlag.CANBEFALSE) != 0;
         }
         public bool GetBool()
         {
@@ -135,12 +119,12 @@ namespace ExMat.Objects
             return true;
         }
 
-        public Dictionary<string, ExObjectPtr> GetDict()
+        public Dictionary<string, ExObject> GetDict()
         {
             return _type == ExObjType.DICT ? _val.d_Dict : null;
         }
 
-        public List<ExObjectPtr> GetList()
+        public List<ExObject> GetList()
         {
             return _val.l_List;
         }
@@ -195,28 +179,20 @@ namespace ExMat.Objects
                             }
                         case ExObjType.ARRAY:
                             {
+                                _val._RefC = null;
                                 Disposer.DisposeList(ref _val.l_List);
                                 break;
                             }
                         case ExObjType.DICT:
                             {
+                                _val._RefC = null;
                                 Disposer.DisposeDict(ref _val.d_Dict);
                                 break;
                             }
                         default:
                             {
-                                _val._Method = null;
-                                _val._Closure = null;
-                                _val._Outer = null;
-                                _val._NativeClosure = null;
-                                _val._UserData = null;
-                                _val._UserPointer = null;
-                                _val._FuncPro = null;
-                                _val._Deleg = null;
-                                _val._Thread = null;
-                                _val._Class = null;
-                                _val._Instance = null;
-                                _val._WeakRef = null;
+                                _val._RefC = null;
+                                _val.c_Space = null;
                                 break;
                             }
                     }
@@ -234,16 +210,7 @@ namespace ExMat.Objects
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
-    }
 
-    public enum ExMemberFlag
-    {
-        METHOD = 0x01000000,
-        FIELD = 0x02000000
-    }
-
-    public class ExObjectPtr : ExObject
-    {
         public bool IsField()
         {
             return (GetInt() & (int)ExMemberFlag.FIELD) > 0;
@@ -259,7 +226,7 @@ namespace ExMat.Objects
 
         public static bool IsRefC(ExObjType t)
         {
-            return ((int)t & (int)ExObjFlag.REF_COUNTED) > 0;
+            return ((int)t & (int)ExObjFlag.COUNTREFERENCES) > 0;
         }
         public virtual void AddReference(ExObjType t, ExObjVal v, bool forced = false)
         {
@@ -293,30 +260,12 @@ namespace ExMat.Objects
         ///////////////////////////////
         /// BASIC
         ///////////////////////////////
-        public ExObjectPtr()
+        public ExObject()
         {
             _type = ExObjType.NULL;
             _val = new();
         }
-        public ExObjectPtr(ExObjectPtr objp)
-        {
-            _type = objp._type;
-            _val = objp._val;
-            AddReference(_type, _val);
-        }
-        public void Assign(ExObjectPtr o)
-        {
-            ExObjType t = _type;
-            ExObjVal v = _val;
-
-            _val = o._val;
-            _type = o._type;
-
-            AddReference(_type, _val);
-            Release(t, v);
-        }
-
-        public ExObjectPtr(ExObject objp)
+        public ExObject(ExObject objp)
         {
             _type = objp._type;
             _val = objp._val;
@@ -337,7 +286,7 @@ namespace ExMat.Objects
         ///////////////////////////////
         /// SCALAR
         ///////////////////////////////
-        public ExObjectPtr(long i)
+        public ExObject(long i)
         {
             _type = ExObjType.INTEGER;
             _val.i_Int = i;
@@ -348,7 +297,7 @@ namespace ExMat.Objects
             _val.i_Int = i;
             _type = ExObjType.INTEGER;
         }
-        public ExObjectPtr(double f)
+        public ExObject(double f)
         {
             _type = ExObjType.FLOAT;
             _val.f_Float = f;
@@ -359,7 +308,7 @@ namespace ExMat.Objects
             _val.f_Float = f;
             _type = ExObjType.FLOAT;
         }
-        public ExObjectPtr(bool b)
+        public ExObject(bool b)
         {
             _type = ExObjType.BOOL;
             _val.b_Bool = b;
@@ -370,7 +319,7 @@ namespace ExMat.Objects
             _val.b_Bool = b;
             _type = ExObjType.BOOL;
         }
-        public ExObjectPtr(string s)
+        public ExObject(string s)
         {
             _type = ExObjType.STRING;
             _val.s_String = s;
@@ -382,80 +331,16 @@ namespace ExMat.Objects
             _type = ExObjType.STRING;
         }
 
-
-        ///////////////////////////////
-        /// EX
-        ///////////////////////////////
-        public ExObjectPtr(ExInt o)
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = o._val.i_Int;
-        }
-        public void Assign(ExInt o)
-        {
-            Release(_type, _val);
-            _val.i_Int = o._val.i_Int;
-            _type = ExObjType.INTEGER;
-        }
-        public ExObjectPtr(ExFloat o)
-        {
-            Release(_type, _val);
-            _type = ExObjType.FLOAT;
-            _val.f_Float = o._val.f_Float;
-        }
-        public void Assign(ExFloat o)
-        {
-            Release(_type, _val);
-            _val.f_Float = o._val.f_Float;
-            _type = ExObjType.FLOAT;
-        }
-        public ExObjectPtr(ExString o)
-        {
-            Release(_type, _val);
-            _type = ExObjType.STRING;
-            _val.s_String = o._val.s_String;
-        }
-        public void Assign(ExString o)
-        {
-            Release(_type, _val);
-            _val.s_String = o._val.s_String;
-            _type = ExObjType.STRING;
-        }
-        public ExObjectPtr(ExBool o)
-        {
-            Release(_type, _val);
-            _type = ExObjType.BOOL;
-            _val.b_Bool = o._val.b_Bool;
-        }
-        public void Assign(ExBool o)
-        {
-            Release(_type, _val);
-            _val.b_Bool = o._val.b_Bool;
-            _type = ExObjType.BOOL;
-        }
-        public ExObjectPtr(ExUserP o)
-        {
-            Release(_type, _val);
-            _type = ExObjType.USERPTR;
-            _val._UserPointer = o._val._UserPointer;
-        }
-        public void Assign(ExUserP o)
-        {
-            Release(_type, _val);
-            _val._UserPointer = o._val._UserPointer;
-            _type = ExObjType.USERPTR;
-        }
-
         ///////////////////////////////
         /// EXREF
         ///////////////////////////////
-        public ExObjectPtr(Dictionary<string, ExObjectPtr> dict)
+        public ExObject(Dictionary<string, ExObject> dict)
         {
             _type = ExObjType.DICT;
             _val._RefC = new();
             _val.d_Dict = dict;
         }
-        public void Assign(Dictionary<string, ExObjectPtr> dict)
+        public void Assign(Dictionary<string, ExObject> dict)
         {
             ExObjType t = _type;
             ExObjVal v = _val;
@@ -467,14 +352,14 @@ namespace ExMat.Objects
             AddReference(_type, _val, true);
             Release(t, v);
         }
-        public ExObjectPtr(List<ExObjectPtr> o)
+        public ExObject(List<ExObject> o)
         {
             _type = ExObjType.ARRAY;
             _val.l_List = o;
             _val._RefC = new();
             AddReference(_type, _val, true);
         }
-        public void Assign(List<ExObjectPtr> o)
+        public void Assign(List<ExObject> o)
         {
             ExObjType t = _type;
             ExObjVal v = _val;
@@ -487,7 +372,7 @@ namespace ExMat.Objects
             Release(t, v);
         }
 
-        public ExObjectPtr(ExInstance o)
+        public ExObject(ExInstance o)
         {
             _type = ExObjType.INSTANCE;
             _val._Instance = o;
@@ -500,13 +385,13 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Instance = o;
-            _val._RefC = new() { _refc = _val._Instance._refc++ };
+            _val._RefC = new() { _refc = _val._Instance._val._RefC._refc++ };
             _type = ExObjType.INSTANCE;
 
             AddReference(_type, _val, true);
             Release(t, v);
         }
-        public ExObjectPtr(ExList o)
+        public ExObject(ExList o)
         {
             _type = ExObjType.ARRAY;
             _val.l_List = o._val.l_List;
@@ -525,7 +410,7 @@ namespace ExMat.Objects
             AddReference(_type, _val, true);
             Release(t, v);
         }
-        public ExObjectPtr(ExClass o)
+        public ExObject(ExClass o)
         {
             _type = ExObjType.CLASS;
             _val._Class = o;
@@ -538,14 +423,14 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Class = o;
-            _val._RefC = new() { _refc = _val._Class._refc++ };
+            _val._RefC = new() { _refc = _val._Class._val._RefC._refc++ };
             _type = ExObjType.CLASS;
 
             AddReference(_type, _val, true);
             Release(t, v);
         }
 
-        public ExObjectPtr(ExClosure o)
+        public ExObject(ExClosure o)
         {
             _type = ExObjType.CLOSURE;
             _val._Closure = o;
@@ -558,14 +443,14 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Closure = o;
-            _val._RefC = new() { _refc = _val._Closure._refc++ };
+            _val._RefC = new() { _refc = _val._Closure._val._RefC._refc++ };
             _type = ExObjType.CLOSURE;
 
             AddReference(_type, _val, true);
             Release(t, v);
         }
 
-        public ExObjectPtr(ExNativeClosure o)
+        public ExObject(ExNativeClosure o)
         {
             _type = ExObjType.NATIVECLOSURE;
             _val._NativeClosure = o;
@@ -578,16 +463,16 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._NativeClosure = o;
-            _val._RefC = new() { _refc = _val._NativeClosure._refc++ };
+            _val._RefC = new() { _refc = _val._NativeClosure._val._RefC._refc++ };
             _type = ExObjType.NATIVECLOSURE;
 
             AddReference(_type, _val, true);
             Release(t, v);
         }
 
-        public ExObjectPtr(ExOuter o)
+        public ExObject(ExOuter o)
         {
-            _type = ExObjType.CLOSURE;
+            _type = ExObjType.OUTER;
             _val._Outer = o;
             AddReference(_type, _val, true);
         }
@@ -597,14 +482,14 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._Outer = o;
-            _val._RefC = new() { _refc = _val._Outer._refc++ };
+            _val._RefC = new() { _refc = _val._Outer._val._RefC._refc++ };
             _type = ExObjType.OUTER;
 
             AddReference(_type, _val, true);
             Release(t, v);
         }
 
-        public ExObjectPtr(ExWeakRef o)
+        public ExObject(ExWeakRef o)
         {
             _type = ExObjType.WEAKREF;
             _val._WeakRef = o;
@@ -616,14 +501,14 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._WeakRef = o;
-            _val._RefC = new() { _refc = _val._WeakRef._refc++ };
+            _val._RefC = new() { _refc = _val._WeakRef._val._RefC._refc++ };
             _type = ExObjType.WEAKREF;
 
             AddReference(_type, _val, true);
             Release(t, v);
         }
 
-        public ExObjectPtr(ExFuncPro o)
+        public ExObject(ExFuncPro o)
         {
             _type = ExObjType.FUNCPRO;
             _val._FuncPro = o;
@@ -635,33 +520,14 @@ namespace ExMat.Objects
             ExObjVal v = _val;
 
             _val._FuncPro = o;
-            _val._RefC = new() { _refc = _val._FuncPro._refc++ };
+            _val._RefC = new() { _refc = _val._FuncPro._val._RefC._refc++ };
             _type = ExObjType.FUNCPRO;
 
             AddReference(_type, _val, true);
             Release(t, v);
         }
 
-        public ExObjectPtr(ExUserData o)
-        {
-            _type = ExObjType.USERDATA;
-            _val._UserData = o;
-            AddReference(_type, _val, true);
-        }
-        public void Assign(ExUserData o)
-        {
-            ExObjType t = _type;
-            ExObjVal v = _val;
-
-            _val._UserData = o;
-            _val._RefC = new() { _refc = _val._UserData._refc++ };
-            _type = ExObjType.USERDATA;
-
-            AddReference(_type, _val, true);
-            Release(t, v);
-        }
-
-        public ExObjectPtr(ExSpace o)
+        public ExObject(ExSpace o)
         {
             _type = ExObjType.SPACE;
             _val.c_Space = o;
@@ -694,18 +560,11 @@ namespace ExMat.Objects
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExRefC : ExObjectPtr
+    public class ExRefC : IDisposable
     {
         public int _refc = 0;
         public ExWeakRef _weakref;
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            _weakref.Dispose();
-        }
-
-        public override void Release() { base.Release(); }
+        private bool disposedValue;
 
         public ExRefC()
         {
@@ -725,19 +584,49 @@ namespace ExMat.Objects
             return _weakref;
         }
 
-        public new string GetDebuggerDisplay()
+        public string GetDebuggerDisplay()
         {
             return "REFC: " + _refc;
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    _weakref = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
+        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        // ~ExRefC()
+        // {
+        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        //     Dispose(disposing: false);
+        // }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
-    public class ExWeakRef : ExRefC
+    public class ExWeakRef : ExObject
     {
-        public ExObjectPtr obj;
+        public ExObject obj;
 
         public ExWeakRef()
         {
             _type = ExObjType.WEAKREF;
+            _val._RefC = new();
         }
 
         protected override void Dispose(bool disposing)
@@ -748,18 +637,18 @@ namespace ExMat.Objects
 
         public override void Release()
         {
-            if (((int)obj._type & (int)ExObjFlag.REF_COUNTED) == (int)obj._type)
+            if (((int)obj._type & (int)ExObjFlag.COUNTREFERENCES) == (int)obj._type)
             {
                 obj._val._WeakRef = null;
             }
         }
     }
 
-    public class ExDeleg : ExCollectable
+    public class ExDeleg : ExObject
     {
-        public ExObjectPtr _delegate;
+        public ExObject _delegate;
 
-        public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObjectPtr res)
+        public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObject res)
         {
             if (_delegate != null)
             {
@@ -785,71 +674,15 @@ namespace ExMat.Objects
             }
             return false;
         }
-    }
-
-    public class ExCollectable : ExRefC
-    {
-        public ExCollectable _prev;
-        public ExCollectable _next;
-        public ExSState _sState;
-
-        public ExCollectable GetHead()
-        {
-            ExCollectable curr = this;
-            while (curr._prev != null)
-            {
-                curr = curr._prev;
-            }
-            return curr;
-        }
-
-        public void AddToChain(ExCollectable ch, ExCollectable c)
-        {
-            c._prev = null;
-            c._next = ch;
-            GetHead()._prev = c;
-        }
-
-        public static void RemoveFromChain(ref ExCollectable ch, ExCollectable c)
-        {
-            if (c._prev != null)
-            {
-                c._prev._next = c._next;
-            }
-            else
-            {
-                ch = c._next;
-            }
-
-            if (c._next != null)
-            {
-                c._next._prev = c._prev;
-            }
-
-            c._prev = null;
-            c._next = null;
-        }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            if (_prev != null)
-            {
-                _prev._next = _next;
-                _prev = null;
-            }
-
-            if (_next != null)
-            {
-                _next._prev = _prev;
-                _next = null;
-            }
-
-            _sState = null;
+            Disposer.DisposeObjects(_delegate);
         }
     }
 
-    public class ExList : ExObjectPtr
+    public class ExList : ExObject
     {
         public ExList()
         {
@@ -876,7 +709,7 @@ namespace ExMat.Objects
             _val.l_List = e._val.l_List;
             _val._RefC = new();
         }
-        public ExList(List<ExObjectPtr> e)
+        public ExList(List<ExObject> e)
         {
             _type = ExObjType.ARRAY;
             _val.l_List = e;
@@ -898,170 +731,12 @@ namespace ExMat.Objects
         }
     }
 
-    public class ExBool : ExObjectPtr
-    {
-        public ExBool()
-        {
-            _type = ExObjType.BOOL;
-            _val.b_Bool = false;
-        }
-
-        public ExBool(bool n)
-        {
-            _type = ExObjType.BOOL;
-            _val.b_Bool = n;
-        }
-        public ExBool(char c)
-        {
-            _type = ExObjType.BOOL;
-            _val.b_Bool = c != '0';
-        }
-        public ExBool(ExInt e)
-        {
-            _type = ExObjType.BOOL;
-            _val.b_Bool = e._val.b_Bool;
-        }
-        public ExBool(dynamic o)
-        {
-            _type = ExObjType.BOOL;
-            _val.b_Bool = o != null && o != false && o != -1;
-        }
-    }
-
-    public class ExInt : ExObjectPtr
-    {
-        public ExInt()
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = 0;
-        }
-
-        public ExInt(double n)
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = n > long.MaxValue ? long.MaxValue : ( n < long.MinValue ? long.MinValue : (long)n);
-        }
-        public ExInt(long n)
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = n;
-        }
-        public ExInt(char c)
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = c;
-        }
-        public ExInt(ExInt e)
-        {
-            _type = ExObjType.INTEGER;
-            _val.i_Int = e._val.i_Int;
-        }
-    }
-
-    public class ExFloat : ExObjectPtr
-    {
-        public ExFloat()
-        {
-            _type = ExObjType.FLOAT;
-            _val.f_Float = 0;
-        }
-
-        public ExFloat(long n)
-        {
-            _type = ExObjType.FLOAT;
-            _val.f_Float = n;
-        }
-        public ExFloat(double n)
-        {
-            _type = ExObjType.FLOAT;
-            _val.f_Float = n;
-        }
-        public ExFloat(char c)
-        {
-            _type = ExObjType.FLOAT;
-            _val.f_Float = c;
-        }
-        public ExFloat(ExFloat e)
-        {
-            _type = ExObjType.FLOAT;
-            _val.f_Float = e._val.f_Float;
-        }
-    }
-
-    public class ExString : ExObjectPtr
-    {
-        public ExString()
-        {
-            _type = ExObjType.STRING;
-            _val.s_String = string.Empty;
-        }
-
-        public ExString(string n)
-        {
-            _type = ExObjType.STRING;
-            _val.s_String = n;
-        }
-        public ExString(char c)
-        {
-            _type = ExObjType.STRING;
-            _val.s_String = c.ToString();
-        }
-        public ExString(ExString e)
-        {
-            _type = ExObjType.STRING;
-            _val.s_String = e._val.s_String;
-        }
-        public ExString(dynamic o)
-        {
-            _type = ExObjType.STRING;
-            if (string.IsNullOrEmpty(o))
-            {
-                _val.s_String = string.Empty;
-            }
-            else
-            {
-                _val.s_String = o.ToString();
-            }
-        }
-    }
-
-    public class ExUserP : ExObjectPtr
-    {
-        public ExUserP() { _type = ExObjType.USERPTR; }
-    }
-    public class ExUserData : ExDeleg
-    {
-        public ExInt _size;
-        public ExInt _hook;
-        public ExUserP _typetag;
-
-        public ExUserData()
-        {
-            _type = ExObjType.USERDATA;
-        }
-
-        public static ExUserData Create(ExSState exS, ExInt size)
-        {
-            ExUserData u = new() { _delegate = new(), _hook = new() };
-            u._next = null;
-            u._prev = null;
-            u._sState = exS;
-            u.AddToChain(u._sState._GC_CHAIN, u);
-            u._size = size;
-
-            u._typetag = new();
-            u._typetag._val._UserPointer._val.i_Int = 0;
-
-            return u;
-        }
-    }
-
     public class ExRegFunc : IDisposable
     {
         public string name;
         public ExFunc func;
         public int n_pchecks;
-        public Dictionary<int, ExObjectPtr> d_defaults = new();
+        public Dictionary<int, ExObject> d_defaults = new();
         public bool b_isdeleg = false;
         public string mask;
         private bool disposedValue;
@@ -1076,6 +751,7 @@ namespace ExMat.Objects
                     name = null;
                     n_pchecks = 0;
                     func.Dispose();
+                    Disposer.DisposeDict(ref d_defaults);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -1102,7 +778,7 @@ namespace ExMat.Objects
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExStack : IDisposable //<T> where T : class, new()
     {
-        public List<ExObjectPtr> _values;
+        public List<ExObject> _values;
 
         public int _size;
         public int _alloc;
@@ -1139,7 +815,7 @@ namespace ExMat.Objects
             }
         }
 
-        public void Resize(int n, ExObjectPtr filler = null)
+        public void Resize(int n, ExObject filler = null)
         {
             if (n > _alloc)
             {
@@ -1216,9 +892,9 @@ namespace ExMat.Objects
             _size = stc._size;
         }
 
-        public ExObjectPtr Back() => _values[_size - 1];
+        public ExObject Back() => _values[_size - 1];
 
-        public ExObjectPtr Push(ExObjectPtr o)
+        public ExObject Push(ExObject o)
         {
             if (_alloc <= _size)
             {
@@ -1234,7 +910,7 @@ namespace ExMat.Objects
             _values[_size] = new(); // = null
         }
 
-        public void Insert(int i, ExObjectPtr o)
+        public void Insert(int i, ExObject o)
         {
             //_values.Insert(i, o);
             Resize(_size + 1);
@@ -1253,7 +929,7 @@ namespace ExMat.Objects
         }
 
 
-        public ExObjectPtr this[int n]
+        public ExObject this[int n]
         {
             get => _values[n];
             set => _values[n].Assign(value);

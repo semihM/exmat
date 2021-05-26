@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ScottPlot" Version="4.1.14" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\exmat\exmat.csproj" />
   </ItemGroup>
 

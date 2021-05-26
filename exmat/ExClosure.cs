@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using ExMat.Class;
 using ExMat.FuncPrototype;
@@ -10,23 +9,24 @@ using ExMat.Utils;
 namespace ExMat.Closure
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExOuter : ExCollectable
+    public class ExOuter : ExObject
     {
-        public ExObjectPtr _valptr;
+        public ExObject _valptr;
         public int idx;
-        public ExObjectPtr _v;
+        public ExObject _v;
         public ExOuter f_next;
-        public new ExOuter _prev;
-        public new ExOuter _next;
+        public ExOuter _prev;
+        public ExOuter _next;
+        public ExSState _sState;
 
         public ExOuter()
         {
             _type = ExObjType.OUTER;
         }
 
-        public static ExOuter Create(ExSState exS, ExObjectPtr o)
+        public static ExOuter Create(ExSState exS, ExObject o)
         {
-            ExOuter exo = new() { _sState = exS, _valptr = o, f_next = null };
+            ExOuter exo = new() { _sState = exS, _valptr = new(o), f_next = null };
             return exo;
         }
 
@@ -37,16 +37,25 @@ namespace ExMat.Closure
 
         public override void Release()
         {
-            _refc--;
-            if (_refc == 0)
+            if (--_val._RefC._refc == 0)
             {
-                RemoveFromChain(ref _sState._GC_CHAIN, this);
+                _sState = null;
+                if (_prev != null)
+                {
+                    _prev._next = _next;
+                    _prev = null;
+                }
+                if (_next != null)
+                {
+                    _next._prev = _prev;
+                    _next = null;
+                }
             }
         }
 
         public new string GetDebuggerDisplay()
         {
-            return "OUTER(" + idx + ", *(" + _valptr.ToString() + "), " + _v.ToString() + ")";
+            return "OUTER(" + idx + ", *(" + (_valptr == null ? "null" : _valptr.GetInt()) + "), " + (_v == null ? "null" : _v._type.ToString()) + ")";
         }
 
         protected override void Dispose(bool disposing)
@@ -71,13 +80,14 @@ namespace ExMat.Closure
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClosure : ExCollectable
+    public class ExClosure : ExObject
     {
         public ExWeakRef _envweakref;
         public ExClass _base;
         public ExFuncPro _func;
-        public List<ExObjectPtr> _outervals;
-        public List<ExObjectPtr> _defparams;
+        public List<ExObject> _outervals;
+        public List<ExObject> _defparams;
+        public ExSState _sState;
 
         protected override void Dispose(bool disposing)
         {
@@ -101,7 +111,7 @@ namespace ExMat.Closure
         public ExClosure()
         {
             _type = ExObjType.CLOSURE;
-            _refc = 1;
+            _val._RefC = new() { _refc = 1 };
         }
 
         public ExClosure Copy()
@@ -111,7 +121,7 @@ namespace ExMat.Closure
             res._envweakref = _envweakref;
             if (res._envweakref != null)
             {
-                res._envweakref._refc++;
+                res._envweakref._val._RefC._refc++;
             }
             for (int i = 0; i < fp.n_outers; i++)
             {
@@ -127,13 +137,13 @@ namespace ExMat.Closure
         public override void Release()
         {
             base.Release();
-            foreach (ExObjectPtr o in _outervals)
+            foreach (ExObject o in _outervals)
             {
                 o.Nullify();
             }
             _outervals = null;
 
-            foreach (ExObjectPtr o in _defparams)
+            foreach (ExObject o in _defparams)
             {
                 o.Nullify();
             }
@@ -161,14 +171,15 @@ namespace ExMat.Closure
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExNativeClosure : ExCollectable, IDisposable
+    public class ExNativeClosure : ExObject
     {
+        public ExSState _sState;
         public ExWeakRef _envweakref;
-        public ExObjectPtr _name;
+        public ExObject _name;
         public ExFunc _func;
-        public List<ExObjectPtr> _outervals;
+        public List<ExObject> _outervals;
         public List<int> _typecheck = new();
-        public Dictionary<int, ExObjectPtr> d_defaults = new();
+        public Dictionary<int, ExObject> d_defaults = new();
         public int n_outervals;
         public int n_paramscheck;
         public bool b_deleg = false;
@@ -189,7 +200,7 @@ namespace ExMat.Closure
         public ExNativeClosure()
         {
             _type = ExObjType.NATIVECLOSURE;
-            _refc = 1;
+            _val._RefC = new() { _refc = 1 };
         }
 
         public static ExNativeClosure Create(ExSState exS, ExFunc f, int nout)
@@ -203,7 +214,7 @@ namespace ExMat.Closure
         public override void Release()
         {
             base.Release();
-            foreach (ExObjectPtr o in _outervals)
+            foreach (ExObject o in _outervals)
             {
                 o.Nullify();
             }

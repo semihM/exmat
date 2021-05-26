@@ -29,7 +29,7 @@ namespace ExMat.Utils
                 lis.Add(null);
             }
         }
-        public static void InitList(ref List<ExObjectPtr> lis, int n, ExObjectPtr filler)
+        public static void InitList(ref List<ExObject> lis, int n, ExObject filler)
         {
             lis = new(n);
             for (int i = 0; i < n; i++)

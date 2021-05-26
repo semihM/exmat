@@ -11,14 +11,14 @@ namespace ExMat.States
 {
     public class ExFState : IDisposable
     {
-        public ExObjectPtr _source;
+        public ExObject _source;
 
-        public ExObjectPtr _name;
+        public ExObject _name;
 
-        public Dictionary<string, ExObjectPtr> _names = new();
+        public Dictionary<string, ExObject> _names = new();
 
         public int _nliterals;
-        public Dictionary<string, ExObjectPtr> _literals = new();
+        public Dictionary<string, ExObject> _literals = new();
 
         public List<ExLocalInfo> _localvs = new();
         public List<ExLocalInfo> _localinfos = new();
@@ -28,7 +28,7 @@ namespace ExMat.States
 
         public List<ExLineInfo> _lineinfos = new();
 
-        public List<ExObjectPtr> _params = new();
+        public List<ExObject> _params = new();
         public List<int> _defparams = new();
 
         public List<ExFuncPro> _funcs = new();
@@ -174,7 +174,7 @@ namespace ExMat.States
             return _Sstate._macros[o.GetString()].GetBool();
         }
 
-        public bool AddMacro(ExObjectPtr o, bool isfunc, bool forced = false)
+        public bool AddMacro(ExObject o, bool isfunc, bool forced = false)
         {
             if (_Sstate._macros.ContainsKey(o.GetString()))
             {
@@ -192,7 +192,7 @@ namespace ExMat.States
             }
         }
 
-        public long GetConst(ExObjectPtr o)
+        public long GetConst(ExObject o)
         {
             string name;
             if (o._type == ExObjType.SPACE)
@@ -204,7 +204,7 @@ namespace ExMat.States
                 name = o.GetString();
             }
 
-            ExObjectPtr v = new();
+            ExObject v = new();
             if (!_literals.ContainsKey(name))
             {
                 v._val.i_Int = _nliterals;
@@ -218,10 +218,10 @@ namespace ExMat.States
             }
             else
             {
-                ExObjectPtr val = _literals[name];
+                ExObject val = _literals[name];
                 if (val._type == ExObjType.WEAKREF)
                 {
-                    v = ((ExWeakRef)val)._weakref.obj;
+                    v = val._val._WeakRef.obj;
                 }
                 else
                 {
@@ -375,7 +375,7 @@ namespace ExMat.States
         {
             if (_Sstate._consts.ContainsKey(name))
             {
-                ExObjectPtr val = _Sstate._consts[name];
+                ExObject val = _Sstate._consts[name];
                 if (val._type == ExObjType.WEAKREF)
                 {
                     e = val._val._WeakRef.obj;
@@ -446,14 +446,14 @@ namespace ExMat.States
                     p = _parent.GetOuter(obj);
                     if (p != -1)
                     {
-                        _outerinfos.Add(new ExOuterInfo(obj, new ExInt(p), ExOuterType.OUTER));
+                        _outerinfos.Add(new ExOuterInfo(obj, new(p), ExOuterType.OUTER));
                         return _outerinfos.Count - 1;
                     }
                 }
                 else
                 {
                     _parent.SetLocalToOuter(p);
-                    _outerinfos.Add(new ExOuterInfo(obj, new ExInt(p), ExOuterType.LOCAL));
+                    _outerinfos.Add(new ExOuterInfo(obj, new(p), ExOuterType.LOCAL));
                     return _outerinfos.Count - 1;
                 }
             }
@@ -466,11 +466,11 @@ namespace ExMat.States
             _nouters++;
         }
 
-        public ExObjectPtr CreateString(string s, int len = -1)
+        public ExObject CreateString(string s, int len = -1)
         {
             if (!_Sstate._strings.ContainsKey(s))
             {
-                ExObjectPtr str = new() { _type = ExObjType.STRING };
+                ExObject str = new() { _type = ExObjType.STRING };
                 str._val.s_String = s;
                 _Sstate._strings.Add(s, str);
                 return str;
@@ -712,7 +712,7 @@ namespace ExMat.States
         public void AddParam(ExObject p)
         {
             PushVar(p);
-            _params.Add((ExObjectPtr)p);
+            _params.Add(p);
         }
 
         public void AddDefParam(int p)
@@ -741,11 +741,11 @@ namespace ExMat.States
             funcPro._source = _source;
             funcPro._name = _name;
 
-            foreach (KeyValuePair<string, ExObjectPtr> pair in _literals)
+            foreach (KeyValuePair<string, ExObject> pair in _literals)
             {
                 if (pair.Value._type == ExObjType.WEAKREF)
                 {
-                    int ind = (int)((ExWeakRef)pair.Value)._weakref.obj._val.i_Int;
+                    int ind = (int)(pair.Value._val._WeakRef.obj._val.i_Int);
                     while (funcPro._lits.Count <= ind)
                     {
                         funcPro._lits.Add(new(string.Empty));

@@ -174,13 +174,14 @@ namespace ExMat.Lexer
             CreateKeyword("null", TokenType.NULL);
             CreateKeyword("true", TokenType.TRUE);
             CreateKeyword("false", TokenType.FALSE);
-            CreateKeyword("this", TokenType.THIS);
-            CreateKeyword("base", TokenType.BASE);
 
             CreateKeyword("function", TokenType.FUNCTION);
             CreateKeyword("class", TokenType.CLASS);
             CreateKeyword("var", TokenType.VAR);
-            CreateKeyword("constructor", TokenType.CONSTRUCTOR);
+
+            CreateKeyword(ExMat._CONSTRUCTOR, TokenType.CONSTRUCTOR);
+            CreateKeyword(ExMat._THIS, TokenType.THIS);
+            CreateKeyword("base", TokenType.BASE);
 
             CreateKeyword("rule", TokenType.RULE);
             CreateKeyword("cluster", TokenType.CLUSTER);
@@ -802,7 +803,7 @@ namespace ExMat.Lexer
                     _aStr += _currChar;
                     Next();
                 }
-                if(_aStr[^1] == '.')
+                if (_aStr[^1] == '.')
                 {
                     _error = "expected digits after '.' ";
                     return TokenType.UNKNOWN;

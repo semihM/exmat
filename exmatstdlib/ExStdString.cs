@@ -45,21 +45,21 @@ namespace ExMat.BaseLib
 
             string[] arr = s.Split(c, remove_empty);
 
-            List<ExObjectPtr> lis = new(arr.Length);
+            List<ExObject> lis = new(arr.Length);
             for (int i = 0; i < arr.Length; i++)
             {
                 lis.Add(new(arr[i]));
             }
 
             vm.Pop(nargs + 2);
-            vm.Push(new ExObjectPtr(lis));
+            vm.Push(new ExObject(lis));
             return 1;
         }
 
         public static int STRING_join(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 2).GetString();
-            List<ExObjectPtr> lis = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> lis = ExAPI.GetFromStack(vm, 3).GetList();
 
             int depth = 2;
             if (nargs == 3)
@@ -76,7 +76,7 @@ namespace ExMat.BaseLib
 
             for (int i = 0; i < n; i++)
             {
-                ExObjectPtr str = new();
+                ExObject str = new();
                 if (vm.ToString(lis[i], ref str, depth))
                 {
                     res += str.GetString();
@@ -96,7 +96,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static void ReplaceMacroParams(ExMacro m, List<ExObjectPtr> args)
+        public static void ReplaceMacroParams(ExMacro m, List<ExObject> args)
         {
             string[] lines = m.source.Split('\n');
             for (int i = 0; i < m._params.Count; i++)
@@ -116,7 +116,7 @@ namespace ExMat.BaseLib
 
             if (ExAPI.CompileFile(vm, code))
             {
-                ExObjectPtr m = new(vm.GetAbove(-1));
+                ExObject m = new(vm.GetAbove(-1));
                 vm.Pop(nargs + 3);
                 vm.Push(m);
                 return 1;
@@ -129,10 +129,10 @@ namespace ExMat.BaseLib
         {
             string format = ExAPI.GetFromStack(vm, 2).GetString();
             object[] ps = new object[nargs - 1];
-            ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs - 1, 3);
+            ExObject[] args = ExAPI.GetNObjects(vm, nargs - 1, 3);
             for (int i = 0; i < nargs - 1; i++)
             {
-                ExObjectPtr st = new();
+                ExObject st = new();
                 if (vm.ToString(args[i], ref st))
                 {
                     ps[i] = st.GetString();

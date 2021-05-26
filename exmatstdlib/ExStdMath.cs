@@ -33,7 +33,7 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         int i = (int)ExAPI.GetFromStack(vm, 2).GetInt();
-                        i = i < 0 ? (i > int.MinValue ? Math.Abs(i) : 0 ) : i;
+                        i = i < 0 ? (i > int.MinValue ? Math.Abs(i) : 0) : i;
 
                         vm.Pop(3);
                         vm.Push(Rand.Next(i));
@@ -82,7 +82,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_abs(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -102,7 +102,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_sqrt(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -121,7 +121,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_cbrt(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -139,7 +139,7 @@ namespace ExMat.BaseLib
         }
         public static int MATH_sin(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -157,7 +157,7 @@ namespace ExMat.BaseLib
         }
         public static int MATH_sinh(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -176,7 +176,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_cos(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -194,7 +194,7 @@ namespace ExMat.BaseLib
         }
         public static int MATH_cosh(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -213,7 +213,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_tan(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -231,7 +231,7 @@ namespace ExMat.BaseLib
         }
         public static int MATH_tanh(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -250,7 +250,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_acos(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -268,7 +268,7 @@ namespace ExMat.BaseLib
         }
         public static int MATH_acosh(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -287,7 +287,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_asin(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -305,7 +305,7 @@ namespace ExMat.BaseLib
         }
         public static int MATH_asinh(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -324,7 +324,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_atan(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -342,7 +342,7 @@ namespace ExMat.BaseLib
         }
         public static int MATH_atanh(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -361,8 +361,8 @@ namespace ExMat.BaseLib
 
         public static int MATH_atan2(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i2 = ExAPI.GetFromStack(vm, 3);
 
             if (i._type == ExObjType.INTEGER)
             {
@@ -403,7 +403,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_loge(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -422,7 +422,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_log2(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -441,7 +441,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_log10(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -460,7 +460,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_exp(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -479,7 +479,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_round(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             int dec = 0;
             if (nargs == 2)
             {
@@ -504,7 +504,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_floor(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -523,7 +523,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_ceil(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
             if (i._type == ExObjType.INTEGER)
             {
                 long o = i.GetInt();
@@ -542,8 +542,8 @@ namespace ExMat.BaseLib
 
         public static int MATH_pow(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i2 = ExAPI.GetFromStack(vm, 3);
 
             if (i._type == ExObjType.INTEGER)
             {
@@ -584,8 +584,8 @@ namespace ExMat.BaseLib
 
         public static int MATH_min(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i2 = ExAPI.GetFromStack(vm, 3);
 
             if (i._type == ExObjType.INTEGER)
             {
@@ -626,8 +626,8 @@ namespace ExMat.BaseLib
 
         public static int MATH_max(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i2 = ExAPI.GetFromStack(vm, 3);
 
             if (i._type == ExObjType.INTEGER)
             {
@@ -668,37 +668,56 @@ namespace ExMat.BaseLib
 
         public static int MATH_sum(ExVM vm, int nargs)
         {
-            ExObjectPtr sum = new(0);
-
-            ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs);
-
-            for (int i = 0; i < nargs; i++)
+            ExObject sum = new(0.0);
+            ExObject[] args;
+            if (nargs == 1 && ExAPI.GetFromStack(vm, 2)._type == ExObjType.ARRAY)
             {
-                ExObjectPtr res = new();
-                if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
+                args = ExAPI.GetFromStack(vm, 2).GetList().ToArray();
+                for (int i = 0; i < args.Length; i++)
                 {
-                    sum._val.f_Float = res.GetFloat();
+                    ExObject res = new();
+                    if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
+                    {
+                        sum._val.f_Float = res.GetFloat();
+                    }
+                    else
+                    {
+                        return -1;
+                    }
                 }
-                else
+                vm.Pop(3);
+            }
+            else
+            {
+                args = ExAPI.GetNObjects(vm, nargs);
+                for (int i = 0; i < nargs; i++)
                 {
-                    return -1;
+                    ExObject res = new();
+                    if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
+                    {
+                        sum._val.f_Float = res.GetFloat();
+                    }
+                    else
+                    {
+                        return -1;
+                    }
                 }
+                vm.Pop(nargs + 2);
             }
 
-            vm.Pop(nargs + 2);
             vm.Push(sum);
             return 1;
         }
 
         public static int MATH_mul(ExVM vm, int nargs)
         {
-            ExObjectPtr mul = new(1);
+            ExObject mul = new(1.0);
 
-            ExObjectPtr[] args = ExAPI.GetNObjects(vm, nargs);
+            ExObject[] args = ExAPI.GetNObjects(vm, nargs);
 
             for (int i = 0; i < nargs; i++)
             {
-                ExObjectPtr res = new();
+                ExObject res = new();
                 if (vm.DoArithmeticOP(OPs.OPC.MLT, args[i], mul, ref res))
                 {
                     mul._val.f_Float = res.GetFloat();
@@ -716,7 +735,7 @@ namespace ExMat.BaseLib
 
         public static int MATH_sign(ExVM vm, int nargs)
         {
-            ExObjectPtr i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = ExAPI.GetFromStack(vm, 2);
 
             if (i._type == ExObjType.INTEGER)
             {
@@ -758,6 +777,241 @@ namespace ExMat.BaseLib
 
             vm.Pop(nargs + 2);
             vm.Push(i);
+            return 1;
+        }
+
+        private static double[] CreateNumArr(ExVM vm, List<ExObject> l)
+        {
+            double[] a = new double[l.Count];
+            for (int i = 0; i < l.Count; i++)
+            {
+                if (!l[i].IsNumeric())
+                {
+                    vm.AddToErrorMessage("cant plot non-numeric values");
+                    return null;
+                }
+                a[i] = l[i].GetFloat();
+            }
+            return a;
+        }
+
+        private static bool CheckFileName(ExVM vm, ref string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                vm.AddToErrorMessage("name can't be empty");
+                return false;
+            }
+
+            string[] fname;
+            if ((fname = name.Split(".")).Length > 1)
+            {
+                switch (fname[^1])
+                {
+                    case "png":
+                    case "jpg":
+                    case "jpeg":
+                    case "bmp":
+                        {
+                            break;
+                        }
+                    default:
+                        {
+                            vm.AddToErrorMessage("unsupported extension, use one of jpg|png|bmp");
+                            return false;
+                        }
+                }
+            }
+            else
+            {
+                name += ".png";
+            }
+            return true;
+        }
+
+        public static int MATHPLOT_save_scatters(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            ScottPlot.Plot plt = new(width, height);
+            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            bool hadlabels = false;
+
+            foreach (ExObject plot in plots)
+            {
+                if (plot._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list of lists containing plot data");
+                    return -1;
+                }
+
+                List<ExObject> plotdata = plot.GetList();
+                int ndata = plotdata.Count;
+                System.Drawing.Color color = System.Drawing.Color.Blue;
+                string label = null;
+
+                switch (ndata)
+                {
+                    case 4:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for label");
+                                return -1;
+                            }
+                            label = plotdata[3].GetString();
+                            hadlabels = true;
+                            goto case 3;
+                        }
+                    case 3:
+                        {
+                            if (plotdata[2]._type != ExObjType.STRING)
+                            {
+                                vm.AddToErrorMessage("expected string for color name");
+                                return -1;
+                            }
+                            color = System.Drawing.Color.FromName(plotdata[2].GetString());
+                            break;
+                        }
+                    case 2:
+                        {
+                            break;
+                        }
+                    default:
+                        {
+                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
+                            return -1;
+                        }
+                }
+
+                if (plotdata[0]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for X axis");
+                    return -1;
+                }
+                List<ExObject> x = plotdata[0].GetList();
+
+                if (plotdata[1]._type != ExObjType.ARRAY)
+                {
+                    vm.AddToErrorMessage("expected list for Y axis");
+                    return -1;
+                }
+                List<ExObject> y = plotdata[1].GetList();
+
+                double[] X = CreateNumArr(vm, x);
+                if (X == null)
+                {
+                    return -1;
+                }
+                double[] Y = CreateNumArr(vm, y);
+                if (X == null)
+                {
+                    return -1;
+                }
+
+                try
+                {
+                    plt.AddScatter(X, Y, color, label: label);
+                }
+                catch (Exception e)
+                {
+                    vm.AddToErrorMessage("plot error: " + e.Message);
+                    return -1;
+                }
+            }
+
+            plt.Legend(hadlabels);
+
+            plt.SaveFig(name);
+
+            vm.Pop(nargs + 2);
+            vm.Push(name);
+            return 1;
+        }
+
+        public static int MATHPLOT_save_scatter(ExVM vm, int nargs)
+        {
+            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            if (!CheckFileName(vm, ref name))
+            {
+                return -1;
+            }
+
+            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
+            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+
+            System.Drawing.Color color = System.Drawing.Color.Blue;
+            string label = null;
+
+            switch (nargs)
+            {
+                case 7:
+                    {
+                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        goto case 6;
+                    }
+                case 6:
+                    {
+                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        break;
+                    }
+            }
+
+            if (width < 0)
+            {
+                width = 1200;
+            }
+            if (height < 0)
+            {
+                height = 800;
+            }
+
+            double[] X = CreateNumArr(vm, x);
+            if (X == null)
+            {
+                return -1;
+            }
+            double[] Y = CreateNumArr(vm, y);
+            if (X == null)
+            {
+                return -1;
+            }
+
+            ScottPlot.Plot plot = new(width, height);
+
+            try
+            {
+                plot.AddScatter(X, Y, color, label: label);
+            }
+            catch (Exception e)
+            {
+                vm.AddToErrorMessage("plot error: " + e.Message);
+                return -1;
+            }
+            plot.Legend(!string.IsNullOrWhiteSpace(label));
+
+            plot.SaveFig(name);
+
+            vm.Pop(nargs + 2);
+            vm.Push(name);
             return 1;
         }
 
@@ -1033,6 +1287,32 @@ namespace ExMat.BaseLib
                 func = new(GetStdMathMethod("MATH_isNAN")),
                 n_pchecks = 2,
                 mask = ".n"
+            },
+            new()
+            {
+                name = "save_scatter",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatter")),
+                n_pchecks = -4,
+                mask = ".saannss",
+                d_defaults = new()
+                {
+                    { 4, new(1200) },
+                    { 5, new(800) },
+                    { 6, new("blue") },
+                    { 7, new(s: null) }
+                }
+            },
+            new()
+            {
+                name = "save_scatters",
+                func = new(GetStdMathMethod("MATHPLOT_save_scatters")),
+                n_pchecks = -3,
+                mask = ".sann",
+                d_defaults = new()
+                {
+                    { 3, new(1200) },
+                    { 4, new(800) }
+                }
             },
 
             new() { name = string.Empty }

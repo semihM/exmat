@@ -9,7 +9,7 @@ namespace ExMat
 {
     internal class Program
     {
-        private static readonly int VM_STACK_SIZE = 10192;
+        private static readonly int VM_STACK_SIZE = 20384;
 
         private static bool CheckCarryOver(string code)
         {
@@ -29,7 +29,7 @@ namespace ExMat
                     ExObjType type = vm._lastreturn._type;
                     if (type != ExObjType.NULL && !vm._printed)
                     {
-                        ExObjectPtr s = new();
+                        ExObject s = new();
                         vm.ToString(vm._lastreturn, ref s);
                         Console.Write(s.GetString());
                     }
@@ -48,7 +48,7 @@ namespace ExMat
 
             FixStackTopAfterCalls(vm, tp);
             vm._printed = false;
-            vm._lastreturn.Assign(new ExObjectPtr());
+            vm._lastreturn.Assign(new ExObject());
             return ret;
         }
 

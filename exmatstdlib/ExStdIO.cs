@@ -69,7 +69,7 @@ namespace ExMat.BaseLib
         public static int IO_writefile(ExVM vm, int nargs)
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
-            ExObjectPtr c = null;
+            ExObject c = null;
             vm.ToString(ExAPI.GetFromStack(vm, 3), ref c);
             string code = c.GetString();
 
@@ -88,7 +88,7 @@ namespace ExMat.BaseLib
         public static int IO_writefilelines(ExVM vm, int nargs)
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
-            ExObjectPtr lis = ExAPI.GetFromStack(vm, 3);
+            ExObject lis = ExAPI.GetFromStack(vm, 3);
 
             string enc = null;
             if (nargs == 3)
@@ -104,7 +104,7 @@ namespace ExMat.BaseLib
 
             for (int l = 0; l < n; l++)
             {
-                ExObjectPtr line = new();
+                ExObject line = new();
                 vm.ToString(lis._val.l_List[l], ref line);
                 lines[l] = line.GetString();
             }
@@ -116,14 +116,14 @@ namespace ExMat.BaseLib
         public static int IO_writefilebytes(ExVM vm, int nargs)
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
-            ExObjectPtr lis = ExAPI.GetFromStack(vm, 3);
+            ExObject lis = ExAPI.GetFromStack(vm, 3);
             int n = lis._val.l_List.Count;
 
             byte[] bytes = new byte[n];
 
             for (int l = 0; l < n; l++)
             {
-                ExObjectPtr b = new();
+                ExObject b = new();
                 vm.ToInteger(lis._val.l_List[l], ref b);
                 bytes[l] = Convert.ToByte(b.GetInt());
             }
@@ -137,7 +137,7 @@ namespace ExMat.BaseLib
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
 
-            ExObjectPtr c = null;
+            ExObject c = null;
             vm.ToString(ExAPI.GetFromStack(vm, 3), ref c);
             string code = c.GetString();
 
@@ -156,7 +156,7 @@ namespace ExMat.BaseLib
         public static int IO_appendfilelines(ExVM vm, int nargs)
         {
             string f = ExAPI.GetFromStack(vm, 2).GetString();
-            ExObjectPtr lis = ExAPI.GetFromStack(vm, 3);
+            ExObject lis = ExAPI.GetFromStack(vm, 3);
 
             string enc = null;
             if (nargs == 3)
@@ -172,7 +172,7 @@ namespace ExMat.BaseLib
 
             for (int l = 0; l < n; l++)
             {
-                ExObjectPtr line = new();
+                ExObject line = new();
                 vm.ToString(lis._val.l_List[l], ref line);
                 lines[l] = line.GetString();
             }
@@ -202,7 +202,7 @@ namespace ExMat.BaseLib
             else
             {
                 vm.Pop(nargs + 2);
-                vm.Push(new ExObjectPtr());
+                vm.Push(new ExObject());
             }
             return 1;
         }
@@ -214,7 +214,7 @@ namespace ExMat.BaseLib
             if (!File.Exists(f))
             {
                 vm.Pop(nargs + 2);
-                vm.Push(new ExObjectPtr());
+                vm.Push(new ExObject());
                 return 1;
             }
 
@@ -228,12 +228,12 @@ namespace ExMat.BaseLib
 
             string[] lines = File.ReadAllLines(f, e);
 
-            List<ExObjectPtr> l_list = new(lines.Length);
+            List<ExObject> l_list = new(lines.Length);
             for (int b = 0; b < lines.Length; b++)
             {
                 l_list.Add(new(lines[b]));
             }
-            ExObjectPtr res = new ExList();
+            ExObject res = new ExList();
             res._val.l_List = l_list;
 
             vm.Pop(nargs + 2);
@@ -248,18 +248,18 @@ namespace ExMat.BaseLib
             if (!File.Exists(f))
             {
                 vm.Pop(nargs + 2);
-                vm.Push(new ExObjectPtr());
+                vm.Push(new ExObject());
                 return 1;
             }
 
             byte[] bytes = File.ReadAllBytes(f);
 
-            List<ExObjectPtr> blist = new(bytes.Length);
+            List<ExObject> blist = new(bytes.Length);
             for (int b = 0; b < bytes.Length; b++)
             {
                 blist.Add(new(bytes[b]));
             }
-            ExObjectPtr res = new ExList();
+            ExObject res = new ExList();
             res._val.l_List = blist;
 
             vm.Pop(nargs + 2);
@@ -294,6 +294,9 @@ namespace ExMat.BaseLib
                 if (nargs == 2 && ExAPI.GetFromStack(vm, 3).GetBool())
                 {
                     Directory.CreateDirectory(dir);
+                    vm.Pop(nargs + 2);
+                    vm.Push(true);
+                    return 1;
                 }
                 vm.Pop(nargs + 2);
                 vm.Push(false);
@@ -355,14 +358,14 @@ namespace ExMat.BaseLib
                     ExAPI.WriteErrorMessages(vm, "EXECUTE");
                 }
 
-                vm.Pop(nargs + 2);
-                vm.Push(new ExObjectPtr(true));
+                vm.Pop(nargs + 3);
+                vm.Push(true);
 
                 return 1;
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(new ExObjectPtr(false));
+            vm.Pop(nargs + 3);
+            vm.Push(false);
             return -1;
         }
         public static int IO_reloadlib(ExVM vm, int nargs)
@@ -649,7 +652,7 @@ namespace ExMat.BaseLib
             }
 
             vm.Pop(nargs + 2);
-            vm.Push(new ExObjectPtr(input));
+            vm.Push(new ExObject(input));
 
             vm._got_input = true;
             return 1;

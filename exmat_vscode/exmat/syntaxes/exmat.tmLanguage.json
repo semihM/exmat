@@ -161,6 +161,10 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
+				"match": "\\b(save_scatter|save_scatters)\\b"
+				},
+				{
+				"name": "entity.name.function.exmat",
 				"match": "\\b(compile|assert|strip|lstrip|rstrip|split|format|join)\\b"
 				},
 				{

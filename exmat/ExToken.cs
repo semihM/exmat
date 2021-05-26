@@ -1,11 +1,5 @@
 ﻿namespace ExMat.Token
 {
-    public enum OperatorAssociativity
-    {
-        LEFT,
-        RIGHT
-    };
-
     public enum TokenType
     {
         UNKNOWN = -1,
@@ -137,7 +131,7 @@
 
         DEFAULT, // ..
         CARTESIAN, // *.*
-        
+
         SEQUENCE   // seq
     }
 }

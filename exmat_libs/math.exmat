@@ -5,6 +5,8 @@ rule NonZero(x) x != 0
 
 rule Negative(x) x < 0
 
+seq Factorial(0:1.0, 1:1.0) n * Factorial(n-1)
+
 // Add results of given function using range(m,n+1)
 function SumOf(func,m=0,n=0)
 {
@@ -203,3 +205,13 @@ class Vector3D
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
     }
 }
+
+function Identity(n)    return matrix(n,n,$(i,j) i == j ? 1 : 0)
+
+function RandIMat(x,y,m=0,n=2)    return matrix(x,y,$(i,j) rand(m,n))
+
+function RandFMat(x,y,m=0,n=1)    return matrix(x,y,$(i,j) randf(m,n))    
+
+function Combination(n, r)  return Factorial(n) / (Factorial(r) * Factorial(n-r))
+
+function Permutation(n, r)  return Factorial(n) / Factorial(n-r)

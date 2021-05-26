@@ -1,14 +1,22 @@
 // Infinite sequences
 // Recursive
-seq RecursiveSeq(0:1, 1:5) ArithSeq(n-2) + ArithSeq(n-1) + 5
+seq RecursiveSeq(0:1, 1:5) RecursiveSeq(n-2) + RecursiveSeq(n-1) + 5
 printl(RecursiveSeq)
 print(map(RecursiveSeq, range(10)));
 
 // Geometric
 printl("\n------------");
-seq Factorial(0:1, 1:1) Factorial(n-1) * n
+var ft = time()
+seq Factorial(0:1.0, 1:1.0) Factorial(n-1) * n
 printl(Factorial)
 print(map(Factorial, range(10)));
+printl("\n f seq time: "+(time() - ft))
+
+var fft = time();
+function FactorialF(x)  return x < 2 ? 1 : (x * FactorialF(x-1))
+printl(FactorialF)
+print(map(FactorialF, range(10)));
+print("\n f func time: "+(time() - fft))
 
 // Arithmetic
 printl("\n------------");

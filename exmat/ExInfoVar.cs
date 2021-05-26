@@ -15,7 +15,7 @@ namespace ExMat.InfoVar
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExLocalInfo : IDisposable
     {
-        public ExObjectPtr name = new();
+        public ExObject name = new();
         public int _sopc = 0;
         public int _eopc = 0;
         public int _pos = 0;
@@ -66,8 +66,8 @@ namespace ExMat.InfoVar
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExOuterInfo : IDisposable
     {
-        public ExObjectPtr name = new();
-        public ExObjectPtr _src = new();
+        public ExObject name = new();
+        public ExObject _src = new();
         public ExOuterType _type;
         private bool disposedValue;
 
@@ -138,8 +138,8 @@ namespace ExMat.InfoVar
     public class ExCallInfo : IDisposable
     {
         public ExInstr _instr;
-        public List<ExObjectPtr> _lits;
-        public ExObjectPtr _closure;
+        public List<ExObject> _lits;
+        public ExObject _closure;
         public int _prevbase;
         public int _prevtop;
         public int _target;

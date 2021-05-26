@@ -55,17 +55,17 @@ namespace ExMat.BaseLib
 
         public static int BASE_type(ExVM vm, int nargs)
         {
-            ExObjectPtr o = ExAPI.GetFromStack(vm, 2);
+            ExObject o = ExAPI.GetFromStack(vm, 2);
             string t = o._type.ToString();
             vm.Pop(nargs + 2);
-            vm.Push(new ExObjectPtr(t));
+            vm.Push(new ExObject(t));
             return 1;
         }
 
         public static int BASE_time(ExVM vm, int nargs)
         {
             vm.Pop(nargs + 2);
-            vm.Push(new ExObjectPtr((double)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
+            vm.Push(new ExObject((double)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
             return 1;
         }
 
@@ -86,46 +86,46 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         string[] splt = ExAPI.GetFromStack(vm, 2).GetString().Split("|", StringSplitOptions.RemoveEmptyEntries);
-                        List<ExObjectPtr> res = new(splt.Length);
+                        List<ExObject> res = new(splt.Length);
                         foreach (string arg in splt)
                         {
                             switch (arg.ToLower())
                             {
                                 case "today":
                                     {
-                                        res.Add(new ExObjectPtr(shrt ? today.ToShortDateString() : today.ToLongDateString()));
+                                        res.Add(new ExObject(shrt ? today.ToShortDateString() : today.ToLongDateString()));
                                         break;
                                     }
                                 case "now":
                                 case "time":
                                     {
-                                        res.Add(new ExObjectPtr(shrt ? now.ToShortTimeString() : now.ToLongTimeString()));
+                                        res.Add(new ExObject(shrt ? now.ToShortTimeString() : now.ToLongTimeString()));
                                         break;
                                     }
                                 case "year":
                                     {
-                                        res.Add(new ExObjectPtr(now.Month.ToString()));
+                                        res.Add(new ExObject(now.Month.ToString()));
                                         break;
                                     }
                                 case "month":
                                     {
-                                        res.Add(new ExObjectPtr(now.Month.ToString()));
+                                        res.Add(new ExObject(now.Month.ToString()));
                                         break;
                                     }
                                 case "day":
                                 case "wday":
                                     {
-                                        res.Add(new ExObjectPtr(now.DayOfWeek.ToString()));
+                                        res.Add(new ExObject(now.DayOfWeek.ToString()));
                                         break;
                                     }
                                 case "mday":
                                     {
-                                        res.Add(new ExObjectPtr(now.Day.ToString()));
+                                        res.Add(new ExObject(now.Day.ToString()));
                                         break;
                                     }
                                 case "yday":
                                     {
-                                        res.Add(new ExObjectPtr(now.DayOfYear.ToString()));
+                                        res.Add(new ExObject(now.DayOfYear.ToString()));
                                         break;
                                     }
                                 case "hours":
@@ -133,7 +133,7 @@ namespace ExMat.BaseLib
                                 case "hh":
                                 case "h":
                                     {
-                                        res.Add(new ExObjectPtr(now.Hour.ToString()));
+                                        res.Add(new ExObject(now.Hour.ToString()));
                                         break;
                                     }
                                 case "minutes":
@@ -142,7 +142,7 @@ namespace ExMat.BaseLib
                                 case "mm":
                                 case "m":
                                     {
-                                        res.Add(new ExObjectPtr(now.Minute.ToString()));
+                                        res.Add(new ExObject(now.Minute.ToString()));
                                         break;
                                     }
                                 case "seconds":
@@ -151,58 +151,58 @@ namespace ExMat.BaseLib
                                 case "ss":
                                 case "s":
                                     {
-                                        res.Add(new ExObjectPtr(now.Second.ToString()));
+                                        res.Add(new ExObject(now.Second.ToString()));
                                         break;
                                     }
                                 case "miliseconds":
                                 case "milisecond":
                                 case "ms":
                                     {
-                                        res.Add(new ExObjectPtr(now.Millisecond.ToString()));
+                                        res.Add(new ExObject(now.Millisecond.ToString()));
                                         break;
                                     }
                                 case "utc":
                                     {
-                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
-                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
-                                        res.Add(new ExObjectPtr(utcnow.Millisecond.ToString()));
+                                        res.Add(new ExObject(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
+                                        res.Add(new ExObject(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
+                                        res.Add(new ExObject(utcnow.Millisecond.ToString()));
                                         break;
                                     }
                                 case "utc-today":
                                     {
-                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
+                                        res.Add(new ExObject(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
                                         break;
                                     }
                                 case "utc-now":
                                 case "utc-time":
                                     {
-                                        res.Add(new ExObjectPtr(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
+                                        res.Add(new ExObject(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
                                         break;
                                     }
                                 case "utc-year":
                                     {
-                                        res.Add(new ExObjectPtr(utcnow.Month.ToString()));
+                                        res.Add(new ExObject(utcnow.Month.ToString()));
                                         break;
                                     }
                                 case "utc-month":
                                     {
-                                        res.Add(new ExObjectPtr(utcnow.Month.ToString()));
+                                        res.Add(new ExObject(utcnow.Month.ToString()));
                                         break;
                                     }
                                 case "utc-day":
                                 case "utc-wday":
                                     {
-                                        res.Add(new ExObjectPtr(utcnow.DayOfWeek.ToString()));
+                                        res.Add(new ExObject(utcnow.DayOfWeek.ToString()));
                                         break;
                                     }
                                 case "utc-mday":
                                     {
-                                        res.Add(new ExObjectPtr(utcnow.Day.ToString()));
+                                        res.Add(new ExObject(utcnow.Day.ToString()));
                                         break;
                                     }
                                 case "utc-yday":
                                     {
-                                        res.Add(new ExObjectPtr(utcnow.DayOfYear.ToString()));
+                                        res.Add(new ExObject(utcnow.DayOfYear.ToString()));
                                         break;
                                     }
                                 case "utc-h":
@@ -210,7 +210,7 @@ namespace ExMat.BaseLib
                                 case "utc-hour":
                                 case "utc-hours":
                                     {
-                                        res.Add(new ExObjectPtr(utcnow.Hour.ToString()));
+                                        res.Add(new ExObject(utcnow.Hour.ToString()));
                                         break;
                                     }
                             }
@@ -218,19 +218,19 @@ namespace ExMat.BaseLib
                         if (res.Count == 1)
                         {
                             vm.Pop(nargs + 2);
-                            vm.Push(new ExObjectPtr(res[0]));
+                            vm.Push(new ExObject(res[0]));
                         }
                         else
                         {
                             vm.Pop(nargs + 2);
-                            vm.Push(new ExObjectPtr(res));
+                            vm.Push(new ExObject(res));
                         }
                         break;
                     }
                 default:
                     {
                         vm.Pop(nargs + 2);
-                        vm.Push(new ExObjectPtr(new List<ExObjectPtr>() { new(today.ToLongDateString()), new(now.ToLongTimeString()), new(now.Millisecond.ToString()) }));
+                        vm.Push(new ExObject(new List<ExObject>() { new(today.ToLongDateString()), new(now.ToLongTimeString()), new(now.Millisecond.ToString()) }));
                         break;
                     }
             }
@@ -301,11 +301,11 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        ExObjectPtr obj = ExAPI.GetFromStack(vm, 2);
+                        ExObject obj = ExAPI.GetFromStack(vm, 2);
                         if (obj._type == ExObjType.ARRAY && carr)
                         {
                             string str = string.Empty;
-                            foreach (ExObjectPtr o in obj.GetList())
+                            foreach (ExObject o in obj.GetList())
                             {
                                 if (o._type == ExObjType.STRING) // && o.GetString().Length == 1)
                                 {
@@ -399,7 +399,7 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        ExObjectPtr v = ExAPI.GetFromStack(vm, 2);
+                        ExObject v = ExAPI.GetFromStack(vm, 2);
                         long b = 0;
                         switch (v._type)
                         {
@@ -415,7 +415,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    List<ExObjectPtr> l = new(64);
+                                    List<ExObject> l = new(64);
 
                                     for (int i = 0; i < 64; i++)
                                     {
@@ -457,7 +457,7 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        ExObjectPtr v = ExAPI.GetFromStack(vm, 2);
+                        ExObject v = ExAPI.GetFromStack(vm, 2);
                         byte[] bytes = null;
                         switch (v._type)
                         {
@@ -474,12 +474,12 @@ namespace ExMat.BaseLib
                             case ExObjType.STRING:
                                 {
                                     char[] chars = v.GetString().ToCharArray();
-                                    List<ExObjectPtr> b = new(chars.Length);
+                                    List<ExObject> b = new(chars.Length);
                                     foreach (char i in chars)
                                     {
                                         b.Add(new(i));
                                     }
-                                    if(!reverse)
+                                    if (!reverse)
                                     {
                                         b.Reverse();
                                     }
@@ -489,7 +489,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    List<ExObjectPtr> b = new(bytes.Length);
+                                    List<ExObject> b = new(bytes.Length);
                                     foreach (byte i in bytes)
                                     {
                                         b.Add(new(i));
@@ -518,13 +518,13 @@ namespace ExMat.BaseLib
 
         public static int BASE_map(ExVM vm, int nargs)
         {
-            ExObjectPtr cls = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr obj = new(ExAPI.GetFromStack(vm, 3));
-            List<ExObjectPtr> l = new(obj._val.l_List.Count);
+            ExObject cls = ExAPI.GetFromStack(vm, 2);
+            ExObject obj = new(ExAPI.GetFromStack(vm, 3));
+            List<ExObject> l = new(obj._val.l_List.Count);
 
             vm.Pop();
 
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             bool iscls = cls._type == ExObjType.CLOSURE;
 
@@ -534,7 +534,7 @@ namespace ExMat.BaseLib
                 return -1;
             }
 
-            ExObjectPtr tmp = new();
+            ExObject tmp = new();
 
             int n = 2;
             int m = 0;
@@ -547,16 +547,16 @@ namespace ExMat.BaseLib
             bool bm = vm.b_main;
             vm.b_main = false;
 
-            if(is_seq)
+            if (is_seq)
             {
-                List<ExObjectPtr> _defs = cls.GetClosure()._func._params;
+                List<ExObject> _defs = cls.GetClosure()._func._params;
                 List<string> defs = new(_defs.Count);
-                for(int i = 0; i < _defs.Count; i++)
+                for (int i = 0; i < _defs.Count; i++)
                 {
                     defs.Add(_defs[i].GetString());
                 }
 
-                foreach (ExObjectPtr o in obj._val.l_List)
+                foreach (ExObject o in obj._val.l_List)
                 {
                     vm.Push(cls);
                     vm.Push(vm._rootdict);
@@ -568,7 +568,7 @@ namespace ExMat.BaseLib
                         vm.b_main = bm;
                         return -1;
                     }
-                    else if ( defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
+                    else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
                     {
                         l.Add(new(vm.GetAt(vm._top - n - 1)));
                         vm.Pop(n + 1 + m);
@@ -582,7 +582,7 @@ namespace ExMat.BaseLib
             }
             else
             {
-                foreach (ExObjectPtr o in obj._val.l_List)
+                foreach (ExObject o in obj._val.l_List)
                 {
                     vm.Push(cls);
                     vm.Push(vm._rootdict);
@@ -604,19 +604,19 @@ namespace ExMat.BaseLib
 
             vm.b_main = bm;
             vm.Pop(n + m + 1);
-            vm.Push(new ExObjectPtr(l));
+            vm.Push(new ExObject(l));
             return 1;
         }
 
         public static int BASE_filter(ExVM vm, int nargs)
         {
-            ExObjectPtr cls = ExAPI.GetFromStack(vm, 2);
-            ExObjectPtr obj = new(ExAPI.GetFromStack(vm, 3));
-            List<ExObjectPtr> l = new(obj._val.l_List.Count);
+            ExObject cls = ExAPI.GetFromStack(vm, 2);
+            ExObject obj = new(ExAPI.GetFromStack(vm, 3));
+            List<ExObject> l = new(obj._val.l_List.Count);
 
             vm.Pop();
 
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             bool iscls = cls._type == ExObjType.CLOSURE;
 
@@ -626,7 +626,7 @@ namespace ExMat.BaseLib
                 return -1;
             }
 
-            ExObjectPtr tmp = new();
+            ExObject tmp = new();
 
             int n = 2;
             int m = 0;
@@ -637,7 +637,7 @@ namespace ExMat.BaseLib
             }
             bool bm = vm.b_main;
             vm.b_main = false;
-            foreach (ExObjectPtr o in obj._val.l_List)
+            foreach (ExObject o in obj._val.l_List)
             {
                 vm.Push(cls);
                 vm.Push(vm._rootdict);
@@ -661,15 +661,15 @@ namespace ExMat.BaseLib
 
             vm.b_main = bm;
             vm.Pop(n + m + 1);
-            vm.Push(new ExObjectPtr(l));
+            vm.Push(new ExObject(l));
             return 1;
         }
 
         public static int BASE_call(ExVM vm, int nargs)
         {
-            ExObjectPtr cls = ExAPI.GetFromStack(vm, 2);
+            ExObject cls = ExAPI.GetFromStack(vm, 2);
 
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             bool need_b = false;
             bool iscls = cls._type == ExObjType.CLOSURE;
@@ -680,7 +680,7 @@ namespace ExMat.BaseLib
                 return -1;
             }
 
-            List<ExObjectPtr> args = new();
+            List<ExObject> args = new();
 
 
             if (iscls)
@@ -799,8 +799,8 @@ namespace ExMat.BaseLib
 
         public static int BASE_parse(ExVM vm, int nargs)
         {
-            ExObjectPtr cls = ExAPI.GetFromStack(vm, 2);
-            List<ExObjectPtr> args = new ExObjectPtr(ExAPI.GetFromStack(vm, 3))._val.l_List;
+            ExObject cls = ExAPI.GetFromStack(vm, 2);
+            List<ExObject> args = new ExObject(ExAPI.GetFromStack(vm, 3))._val.l_List;
             if (args.Count > vm._stack.Count - vm._top - 3)
             {
                 vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm._stack.Count);
@@ -809,7 +809,7 @@ namespace ExMat.BaseLib
 
             vm.Pop();
 
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             bool iscls = cls._type == ExObjType.CLOSURE;
 
@@ -829,7 +829,7 @@ namespace ExMat.BaseLib
 
             if (args.Count == 0 && !iscls)
             {
-                vm.Push(new ExObjectPtr());
+                vm.Push(new ExObject());
             }
             else
             {
@@ -846,7 +846,7 @@ namespace ExMat.BaseLib
                 }
             }
 
-            ExObjectPtr tmp = new();
+            ExObject tmp = new();
             bool bm = vm.b_main;
             vm.b_main = false;
             if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
@@ -864,12 +864,12 @@ namespace ExMat.BaseLib
 
         public static int BASE_list(ExVM vm, int nargs)
         {
-            ExObjectPtr o = ExAPI.GetFromStack(vm, 2);
+            ExObject o = ExAPI.GetFromStack(vm, 2);
             if (o._type == ExObjType.STRING)
             {
                 char[] s = o.GetString().ToCharArray();
 
-                List<ExObjectPtr> lis = new(s.Length);
+                List<ExObject> lis = new(s.Length);
 
                 foreach (char c in s)
                 {
@@ -906,7 +906,7 @@ namespace ExMat.BaseLib
         public static int BASE_range(ExVM vm, int nargs)
         {
             ExList l = new();
-            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            ExObject s = ExAPI.GetFromStack(vm, 2);
 
             switch (nargs)
             {
@@ -969,7 +969,7 @@ namespace ExMat.BaseLib
         public static int BASE_matrix(ExVM vm, int nargs)
         {
             ExList l = new();
-            ExObjectPtr s = ExAPI.GetFromStack(vm, 2);
+            ExObject s = ExAPI.GetFromStack(vm, 2);
 
             switch (nargs)
             {
@@ -988,7 +988,7 @@ namespace ExMat.BaseLib
                             n = 0;
                         }
 
-                        ExObjectPtr filler = nargs == 3 ? ExAPI.GetFromStack(vm, 4) : new();
+                        ExObject filler = nargs == 3 ? ExAPI.GetFromStack(vm, 4) : new();
                         l._val.l_List = new(m);
 
                         switch (filler._type)
@@ -1006,10 +1006,10 @@ namespace ExMat.BaseLib
                                     vm.b_main = false;
                                     for (int i = 0; i < m; i++)
                                     {
-                                        List<ExObjectPtr> lis = new(n);
+                                        List<ExObject> lis = new(n);
                                         for (int j = 0; j < n; j++)
                                         {
-                                            ExObjectPtr res = new();
+                                            ExObject res = new();
                                             vm.Push(vm._rootdict);
                                             vm.Push(i);
                                             vm.Push(j);
@@ -1022,7 +1022,7 @@ namespace ExMat.BaseLib
 
                                             lis.Add(new(res));
                                         }
-                                        l._val.l_List.Add(new ExObjectPtr(lis));
+                                        l._val.l_List.Add(new ExObject(lis));
                                     }
 
                                     vm.b_main = bm;
@@ -1047,10 +1047,10 @@ namespace ExMat.BaseLib
                                     vm.b_main = false;
                                     for (int i = 0; i < m; i++)
                                     {
-                                        List<ExObjectPtr> lis = new(n);
+                                        List<ExObject> lis = new(n);
                                         for (int j = 0; j < n; j++)
                                         {
-                                            ExObjectPtr res = new();
+                                            ExObject res = new();
                                             vm.Push(i);
                                             vm.Push(j);
                                             if (!vm.Call(ref filler, 2, vm._top - 2, ref res, true))
@@ -1061,7 +1061,7 @@ namespace ExMat.BaseLib
 
                                             lis.Add(new(res));
                                         }
-                                        l._val.l_List.Add(new ExObjectPtr(lis));
+                                        l._val.l_List.Add(new ExObject(lis));
                                     }
 
                                     vm.b_main = bm;
@@ -1071,9 +1071,9 @@ namespace ExMat.BaseLib
                                 {
                                     for (int i = 0; i < m; i++)
                                     {
-                                        List<ExObjectPtr> lis = null;
+                                        List<ExObject> lis = null;
                                         ExUtils.InitList(ref lis, n, filler);
-                                        l._val.l_List.Add(new ExObjectPtr(lis));
+                                        l._val.l_List.Add(new ExObject(lis));
                                     }
                                     break;
                                 }
@@ -1090,7 +1090,7 @@ namespace ExMat.BaseLib
         public static int BASE_default_length(ExVM vm, int nargs)
         {
             int size = -1;
-            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
+            ExObject obj = ExAPI.GetFromStack(vm, 1);
             switch (obj._type)
             {
                 case ExObjType.ARRAY:
@@ -1124,14 +1124,14 @@ namespace ExMat.BaseLib
                     }
             }
             vm.Pop(nargs + 2);
-            vm.Push(new ExObjectPtr(size));
+            vm.Push(new ExObject(size));
             return 1;
         }
 
         // STRING
         public static int BASE_string_index_of(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.STRING, ref res);
             string sub = vm.GetAbove(-1).GetString();
             string s = res.GetString();
@@ -1346,7 +1346,7 @@ namespace ExMat.BaseLib
         // ARRAY
         public static int BASE_array_append(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             res._val.l_List.Add(new(vm.GetAbove(-1)));
             vm.Pop(nargs + 2);
@@ -1355,7 +1355,7 @@ namespace ExMat.BaseLib
         }
         public static int BASE_array_extend(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             res._val.l_List.AddRange(vm.GetAbove(-1)._val.l_List);
             vm.Pop(nargs + 2);
@@ -1364,11 +1364,11 @@ namespace ExMat.BaseLib
         }
         public static int BASE_array_pop(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
             if (res._val.l_List.Count > 0)
             {
-                ExObjectPtr p = new(res._val.l_List[^1]);
+                ExObject p = new(res._val.l_List[^1]);
                 res._val.l_List.RemoveAt(res._val.l_List.Count - 1);
                 vm.Pop(nargs + 2);
                 vm.Push(p); // TO-DO make this optional
@@ -1383,7 +1383,7 @@ namespace ExMat.BaseLib
 
         public static int BASE_array_resize(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
             int newsize = (int)ExAPI.GetFromStack(vm, 2).GetInt();
             if (newsize < 0)
@@ -1430,9 +1430,9 @@ namespace ExMat.BaseLib
 
         public static int BASE_array_index_of(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
-            using ExObjectPtr obj = new(vm.GetAbove(-1));
+            using ExObject obj = new(vm.GetAbove(-1));
 
             int i = ExAPI.GetValueIndexFromArray(res._val.l_List, obj);
             vm.Pop(nargs + 2);
@@ -1442,9 +1442,9 @@ namespace ExMat.BaseLib
 
         public static int BASE_array_reverse(ExVM vm, int nargs)
         {
-            ExObjectPtr obj = ExAPI.GetFromStack(vm, 1);
-            List<ExObjectPtr> lis = obj.GetList();
-            List<ExObjectPtr> res = new(lis.Count);
+            ExObject obj = ExAPI.GetFromStack(vm, 1);
+            List<ExObject> lis = obj.GetList();
+            List<ExObject> res = new(lis.Count);
             for (int i = lis.Count - 1; i >= 0; i--)
             {
                 res.Add(new(lis[i]));
@@ -1456,7 +1456,7 @@ namespace ExMat.BaseLib
         // DICT
         public static int BASE_dict_has_key(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.DICT, ref res);
             string key = vm.GetAbove(-1).GetString();
             bool b = res._val.d_Dict.ContainsKey(key);
@@ -1467,9 +1467,9 @@ namespace ExMat.BaseLib
         }
         public static int BASE_dict_keys(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -1, ExObjType.DICT, ref res);
-            List<ExObjectPtr> keys = new(res.GetDict().Count);
+            List<ExObject> keys = new(res.GetDict().Count);
             foreach (string key in res.GetDict().Keys)
             {
                 keys.Add(new(key));
@@ -1481,10 +1481,10 @@ namespace ExMat.BaseLib
 
         public static int BASE_dict_values(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -1, ExObjType.DICT, ref res);
-            List<ExObjectPtr> vals = new(res.GetDict().Count);
-            foreach (ExObjectPtr val in res.GetDict().Values)
+            List<ExObject> vals = new(res.GetDict().Count);
+            foreach (ExObject val in res.GetDict().Values)
             {
                 vals.Add(new(val));
             }
@@ -1495,9 +1495,9 @@ namespace ExMat.BaseLib
 
         public static int BASE_array_transpose(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
             ExAPI.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res);
-            List<ExObjectPtr> vals = res.GetList();
+            List<ExObject> vals = res.GetList();
             int rows = vals.Count;
             int cols = 0;
 
@@ -1506,7 +1506,7 @@ namespace ExMat.BaseLib
                 return -1;
             }
 
-            List<ExObjectPtr> lis = ExAPI.TransposeMatrix(rows, cols, vals);
+            List<ExObject> lis = ExAPI.TransposeMatrix(rows, cols, vals);
 
             vm.Pop(nargs + 2);
             vm.Push(lis);
@@ -1516,7 +1516,7 @@ namespace ExMat.BaseLib
         // CLASS
         public static int BASE_class_hasattr(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             ExAPI.GetSafeObject(vm, -3, ExObjType.CLASS, ref res);
             string mem = vm.GetAbove(-2).GetString();
@@ -1525,7 +1525,7 @@ namespace ExMat.BaseLib
             ExClass cls = res._val._Class;
             if (cls._members.ContainsKey(mem))
             {
-                ExObjectPtr v = cls._members[mem];
+                ExObject v = cls._members[mem];
                 if (v.IsField())
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
@@ -1554,7 +1554,7 @@ namespace ExMat.BaseLib
         }
         public static int BASE_class_getattr(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             ExAPI.GetSafeObject(vm, -3, ExObjType.CLASS, ref res);
             string mem = vm.GetAbove(-2).GetString();
@@ -1563,12 +1563,12 @@ namespace ExMat.BaseLib
             ExClass cls = res._val._Class;
             if (cls._members.ContainsKey(mem))
             {
-                ExObjectPtr v = cls._members[mem];
+                ExObject v = cls._members[mem];
                 if (v.IsField())
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        ExObjectPtr val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -1578,7 +1578,7 @@ namespace ExMat.BaseLib
                 {
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        ExObjectPtr val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -1594,17 +1594,17 @@ namespace ExMat.BaseLib
 
         public static int BASE_class_setattr(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             ExAPI.GetSafeObject(vm, -4, ExObjType.CLASS, ref res);
             string mem = vm.GetAbove(-3).GetString();
             string attr = vm.GetAbove(-2).GetString();
-            ExObjectPtr val = vm.GetAbove(-1);
+            ExObject val = vm.GetAbove(-1);
 
             ExClass cls = res._val._Class;
             if (cls._members.ContainsKey(mem))
             {
-                ExObjectPtr v = cls._members[mem];
+                ExObject v = cls._members[mem];
                 if (v.IsField())
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
@@ -1634,7 +1634,7 @@ namespace ExMat.BaseLib
         // INSTANCE
         public static int BASE_instance_hasattr(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             ExAPI.GetSafeObject(vm, -3, ExObjType.INSTANCE, ref res);
             string mem = vm.GetAbove(-2).GetString();
@@ -1643,7 +1643,7 @@ namespace ExMat.BaseLib
             ExClass cls = res._val._Instance._class;
             if (cls._members.ContainsKey(mem))
             {
-                ExObjectPtr v = cls._members[mem];
+                ExObject v = cls._members[mem];
                 if (v.IsField())
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
@@ -1672,7 +1672,7 @@ namespace ExMat.BaseLib
         }
         public static int BASE_instance_getattr(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             ExAPI.GetSafeObject(vm, -3, ExObjType.INSTANCE, ref res);
             string mem = vm.GetAbove(-2).GetString();
@@ -1681,12 +1681,12 @@ namespace ExMat.BaseLib
             ExClass cls = res._val._Instance._class;
             if (cls._members.ContainsKey(mem))
             {
-                ExObjectPtr v = cls._members[mem];
+                ExObject v = cls._members[mem];
                 if (v.IsField())
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        ExObjectPtr val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -1696,7 +1696,7 @@ namespace ExMat.BaseLib
                 {
                     if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
                     {
-                        ExObjectPtr val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -1712,16 +1712,16 @@ namespace ExMat.BaseLib
 
         public static int BASE_instance_setattr(ExVM vm, int nargs)
         {
-            ExObjectPtr res = new();
+            ExObject res = new();
 
             ExAPI.GetSafeObject(vm, -4, ExObjType.INSTANCE, ref res);
             string mem = vm.GetAbove(-3).GetString();
             string attr = vm.GetAbove(-2).GetString();
-            ExObjectPtr val = vm.GetAbove(-1);
+            ExObject val = vm.GetAbove(-1);
             ExClass cls = res._val._Instance._class;
             if (cls._members.ContainsKey(mem))
             {
-                ExObjectPtr v = cls._members[mem];
+                ExObject v = cls._members[mem];
                 if (v.IsField())
                 {
                     if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))

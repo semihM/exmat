@@ -1,0 +1,25 @@
+// Single data plot
+var axis_1 = range(0.1, 10, 0.2)
+save_scatter("plot_single",
+    axis_1,
+    map(loge, axis_1),
+    800, 600,
+    "green",
+    "loge")
+
+var axis_12 = range(0, 4*PI, PI/180)
+save_scatter("plot_single2.jpg",
+    axis_12,
+    map(sin, axis_12),
+    ..,..,..,
+    "sin")
+
+// Multiple data plots
+var axis_2 = range(0, 5, 0.1)
+save_scatters("plot_multiple.png",
+    [
+        [axis_2, map(exp, axis_2), "blue","exp"],
+        [axis_2, map($(x) 3**x, axis_2), "red", "three"] ,
+        [axis_2, map($(x) 2**x, axis_2), "purple", "two"]
+    ],
+    1200, 800)

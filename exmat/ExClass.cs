@@ -10,8 +10,8 @@ namespace ExMat.Class
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClassMem : IDisposable
     {
-        public ExObjectPtr val = new();
-        public ExObjectPtr attrs = new();
+        public ExObject val = new();
+        public ExObject attrs = new();
         private bool disposedValue;
 
         public ExClassMem() { }
@@ -63,28 +63,31 @@ namespace ExMat.Class
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClass : ExCollectable
+    public class ExClass : ExObject
     {
         public ExClass _base;
-        public Dictionary<string, ExObjectPtr> _members = new();
-        public List<ExObjectPtr> _metas = new();
+        public Dictionary<string, ExObject> _members = new();
+        public List<ExObject> _metas = new();
         public List<ExClassMem> _defvals = new();
         public List<ExClassMem> _methods = new();
-        public ExObjectPtr _attrs = new();
-        public ExObjectPtr _hook = new(0);
+        public ExObject _attrs = new();
+        public ExObject _hook = new(0);
         public bool _islocked;
         public int _constridx;
         public int _udsize;
+        public ExSState _sState;
 
         public ExClass()
         {
             _type = ExObjType.CLASS;
+            _val._RefC = new();
             ExUtils.InitList(ref _metas, (int)ExMetaM._LAST);
         }
         public ExClass(ExSState exS, ExClass b)
         {
             _sState = exS;
             _type = ExObjType.CLASS;
+            _val._RefC = new();
             _base = b;
             _hook = new();
             _islocked = false;
@@ -120,12 +123,12 @@ namespace ExMat.Class
         }
         public override void Release()
         {
-            if ((--_refc) == 0)
+            if ((--_val._RefC._refc) == 0)
             {
                 _attrs.Release();
                 _defvals.RemoveAll((ExClassMem e) => true); _defvals = null;
                 _methods.RemoveAll((ExClassMem e) => true); _methods = null;
-                _metas.RemoveAll((ExObjectPtr e) => true); _metas = null;
+                _metas.RemoveAll((ExObject e) => true); _metas = null;
                 _members = null;
                 if (_base != null)
                 {
@@ -151,7 +154,7 @@ namespace ExMat.Class
             return ExInstance.Create(_sState, this);
         }
 
-        public bool GetConstructor(ref ExObjectPtr o)
+        public bool GetConstructor(ref ExObject o)
         {
             if (_constridx != -1)
             {
@@ -161,11 +164,11 @@ namespace ExMat.Class
             return false;
         }
 
-        public bool SetAttrs(ExObjectPtr key, ExObjectPtr val)
+        public bool SetAttrs(ExObject key, ExObject val)
         {
             if (_members.ContainsKey(key.GetString()))
             {
-                ExObjectPtr v = _members[key.GetString()];
+                ExObject v = _members[key.GetString()];
                 if (v.IsField())
                 {
                     _defvals[v.GetMemberID()].attrs.Assign(val);
@@ -179,7 +182,7 @@ namespace ExMat.Class
             return false;
         }
 
-        public bool NewSlot(ExSState exs, ExObjectPtr key, ExObjectPtr val, bool bstat)
+        public bool NewSlot(ExSState exs, ExObject key, ExObject val, bool bstat)
         {
             bool bdict = val._type == ExObjType.CLOSURE || val._type == ExObjType.NATIVECLOSURE || bstat;
             if (_islocked && !bdict)
@@ -187,7 +190,7 @@ namespace ExMat.Class
                 return false;
             }
 
-            ExObjectPtr tmp = new();
+            ExObject tmp = new();
             if (_members.ContainsKey(key.GetString()) && (tmp = _members[key.GetString()]).IsField())
             {
                 _defvals[_members[key.GetString()].GetMemberID()].val.Assign(val);
@@ -204,17 +207,17 @@ namespace ExMat.Class
                 }
                 else
                 {
-                    ExObjectPtr tmpv = val;
+                    ExObject tmpv = val;
                     if (_base != null && val._type == ExObjType.CLOSURE)
                     {
                         tmpv.Assign(val._val._Closure);
                         tmpv.GetClosure()._base = _base;
-                        _base._refc++;
+                        _base._val._RefC._refc++;
                     }
                     else
                     {
                         tmpv.GetClosure()._base = this;
-                        _refc++;
+                        _val._RefC._refc++;
                     }
 
                     if (tmp._type == ExObjType.NULL)
@@ -271,13 +274,14 @@ namespace ExMat.Class
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExInstance : ExDeleg
     {
+        public ExSState _sState;
         public ExClass _class;
-        public ExUserP _up;
-        public ExObjectPtr _hook;
-        public List<ExObjectPtr> _values;
+        public ExObject _hook;
+        public List<ExObject> _values;
         public ExInstance()
         {
             _type = ExObjType.INSTANCE;
+            _val._RefC = new();
             _values = new();
         }
 
@@ -289,11 +293,8 @@ namespace ExMat.Class
         public void Init(ExSState exs)
         {
             _hook = new();
-            _delegate = new ExObjectPtr(_class._metas); // TO-DO keep both metas and members
-            _class._refc++;
-            _next = null;
-            _prev = null;
-            AddToChain(exs._GC_CHAIN, this);
+            _delegate = new ExObject(_class._metas); // TO-DO keep both metas and members
+            _class._val._RefC._refc++;
         }
 
         public static ExInstance Create(ExSState exS, ExInstance inst)
@@ -301,7 +302,7 @@ namespace ExMat.Class
             ExInstance ins = new() { _sState = exS, _class = inst._class };
             for (int i = 0; i < inst._class._defvals.Count; i++)
             {
-                ins._values.Add(new ExObjectPtr(inst._class._defvals[i].val));
+                ins._values.Add(new ExObject(inst._class._defvals[i].val));
             }
             ins.Init(exS);
             return ins;
@@ -312,13 +313,13 @@ namespace ExMat.Class
             ExInstance ins = new() { _sState = exS, _class = cls };
             for (int i = 0; i < cls._defvals.Count; i++)
             {
-                ins._values.Add(new ExObjectPtr(cls._defvals[i].val));
+                ins._values.Add(new ExObject(cls._defvals[i].val));
             }
             ins.Init(exS);
             return ins;
         }
 
-        public bool GetMeta(int midx, ref ExObjectPtr res)
+        public bool GetMeta(int midx, ref ExObject res)
         {
             if (_class._metas[midx]._type != ExObjType.NULL)
             {
@@ -344,13 +345,13 @@ namespace ExMat.Class
 
         public override void Release()
         {
-            if ((--_refc) == 0)
+            if ((--_val._RefC._refc) == 0)
             {
                 if (_class != null)
                 {
                     _class.Release();
                 }
-                _values.RemoveAll((ExObjectPtr e) => true); _values = null;
+                _values.RemoveAll((ExObject e) => true); _values = null;
             }
         }
 
@@ -363,7 +364,7 @@ namespace ExMat.Class
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(_class, _hook, _up);
+            Disposer.DisposeObjects(_class, _hook);
             Disposer.DisposeList(ref _values);
         }
     }

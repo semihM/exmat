@@ -9,28 +9,24 @@ namespace ExMat.States
 {
     public class ExSState : IDisposable
     {
-        public Dictionary<string, ExObjectPtr> _strings = new();
-        public Dictionary<string, ExObjectPtr> _macros = new();
+        public Dictionary<string, ExObject> _strings = new();
+        public Dictionary<string, ExObject> _macros = new();
         public Dictionary<string, ExMacro> _blockmacros = new();
 
-        public List<ExObjectPtr> _types = new();
+        public List<ExObject> _metaMethods = new();
+        public ExObject _metaMethodsMap = new(new Dictionary<string, ExObject>());
 
-        public List<ExObjectPtr> _metaMethods = new();
-        public ExObjectPtr _metaMethodsMap = new(new Dictionary<string, ExObjectPtr>());
-
-        public Dictionary<string, ExObjectPtr> _consts = new();
-
-        public ExCollectable _GC_CHAIN = new();
+        public Dictionary<string, ExObject> _consts = new();
 
         public ExVM _rootVM;
 
-        public ExObjectPtr _constdict = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _constdict = new(new Dictionary<string, ExObject>());
 
-        public ExObjectPtr _reg = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _reg = new(new Dictionary<string, ExObject>());
 
-        public ExObjectPtr _constructid = new("constructor");
+        public ExObject _constructid = new(ExMat._CONSTRUCTOR);
 
-        public ExObjectPtr _class_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _class_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _class_delF = new()
         {
             new() { name = "has_attr", n_pchecks = 3, mask = "yss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_class_hasattr")) },
@@ -40,7 +36,7 @@ namespace ExMat.States
             new() { name = string.Empty }
         };
 
-        public ExObjectPtr _dict_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _dict_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _dict_delF = new()
         {
             new() { name = "len", n_pchecks = 1, mask = "d", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
@@ -50,7 +46,7 @@ namespace ExMat.States
             new() { name = string.Empty }
         };
 
-        public ExObjectPtr _list_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _list_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _list_delF = new()
         {
             new() { name = "len", n_pchecks = 1, mask = "a", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
@@ -66,13 +62,13 @@ namespace ExMat.States
             new() { name = string.Empty }
         };
 
-        public ExObjectPtr _num_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _num_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _num_delF = new()
         {
             new() { name = string.Empty }
         };
 
-        public ExObjectPtr _str_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _str_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _str_delF = new()
         {
             new() { name = "len", n_pchecks = 1, mask = "s", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_default_length")) },
@@ -94,13 +90,13 @@ namespace ExMat.States
             new() { name = string.Empty }
         };
 
-        public ExObjectPtr _closure_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _closure_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _closure_delF = new()
         {
             new() { name = string.Empty }
         };
 
-        public ExObjectPtr _inst_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _inst_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _inst_delF = new()
         {
             new() { name = "has_attr", n_pchecks = 3, mask = "xss", func = new(Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod("BASE_instance_hasattr")) },
@@ -110,7 +106,7 @@ namespace ExMat.States
             new() { name = string.Empty }
         };
 
-        public ExObjectPtr _wref_del = new(new Dictionary<string, ExObjectPtr>());
+        public ExObject _wref_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _wref_delF = new()
         {
             new() { name = string.Empty }
@@ -139,10 +135,10 @@ namespace ExMat.States
             _wref_del.Assign(CreateDefDel(this, _wref_delF));
         }
 
-        public static ExObjectPtr CreateDefDel(ExSState exs, List<ExRegFunc> f)
+        public static ExObject CreateDefDel(ExSState exs, List<ExRegFunc> f)
         {
             int i = 0;
-            Dictionary<string, ExObjectPtr> d = new();
+            Dictionary<string, ExObject> d = new();
             while (f[i].name != string.Empty)
             {
                 f[i].b_isdeleg = true;
@@ -182,7 +178,6 @@ namespace ExMat.States
                     Disposer.DisposeObjects(_constructid,
                                             _reg,
                                             _constdict,
-                                            _GC_CHAIN,
                                             _metaMethodsMap,
                                             _wref_del,
                                             _inst_del,
@@ -199,7 +194,6 @@ namespace ExMat.States
                     Disposer.DisposeDict(ref _strings);
 
                     Disposer.DisposeList(ref _metaMethods);
-                    Disposer.DisposeList(ref _types);
                     Disposer.DisposeList(ref _wref_delF);
                     Disposer.DisposeList(ref _inst_delF);
                     Disposer.DisposeList(ref _closure_delF);

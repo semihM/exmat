@@ -11,7 +11,7 @@ namespace ExMat.API
 {
     public static class ExAPI
     {
-        public static bool GetSafeObject(ExVM vm, int idx, ExObjType typ, ref ExObjectPtr res)
+        public static bool GetSafeObject(ExVM vm, int idx, ExObjType typ, ref ExObject res)
         {
             res = GetFromStack(vm, idx);
             if (res._type != typ)
@@ -24,8 +24,8 @@ namespace ExMat.API
 
         public static bool ToString(ExVM vm, int i, int maxdepth = 1, int pop = 0, bool beauty = false)
         {
-            ExObjectPtr o = GetFromStack(vm, i);
-            ExObjectPtr res = new(string.Empty);
+            ExObject o = GetFromStack(vm, i);
+            ExObject res = new(string.Empty);
             if (!vm.ToString(o, ref res, maxdepth, beauty: beauty))
             {
                 return false;
@@ -37,8 +37,8 @@ namespace ExMat.API
 
         public static bool ToFloat(ExVM vm, int i, int pop = 0)
         {
-            ExObjectPtr o = GetFromStack(vm, i);
-            ExObjectPtr res = null;
+            ExObject o = GetFromStack(vm, i);
+            ExObject res = null;
             if (!vm.ToFloat(o, ref res))
             {
                 return false;
@@ -50,8 +50,8 @@ namespace ExMat.API
 
         public static bool ToInteger(ExVM vm, int i, int pop = 0)
         {
-            ExObjectPtr o = GetFromStack(vm, i);
-            ExObjectPtr res = null;
+            ExObject o = GetFromStack(vm, i);
+            ExObject res = null;
             if (!vm.ToInteger(o, ref res))
             {
                 return false;
@@ -61,9 +61,9 @@ namespace ExMat.API
             return true;
         }
 
-        public static ExObjectPtr[] GetNObjects(ExVM vm, int n, int start = 2)
+        public static ExObject[] GetNObjects(ExVM vm, int n, int start = 2)
         {
-            ExObjectPtr[] arr = new ExObjectPtr[n];
+            ExObject[] arr = new ExObject[n];
             int i = 0;
             while (i < n)
             {
@@ -75,7 +75,7 @@ namespace ExMat.API
 
         public static bool GetString(ExVM vm, int idx, ref string s)
         {
-            ExObjectPtr o = new();
+            ExObject o = new();
             if (!GetSafeObject(vm, idx, ExObjType.STRING, ref o))
             {
                 return false;
@@ -177,7 +177,7 @@ namespace ExMat.API
                 {
                     vm._sState._strings.Add(str, new(str));
                 }
-                vm.Push(new ExString(str));
+                vm.Push(str);
             }
         }
         public static void CreateClosure(ExVM vm, ExFunc f, int fvars, bool force = false)
@@ -189,7 +189,7 @@ namespace ExMat.API
                 if (force)
                 {
                     int idx;
-                    if ((idx = nc._outervals.FindIndex((ExObjectPtr o) => o.GetNClosure()._name.GetString() == vm.Top().GetNClosure()._name.GetString())) != -1)
+                    if ((idx = nc._outervals.FindIndex((ExObject o) => o.GetNClosure()._name.GetString() == vm.Top().GetNClosure()._name.GetString())) != -1)
                     {
                         nc._outervals[idx].Assign(vm.Top());
                     }
@@ -226,7 +226,7 @@ namespace ExMat.API
             {
                 if (((mask >> i) % 2) == 1)
                 {
-                    names.Add(((ExRawType)(1 << i)).ToString());
+                    names.Add(((ExBaseType)(1 << i)).ToString());
                 }
             }
 
@@ -244,20 +244,20 @@ namespace ExMat.API
                 {
                     case ' ': i++; continue;
                     case '.': m = -1; r.Add(m); i++; m = 0; continue;
-                    case 'e': m |= (int)ExRawType.NULL; break;
-                    case 'i': m |= (int)ExRawType.INTEGER; break;
-                    case 'f': m |= (int)ExRawType.FLOAT; break;
-                    case 'b': m |= (int)ExRawType.BOOL; break;
-                    case 'n': m |= (int)ExRawType.INTEGER | (int)ExRawType.FLOAT; break;
-                    case 's': m |= (int)ExRawType.STRING; break;
-                    case 'd': m |= (int)ExRawType.DICT; break;
-                    case 'a': m |= (int)ExRawType.ARRAY; break;
-                    case 'c': m |= (int)ExRawType.CLOSURE | (int)ExRawType.NATIVECLOSURE; break;
-                    case 'u': m |= (int)ExRawType.USERDATA; break;
-                    case 'p': m |= (int)ExRawType.USERPTR; break;
-                    case 'x': m |= (int)ExRawType.INSTANCE; break;
-                    case 'y': m |= (int)ExRawType.CLASS; break;
-                    case 'w': m |= (int)ExRawType.WEAKREF; break;
+                    case 'e': m |= (int)ExBaseType.NULL; break;
+                    case 'i': m |= (int)ExBaseType.INTEGER; break;
+                    case 'f': m |= (int)ExBaseType.FLOAT; break;
+                    case 'b': m |= (int)ExBaseType.BOOL; break;
+                    case 'n': m |= (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT; break;
+                    case 's': m |= (int)ExBaseType.STRING; break;
+                    case 'd': m |= (int)ExBaseType.DICT; break;
+                    case 'a': m |= (int)ExBaseType.ARRAY; break;
+                    case 'c': m |= (int)ExBaseType.CLOSURE | (int)ExBaseType.NATIVECLOSURE; break;
+                    case 'u': m |= (int)ExBaseType.USERDATA; break;
+                    case 'p': m |= (int)ExBaseType.USERPTR; break;
+                    case 'x': m |= (int)ExBaseType.INSTANCE; break;
+                    case 'y': m |= (int)ExBaseType.CLASS; break;
+                    case 'w': m |= (int)ExBaseType.WEAKREF; break;
                     default: return false;
                 }
 
@@ -302,7 +302,7 @@ namespace ExMat.API
                 nc._typecheck = new();
             }
         }
-        public static void SetDefaultValues(ExVM vm, Dictionary<int, ExObjectPtr> d)
+        public static void SetDefaultValues(ExVM vm, Dictionary<int, ExObject> d)
         {
             ExObject o = GetFromStack(vm, -1);
 
@@ -322,10 +322,10 @@ namespace ExMat.API
         public static void CreateNewSlot(ExVM vm, int n, bool s)
         {
             DoParamChecks(vm, 3);
-            ExObjectPtr self = GetFromStack(vm, n);
+            ExObject self = GetFromStack(vm, n);
             if (self._type == ExObjType.DICT || self._type == ExObjType.CLASS)
             {
-                ExObjectPtr k = new();
+                ExObject k = new();
                 k.Assign(vm.GetAbove(-2));
                 if (k._type == ExObjType.NULL)
                 {
@@ -336,7 +336,7 @@ namespace ExMat.API
             }
         }
 
-        public static int GetValueIndexFromArray(List<ExObjectPtr> lis, ExObjectPtr obj)
+        public static int GetValueIndexFromArray(List<ExObject> lis, ExObject obj)
         {
             int i = 0;
             bool f = false;
@@ -354,7 +354,7 @@ namespace ExMat.API
         public static bool CompileFile(ExVM vm, string _source)
         {
             ExCompiler c = new();
-            ExObjectPtr o = new();
+            ExObject o = new();
 
             if (c.Compile(vm, _source, ref o))
             {
@@ -379,7 +379,7 @@ namespace ExMat.API
             vm.Push(vm._sState._reg);
         }
 
-        public static ExObjectPtr GetFromStack(ExVM vm, int i)
+        public static ExObject GetFromStack(ExVM vm, int i)
         {
             return i >= 0 ? vm.GetAt(i + vm._stackbase - 1) : vm.GetAbove(i);
         }
@@ -390,8 +390,8 @@ namespace ExMat.API
 
         public static bool Call(ExVM vm, int pcount, bool ret, bool force = false)
         {
-            ExObjectPtr res = new();
-            ExObjectPtr tmp = vm.GetAbove(-(pcount + 1));
+            ExObject res = new();
+            ExObject tmp = vm.GetAbove(-(pcount + 1));
             if (vm.Call(ref tmp, pcount, vm._top - pcount, ref res, force))
             {
                 vm.Pop(pcount);
@@ -406,8 +406,8 @@ namespace ExMat.API
 
         public static bool Call(ExVM vm, int pcount, bool ret, bool b_p = false, bool cls = false, int nargs = 2)
         {
-            ExObjectPtr res = new();
-            ExObjectPtr tmp = vm.GetAbove(-(nargs) + (cls ? -1 : 0));
+            ExObject res = new();
+            ExObject tmp = vm.GetAbove(-(nargs) + (cls ? -1 : 0));
             if (cls)
             {
                 int top = vm._top;
@@ -459,12 +459,12 @@ namespace ExMat.API
             return false;
         }
 
-        public static List<ExObjectPtr> TransposeMatrix(int rows, int cols, List<ExObjectPtr> vals)
+        public static List<ExObject> TransposeMatrix(int rows, int cols, List<ExObject> vals)
         {
-            List<ExObjectPtr> lis = new(cols);
+            List<ExObject> lis = new(cols);
             for (int i = 0; i < cols; i++)
             {
-                lis.Add(new ExObjectPtr(new List<ExObjectPtr>(rows)));
+                lis.Add(new ExObject(new List<ExObject>(rows)));
                 for (int j = 0; j < rows; j++)
                 {
                     lis[i]._val.l_List.Add(vals[j]._val.l_List[i]);
@@ -473,9 +473,9 @@ namespace ExMat.API
             return lis;
         }
 
-        public static bool DoMatrixTransposeChecks(ExVM vm, List<ExObjectPtr> vals, ref int cols)
+        public static bool DoMatrixTransposeChecks(ExVM vm, List<ExObject> vals, ref int cols)
         {
-            foreach (ExObjectPtr row in vals)
+            foreach (ExObject row in vals)
             {
                 if (row._type != ExObjType.ARRAY)
                 {
@@ -484,7 +484,7 @@ namespace ExMat.API
                 }
                 else
                 {
-                    foreach (ExObjectPtr num in row.GetList())
+                    foreach (ExObject num in row.GetList())
                     {
                         if (!num.IsNumeric())
                         {

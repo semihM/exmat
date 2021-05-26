@@ -115,9 +115,9 @@ namespace ExMat.OPs
     public class ExInstr : IDisposable
     {
         public OPC op;
-        public ExInt arg0;
-        public ExInt arg2;
-        public ExInt arg3;
+        public ExObject arg0;
+        public ExObject arg2;
+        public ExObject arg3;
         public long arg1;
         private bool disposedValue;
 

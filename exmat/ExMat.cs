@@ -5,22 +5,26 @@ using ExMat.Class;
 using ExMat.Closure;
 using ExMat.FuncPrototype;
 using ExMat.Objects;
-using ExMat.VM;
 
 namespace ExMat
 {
-    public class ExMat
+    public static class ExMat
     {
+        public const char _END = '\0';
+
         public static readonly string _VERSION = "0.0.1";
 
-        public const char _END = '\0';
-        public static ExRawType GetRawType(ExObjType typ)
+        public static readonly string _CONSTRUCTOR = "init";
+
+        public static readonly string _THIS = "this";
+
+        public static ExBaseType GetRawType(ExObjType typ)
         {
-            return (ExRawType)((int)typ & 0x00FFFFFF);
+            return (ExBaseType)((int)typ & 0x00FFFFFF);
         }
     }
 
-    public enum ExRawType
+    public enum ExBaseType
     {
         NULL = 1 << 0,
         INTEGER = 1 << 1,
@@ -46,73 +50,65 @@ namespace ExMat
 
     public enum ExObjFlag
     {
-        BOOLFALSEABLE = 0x01000000,
+        CANBEFALSE = 0x01000000,
         NUMERIC = 0x02000000,
-        REF_COUNTED = 0x04000000,
+        COUNTREFERENCES = 0x04000000,
         DELEGABLE = 0x08000000
     }
 
     public enum ExObjType
     {
-        DEFAULT = ExRawType.DEFAULT | ExObjFlag.BOOLFALSEABLE,
-        NULL = ExRawType.NULL | ExObjFlag.BOOLFALSEABLE,
-        INTEGER = ExRawType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
-        FLOAT = ExRawType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.BOOLFALSEABLE,
-        BOOL = ExRawType.BOOL | ExObjFlag.BOOLFALSEABLE,
-        STRING = ExRawType.STRING,
-        DICT = ExRawType.DICT | ExObjFlag.REF_COUNTED | ExObjFlag.DELEGABLE,
-        SPACE = ExRawType.SPACE | ExObjFlag.REF_COUNTED,
+        DEFAULT = ExBaseType.DEFAULT | ExObjFlag.CANBEFALSE,
+        NULL = ExBaseType.NULL | ExObjFlag.CANBEFALSE,
+        INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
+        FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
+        BOOL = ExBaseType.BOOL | ExObjFlag.CANBEFALSE,
+        STRING = ExBaseType.STRING,
+        SPACE = ExBaseType.SPACE | ExObjFlag.COUNTREFERENCES,
 
-        ARRAY = ExRawType.ARRAY | ExObjFlag.REF_COUNTED,
+        ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES,
+        DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
 
-        USERDATA = ExRawType.USERDATA | ExObjFlag.REF_COUNTED | ExObjFlag.DELEGABLE,
-        USERPTR = ExRawType.USERPTR,
+        CLOSURE = ExBaseType.CLOSURE | ExObjFlag.COUNTREFERENCES,
+        NATIVECLOSURE = ExBaseType.NATIVECLOSURE | ExObjFlag.COUNTREFERENCES,
 
-        CLOSURE = ExRawType.CLOSURE | ExObjFlag.REF_COUNTED,
-        NATIVECLOSURE = ExRawType.NATIVECLOSURE | ExObjFlag.REF_COUNTED,
+        CLASS = ExBaseType.CLASS | ExObjFlag.COUNTREFERENCES,
+        INSTANCE = ExBaseType.INSTANCE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        WEAKREF = ExBaseType.WEAKREF | ExObjFlag.COUNTREFERENCES,
 
-        THREAD = ExRawType.THREAD | ExObjFlag.REF_COUNTED,
-        FUNCINFO = ExRawType.FUNCINFO | ExObjFlag.REF_COUNTED,
-        FUNCPRO = ExRawType.FUNCPRO | ExObjFlag.REF_COUNTED,
-
-        CLASS = ExRawType.CLASS | ExObjFlag.REF_COUNTED,
-        INSTANCE = ExRawType.INSTANCE | ExObjFlag.REF_COUNTED | ExObjFlag.DELEGABLE,
-        WEAKREF = ExRawType.WEAKREF | ExObjFlag.REF_COUNTED,
-
-        OUTER = ExRawType.OUTER | ExObjFlag.REF_COUNTED
+        FUNCPRO = ExBaseType.FUNCPRO | ExObjFlag.COUNTREFERENCES,
+        OUTER = ExBaseType.OUTER | ExObjFlag.COUNTREFERENCES
     }
 
 
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct FloatInt
     {
         [FieldOffset(0)] public double f;
         [FieldOffset(0)] public long i;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
     public struct ExObjVal
     {
         [FieldOffset(0)] public long i_Int;
         [FieldOffset(0)] public double f_Float;
         [FieldOffset(0)] public bool b_Bool;
         [FieldOffset(8)] public string s_String;
-        [FieldOffset(24)] public ExSpace c_Space;
-        [FieldOffset(24)] public List<ExObjectPtr> l_List;
-        [FieldOffset(24)] public Dictionary<string, ExObjectPtr> d_Dict;
-        [FieldOffset(40)] public ExRefC _RefC;
-        [FieldOffset(56)] public MethodInfo _Method;
-        [FieldOffset(56)] public ExClosure _Closure;
-        [FieldOffset(56)] public ExOuter _Outer;
-        [FieldOffset(56)] public ExNativeClosure _NativeClosure;
-        [FieldOffset(56)] public ExUserData _UserData;
-        [FieldOffset(56)] public ExUserP _UserPointer;
-        [FieldOffset(56)] public ExFuncPro _FuncPro;
-        [FieldOffset(56)] public ExDeleg _Deleg;
-        [FieldOffset(56)] public ExVM _Thread;
-        [FieldOffset(56)] public ExClass _Class;
-        [FieldOffset(56)] public ExInstance _Instance;
-        [FieldOffset(56)] public ExWeakRef _WeakRef;
+        [FieldOffset(8)] public ExRefC _RefC;
+
+        [FieldOffset(16)] public ExSpace c_Space;
+        [FieldOffset(16)] public List<ExObject> l_List;
+        [FieldOffset(16)] public Dictionary<string, ExObject> d_Dict;
+        [FieldOffset(16)] public MethodInfo _Method;
+        [FieldOffset(16)] public ExClosure _Closure;
+        [FieldOffset(16)] public ExOuter _Outer;
+        [FieldOffset(16)] public ExNativeClosure _NativeClosure;
+        [FieldOffset(16)] public ExFuncPro _FuncPro;
+        [FieldOffset(16)] public ExDeleg _Deleg;
+        [FieldOffset(16)] public ExClass _Class;
+        [FieldOffset(16)] public ExInstance _Instance;
+        [FieldOffset(16)] public ExWeakRef _WeakRef;
     }
 
     public enum ExMetaM
