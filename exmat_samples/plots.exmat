@@ -71,3 +71,20 @@ save_scatter_step("plot_step",
     900, 1200,
     ..,
     "x**x")
+
+/// Complex plane
+var c_nums = map($(x) complex2(x%20,DEGREE*8.15*x), range(1100))
+save_complex("plot_complex",
+    c_nums,
+    1400, 1400,
+    "red",
+    "Complex Numbers"
+)
+
+var c_nums2 = map($(x) complex2(x,DEGREE*10*x), range(0,40,0.1))
+save_complex("plot_complex2",
+    c_nums2,
+    1200, 1200,
+    "cyan",
+    "Complex Numbers"
+)

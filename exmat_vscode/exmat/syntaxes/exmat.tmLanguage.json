@@ -149,19 +149,19 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(print|printl|type|time|date|string|float|integer|list|range|matrix|bytes|bits|map|filter|call|parse)\\b"
+				"match": "\\b(print|printl|type|time|date|string|float|integer|complex|complex2|list|range|matrix|bytes|bits|map|filter|call|parse)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input)\\b"
+				"match": "\\b(read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input|open_dir|make_dir)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(min|max|sign|sum|mul|srand|rand|randf|abs|sqrt|cbrt|sin|cos|tan|sinh|cosh|tanh|asin|asinh|acos|acosh|atan|atan2|atanh|loge|log2|log10|exp|round|floor|ceil|pow|isINF|isNINF|isNAN)\\b"
+				"match": "\\b(min|max|sign|sum|mul|srand|rand|randf|abs|sqrt|cbrt|sin|cos|tan|sinh|cosh|tanh|asin|asinh|acos|acosh|atan|atan2|atanh|loge|log2|log10|exp|round|floor|ceil|pow|isINF|isNINF|isNAN|isFIN)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(save_scatter|save_scatters)\\b"
+				"match": "\\b(save_scatter|save_scatters|save_scatter_step|save_scatter_steps|save_scatter_point|save_scatter_points|save_scatter_line|save_scatter_lines|save_complex)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
@@ -169,7 +169,7 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(reload_lib|reload_func|reload_base)\\b"
+				"match": "\\b(reload_lib|reload_func|reload_base|exit|is_interactive|collect_garbage)\\b"
 				}
 			]
 		},

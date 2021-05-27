@@ -306,6 +306,36 @@ namespace ExMat.BaseLib
 
             return 1;
         }
+
+        public static int BASE_complex2(ExVM vm, int nargs)
+        {
+            switch (nargs)
+            {
+                case 2:
+                    {
+                        double mag = ExAPI.GetFromStack(vm, 2).GetFloat();
+                        double phase = ExAPI.GetFromStack(vm, 3).GetFloat();
+                        vm.Pop(4);
+                        vm.Push(Complex.FromPolarCoordinates(mag, phase));
+                        break;
+                    }
+                case 1:
+                    {
+                        Complex c = Complex.FromPolarCoordinates(ExAPI.GetFromStack(vm, 2).GetFloat(), 0);
+                        vm.Pop(3);
+                        vm.Push(c);
+                        break;
+                    }
+                case 0:
+                    {
+                        vm.Pop(2);
+                        vm.Push(new Complex());
+                        break;
+                    }
+            }
+
+            return 1;
+        }
         public static int BASE_bool(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -1859,6 +1889,28 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int BASE_exit(ExVM vm, int nargs)
+        {
+            long ret = ExAPI.GetFromStack(vm, 2).GetInt();
+            vm.Pop(nargs + 2);
+            vm.Push(ret);
+            return 985;
+        }
+
+        public static int BASE_isinteractive(ExVM vm, int nargs)
+        {
+            vm.Pop(2);
+            vm.Push(vm.isInteractive);
+            return 1;
+        }
+
+        public static int BASE_GC_collect(ExVM vm, int nargs)
+        {
+            vm.Pop(2);
+            ExAPI.CollectGarbage();
+            return 0;
+        }
+
         public static MethodInfo GetBaseLibMethod(string name)
         {
             return Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod(name);
@@ -1894,7 +1946,7 @@ namespace ExMat.BaseLib
             {
                 name = "time",
                 func = new(GetBaseLibMethod("BASE_time")),
-                n_pchecks = 1,
+                n_pchecks = -1,
                 mask = null
             },
             new()
@@ -1949,6 +2001,18 @@ namespace ExMat.BaseLib
                 func = new(GetBaseLibMethod("BASE_complex")),
                 n_pchecks = -1,
                 mask = ".n|Cn",
+                d_defaults = new()
+                {
+                    { 1, new(0.0) },
+                    { 2, new(0.0) }
+                }
+            },
+            new()
+            {
+                name = "complex2",
+                func = new(GetBaseLibMethod("BASE_complex2")),
+                n_pchecks = -1,
+                mask = ".i|fi|f",
                 d_defaults = new()
                 {
                     { 1, new(0.0) },
@@ -2079,6 +2143,28 @@ namespace ExMat.BaseLib
                 func = new(GetBaseLibMethod("BASE_parse")),
                 n_pchecks = 3,
                 mask = ".ca"
+            },
+
+            new()
+            {
+                name = "exit",
+                func = new(GetBaseLibMethod("BASE_exit")),
+                n_pchecks = -1,
+                mask = ".i|f"
+            },
+            new()
+            {
+                name = "is_interactive",
+                func = new(GetBaseLibMethod("BASE_isinteractive")),
+                n_pchecks = 1,
+                mask = "."
+            },
+            new()
+            {
+                name = "collect_garbage",
+                func = new(GetBaseLibMethod("BASE_GC_collect")),
+                n_pchecks = 1,
+                mask = "."
             },
 
             new()

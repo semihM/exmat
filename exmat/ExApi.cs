@@ -242,7 +242,7 @@ namespace ExMat.API
                     case 'f': m |= (int)ExBaseType.FLOAT; break;
                     case 'C': m |= (int)ExBaseType.COMPLEX; break;
                     case 'b': m |= (int)ExBaseType.BOOL; break;
-                    case 'n': m |= (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT; break;
+                    case 'n': m |= (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT | (int)ExBaseType.COMPLEX; break;
                     case 's': m |= (int)ExBaseType.STRING; break;
                     case 'd': m |= (int)ExBaseType.DICT; break;
                     case 'a': m |= (int)ExBaseType.ARRAY; break;
@@ -507,8 +507,15 @@ namespace ExMat.API
             return true;
         }
 
+        public static void CollectGarbage()
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+
         // VM START
-        public static ExVM Start(int stacksize)
+        public static ExVM Start(int stacksize, bool interacive = false)
         {
             ExSState exS = new();
             exS.Initialize();
@@ -517,6 +524,7 @@ namespace ExMat.API
             exS._rootVM = vm;
 
             vm.Initialize(stacksize);
+            vm.isInteractive = interacive;
             return vm;
         }
 

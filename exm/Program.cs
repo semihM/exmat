@@ -36,8 +36,15 @@ namespace ExMat
                 }
                 else
                 {
-                    ExAPI.WriteErrorMessages(vm, "EXECUTE");
-                    ret = -1;
+                    if(vm._exited)
+                    {
+                        ret = vm._exitcode;
+                    }
+                    else
+                    {
+                        ExAPI.WriteErrorMessages(vm, "EXECUTE");
+                        ret = -1;
+                    }
                 }
             }
             else
@@ -123,7 +130,6 @@ namespace ExMat
 
         private static int Main(string[] args)
         {
-
             if (args.Length >= 1)
             {
                 string f = File.Exists(args[0]) ? File.ReadAllText(args[0]) : string.Empty;
@@ -148,7 +154,7 @@ namespace ExMat
             Console.Title = "[] ExMat Interactive";
             Console.ResetColor();
 
-            ExVM vm = ExAPI.Start(VM_STACK_SIZE);
+            ExVM vm = ExAPI.Start(VM_STACK_SIZE, true);
             ExAPI.PushRootTable(vm);
 
             ExStdMath.RegisterStdMath(vm);
@@ -210,16 +216,15 @@ namespace ExMat
 
                 int ret = CompileString(vm, code);
 
-                GC.Collect();
-                GC.WaitForPendingFinalizers();
-                GC.Collect();
+                ExAPI.CollectGarbage();
 
-                if (ret > 0)
+                if(vm._exited)
                 {
-                    //return ret;
+                    return ret;
                 }
             }
         }
+
 
         private static double GetSize<T>() where T : new()
         {

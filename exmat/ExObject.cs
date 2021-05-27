@@ -181,6 +181,7 @@ namespace ExMat.Objects
                 case ExObjType.ARRAY: s += _val.l_List == null ? " null" : "(" + _val.l_List.Count.ToString() + ")"; break;
                 case ExObjType.INTEGER: s += " " + GetInt(); break;
                 case ExObjType.FLOAT: s += " " + GetFloat(); break;
+                case ExObjType.COMPLEX: s += " " + GetComplex().ToString(); break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
                 case ExObjType.CLOSURE: s = (GetClosure() == null ? s + GetString() : _val._Closure.GetDebuggerDisplay()); break;

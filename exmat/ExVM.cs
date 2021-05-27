@@ -50,6 +50,11 @@ namespace ExMat.VM
         public int n_return = 0;
         public bool b_main = true;
 
+        public bool _exited = false;
+        public int _exitcode = 0;
+
+        public bool isInteractive = false;
+
         public void Print(string str)
         {
             Console.Write(str);
@@ -953,7 +958,7 @@ namespace ExMat.VM
                     {
                         long ind = _stack[sbase + 1].GetInt();
                         string idx = ind.ToString();
-                        for (int i = 2; i < cls._func.n_params; i++)
+                        for (int i = 2; i < cls._func._params.Count; i++)
                         {
                             ExObject c = cls._func._params[i];
                             if (c.GetString() == idx)
@@ -2130,7 +2135,7 @@ namespace ExMat.VM
                         {
                             if (!GetTargetInStack(i.arg2).GetBool())
                             {
-                                GetTargetInStack(i).Assign(i.arg2);
+                                GetTargetInStack(i).Assign(GetTargetInStack(i.arg2));
                                 ci._val._idx_instrs += (int)i.arg1;
                             }
                             continue;
@@ -2139,7 +2144,7 @@ namespace ExMat.VM
                         {
                             if (GetTargetInStack(i.arg2).GetBool())
                             {
-                                GetTargetInStack(i).Assign(i.arg2);
+                                GetTargetInStack(i).Assign(GetTargetInStack(i.arg2));
                                 ci._val._idx_instrs += (int)i.arg1;
                             }
                             continue;
@@ -2663,7 +2668,14 @@ namespace ExMat.VM
                         p.Assign(make_bool ? new(_stack[_stackbase + a1].GetBool()) : _stack[_stackbase + a1]);
                     }
 
-                    if (!LeaveFrame())
+                    bool seq = ci._val._closure._val._Closure._func.IsSequence();
+                    if (seq)
+                    {
+                        ci._val._closure._val._Closure._defparams.Add(new(p));
+                        ci._val._closure._val._Closure._func._params.Add(new(_stack[_stackbase+1].GetInt().ToString()));
+                    }
+
+                    if (!LeaveFrame(seq))
                     {
                         throw new Exception("something went wrong with the stack!");
                     }
@@ -2763,6 +2775,7 @@ namespace ExMat.VM
             }
             return true;
         }
+        
         private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
         {
             switch (op)
@@ -2775,17 +2788,57 @@ namespace ExMat.VM
                     res = new(a * b); break;
                 case OPC.DIV:
                     {
-                        if (b == 0)
-                        {
-                            res = new(double.NaN);
-                            break;
-                        }
-
-                        res = new(a / b); break;
+                        Complex c = Complex.Divide(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
                     }
                 case OPC.EXP:
+                    {
+                        Complex c = Complex.Pow(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
+                    }
                 case OPC.MOD:
                     {
+                        return false;
+                    }
+                default:
+                    {
+                        throw new Exception("unknown arithmetic operation");
+                    }
+            }
+            return true;
+        }
+
+        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, double b, ref ExObject res)
+        {
+            switch (op)
+            {
+                case OPC.ADD:
+                    res = new(a + b); break;
+                case OPC.SUB:
+                    res = new(a - b); break;
+                case OPC.MLT:
+                    res = new(a * b); break;
+                case OPC.DIV:
+                    {
+                        Complex c = Complex.Divide(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
+                    }
+                case OPC.EXP:
+                    {
+                        Complex c = Complex.Pow(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
+                    }
+                case OPC.MOD:
+                    {
+
                         return false;
                     }
                 default:
@@ -2808,18 +2861,21 @@ namespace ExMat.VM
                     res = new(a * b); break;
                 case OPC.DIV:
                     {
-                        if (b == 0)
-                        {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            //AddToErrorMessage("division by zero");
-                            break;
-                        }
-
-                        res = new(a / b); break;
+                        Complex c = Complex.Divide(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
                     }
                 case OPC.EXP:
+                    {
+                        Complex c = Complex.Pow(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
+                    }
                 case OPC.MOD:
                     {
+                        
                         return false;
                     }
                 default:
@@ -3026,7 +3082,7 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            if (!InnerDoArithmeticOPComplex(op, b.GetInt(), a.GetComplex(), ref res))
+                            if (!InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetInt(), ref res))
                             {
                                 return false;
                             }
@@ -3053,7 +3109,7 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            if (!InnerDoArithmeticOPComplex(op, b.GetFloat(), a.GetComplex(), ref res))
+                            if (!InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetFloat(), ref res))
                             {
                                 return false;
                             }
@@ -3972,11 +4028,32 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool LeaveFrame()
+        public bool LeaveFrame(bool reset = false)
         {
             int last_t = _top;
             int last_b = _stackbase;
             int css = --_callstacksize;
+
+            if (reset)
+            {
+                bool rets = (_lastreturn._type == ExObjType.NULL || n_return > 0);
+                if (b_main && ((css <= 0 && rets) || (css > 0 && _callsstack[css - 1]._root)) && rets)
+                {   // TO-DO refactor
+                    List<ExObject> dp = new();
+                    List<ExObject> ps = new();
+
+                    for (int i = 0; i < ci._val._closure._val._Closure._func.n_params; i++)
+                    {
+                        ps.Add(new(ci._val._closure._val._Closure._func._params[i]));
+                    }
+                    for(int i = 0; i < ci._val._closure._val._Closure._func.n_defparams; i++)
+                    {
+                        dp.Add(new(ci._val._closure._val._Closure._defparams[i]));
+                    }
+                    ci._val._closure._val._Closure._defparams = new(dp);
+                    ci._val._closure._val._Closure._func._params = new(ps);
+                }
+            }
 
             ci._val._closure.Nullify();
             _stackbase -= ci._val._prevbase;
@@ -4117,10 +4194,15 @@ namespace ExMat.VM
                 }
                 return false;
             }
-
-            if (ret == 0)
+            else if (ret == 0)
             {
                 o.Nullify();
+            }
+            else if (ret == 985)
+            {
+                _exitcode = (int)_stack[_top - 1].GetInt();
+                _exited = true;
+                return false;
             }
             else
             {
