@@ -1,0 +1,63 @@
+// 1 dimensional
+var R = @R@     // Real numbers
+var Z = @Z@     // Integers
+var N = @N@     // Natural numbers
+var A = @A@     // Any usage of: integer, float, complex, list
+var C = @C@     // Complex number
+
+printl("5.2 in R ? " + (5.2 in R))
+printl("3+2i in R ? " + (3+2i in R))
+printl("-20 in C ? " + ((-20) in C))
+printl("12366 in A ? " + (12366 in A))
+printl("null in A ? " + (null in A))
+
+printl("-".repeat(20));
+// R : All real numbers
+// r : All real numbers - {0}
+// Same applies to Z
+var Rpos = @R+@   // Real positive numbers, zero included
+var zneg = @z-@   // Negative integers, zero excluded
+printl("999 in R+ ? " + (999 in Rpos))
+printl("-4.123 in R+ ? " + (-4.123 in Rpos))
+printl("0 in Z- - {0} ? " + (0 in zneg))
+
+printl("-".repeat(20));
+// 2 dimensional
+var R2 = @R'2@
+var C3 = @C'3@
+var Zp3 = @Z+'3@
+printl("[1, 3i+2, -1] in C3 ? " + ([1, 3i+2, -1] in C3))
+printl("[5, 5, 5] in R2 ? " + ([5, 5, 5] in R2))
+
+printl("-".repeat(20));
+// n dimensional
+var Rn = @R'n@
+var Zn = @Z'k@
+printl("-55.5 in Rn ? " + (-55.5 in Rn))
+printl("range(100) in Rn ? " + (range(100) in Rn))
+printl("[1,2,0.1234567] in Zn ? " + ([1,2,0.1234567] in Zn))
+
+printl("-".repeat(20));
+// m x n dimensional
+var Rmn = @R'm*n@
+var Zmn = @Z'i*j@
+printl("[1.1, PI, [9, 8]] in Rmxn ? " + ([1.1, PI, [9, 8]] in Rmn))
+printl("[-53, 2, [3, 5], 999] in Zixj ? " + ([-53, 2, [3, 5], 999] in Zmn))
+
+printl("-".repeat(20));
+// Mixed
+var R22 = @R'2*2@
+var R2m = @R'2*m@
+
+printl("[[1.1, [9, 8]]] in R2x2 ? " + ([[1.1, [9, 8]]] in R22))
+printl("[[1.1, PI], [9, 8]] in R2x2 ? " + ([[1.1, PI], [9, 8]] in R22))
+printl("[[6, PI], [9, 8]] in R2xm ? " + ([[1.1, [9, 8]]] in R2m))
+printl("[[6, PI, TAU, GOLDEN], [9, 8]] in R2xm ? " + ([[1.1, PI, TAU, GOLDEN], [9, 8]] in R2m))
+printl("[[6, PI], [9, 8]] in R2xm(m = 2) ? " + ([[1.1, PI], [9, 8]] in R2m(2)))
+
+printl("-".repeat(20));
+// m1 x m2 x m3 x ... x mk dimensional
+var R10_3_3 = @R'10*3*3@
+printl("matrix(10,3,range(3)) in R10x3x3 ? " + (matrix(10,3,range(3)) in R10_3_3))
+printl("matrix(10,3,randf()) in R10x3x3 ? " + (matrix(10,3,randf()) in R10_3_3))
+

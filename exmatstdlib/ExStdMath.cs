@@ -158,7 +158,7 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Pow(i.GetComplex(),1.0/3.0);
+                        Complex o = Complex.Pow(i.GetComplex(), 1.0 / 3.0);
                         vm.Pop(nargs + 2);
                         vm.Push(o);
                         break;
@@ -470,7 +470,7 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if(i._val.c_Float == 0.0)
+                        if (i._val.c_Float == 0.0)
                         {
                             double o = i._val.f_Float;
                             vm.Pop(nargs + 2);
@@ -1302,7 +1302,7 @@ namespace ExMat.BaseLib
                 vm.Pop(nargs + 2);
             }
 
-            if(sum._val.c_Float == 0.0)
+            if (sum._val.c_Float == 0.0)
             {
                 vm.Push(sum._val.f_Float);
             }
@@ -1607,6 +1607,7 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
+                plt = null;
             }
             catch (Exception e)
             {
@@ -1677,6 +1678,7 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
+                plot = null;
             }
             catch (Exception e)
             {
@@ -1800,6 +1802,7 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
+                plt = null;
             }
             catch (Exception e)
             {
@@ -1870,6 +1873,7 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
+                plot = null;
             }
             catch (Exception e)
             {
@@ -1993,6 +1997,7 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
+                plt = null;
             }
             catch (Exception e)
             {
@@ -2063,6 +2068,7 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
+                plot = null;
             }
             catch (Exception e)
             {
@@ -2186,6 +2192,7 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
+                plt = null;
             }
             catch (Exception e)
             {
@@ -2256,6 +2263,7 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
+                plot = null;
             }
             catch (Exception e)
             {
@@ -2286,7 +2294,7 @@ namespace ExMat.BaseLib
                 ExObject v = x[i];
                 if (v._type != ExObjType.COMPLEX)
                 {
-                    if(!v.IsNumeric())
+                    if (!v.IsNumeric())
                     {
                         vm.AddToErrorMessage("cant plot non-numeric in complex plane");
                         return -1;
@@ -2339,6 +2347,7 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
+                plot = null;
             }
             catch (Exception e)
             {
@@ -2759,29 +2768,71 @@ namespace ExMat.BaseLib
         {
             ExAPI.RegisterNativeFunctions(vm, MathFuncs, force);
 
-            ExAPI.CreateConstantInt(vm, "INT_MAX", int.MaxValue);
-            ExAPI.CreateConstantInt(vm, "INT_MIN", int.MinValue);
-            ExAPI.CreateConstantFloat(vm, "INT_MAXF", int.MaxValue);
-            ExAPI.CreateConstantFloat(vm, "INT_MINF", int.MinValue);
+            ExAPI.CreateConstantInt(vm, "INT8_MAX", sbyte.MaxValue);
+            ExAPI.CreateConstantInt(vm, "INT8_MIN", sbyte.MinValue);
 
-            ExAPI.CreateConstantInt(vm, "LONG_MAX", long.MaxValue);
-            ExAPI.CreateConstantInt(vm, "LONG_MIN", long.MinValue);
-            ExAPI.CreateConstantFloat(vm, "LONG_MAXF", long.MaxValue);
-            ExAPI.CreateConstantFloat(vm, "LONG_MINF", long.MinValue);
+            ExAPI.CreateConstantInt(vm, "INT16_MAX", short.MaxValue);
+            ExAPI.CreateConstantInt(vm, "INT16_MIN", short.MinValue);
 
-            ExAPI.CreateConstantFloat(vm, "FLOAT_MAX", double.MaxValue);
-            ExAPI.CreateConstantFloat(vm, "FLOAT_MIN", double.MinValue);
+            ExAPI.CreateConstantInt(vm, "INT32_MAX", int.MaxValue);
+            ExAPI.CreateConstantInt(vm, "INT32_MIN", int.MinValue);
+
+            ExAPI.CreateConstantInt(vm, "INT64_MAX", long.MaxValue);
+            ExAPI.CreateConstantInt(vm, "INT64_MIN", long.MinValue);
+
+            ExAPI.CreateConstantInt(vm, "UINT8_MAX", byte.MaxValue);
+            ExAPI.CreateConstantInt(vm, "UINT16_MAX", ushort.MaxValue);
+            ExAPI.CreateConstantInt(vm, "UINT32_MAX", uint.MaxValue);
+
+            ExAPI.CreateConstantFloat(vm, "FLOAT32_MAX", float.MaxValue);
+            ExAPI.CreateConstantFloat(vm, "FLOAT32_MIN", float.MinValue);
+
+            ExAPI.CreateConstantFloat(vm, "FLOAT64_MAX", double.MaxValue);
+            ExAPI.CreateConstantFloat(vm, "FLOAT64_MIN", double.MinValue);
 
             ExAPI.CreateConstantFloat(vm, "TAU", Math.Tau);
             ExAPI.CreateConstantFloat(vm, "PI", Math.PI);
             ExAPI.CreateConstantFloat(vm, "E", Math.E);
-            ExAPI.CreateConstantFloat(vm, "GOLDEN", (1.0 + Math.Sqrt(5)) / 2.0);
+            ExAPI.CreateConstantFloat(vm, "GOLDEN", (1.0 + Math.Sqrt(5.0)) / 2.0);
             ExAPI.CreateConstantFloat(vm, "DEGREE", Math.PI / 180.0);
             ExAPI.CreateConstantFloat(vm, "EPSILON", double.Epsilon);
 
             ExAPI.CreateConstantFloat(vm, "NAN", double.NaN);
             ExAPI.CreateConstantFloat(vm, "NINF", double.NegativeInfinity);
             ExAPI.CreateConstantFloat(vm, "INF", double.PositiveInfinity);
+
+            ExAPI.CreateConstantDict(vm, "SPACES", new()
+            {
+                { "R", ExSpace.Create("R", '\\', 1) },
+                { "R2", ExSpace.Create("R", '\\', 2) },
+                { "R3", ExSpace.Create("R", '\\', 3) },
+                { "Rn", ExSpace.Create("R", '\\', -1) },
+                { "Rmn", ExSpace.Create("R", '\\', -1, -1) },
+
+                { "Z", ExSpace.Create("Z", '\\', 1) },
+                { "Z2", ExSpace.Create("Z", '\\', 2) },
+                { "Z3", ExSpace.Create("Z", '\\', 3) },
+                { "Zn", ExSpace.Create("Z", '\\', -1) },
+                { "Zmn", ExSpace.Create("Z", '\\', -1, -1) },
+
+                { "N", ExSpace.Create("N", '\\', 1) },
+                { "N2", ExSpace.Create("N", '\\', 2) },
+                { "N3", ExSpace.Create("N", '\\', 3) },
+                { "Nn", ExSpace.Create("N", '\\', -1) },
+                { "Nmn", ExSpace.Create("N", '\\', -1, -1) },
+
+                { "C", ExSpace.Create("C", '\\', 1) },
+                { "C2", ExSpace.Create("C", '\\', 2) },
+                { "C3", ExSpace.Create("C", '\\', 3) },
+                { "Cn", ExSpace.Create("C", '\\', -1) },
+                { "Cmn", ExSpace.Create("C", '\\', -1, -1) },
+
+                { "A", ExSpace.Create("A", '\\', 1) },
+                { "A2", ExSpace.Create("A", '\\', 2) },
+                { "A3", ExSpace.Create("A", '\\', 3) },
+                { "An", ExSpace.Create("A", '\\', -1) },
+                { "Amn", ExSpace.Create("A", '\\', -1, -1) },
+            });
 
             return true;
         }

@@ -72,7 +72,7 @@
         COL,    // :
         EXC,    // !
         QMARK,  // ?
-        TIL,    // ~
+        BNOT,    // ~
         BAND,    // &
         BOR,     // |
         BXOR,    // ^
@@ -109,6 +109,7 @@
         TYPEOF, // typeof
         INSTANCEOF, // instanceof
         IN,     // in
+        NOTIN,  // not in
 
         NEWSLOT,    // <>
 

@@ -113,7 +113,6 @@ namespace ExMat.Compiler
             _lexer = new ExLexer(src);
 
             bool state = Compile(ref o);
-            vm.n_return = _FuncState.n_statement;
 
             if (!state)
             {
@@ -166,6 +165,7 @@ namespace ExMat.Compiler
             _FuncState.AddInstr(OPC.RETURN, 1, _FuncState._localvs.Count + _FuncState._localinfos.Count, 0, 0);   //0,1 = root, main | 2 == stackbase == this | 3: varg | 4: result
             _FuncState.SetLocalStackSize(0);
 
+            o._type = ExObjType.FUNCPRO;
             o._val._FuncPro = _FuncState.CreatePrototype();
 
             return true;
@@ -1780,9 +1780,10 @@ namespace ExMat.Compiler
                             }
                             break;
                         }
+                    case TokenType.NOTIN:
                     case TokenType.IN:
                         {
-                            if (!ExBinaryExp(OPC.EXISTS, "ExLogicShift"))
+                            if (!ExBinaryExp(OPC.EXISTS, "ExLogicShift", _currToken == TokenType.NOTIN ? 1 : 0))
                             {
                                 return false;
                             }
@@ -2517,7 +2518,7 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
-                case TokenType.TIL:
+                case TokenType.BNOT:
                     {
                         if (!ReadAndSetToken())
                         {

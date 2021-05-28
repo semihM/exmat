@@ -30,9 +30,27 @@ namespace ExMat.States
         public ExObject _class_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _class_delF = new()
         {
-            new() { name = "has_attr", n_pchecks = 3, mask = "yss", func = new(GetDelegMethod("BASE_class_hasattr")) },
-            new() { name = "get_attr", n_pchecks = 3, mask = "yss", func = new(GetDelegMethod("BASE_class_getattr")) },
-            new() { name = "set_attr", n_pchecks = 4, mask = "yss.", func = new(GetDelegMethod("BASE_class_setattr")) },
+            new()
+            {
+                name = "has_attr",
+                n_pchecks = 3,
+                mask = "yss",
+                func = new(GetDelegMethod("BASE_class_hasattr"))
+            },
+            new()
+            {
+                name = "get_attr",
+                n_pchecks = 3,
+                mask = "yss",
+                func = new(GetDelegMethod("BASE_class_getattr"))
+            },
+            new()
+            {
+                name = "set_attr",
+                n_pchecks = 4,
+                mask = "yss.",
+                func = new(GetDelegMethod("BASE_class_setattr"))
+            },
 
             new() { name = string.Empty }
         };
@@ -40,25 +58,110 @@ namespace ExMat.States
         public ExObject _dict_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _dict_delF = new()
         {
-            new() { name = "len", n_pchecks = 1, mask = "d", func = new(GetDelegMethod("BASE_default_length")) },
-            new() { name = "has_key", n_pchecks = 2, mask = "ds", func = new(GetDelegMethod("BASE_dict_has_key")) },
-            new() { name = "get_keys", n_pchecks = 1, mask = "d", func = new(GetDelegMethod("BASE_dict_keys")) },
-            new() { name = "get_values", n_pchecks = 1, mask = "d", func = new(GetDelegMethod("BASE_dict_values")) },
+            new()
+            {
+                name = "len",
+                n_pchecks = 1,
+                mask = "d",
+                func = new(GetDelegMethod("BASE_default_length"))
+            },
+            new()
+            {
+                name = "has_key",
+                n_pchecks = 2,
+                mask = "ds",
+                func = new(GetDelegMethod("BASE_dict_has_key"))
+            },
+            new()
+            {
+                name = "get_keys",
+                n_pchecks = 1,
+                mask = "d",
+                func = new(GetDelegMethod("BASE_dict_keys"))
+            },
+            new()
+            {
+                name = "get_values",
+                n_pchecks = 1,
+                mask = "d",
+                func = new(GetDelegMethod("BASE_dict_values"))
+            },
             new() { name = string.Empty }
         };
 
         public ExObject _list_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _list_delF = new()
         {
-            new() { name = "len", n_pchecks = 1, mask = "a", func = new(GetDelegMethod("BASE_default_length")) },
-            new() { name = "append", n_pchecks = 2, mask = "a.", func = new(GetDelegMethod("BASE_array_append")) },
-            new() { name = "extend", n_pchecks = 2, mask = "aa", func = new(GetDelegMethod("BASE_array_extend")) },
-            new() { name = "push", n_pchecks = 2, mask = "a.", func = new(GetDelegMethod("BASE_array_append")) },
-            new() { name = "pop", n_pchecks = 1, mask = "a", func = new(GetDelegMethod("BASE_array_pop")) },
-            new() { name = "resize", n_pchecks = 2, mask = "ai", func = new(GetDelegMethod("BASE_array_resize")) },
-            new() { name = "index_of", n_pchecks = 2, mask = "a.", func = new(GetDelegMethod("BASE_array_index_of")) },
-            new() { name = "reverse", n_pchecks = 1, mask = "a", func = new(GetDelegMethod("BASE_array_reverse")) },
-            new() { name = "transpose", n_pchecks = 1, mask = "a", func = new(GetDelegMethod("BASE_array_transpose")) },
+            new()
+            {
+                name = "len",
+                n_pchecks = 1,
+                mask = "a",
+                func = new(GetDelegMethod("BASE_default_length"))
+            },
+            new()
+            {
+                name = "append",
+                n_pchecks = 2,
+                mask = "a.",
+                func = new(GetDelegMethod("BASE_array_append"))
+            },
+            new()
+            {
+                name = "extend",
+                n_pchecks = 2,
+                mask = "aa",
+                func = new(GetDelegMethod("BASE_array_extend"))
+            },
+            new()
+            {
+                name = "push",
+                n_pchecks = 2,
+                mask = "a.",
+                func = new(GetDelegMethod("BASE_array_append"))
+            },
+            new()
+            {
+                name = "pop",
+                n_pchecks = 1,
+                mask = "a",
+                func = new(GetDelegMethod("BASE_array_pop"))
+            },
+            new()
+            {
+                name = "resize",
+                n_pchecks = 2,
+                mask = "ai",
+                func = new(GetDelegMethod("BASE_array_resize"))
+            },
+            new()
+            {
+                name = "index_of",
+                n_pchecks = 2,
+                mask = "a.",
+                func = new(GetDelegMethod("BASE_array_index_of"))
+            },
+            new()
+            {
+                name = "reverse",
+                n_pchecks = 1,
+                mask = "a",
+                func = new(GetDelegMethod("BASE_array_reverse"))
+            },
+            new()
+            {
+                name = "slice",
+                n_pchecks = -2,
+                mask = "aii",
+                func = new(GetDelegMethod("BASE_array_slice"))
+            },
+            new()
+            {
+                name = "transpose",
+                n_pchecks = 1,
+                mask = "a",
+                func = new(GetDelegMethod("BASE_array_transpose"))
+            },
 
             new() { name = string.Empty }
         };
@@ -66,11 +169,41 @@ namespace ExMat.States
         public ExObject _complex_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _complex_delF = new()
         {
-            new() { name = "abs", n_pchecks = 1, mask = "C", func = new(GetDelegMethod("BASE_complex_magnitude")) },
-            new() { name = "phase", n_pchecks = 1, mask = "C", func = new(GetDelegMethod("BASE_complex_phase")) },
-            new() { name = "img", n_pchecks = 1, mask = "C", func = new(GetDelegMethod("BASE_complex_img")) },
-            new() { name = "real", n_pchecks = 1, mask = "C", func = new(GetDelegMethod("BASE_complex_real")) },
-            new() { name = "conj", n_pchecks = 1, mask = "C", func = new(GetDelegMethod("BASE_complex_conjugate")) },
+            new()
+            {
+                name = "abs",
+                n_pchecks = 1,
+                mask = "C",
+                func = new(GetDelegMethod("BASE_complex_magnitude"))
+            },
+            new()
+            {
+                name = "phase",
+                n_pchecks = 1,
+                mask = "C",
+                func = new(GetDelegMethod("BASE_complex_phase"))
+            },
+            new()
+            {
+                name = "img",
+                n_pchecks = 1,
+                mask = "C",
+                func = new(GetDelegMethod("BASE_complex_img"))
+            },
+            new()
+            {
+                name = "real",
+                n_pchecks = 1,
+                mask = "C",
+                func = new(GetDelegMethod("BASE_complex_real"))
+            },
+            new()
+            {
+                name = "conj",
+                n_pchecks = 1,
+                mask = "C",
+                func = new(GetDelegMethod("BASE_complex_conjugate"))
+            },
 
             new() { name = string.Empty }
         };
@@ -84,21 +217,105 @@ namespace ExMat.States
         public ExObject _str_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _str_delF = new()
         {
-            new() { name = "len", n_pchecks = 1, mask = "s", func = new(GetDelegMethod("BASE_default_length")) },
-            new() { name = "index_of", n_pchecks = 2, mask = "ss", func = new(GetDelegMethod("BASE_string_index_of")) },
-            new() { name = "to_upper", n_pchecks = 1, mask = "s", func = new(GetDelegMethod("BASE_string_toupper")) },
-            new() { name = "to_lower", n_pchecks = 1, mask = "s", func = new(GetDelegMethod("BASE_string_tolower")) },
-            new() { name = "reverse", n_pchecks = 1, mask = "s", func = new(GetDelegMethod("BASE_string_reverse")) },
-            new() { name = "replace", n_pchecks = 3, mask = "sss", func = new(GetDelegMethod("BASE_string_replace")) },
-            new() { name = "repeat", n_pchecks = 2, mask = "si", func = new(GetDelegMethod("BASE_string_repeat")) },
+            new()
+            {
+                name = "len",
+                n_pchecks = 1,
+                mask = "s",
+                func = new(GetDelegMethod("BASE_default_length"))
+            },
+            new()
+            {
+                name = "index_of",
+                n_pchecks = 2,
+                mask = "ss",
+                func = new(GetDelegMethod("BASE_string_index_of"))
+            },
+            new()
+            {
+                name = "to_upper",
+                n_pchecks = 1,
+                mask = "s",
+                func = new(GetDelegMethod("BASE_string_toupper"))
+            },
+            new()
+            {
+                name = "to_lower",
+                n_pchecks = 1,
+                mask = "s",
+                func = new(GetDelegMethod("BASE_string_tolower"))
+            },
+            new()
+            {
+                name = "reverse",
+                n_pchecks = 1,
+                mask = "s",
+                func = new(GetDelegMethod("BASE_string_reverse"))
+            },
+            new()
+            {
+                name = "replace",
+                n_pchecks = 3,
+                mask = "sss",
+                func = new(GetDelegMethod("BASE_string_replace"))
+            },
+            new()
+            {
+                name = "repeat",
+                n_pchecks = 2,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_repeat"))
+            },
 
-            new() { name = "isAlphabetic", n_pchecks = -1, mask = "si", func = new(GetDelegMethod("BASE_string_isAlphabetic")) },
-            new() { name = "isNumeric", n_pchecks = -1, mask = "si", func = new(GetDelegMethod("BASE_string_isNumeric")) },
-            new() { name = "isAlphaNumeric", n_pchecks = -1, mask = "si", func = new(GetDelegMethod("BASE_string_isAlphaNumeric")) },
-            new() { name = "isLower", n_pchecks = -1, mask = "si", func = new(GetDelegMethod("BASE_string_isLower")) },
-            new() { name = "isUpper", n_pchecks = -1, mask = "si", func = new(GetDelegMethod("BASE_string_isUpper")) },
-            new() { name = "isWhitespace", n_pchecks = -1, mask = "si", func = new(GetDelegMethod("BASE_string_isWhitespace")) },
-            new() { name = "isSymbol", n_pchecks = -1, mask = "si", func = new(GetDelegMethod("BASE_string_isSymbol")) },
+            new()
+            {
+                name = "isAlphabetic",
+                n_pchecks = -1,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_isAlphabetic"))
+            },
+            new()
+            {
+                name = "isNumeric",
+                n_pchecks = -1,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_isNumeric"))
+            },
+            new()
+            {
+                name = "isAlphaNumeric",
+                n_pchecks = -1,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_isAlphaNumeric"))
+            },
+            new()
+            {
+                name = "isLower",
+                n_pchecks = -1,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_isLower"))
+            },
+            new()
+            {
+                name = "isUpper",
+                n_pchecks = -1,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_isUpper"))
+            },
+            new()
+            {
+                name = "isWhitespace",
+                n_pchecks = -1,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_isWhitespace"))
+            },
+            new()
+            {
+                name = "isSymbol",
+                n_pchecks = -1,
+                mask = "si",
+                func = new(GetDelegMethod("BASE_string_isSymbol"))
+            },
 
             new() { name = string.Empty }
         };
@@ -112,9 +329,27 @@ namespace ExMat.States
         public ExObject _inst_del = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> _inst_delF = new()
         {
-            new() { name = "has_attr", n_pchecks = 3, mask = "xss", func = new(GetDelegMethod("BASE_instance_hasattr")) },
-            new() { name = "get_attr", n_pchecks = 3, mask = "xss", func = new(GetDelegMethod("BASE_instance_getattr")) },
-            new() { name = "set_attr", n_pchecks = 4, mask = "xss.", func = new(GetDelegMethod("BASE_instance_setattr")) },
+            new()
+            {
+                name = "has_attr",
+                n_pchecks = 3,
+                mask = "xss",
+                func = new(GetDelegMethod("BASE_instance_hasattr"))
+            },
+            new()
+            {
+                name = "get_attr",
+                n_pchecks = 3,
+                mask = "xss",
+                func = new(GetDelegMethod("BASE_instance_getattr"))
+            },
+            new()
+            {
+                name = "set_attr",
+                n_pchecks = 4,
+                mask = "xss.",
+                func = new(GetDelegMethod("BASE_instance_setattr"))
+            },
 
             new() { name = string.Empty }
         };

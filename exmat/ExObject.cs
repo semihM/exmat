@@ -69,6 +69,11 @@ namespace ExMat.Objects
             return ((int)_type & (int)ExObjFlag.DELEGABLE) != 0;
         }
 
+        public bool IsRealNumber()
+        {
+            return _type == ExObjType.INTEGER || _type == ExObjType.FLOAT;
+        }
+
         public bool IsNumeric()
         {
             return ((int)_type & (int)ExObjFlag.NUMERIC) != 0;
@@ -557,20 +562,20 @@ namespace ExMat.Objects
             Release(t, v);
         }
 
-        public ExObject(ExSpace o)
+        public ExObject(ExSpace space)
         {
             _type = ExObjType.SPACE;
-            _val.c_Space = o;
+            _val.c_Space = space;
             _val._RefC = new();
 
             AddReference(_type, _val, true);
         }
-        public void Assign(ExSpace o)
+        public void Assign(ExSpace space)
         {
             ExObjType t = _type;
             ExObjVal v = _val;
 
-            _val.c_Space = o;
+            _val.c_Space = space;
             _type = ExObjType.SPACE;
             _val._RefC = new();
 
@@ -968,28 +973,136 @@ namespace ExMat.Objects
         public int dim = 1;
         public string space = string.Empty;
         public char sign = '\\';
-        public ExSpace _parent;
+        public ExSpace _child;
         private bool disposedValue;
 
         public string GetString()
         {
-            return "@" + space + "@" + sign + "@" + dim;
+            return "@" + space + "@" + sign + "@" + dim + (_child == null ? "" : "$$" + _child.GetString());
         }
 
         public static ExSpace GetSpaceFromString(string s)
         {
             ExSpace spc = new();
-            string[] arr = s.Split("@", StringSplitOptions.RemoveEmptyEntries);
-            spc.space = arr[0];
-            spc.sign = arr[1][0];
-            spc.dim = int.Parse(arr[2]);
-            return spc;
+            ExSpace curr = spc;
+            foreach (string ch in s.Split("$$", StringSplitOptions.RemoveEmptyEntries))
+            {
+                ExSpace c = new();
+                string[] arr = ch.Split("@", StringSplitOptions.RemoveEmptyEntries);
+                c.space = arr[0];
+                c.sign = arr[1][0];
+                c.dim = int.Parse(arr[2]);
+                curr._child = c;
+                curr = c;
+            }
+            return spc._child;
         }
         public ExSpace() { }
 
+        public ExSpace(string _space, int _dim, char _sign = '\\')
+        {
+            space = _space;
+            dim = _dim;
+            sign = _sign;
+        }
+
+        public static ExObject Create(string _space, char _sign, params int[] dims)
+        {
+            return new(CreateSpace(_space, _sign, dims));
+        }
+
+        public static ExSpace CreateSpace(string _space, char _sign, params int[] dims)
+        {
+            if (dims.Length == 0)
+            {
+                return null;
+            }
+            if (dims.Length == 1)
+            {
+                return new(_space, dims[0], _sign);
+            }
+
+            ExSpace p = new(_space, dims[0], _sign);
+            ExSpace ch = new(_space, dims[1], _sign);
+            p._child = ch;
+
+            ExSpace curr = ch;
+            for (int i = 2; i < dims.Length; i++)
+            {
+                ch = new(_space, dims[i], _sign);
+                curr._child = ch;
+                curr = ch;
+            }
+
+            return p;
+        }
+
+        public string GetSpaceString()
+        {
+            string s = "SPACE(" + space + ", " + (dim == -1 ? "var" : dim) + (sign == '\\' ? ")" : ", " + sign + ")");
+            if (_child != null)
+            {
+                s += " x " + _child.GetSpaceString();
+            }
+            return s;
+        }
         public virtual string GetDebuggerDisplay()
         {
-            return "SPACE(" + dim + ", " + space + ", " + sign + ")";
+            return GetSpaceString();
+        }
+
+        public ExSpace DeepCopy()
+        {
+            ExSpace s = new();
+            s.sign = sign;
+            s.dim = dim;
+            s.space = space;
+            ExSpace ch = _child;
+
+            if (ch != null)
+            {
+                s._child = ch.DeepCopy();
+            }
+
+            return s;
+        }
+
+        public ExSpace this[int i]
+        {
+            get
+            {
+                ExSpace ch = _child;
+                while (i > 0 && ch != null)
+                {
+                    i--;
+                    ch = ch._child;
+                }
+                return ch;
+            }
+        }
+
+        public int VarCount()
+        {
+            int d = dim == -1 ? 1 : 0;
+            ExSpace ch = _child;
+            while (ch != null)
+            {
+                d += ch.dim == -1 ? 1 : 0;
+                ch = ch._child;
+            }
+            return d;
+        }
+
+        public int Depth()
+        {
+            int d = 1;
+            ExSpace ch = _child;
+            while (ch != null)
+            {
+                d++;
+                ch = ch._child;
+            }
+            return d;
         }
 
         protected virtual void Dispose(bool disposing)
@@ -1000,7 +1113,10 @@ namespace ExMat.Objects
                 {
                     space = null;
                     dim = 0;
-                    _parent.Dispose();
+                    if (_child != null)
+                    {
+                        _child.Dispose();
+                    }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

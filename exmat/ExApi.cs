@@ -149,6 +149,20 @@ namespace ExMat.API
             CreateNewSlot(vm, -3, false);
         }
 
+        public static void CreateConstantSpace(ExVM vm, string name, ExSpace val)
+        {
+            PushString(vm, name, -1);
+            vm.Push(new ExObject(val));
+            CreateNewSlot(vm, -3, false);
+        }
+
+        public static void CreateConstantDict(ExVM vm, string name, Dictionary<string, ExObject> dict)
+        {
+            PushString(vm, name, -1);
+            vm.Push(new ExObject(dict));
+            CreateNewSlot(vm, -3, false);
+        }
+
         public static void PushString(ExVM vm, string str, int len)
         {
             if (string.IsNullOrEmpty(str))

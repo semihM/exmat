@@ -294,6 +294,7 @@ namespace ExMat.Lexer
         private TokenType ReadSpaceDim(char curr)
         {
             Next();
+            char currchar = _currChar;
             switch (ReadNumber())
             {
                 case TokenType.INTEGER:
@@ -304,10 +305,54 @@ namespace ExMat.Lexer
                             return TokenType.UNKNOWN;
                         }
                         _space.dim = (int)i_val;
+                        if (_currChar == '*')
+                        {
+                            ExSpace parent = null;
+                            while (_currChar == '*')
+                            {
+                                parent = new() { dim = _space.dim, sign = _space.sign, space = _space.space + "", _child = _space._child };
+
+                                if (ReadSpaceDim(curr) != TokenType.SPACE)
+                                {
+                                    return TokenType.UNKNOWN;
+                                }
+
+                                parent._child = new() { dim = _space.dim, sign = _space.sign, space = _space.space + "", _child = _space._child };
+                            }
+                            _space = parent;
+                        }
                         break;
                     }
                 default:
                     {
+                        if (_currChar == '@' && char.IsLetter(currchar))
+                        {
+                            _space.dim = -1;
+                            _error = string.Empty;
+                            return TokenType.SPACE;
+                        }
+                        else if (_currChar == '*')
+                        {
+                            if (char.IsLetter(currchar))
+                            {
+                                _space.dim = -1;
+                            }
+
+                            ExSpace parent = null;
+                            while (_currChar == '*')
+                            {
+                                parent = new() { dim = -1, sign = _space.sign, space = _space.space + "", _child = _space._child };
+
+                                if (ReadSpaceDim(curr) != TokenType.SPACE)
+                                {
+                                    return TokenType.UNKNOWN;
+                                }
+
+                                parent._child = new() { dim = _space.dim, sign = _space.sign, space = _space.space + "", _child = _space._child }; ;
+                            }
+                            _space = parent;
+                            break;
+                        }
                         _error = "expected integer as dimension";
                         return TokenType.UNKNOWN;
                     }
@@ -668,14 +713,11 @@ namespace ExMat.Lexer
             typ = GetIdType();
             if (typ == TokenType.EQU)
             {
-                _lookahead = new(Source) { _sourceidx = _sourceidx, _currChar = _currChar, _currCol = _currCol, _currToken = _currToken, _lastTokenLine = _lastTokenLine, _aStr = _aStr };
-                _lookahead.Lex();
-                if (_lookahead._currToken == TokenType.NEQ && _lookahead._aStr == "not")
-                {
-                    typ = TokenType.NEQ;
-                    Lex();
-                }
-                _lookahead = null;
+                LookForNext(TokenType.NEQ, "not", TokenType.NEQ, ref typ);
+            }
+            else if (typ == TokenType.NEQ)
+            {
+                LookForNext(TokenType.IN, "in", TokenType.NOTIN, ref typ);
             }
 
             if (typ == TokenType.IDENTIFIER)
@@ -684,6 +726,18 @@ namespace ExMat.Lexer
             }
 
             return typ;
+        }
+
+        private void LookForNext(TokenType lookfor, string name, TokenType then, ref TokenType res)
+        {
+            _lookahead = new(Source) { _sourceidx = _sourceidx, _currChar = _currChar, _currCol = _currCol, _currToken = _currToken, _lastTokenLine = _lastTokenLine, _aStr = _aStr };
+            _lookahead.Lex();
+            if (_lookahead._currToken == lookfor && _lookahead._aStr == name)
+            {
+                res = then;
+                Lex();
+            }
+            _lookahead = null;
         }
 
         private static bool IsExp(char c)
@@ -883,6 +937,8 @@ namespace ExMat.Lexer
                     return TokenType.BOR;
                 case '^':
                     return TokenType.BXOR;
+                case '~':
+                    return TokenType.BNOT;
                 case ':':
                     return TokenType.COL;
                 case '=':
@@ -1093,7 +1149,7 @@ namespace ExMat.Lexer
                             }
                             else
                             {
-                                _error = "expected the pattern @(Z|R|N|A)[+-]?('\\d+)?@ for spaces";
+                                _error = "expected the pattern @(Z|R|N|C|A)[+-]?('\\d(\\*\\d)*)?@ for spaces";
                                 return TokenType.UNKNOWN;
                             }
                         }

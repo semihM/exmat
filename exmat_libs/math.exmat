@@ -95,9 +95,9 @@ class Vector3D
 {
     init(_x=0,_y=0,_z=0)
     {
-        ::assert(type(_x) in NumericTypes, "expected numeric value for 'x' of 'Vector3D'")
-        ::assert(type(_y) in NumericTypes, "expected numeric value for 'y' of 'Vector3D'")
-        ::assert(type(_z) in NumericTypes, "expected numeric value for 'z' of 'Vector3D'")
+        ::assert(_x in @R@, "expected numeric value for 'x' of 'Vector3D'")
+        ::assert(_y in @R@, "expected numeric value for 'y' of 'Vector3D'")
+        ::assert(_z in @R@, "expected numeric value for 'z' of 'Vector3D'")
         this.x = _x;
         this.y = _y;
         this.z = _z;
@@ -118,11 +118,6 @@ class Vector3D
     ./
     z = 0;
 
-    /. 
-        is_coordinate = false 
-    ./
-    NumericTypes = ["INTEGER", "FLOAT"]
-
     function Length()
     {
         return (this.x**2 + this.y**2 + this.z**2)**0.5
@@ -130,7 +125,7 @@ class Vector3D
 
     function Scale(scale)
     {
-        ::assert(type(scale) in NumericTypes, "expected numeric value for 'Scale' of 'Vector3D'")
+        ::assert(scale in @R@, "expected numeric value for 'Scale' of 'Vector3D'")
 
         return Vector3D(this.x * scale, this.y * scale, this.z * scale);;
     }
@@ -147,7 +142,7 @@ class Vector3D
     {
         ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '-' of 'Vector3D'")
 
-        return Vector3D(this.x + vec.x, this.y + vec.y, this.z + vec.z);
+        return Vector3D(this.x - vec.x, this.y - vec.y, this.z - vec.z);
     }
 
     function _MLT(vec)
@@ -215,3 +210,105 @@ function RandFMat(x,y,m=0,n=1)    return matrix(x,y,$(i,j) randf(m,n))
 function Combination(n, r)  return Factorial(n) / (Factorial(r) * Factorial(n-r))
 
 function Permutation(n, r)  return Factorial(n) / Factorial(n-r)
+
+class Vector
+{
+    init(...)
+    {
+        ::assert(vargs in @R'n@, "expected real number list");
+        this.vals = vargs;
+    }
+    
+    vals = []
+
+    function Length()
+    {
+        return pow(sum(map($(x) x**2, this.vals)),0.5)
+    }
+
+    function Scale(scale)
+    {
+        ::assert(scale in @R@, "expected numeric value for 'Scale' of 'Vector'")
+
+        return parse(Vector, map($(x) x*scale, this.vals));
+    }
+
+    // Meta methods
+    function _ADD(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '+' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '+' of 'Vector'")
+        var i = 0
+        return parse(Vector, map($(x) vec.vals[i++] + x, this.vals));
+    }
+
+    function _SUB(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '-' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '-' of 'Vector'")
+        var i = 0
+        return parse(Vector, map($(x) vec.vals[i++] - x, this.vals));
+    }
+
+    function _MLT(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '*' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '*' of 'Vector'")
+        var i = 0
+        return parse(Vector, map($(x) vec.vals[i++] * x, this.vals));
+    }
+
+    function _DIV(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '/' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '/' of 'Vector'")
+        var i = 0
+        return parse(Vector, map($(x) vec.vals[i++] / x, this.vals));
+    }
+
+    function _MOD(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '%' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '%' of 'Vector'")
+        var i = 0
+        return parse(Vector, map($(x) vec.vals[i++] % x, this.vals));
+    }
+
+    function _EXP(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for '**' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '**' of 'Vector'")
+        var i = 0
+        return parse(Vector, map($(x) vec.vals[i++] ** x, this.vals));
+    }
+
+    function _STRING()
+    {
+        return "Vector("+string(this.vals)+")";
+    }
+    //
+
+    function Dot(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Vector.Dot'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for 'Vector.Dot'")
+        var i = 0
+        return iter($(prev,curr,idx) prev + curr, map($(x) vec.vals[i++] * x, this.vals), 0);
+    }
+
+    function Cross(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Cross' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for 'Vector.Cross'")
+
+        return this.vals.len() == 3 ? Vector(this.vals[1] * vec.vals[2] - this.vals[2] * vec.vals[1], this.vals[2] * vec.vals[0] - this.vals[0] * vec.vals[2], this.vals[0] * vec.vals[1] - this.vals[1] * vec.vals[0]) : null;
+    }
+
+    function AngleBetween(vec)
+    {
+        ::assert(vec instanceof Vector, "expected 'Vector' type for 'AngleBetween' of 'Vector'")
+        ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for 'Vector.AngleBetween'")
+
+        return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
+    }
+}

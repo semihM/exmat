@@ -35,24 +35,31 @@ printl(d)
 
 // CONSTANTS
 printl("----------")
-printl("pi: "+PI)
-printl("tau: "+TAU)
-printl("golden ratio: "+GOLDEN)
-printl("int max: "+INT_MAX)
-printl("int max as float: "+INT_MAXF)
-printl("int min: "+INT_MIN)
-printl("int min as float: "+INT_MINF)
-printl("long max: "+LONG_MAX)
-printl("long max as float: "+LONG_MAXF)
-printl("long max: "+LONG_MIN)
-printl("long max as float: "+LONG_MINF)
-printl("float max: "+FLOAT_MAX)
-printl("float min: "+FLOAT_MIN)
-printl("----------")
+printl("pi: " + PI)
+printl("tau: " + TAU)
+printl("golden ratio: " + GOLDEN)
+printl("epsilon: " + EPSILON)
+printl("1 degree in radians: " + DEGREE)
 
-printl("----------")
-var deg_ratio = 180/PI
-printl(deg_ratio)
+printl("int8 max: " + INT8_MAX)
+printl("int8 min: " + INT8_MIN)
+printl("uint8 max: " + UINT8_MAX)
+
+printl("int16 max: " + INT16_MAX)
+printl("int16 min: " + INT16_MIN)
+printl("uint16 max: " + UINT16_MAX)
+
+printl("int32 max: " + INT32_MAX)
+printl("int32 min: " + INT32_MIN)
+printl("uint32 max: " + UINT32_MAX)
+
+printl("int64 max: " + INT64_MAX)
+printl("int64 min: " + INT64_MIN)
+
+printl("float32 max: " + FLOAT32_MAX)
+printl("float32 min: " + FLOAT32_MIN)
+printl("float64 max: " + FLOAT64_MAX)
+printl("float64 min: " + FLOAT64_MIN)
 
 printl("----------")
 var c = 3.125 - 4.2i
@@ -63,3 +70,7 @@ printl(c.img())
 printl(c.abs())
 printl(c.phase())
 printl(c.conj())
+
+printl("----------")
+printl("R space: "+ string(SPACES.R))
+printl("R^n space: "+ string(SPACES.Rn))

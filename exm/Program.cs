@@ -2,14 +2,13 @@
 using System.IO;
 using ExMat.API;
 using ExMat.BaseLib;
-using ExMat.Objects;
 using ExMat.VM;
 
 namespace ExMat
 {
     internal class Program
     {
-        private static readonly int VM_STACK_SIZE = 20384;
+        private static readonly int VM_STACK_SIZE = 2 << 14;
 
         private static bool CheckCarryOver(string code)
         {
@@ -26,17 +25,17 @@ namespace ExMat
                 ExAPI.PushRootTable(vm);
                 if (ExAPI.Call(vm, 1, true, true))
                 {
-                    ExObjType type = vm._lastreturn._type;
-                    if (type != ExObjType.NULL && !vm._printed)
+                    if (!vm._printed && vm.GetAbove(-1)._type != ExObjType.NULL)
                     {
-                        ExObject s = new();
-                        vm.ToString(vm._lastreturn, ref s);
-                        Console.Write(s.GetString());
+                        if (ExAPI.ToString(vm, -1, 2))
+                        {
+                            Console.Write(vm.GetAbove(-1).GetString());
+                        }
                     }
                 }
                 else
                 {
-                    if(vm._exited)
+                    if (vm._exited)
                     {
                         ret = vm._exitcode;
                     }
@@ -55,7 +54,6 @@ namespace ExMat
 
             FixStackTopAfterCalls(vm, tp);
             vm._printed = false;
-            vm._lastreturn.Assign(new ExObject());
             return ret;
         }
 
@@ -218,7 +216,7 @@ namespace ExMat
 
                 ExAPI.CollectGarbage();
 
-                if(vm._exited)
+                if (vm._exited)
                 {
                     return ret;
                 }

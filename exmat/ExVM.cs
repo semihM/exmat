@@ -46,8 +46,6 @@ namespace ExMat.VM
 
         public bool _printed = false;
 
-        public ExObject _lastreturn = new();
-        public int n_return = 0;
         public bool b_main = true;
 
         public bool _exited = false;
@@ -241,7 +239,7 @@ namespace ExMat.VM
                         }
                         if (c > 0)
                         {
-                            s += "\n\t";
+                            s += "\n" + prefix + "\t";
                         }
 
                         maxdepth--;
@@ -372,6 +370,11 @@ namespace ExMat.VM
                         res = new(s);
                         break;
                     }
+                case ExObjType.SPACE:
+                    {
+                        res = new(obj._val.c_Space.GetSpaceString());
+                        break;
+                    }
                 default:
                     {
                         if (obj.IsDelegable())
@@ -440,6 +443,7 @@ namespace ExMat.VM
             }
             return true;
         }
+
         public bool ToInteger(ExObject obj, ref ExObject res)
         {
             switch (obj._type)
@@ -472,15 +476,8 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            if (obj.GetString().Length == 1)
-                            {
-                                res = new(obj.GetString()[0]);
-                            }
-                            else
-                            {
-                                AddToErrorMessage("failed to parse string as integer");
-                                return false;
-                            }
+                            AddToErrorMessage("failed to parse string as integer");
+                            return false;
                         }
                         break;
                     }
@@ -1012,7 +1009,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (argument._val.l_List.Count != space.dim)
+                        if (argument._val.l_List.Count != space.dim && space.dim != -1)
                         {
                             if (raise)
                             {
@@ -1021,8 +1018,35 @@ namespace ExMat.VM
                             return false;
                         }
 
+                        if (space._child != null)
+                        {
+                            foreach (ExObject val in argument._val.l_List)
+                            {
+                                if (!IsInSpace(val, space._child, i, raise))
+                                {
+                                    return false;
+                                }
+                            }
+                            break;
+                        }
+
                         switch (space.space)
                         {
+                            case "C":
+                                {
+                                    foreach (ExObject val in argument._val.l_List)
+                                    {
+                                        if (!val.IsNumeric())
+                                        {
+                                            if (raise)
+                                            {
+                                                AddToErrorMessage("expected real or complex numbers for parameter " + i);
+                                            }
+                                            return false;
+                                        }
+                                    }
+                                    break;
+                                }
                             case "A":
                                 {
                                     return true;
@@ -1035,7 +1059,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument._val.l_List)
                                                 {
-                                                    if (!val.IsNumeric() || val.GetFloat() <= 0)
+                                                    if (!val.IsRealNumber() || val.GetFloat() <= 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1050,7 +1074,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument._val.l_List)
                                                 {
-                                                    if (!val.IsNumeric() || val.GetFloat() >= 0)
+                                                    if (!val.IsRealNumber() || val.GetFloat() >= 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1065,7 +1089,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument._val.l_List)
                                                 {
-                                                    if (!val.IsNumeric() || val.GetFloat() == 0)
+                                                    if (!val.IsRealNumber() || val.GetFloat() == 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1096,7 +1120,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument._val.l_List)
                                                 {
-                                                    if (!val.IsNumeric() || val.GetFloat() < 0)
+                                                    if (!val.IsRealNumber() || val.GetFloat() < 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1111,7 +1135,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument._val.l_List)
                                                 {
-                                                    if (!val.IsNumeric() || val.GetFloat() > 0)
+                                                    if (!val.IsRealNumber() || val.GetFloat() > 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1126,7 +1150,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument._val.l_List)
                                                 {
-                                                    if (!val.IsNumeric())
+                                                    if (!val.IsRealNumber())
                                                     {
                                                         if (raise)
                                                         {
@@ -1271,10 +1295,9 @@ namespace ExMat.VM
                         }
                         break;
                     }
-                case ExObjType.INTEGER:
-                case ExObjType.FLOAT:
+                case ExObjType.COMPLEX:
                     {
-                        if (space.dim != 1)
+                        if (space.dim > 1)
                         {
                             if (raise)
                             {
@@ -1282,8 +1305,61 @@ namespace ExMat.VM
                             }
                             return false;
                         }
+
+                        if (space._child != null)
+                        {
+                            if (!IsInSpace(new(new List<ExObject>(1) { argument }), space._child, i, raise))
+                            {
+                                return false;
+                            }
+                            break;
+                        }
+
+                        if (space.space == "A" || space.space == "C")
+                        {
+                            return true;
+                        }
+                        else if (argument._val.c_Float == 0.0)
+                        {
+                            argument = new(argument._val.f_Float);
+                            goto case ExObjType.FLOAT;
+                        }
+                        else
+                        {
+                            if (raise)
+                            {
+                                AddToErrorMessage("expected non-complex number for parameter " + i);
+                            }
+                            return false;
+                        }
+                    }
+                case ExObjType.INTEGER:
+                case ExObjType.FLOAT:
+                    {
+                        if (space.dim > 1)
+                        {
+                            if (raise)
+                            {
+                                AddToErrorMessage("expected " + space.dim + " dimensions for parameter " + i);
+                            }
+                            return false;
+                        }
+
+                        if (space._child != null)
+                        {
+                            if (!IsInSpace(new(new List<ExObject>(1) { argument }), space._child, i, raise))
+                            {
+                                return false;
+                            }
+                            break;
+                        }
+
                         switch (space.space)
                         {
+                            case "C":
+                                {
+                                    return true;
+                                }
                             case "A":
                                 {
                                     return true;
@@ -1294,7 +1370,7 @@ namespace ExMat.VM
                                     {
                                         case '+':
                                             {
-                                                if (!argument.IsNumeric() || argument.GetFloat() <= 0)
+                                                if (argument.GetFloat() <= 0)
                                                 {
                                                     if (raise)
                                                     {
@@ -1306,7 +1382,7 @@ namespace ExMat.VM
                                             }
                                         case '-':
                                             {
-                                                if (!argument.IsNumeric() || argument.GetFloat() >= 0)
+                                                if (argument.GetFloat() >= 0)
                                                 {
                                                     if (raise)
                                                     {
@@ -1318,7 +1394,7 @@ namespace ExMat.VM
                                             }
                                         case '\\':
                                             {
-                                                if (!argument.IsNumeric() || argument.GetFloat() == 0)
+                                                if (argument.GetFloat() == 0)
                                                 {
 
                                                     if (raise)
@@ -1346,7 +1422,7 @@ namespace ExMat.VM
                                     {
                                         case '+':
                                             {
-                                                if (!argument.IsNumeric() || argument.GetFloat() < 0)
+                                                if (argument.GetFloat() < 0)
                                                 {
                                                     if (raise)
                                                     {
@@ -1358,7 +1434,7 @@ namespace ExMat.VM
                                             }
                                         case '-':
                                             {
-                                                if (!argument.IsNumeric() || argument.GetFloat() > 0)
+                                                if (argument.GetFloat() > 0)
                                                 {
                                                     if (raise)
                                                     {
@@ -1370,14 +1446,6 @@ namespace ExMat.VM
                                             }
                                         case '\\':
                                             {
-                                                if (!argument.IsNumeric())
-                                                {
-                                                    if (raise)
-                                                    {
-                                                        AddToErrorMessage("expected numeric value for parameter " + i);
-                                                    }
-                                                    return false;
-                                                }
                                                 break;
                                             }
                                         default:
@@ -1495,10 +1563,6 @@ namespace ExMat.VM
                                 }
                         }
                         break;
-                    }
-                case ExObjType.NULL:
-                    {
-                        return false;
                     }
                 default:
                     {
@@ -1747,6 +1811,47 @@ namespace ExMat.VM
                                             break;
                                         }
                                         goto default;
+                                    }
+                                case ExObjType.SPACE:
+                                    {
+                                        ExSpace sp_org = GetTargetInStack(i.arg1)._val.c_Space;
+                                        ExSpace sp = sp_org.DeepCopy();
+                                        int nparams = sp.Depth();
+                                        int varcount = sp.VarCount();
+                                        int argcount = (int)i.arg3.GetInt() - 1;
+                                        if (argcount > varcount)
+                                        {
+                                            AddToErrorMessage("expected maximum " + varcount + " arguments for space");
+                                            return FixStackAfterError();
+                                        }
+
+                                        ExSpace child = sp;
+                                        int sb = (int)i.arg2.GetInt();
+                                        int argid = 1;
+                                        while (child != null && argcount > 0)
+                                        {
+                                            if (child.dim == -1)
+                                            {
+                                                ExObject dim = GetTargetInStack(sb + argid);
+                                                if (dim._type != ExObjType.INTEGER)
+                                                {
+                                                    AddToErrorMessage("spaces can't have non-integer dimensions");
+                                                    return FixStackAfterError();
+                                                }
+                                                int d = (int)dim.GetInt();
+                                                if (d < 0)
+                                                {
+                                                    d = -1;
+                                                }
+                                                child.dim = d;
+                                                argcount--;
+                                                argid++;
+                                            }
+                                            child = child._child;
+                                        }
+
+                                        GetTargetInStack(i.arg0.GetInt()).Assign(sp);
+                                        break;
                                     }
                                 default:
                                     {
@@ -2100,8 +2205,9 @@ namespace ExMat.VM
                         {
                             ExObject s1 = new(GetTargetInStack(i.arg1));
                             ExObject s2 = new(GetTargetInStack(i.arg2));
+                            bool b = Getter(ref s1, ref s2, ref tmpreg, true, ExFallback.DONT, true);
 
-                            GetTargetInStack(i).Assign(Getter(ref s1, ref s2, ref tmpreg, true, ExFallback.DONT, true));
+                            GetTargetInStack(i).Assign(i.arg3.GetInt() == 0 ? b : !b);
 
                             continue;
                         }
@@ -2672,20 +2778,12 @@ namespace ExMat.VM
                     if (seq)
                     {
                         ci._val._closure._val._Closure._defparams.Add(new(p));
-                        ci._val._closure._val._Closure._func._params.Add(new(_stack[_stackbase+1].GetInt().ToString()));
+                        ci._val._closure._val._Closure._func._params.Add(new(_stack[_stackbase + 1].GetInt().ToString()));
                     }
 
                     if (!LeaveFrame(seq))
                     {
                         throw new Exception("something went wrong with the stack!");
-                    }
-                    bool rets = (_lastreturn._type == ExObjType.NULL || n_return > 0);
-
-                    // TO-DO instances and vars are 1 idx off
-                    if (b_main && ((ci._val == null && rets) || (ci._val != null && ci._val._root)) && rets) // return for main
-                    {
-                        _lastreturn.Assign(p);
-                        n_return--;
                     }
                     return r;
                 }
@@ -2775,7 +2873,7 @@ namespace ExMat.VM
             }
             return true;
         }
-        
+
         private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
         {
             switch (op)
@@ -2875,7 +2973,7 @@ namespace ExMat.VM
                     }
                 case OPC.MOD:
                     {
-                        
+
                         return false;
                     }
                 default:
@@ -4036,8 +4134,7 @@ namespace ExMat.VM
 
             if (reset)
             {
-                bool rets = (_lastreturn._type == ExObjType.NULL || n_return > 0);
-                if (b_main && ((css <= 0 && rets) || (css > 0 && _callsstack[css - 1]._root)) && rets)
+                if (b_main && (css <= 0 || (css > 0 && _callsstack[css - 1]._root)))
                 {   // TO-DO refactor
                     List<ExObject> dp = new();
                     List<ExObject> ps = new();
@@ -4046,7 +4143,7 @@ namespace ExMat.VM
                     {
                         ps.Add(new(ci._val._closure._val._Closure._func._params[i]));
                     }
-                    for(int i = 0; i < ci._val._closure._val._Closure._func.n_defparams; i++)
+                    for (int i = 0; i < ci._val._closure._val._Closure._func.n_defparams; i++)
                     {
                         dp.Add(new(ci._val._closure._val._Closure._defparams[i]));
                     }

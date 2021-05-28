@@ -149,7 +149,11 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(print|printl|type|time|date|string|float|integer|complex|complex2|list|range|matrix|bytes|bits|map|filter|call|parse)\\b"
+				"match": "\\b(print|printl|type|time|date|string|float|integer|complex|complex2|list|range|rangei|matrix|bytes|bits|bits32)\\b"
+				},
+				{
+				"name": "entity.name.function.exmat",
+				"match": "\\b(map|filter|call|parse|iter|first|any|all)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
@@ -210,7 +214,7 @@
 				},
 				{
 					"name": "constant.language.exmat",
-					"match": "\\b(INT_MAX|INT_MAXF|INT_MIN|INT_MINF|LONG_MAX|LONG_MAXF|LONG_MIN|LONG_MINF|FLOAT_MAX|FLOAT_MIN|DEGREE|EPSILON|PI|TAU|GOLDEN|E|NAN|NINF|INF)\\b"
+					"match": "\\b(INT8_MAX|INT8_MIN|UINT8_MAX|INT16_MAX|INT16_MIN|UINT16_MAX|INT32_MAX|INT32_MIN|UINT32_MAX|INT64_MAX|INT64_MIN|FLOAT64_MAX|FLOAT64_MIN|FLOAT32_MAX|FLOAT32_MIN|DEGREE|EPSILON|PI|TAU|GOLDEN|E|NAN|NINF|INF)\\b"
 				}
 			]
 		}
