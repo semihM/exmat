@@ -81,6 +81,327 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        private static List<int> Primes = null;
+        private static readonly int PrimeSearchSize = int.MaxValue / 100;
+        private static readonly int PrimeCacheMaxSize = 1358124 * 2;
+        private static int PrimeCount = 1358124;
+        private static int PrimeMax = 21474829;
+
+        private static void FindPrimes()
+        {
+            bool[] bnotp = new bool[PrimeSearchSize];
+
+            for (int p = 2; p * p < PrimeSearchSize; p++)
+            {
+                if (!bnotp[p])
+                {
+                    for (int i = p * p; i < PrimeSearchSize; i += p)
+                    {
+                        bnotp[i] = true;
+                    }
+                }
+            }
+
+            Primes = new(PrimeCount);
+            for (int p = 2, i = 0; p < PrimeSearchSize; p++)
+            {
+                if (!bnotp[p])
+                {
+                    Primes.Add(p);
+                    i++;
+                }
+            }
+
+        }
+
+        private static bool IsPrime(long o)
+        {
+            if (o <= 3)
+            {
+                return o > 1;
+            }
+
+            if (o % 2 == 0 || o % 3 == 0)
+            {
+                return false;
+            }
+
+            int i = 5;
+            while (i * i <= o)
+            {
+                if (o % i == 0 || o % (i + 2) == 0)
+                {
+                    return false;
+                }
+
+                i += 6;
+            }
+            return true;
+        }
+
+        private static long NextClosestPrime(long o)
+        {
+            if (o <= 1)
+            {
+                return 2;
+            }
+
+            if (o % 2 == 1)
+            {
+                o += 2;
+            }
+            else
+            {
+                o++;
+            }
+
+            while (!IsPrime(o))
+            { o += 2; }
+            return o;
+        }
+
+        // o is always passed odd
+        private static long NextPrime(long o)
+        {
+            o += 2;
+            while (!IsPrime(o))
+            { o += 2; }
+            return o;
+        }
+
+        private static long FindAndCacheNextPrimes(int diff)
+        {
+            long last = Primes[^1];
+            while (diff > 0)
+            {
+                last = NextPrime(last);
+
+                if (PrimeCount < PrimeCacheMaxSize && last < int.MaxValue)
+                {
+                    Primes.Add((int)last);
+                    PrimeCount++;
+                    PrimeMax = (int)last;
+                }
+                diff--;
+            }
+            return last;
+        }
+
+        public static int MATH_nextprime(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+
+            if (Primes == null)
+            {
+                FindPrimes();
+            }
+
+            vm.Pop(nargs + 2);
+
+            int idx;
+            if (a > 0 && a <= PrimeMax && (idx = Primes.BinarySearch(item: (int)a)) >= 0 && idx < PrimeCount)
+            {
+                vm.Push(Primes[++idx]);
+            }
+            else
+            {
+                vm.Push(NextClosestPrime(a));
+            }
+
+            return 1;
+        }
+
+        public static int MATH_isprime(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+
+            vm.Pop(nargs + 2);
+            vm.Push((Primes != null && a > 0 && a <= PrimeMax && Primes.BinarySearch(item: (int)a) >= 0) || IsPrime(a));
+
+            return 1;
+        }
+
+        public static int MATH_prime(ExVM vm, int nargs)
+        {
+            int a = (int)ExAPI.GetFromStack(vm, 2).GetInt();
+
+            if (Primes == null)
+            {
+                FindPrimes();
+            }
+
+            int n = Primes.Count;
+            if (a <= 0)
+            {
+                vm.AddToErrorMessage("expected positive integer for 'n'th prime index");
+                return -1;
+            }
+            if (a > n)
+            {
+                vm.Pop(nargs + 2);
+                // TO-DO Find out why, for some reason doing this sometimes reduces memory use by half for the prime list
+                vm.Push(FindAndCacheNextPrimes(a - n));
+                return 1;
+            }
+
+            vm.Pop(nargs + 2);
+            vm.Push(Primes[--a]);
+
+            return 1;
+        }
+
+        public static int MATH_pfactors(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+
+            if (Primes != null && a > 0 && a <= PrimeMax && Primes.BinarySearch(item: (int)a) >= 0)
+            {
+                vm.Pop(nargs + 2);
+                vm.Push(new List<ExObject>(1) { new(a) });
+
+                return 1;
+            }
+
+            if (a < 0)
+            {
+                vm.Pop(nargs + 2);
+                vm.Push(new List<ExObject>());
+                return 1;
+            }
+
+            List<ExObject> lis = new();
+            long p = 2;
+            while (a >= Math.Pow(p, 2))
+            {
+                if (a % p == 0)
+                {
+                    lis.Add(new(p));
+                    a /= p;
+                }
+                else
+                {
+                    p++;
+                }
+            }
+
+            lis.Add(new(a));
+
+            vm.Pop(nargs + 2);
+            vm.Push(lis);
+
+            return 1;
+        }
+
+        private static double GetGCD(double a, double b)
+        {
+            while (b != 0)
+            {
+                double r = b;
+                b = a % b;
+                a = r;
+            }
+            return a;
+        }
+
+        public static int MATH_gcd(ExVM vm, int nargs)
+        {
+            double a = ExAPI.GetFromStack(vm, 2).GetFloat();
+            double b = ExAPI.GetFromStack(vm, 3).GetFloat();
+
+            vm.Pop(nargs + 2);
+            vm.Push(GetGCD(a, b));
+
+            return 1;
+        }
+
+        public static int MATH_lcd(ExVM vm, int nargs)
+        {
+            double a = ExAPI.GetFromStack(vm, 2).GetFloat();
+            double b = ExAPI.GetFromStack(vm, 3).GetFloat();
+            vm.Pop(nargs + 2);
+            vm.Push(Math.Abs(a * b) / GetGCD(a, b));
+
+            return 1;
+        }
+
+        public static int MATH_isdivisible(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long b = ExAPI.GetFromStack(vm, 3).GetInt();
+            vm.Pop(nargs + 2);
+            _ = Math.DivRem(a, b, out long r);
+            vm.Push(r == 0);
+
+            return 1;
+        }
+
+        public static int MATH_divquot(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long b = ExAPI.GetFromStack(vm, 3).GetInt();
+
+            long quot = Math.DivRem(a, b, out long _);
+            vm.Pop(nargs + 2);
+            vm.Push(quot);
+
+            return 1;
+        }
+
+        public static int MATH_divrem(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long b = ExAPI.GetFromStack(vm, 3).GetInt();
+
+            Math.DivRem(a, b, out long rem);
+            vm.Pop(nargs + 2);
+            vm.Push(rem);
+
+            return 1;
+        }
+
+        public static int MATH_divremquot(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long b = ExAPI.GetFromStack(vm, 3).GetInt();
+
+            long quot = Math.DivRem(a, b, out long rem);
+            vm.Pop(nargs + 2);
+            vm.Push(new List<ExObject>(2) { new(rem), new(quot) });
+
+            return 1;
+        }
+
+        public static int MATH_recip(ExVM vm, int nargs)
+        {
+            ExObject i = ExAPI.GetFromStack(vm, 2);
+            switch (i._type)
+            {
+                case ExObjType.INTEGER:
+                    {
+                        double o = 1.0 / i.GetInt();
+                        vm.Pop(nargs + 2);
+                        vm.Push(o);
+                        break;
+                    }
+                case ExObjType.COMPLEX:
+                    {
+                        Complex o = Complex.Reciprocal(i.GetComplex());
+                        vm.Pop(nargs + 2);
+                        vm.Push(o);
+                        break;
+                    }
+                default:
+                    {
+                        double o = 1.0 / i.GetFloat();
+                        vm.Pop(nargs + 2);
+                        vm.Push(o);
+                        break;
+                    }
+            }
+
+            return 1;
+        }
+
         public static int MATH_abs(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
@@ -569,7 +890,7 @@ namespace ExMat.BaseLib
             ExObject i = ExAPI.GetFromStack(vm, 2);
             ExObject i2 = ExAPI.GetFromStack(vm, 3);
             double b = 0.0;
-            long l = 0;
+            long l;
 
             switch (i._type)    // TO-DO refactor
             {
@@ -1432,7 +1753,7 @@ namespace ExMat.BaseLib
             bool b = i._type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsNegativeInfinity(i.GetFloat());
 
             vm.Pop(nargs + 2);
-            vm.Push(i);
+            vm.Push(b);
             return 1;
         }
 
@@ -1442,7 +1763,7 @@ namespace ExMat.BaseLib
             bool b = i._type == ExObjType.COMPLEX ? Complex.IsNaN(i.GetComplex()) : double.IsNaN(i.GetFloat());
 
             vm.Pop(nargs + 2);
-            vm.Push(i);
+            vm.Push(b);
             return 1;
         }
 
@@ -2399,6 +2720,83 @@ namespace ExMat.BaseLib
                 }
             },
 
+            new()
+            {
+                name = "isDivisible",
+                func = new(GetStdMathMethod("MATH_isdivisible")),
+                n_pchecks = 3,
+                mask = ".ii"
+            },
+            new()
+            {
+                name = "divRem",
+                func = new(GetStdMathMethod("MATH_divrem")),
+                n_pchecks = 3,
+                mask = ".ii"
+            },
+            new()
+            {
+                name = "divQuot",
+                func = new(GetStdMathMethod("MATH_divquot")),
+                n_pchecks = 3,
+                mask = ".ii"
+            },
+            new()
+            {
+                name = "divRemQuot",
+                func = new(GetStdMathMethod("MATH_divremquot")),
+                n_pchecks = 3,
+                mask = ".ii"
+            },
+            new()
+            {
+                name = "recip",
+                func = new(GetStdMathMethod("MATH_recip")),
+                n_pchecks = 2,
+                mask = ".n"
+            },
+            new()
+            {
+                name = "GCD",
+                func = new(GetStdMathMethod("MATH_gcd")),
+                n_pchecks = 3,
+                mask = ".i|fi|f"
+            },
+            new()
+            {
+                name = "LCD",
+                func = new(GetStdMathMethod("MATH_lcd")),
+                n_pchecks = 3,
+                mask = ".i|fi|f"
+            },
+            new()
+            {
+                name = "factorize",
+                func = new(GetStdMathMethod("MATH_pfactors")),
+                n_pchecks = 2,
+                mask = ".i|f"
+            },
+            new()
+            {
+                name = "next_prime",
+                func = new(GetStdMathMethod("MATH_nextprime")),
+                n_pchecks = 2,
+                mask = ".i"
+            },
+            new()
+            {
+                name = "prime",
+                func = new(GetStdMathMethod("MATH_prime")),
+                n_pchecks = 2,
+                mask = ".i"
+            },
+            new()
+            {
+                name = "isPrime",
+                func = new(GetStdMathMethod("MATH_isprime")),
+                n_pchecks = 2,
+                mask = ".i"
+            },
             new()
             {
                 name = "abs",

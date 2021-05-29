@@ -939,12 +939,12 @@ namespace ExMat.VM
             }
             else if (pro.IsSequence())
             {
-                if (nargs != 2)
+                if (nargs < 2)
                 {
-                    AddToErrorMessage("sequences require an argument to be called");
+                    AddToErrorMessage("sequences require at least 1 argument to be called");
                     return false;
                 }
-                else
+                else // CONTINUE HERE, ALLOW PARAMETERS FOR SEQUENCES
                 {
                     if (!_stack[sbase + 1].IsNumeric())
                     {
@@ -953,23 +953,47 @@ namespace ExMat.VM
                     }
                     else
                     {
-                        long ind = _stack[sbase + 1].GetInt();
-                        string idx = ind.ToString();
-                        for (int i = 2; i < cls._func._params.Count; i++)
+                        if (_stack[sbase + 1]._type == ExObjType.INTEGER)
                         {
-                            ExObject c = cls._func._params[i];
-                            if (c.GetString() == idx)
+                            long ind = _stack[sbase + 1].GetInt();
+                            string idx = ind.ToString();
+                            for (int i = 2; i < cls._func._params.Count; i++)
                             {
-                                // TO-DO doesnt return to main, also refactor this
-                                // TO-DO optimize
-                                _stack[sbase - 1].Assign(cls._defparams[i - 2]);
-                                return true;
+                                ExObject c = cls._func._params[i];
+                                if (c.GetString() == idx)
+                                {
+                                    // TO-DO doesnt return to main, also refactor this
+                                    // TO-DO optimize
+                                    _stack[sbase - 1].Assign(cls._defparams[i - 2]);
+                                    return true;
+                                }
+                            }
+                            if (ind < 0)
+                            {
+                                AddToErrorMessage("index can't be negative, unless its a default value");
+                                return false;
                             }
                         }
-                        if (ind < 0)
+                        else if (_stack[sbase + 1]._type == ExObjType.FLOAT)
                         {
-                            AddToErrorMessage("index can't be negative, unless its a default value");
-                            return false;
+                            double ind = _stack[sbase + 1].GetFloat();
+                            string idx = ind.ToString();
+                            for (int i = 2; i < cls._func._params.Count; i++)
+                            {
+                                ExObject c = cls._func._params[i];
+                                if (c.GetString() == idx)
+                                {
+                                    // TO-DO doesnt return to main, also refactor this
+                                    // TO-DO optimize
+                                    _stack[sbase - 1].Assign(cls._defparams[i - 2]);
+                                    return true;
+                                }
+                            }
+                            if (ind < 0)
+                            {
+                                AddToErrorMessage("index can't be negative, unless its a default value");
+                                return false;
+                            }
                         }
                     }
                 }
@@ -4156,6 +4180,8 @@ namespace ExMat.VM
             _stackbase -= ci._val._prevbase;
             _top = _stackbase + ci._val._prevtop;
 
+            bool leaving_root = ci._val._root;
+
             if (css > 0)
             {
                 ci._val = _callsstack[css - 1];
@@ -4175,7 +4201,9 @@ namespace ExMat.VM
                 AddToErrorMessage("stack overflow! Allocate more stack room for these operations");
                 return false;
             }
-            while (last_t >= _top)
+            // TO-DO this isnt really necessary, GC will still do its job
+            //     leave it as is until a proper way is found for returning values from main without "return" statement
+            while (leaving_root && last_t >= _top)
             {
                 if (_stack[last_t]._type == ExObjType.CLOSURE)
                 {

@@ -396,28 +396,66 @@ namespace ExMat.BaseLib
         public static int IO_includefile(ExVM vm, int nargs)
         {
             string fname = ExAPI.GetFromStack(vm, 2).GetString();
-            if (!File.Exists(fname))
+            if (fname == "*")
             {
-                if (!File.Exists(fname + ".exmat"))
+                fname = Directory.GetCurrentDirectory();
+                List<string> all;
+                all = new(Directory.GetFiles(fname));
+                bool failed = false;
+                foreach (string f in all)
                 {
-                    vm.AddToErrorMessage(fname + " file doesn't exist");
-                    return -1;
-                }
-                fname += ".exmat";
-            }
+                    if (!f.EndsWith(".exmat"))
+                    {
+                        continue;
+                    }
 
-            if (ExAPI.CompileFile(vm, File.ReadAllText(fname)))
-            {
-                ExAPI.PushRootTable(vm);
-                if (!ExAPI.Call(vm, 1, false, false))
-                {
-                    ExAPI.WriteErrorMessages(vm, "EXECUTE");
+                    if (ExAPI.CompileFile(vm, File.ReadAllText(f)))
+                    {
+                        ExAPI.PushRootTable(vm);
+                        if (!ExAPI.Call(vm, 1, false, false))
+                        {
+                            ExAPI.WriteErrorMessages(vm, "EXECUTE");
+                            failed = true;
+                            break;
+                        }
+
+                    }
                 }
 
                 vm.Pop(nargs + 3);
-                vm.Push(true);
+                vm.Push(!failed);
 
                 return 1;
+            }
+            else
+            {
+                if (!File.Exists(fname))
+                {
+                    if (!File.Exists(fname + ".exmat"))
+                    {
+                        vm.AddToErrorMessage(fname + " file doesn't exist");
+                        return -1;
+                    }
+                    fname += ".exmat";
+                }
+
+                if (ExAPI.CompileFile(vm, File.ReadAllText(fname)))
+                {
+                    ExAPI.PushRootTable(vm);
+                    if (!ExAPI.Call(vm, 1, false, false))
+                    {
+                        ExAPI.WriteErrorMessages(vm, "EXECUTE");
+                        vm.Pop(nargs + 3);
+                        vm.Push(false);
+                    }
+                    else
+                    {
+                        vm.Pop(nargs + 3);
+                        vm.Push(true);
+                    }
+
+                    return 1;
+                }
             }
 
             vm.Pop(nargs + 3);

@@ -759,6 +759,10 @@ namespace ExMat.Lexer
 
             bool m_typed = false;
             _aStr += start;
+            if (start == '∞')
+            {
+                return ParseNumberString(TokenType.FLOAT, false);
+            }
 
             if (reading_macro)
             {
@@ -1379,7 +1383,7 @@ namespace ExMat.Lexer
                         return TokenType.ENDLINE;
                     default:
                         {
-                            if (char.IsDigit(_currChar))
+                            if (char.IsDigit(_currChar) || _currChar == '∞')
                             {
                                 return SetAndReturnToken(ReadNumber());
                             }

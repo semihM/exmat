@@ -785,7 +785,6 @@ namespace ExMat.Compiler
             f_state._source = new(_source);
             int pcount = 0;
 
-
             while (_currToken != TokenType.R_CLOSE)
             {
                 bool neg = false;
@@ -797,39 +796,109 @@ namespace ExMat.Compiler
                     }
                     neg = true;
                 }
-                if ((pname = Expect(TokenType.INTEGER)) == null)
-                {
-                    return false;
-                }
-                if (neg)
-                {
-                    pname._val.i_Int *= -1;
-                }
 
-                pname = new(pname.GetInt().ToString());
-
-                pcount++;
-                f_state.AddParam(pname);
-
-                if (_currToken == TokenType.COL)
+                if ((pname = Expect(TokenType.INTEGER)) == null && (pname = Expect(TokenType.FLOAT)) == null)    // CONTINUE HERE, ALLOW PARAMETERS
                 {
-                    if (!ReadAndSetToken())
+                    if ((pname = Expect(TokenType.IDENTIFIER)) != null)
                     {
+                        if (pcount > 0)
+                        {
+                            AddToErrorMessage("can't add sequence parameters after sequence constraints");
+                            return false;
+                        }
+
+                        if (neg)
+                        {
+                            AddToErrorMessage("can't negate IDENTIFIER");
+                            return false;
+                        }
+
+                        pcount++;
+                        f_state.AddParam(pname);
+
+                        if (_currToken == TokenType.ASG)
+                        {
+                            if (!ReadAndSetToken())
+                            {
+                                return false;
+                            }
+
+                            if (!ExExp())
+                            {
+                                return false;
+                            }
+
+                            f_state.AddDefParam(_FuncState.TopTarget());
+                        }
+                        else // TO-DO add = for referencing global and do get ops
+                        {
+                            AddToErrorMessage("expected '=' for a sequence parameter default value");
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (pcount > 0)
+                        {
+                            AddToErrorMessage("expected integer constraint for sequence declaration");
+                            return false;
+                        }
+                        else
+                        {
+                            AddToErrorMessage("expected identifier or integer constraints for sequence declaration");
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    if (pname._type == ExObjType.INTEGER)
+                    {
+                        if (neg)
+                        {
+                            pname._val.i_Int *= -1;
+                        }
+
+                        pname = new(pname.GetInt().ToString());
+                    }
+                    else if (pname._type == ExObjType.FLOAT)
+                    {
+                        if (neg)
+                        {
+                            pname._val.f_Float *= -1;
+                        }
+
+                        pname = new(pname.GetFloat().ToString());
+                    }
+                    else
+                    {
+                        AddToErrorMessage("expected integer or float for sequence constraint");
                         return false;
                     }
+                    pcount++;
+                    f_state.AddParam(pname);
 
-                    if (!ExExp())
+                    if (_currToken == TokenType.COL)
                     {
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+
+                        if (!ExExp())
+                        {
+                            return false;
+                        }
+
+                        f_state.AddDefParam(_FuncState.TopTarget());
+                    }
+                    else // TO-DO add = for referencing global and do get ops
+                    {
+                        AddToErrorMessage("expected ':' for a sequence constants");
                         return false;
                     }
+                }
 
-                    f_state.AddDefParam(_FuncState.TopTarget());
-                }
-                else // TO-DO add = for referencing global and do get ops
-                {
-                    AddToErrorMessage("expected ':' for a sequence constants");
-                    return false;
-                }
 
                 if (_currToken == TokenType.SEP)
                 {

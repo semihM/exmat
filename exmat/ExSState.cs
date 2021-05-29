@@ -143,6 +143,13 @@ namespace ExMat.States
             },
             new()
             {
+                name = "count",
+                n_pchecks = 2,
+                mask = "a.",
+                func = new(GetDelegMethod("BASE_array_count"))
+            },
+            new()
+            {
                 name = "reverse",
                 n_pchecks = 1,
                 mask = "a",
@@ -154,6 +161,13 @@ namespace ExMat.States
                 n_pchecks = -2,
                 mask = "aii",
                 func = new(GetDelegMethod("BASE_array_slice"))
+            },
+            new()
+            {
+                name = "copy",
+                n_pchecks = 1,
+                mask = "a",
+                func = new(GetDelegMethod("BASE_array_copy"))
             },
             new()
             {
@@ -315,6 +329,13 @@ namespace ExMat.States
                 n_pchecks = -1,
                 mask = "si",
                 func = new(GetDelegMethod("BASE_string_isSymbol"))
+            },
+            new()
+            {
+                name = "slice",
+                n_pchecks = -2,
+                mask = "sii",
+                func = new(GetDelegMethod("BASE_string_slice"))
             },
 
             new() { name = string.Empty }

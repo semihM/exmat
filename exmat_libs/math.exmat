@@ -91,6 +91,48 @@ function MulOf(func,m=0,n=0)
     return total;
 }
 
+function Identity(n)    return matrix(n,n,$(i,j) i == j ? 1 : 0)
+
+function RandIMat(x,y,m=0,n=2)    return matrix(x,y,$(i,j) rand(m,n))
+
+function RandFMat(x,y,m=0,n=1)    return matrix(x,y,$(i,j) randf(m,n))    
+
+function Combination(n, r)  return Factorial(n) / (Factorial(r) * Factorial(n-r))
+
+function Permutation(n, r)  return Factorial(n) / Factorial(n-r)
+
+function Intersection(arr1, arr2)
+{
+    ::assert(typeof arr1 is "ARRAY", "expected list as first argument")
+    ::assert(typeof arr2 is "ARRAY", "expected list as second argument")
+
+    var lis = [];
+    var l = arr2.len()
+    for(var i = 0; i < l; i++)
+    {
+        if(arr2[i] in arr1)
+            lis.append(arr2[i])
+    }
+    
+    return lis
+}
+
+function Union(arr1, arr2)
+{
+    ::assert(typeof arr1 is "ARRAY", "expected list as first argument")
+    ::assert(typeof arr2 is "ARRAY", "expected list as second argument")
+
+    var lis = arr1.copy();
+    var l = arr2.len()
+    for(var i = 0; i < l; i++)
+    {
+        if(arr2[i] not in arr1)
+            lis.append(arr2[i])
+    }
+
+    return lis
+}
+
 class Vector3D
 {
     init(_x=0,_y=0,_z=0)
@@ -200,16 +242,6 @@ class Vector3D
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
     }
 }
-
-function Identity(n)    return matrix(n,n,$(i,j) i == j ? 1 : 0)
-
-function RandIMat(x,y,m=0,n=2)    return matrix(x,y,$(i,j) rand(m,n))
-
-function RandFMat(x,y,m=0,n=1)    return matrix(x,y,$(i,j) randf(m,n))    
-
-function Combination(n, r)  return Factorial(n) / (Factorial(r) * Factorial(n-r))
-
-function Permutation(n, r)  return Factorial(n) / Factorial(n-r)
 
 class Vector
 {

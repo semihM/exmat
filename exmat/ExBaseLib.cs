@@ -659,15 +659,19 @@ namespace ExMat.BaseLib
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
             ExObject obj = new(ExAPI.GetFromStack(vm, 3));
-            List<ExObject> l = new(obj._val.l_List.Count);
+            ExObject obj2 = nargs == 3 ? new(ExAPI.GetFromStack(vm, 4)) : null;
 
-            vm.Pop();
+            vm.Pop(nargs - 1);
 
             ExObject res = new();
             ExObject tmp = new();
 
             int n = 2;
             int m = 0;
+
+            int argcount = obj._val.l_List.Count;
+
+            List<ExObject> l = new(obj._val.l_List.Count);
 
             switch (cls._type)
             {
@@ -684,29 +688,70 @@ namespace ExMat.BaseLib
                                 defs.Add(_defs[i].GetString());
                             }
 
-                            foreach (ExObject o in obj._val.l_List)
+                            if (obj2 != null)
                             {
-                                vm.Push(cls);
-                                vm.Push(vm._rootdict);
-
-                                vm.Push(o);
-                                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                                if (obj2.GetList().Count != argcount)
                                 {
-                                    vm.Pop();
-                                    vm.b_main = _bm;
+                                    vm.AddToErrorMessage("expected same length for both arrays while mapping");
                                     return -1;
                                 }
-                                else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
+                                n++;
+
+                                for (int i = 0; i < argcount; i++)
                                 {
-                                    l.Add(new(vm.GetAt(vm._top - n - 1)));
-                                    vm.Pop(n + 1 + m);
-                                }
-                                else
-                                {
-                                    vm.Pop(n + 1 + m);
-                                    l.Add(new(tmp));
+                                    ExObject o = obj._val.l_List[i];
+                                    ExObject o2 = obj2._val.l_List[i];
+                                    vm.Push(cls);
+                                    vm.Push(vm._rootdict);
+
+                                    vm.Push(o);
+                                    vm.Push(o2);
+                                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                                    {
+                                        vm.Pop();
+                                        vm.b_main = _bm;
+                                        return -1;
+                                    }
+                                    else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
+                                    {
+                                        l.Add(new(vm.GetAt(vm._top - n - 1)));
+                                        vm.Pop(n + 1 + m);
+                                    }
+                                    else
+                                    {
+                                        vm.Pop(n + 1 + m);
+                                        l.Add(new(tmp));
+                                    }
                                 }
                             }
+                            else
+                            {
+                                for (int i = 0; i < argcount; i++)
+                                {
+                                    ExObject o = obj._val.l_List[i];
+                                    vm.Push(cls);
+                                    vm.Push(vm._rootdict);
+
+                                    vm.Push(o);
+                                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                                    {
+                                        vm.Pop();
+                                        vm.b_main = _bm;
+                                        return -1;
+                                    }
+                                    else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
+                                    {
+                                        l.Add(new(vm.GetAt(vm._top - n - 1)));
+                                        vm.Pop(n + 1 + m);
+                                    }
+                                    else
+                                    {
+                                        vm.Pop(n + 1 + m);
+                                        l.Add(new(tmp));
+                                    }
+                                }
+                            }
+
                             vm.b_main = _bm;
                             vm.Pop(n + m + 1);
                             vm.Push(new ExObject(l));
@@ -728,22 +773,56 @@ namespace ExMat.BaseLib
             bool bm = vm.b_main;
             vm.b_main = false;
 
-            foreach (ExObject o in obj._val.l_List)
+            if (obj2 != null)
             {
-                vm.Push(cls);
-                vm.Push(vm._rootdict);
-
-                vm.Push(o);
-                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                if (obj2.GetList().Count != argcount)
                 {
-                    vm.Pop();
-                    vm.b_main = bm;
+                    vm.AddToErrorMessage("expected same length for both arrays while mapping");
                     return -1;
                 }
-                else
+                n++;
+
+                for (int i = 0; i < obj._val.l_List.Count; i++)
                 {
-                    vm.Pop(n + 1 + m);
-                    l.Add(new(tmp));
+                    ExObject o = obj._val.l_List[i];
+                    ExObject o2 = obj2._val.l_List[i];
+                    vm.Push(cls);
+                    vm.Push(vm._rootdict);
+
+                    vm.Push(o);
+                    vm.Push(o2);
+                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                    {
+                        vm.Pop();
+                        vm.b_main = bm;
+                        return -1;
+                    }
+                    else
+                    {
+                        vm.Pop(n + 1 + m);
+                        l.Add(new(tmp));
+                    }
+                }
+            }
+            else
+            {
+                foreach (ExObject o in obj._val.l_List)
+                {
+                    vm.Push(cls);
+                    vm.Push(vm._rootdict);
+
+                    vm.Push(o);
+                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                    {
+                        vm.Pop();
+                        vm.b_main = bm;
+                        return -1;
+                    }
+                    else
+                    {
+                        vm.Pop(n + 1 + m);
+                        l.Add(new(tmp));
+                    }
                 }
             }
 
@@ -1292,60 +1371,332 @@ namespace ExMat.BaseLib
 
         public static int BASE_rangei(ExVM vm, int nargs)
         {
-            ExList l = new();
+            List<ExObject> l = new();
             ExObject s = ExAPI.GetFromStack(vm, 2);
 
-            switch (nargs)
+            switch (s._type)
             {
-                case 3:
+                case ExObjType.INTEGER:
                     {
-                        double start = s.GetFloat();
-                        double end = ExAPI.GetFromStack(vm, 3).GetFloat();
-                        double step = ExAPI.GetFromStack(vm, 4).GetFloat();
-                        l._val.l_List = new();
-
-                        if (end >= start)
+                        long start = s.GetInt();
+                        switch (nargs)
                         {
-                            int count = (int)((end - start) / step);
+                            case 3:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    ExObject d = ExAPI.GetFromStack(vm, 4);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                switch (d._type)
+                                                {
+                                                    case ExObjType.INTEGER:
+                                                        {
+                                                            long step = d.GetInt();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
 
-                            for (int i = 0; i <= count; i++)
-                            {
-                                l._val.l_List.Add(new(start + i * step));
-                            }
+                                                                for (int i = 0; i <= count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.FLOAT:
+                                                        {
+                                                            double step = d.GetFloat();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
+
+                                                                for (int i = 0; i <= count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.COMPLEX:
+                                                        {
+                                                            Complex step = d.GetComplex();
+                                                            if (end > start)
+                                                            {
+                                                                if (step.Real == 0)
+                                                                {
+                                                                    vm.AddToErrorMessage("can't use real number 'start' and 'end' range with 0 real valued complex number 'step'");
+                                                                    return -1;
+                                                                }
+                                                                int count = (int)((end - start) / step.Real);
+
+                                                                for (int i = 0; i <= count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 2:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                if (end > start)
+                                                {
+                                                    int count = (int)((end - start));
+
+                                                    for (int i = 0; i <= count; i++)
+                                                    {
+                                                        l.Add(new(start + i));
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 1:
+                                {
+                                    for (int i = 0; i <= start; i++)
+                                    {
+                                        l.Add(new(i));
+                                    }
+                                    break;
+                                }
                         }
-
                         break;
                     }
-
-                case 2:
+                case ExObjType.FLOAT:
                     {
                         double start = s.GetFloat();
-                        double end = ExAPI.GetFromStack(vm, 3).GetFloat();
-                        l._val.l_List = new();
-
-                        if (end >= start)
+                        switch (nargs)
                         {
-                            int count = (int)(end - start);
-                            for (int i = 0; i <= count; i++)
-                            {
-                                l._val.l_List.Add(new(start + i));
-                            }
-                        }
+                            case 3:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    ExObject d = ExAPI.GetFromStack(vm, 4);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                switch (d._type)
+                                                {
+                                                    case ExObjType.INTEGER:
+                                                        {
+                                                            long step = d.GetInt();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
 
+                                                                for (int i = 0; i <= count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.FLOAT:
+                                                        {
+                                                            double step = d.GetFloat();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
+
+                                                                for (int i = 0; i <= count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.COMPLEX:
+                                                        {
+                                                            Complex step = d.GetComplex();
+                                                            if (end > start)
+                                                            {
+                                                                if (step.Real == 0)
+                                                                {
+                                                                    vm.AddToErrorMessage("can't use real number 'start' and 'end' range with 0 real valued complex number 'step'");
+                                                                    return -1;
+                                                                }
+                                                                int count = (int)((end - start) / step.Real);
+
+                                                                for (int i = 0; i <= count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 2:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                if (end > start)
+                                                {
+                                                    int count = (int)((end - start));
+
+                                                    for (int i = 0; i <= count; i++)
+                                                    {
+                                                        l.Add(new(start + i));
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 1:
+                                {
+                                    for (int i = 0; i <= start; i++)
+                                    {
+                                        l.Add(new(i));
+                                    }
+                                    break;
+                                }
+                        }
                         break;
                     }
-
-                case 1:
+                case ExObjType.COMPLEX:
                     {
-                        double end = s.GetFloat();
-                        l._val.l_List = new();
-
-                        int count = (int)end;
-                        for (int i = 0; i <= count; i++)
+                        Complex start = s.GetComplex();
+                        switch (nargs)
                         {
-                            l._val.l_List.Add(new(i));
-                        }
+                            case 3:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    ExObject d = ExAPI.GetFromStack(vm, 4);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                long count = e.GetInt();
+                                                switch (d._type)
+                                                {
+                                                    case ExObjType.INTEGER:
+                                                        {
+                                                            long step = d.GetInt();
+                                                            for (int i = 0; i <= count; i++)
+                                                            {
+                                                                l.Add(new(start + i * step));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.FLOAT:
+                                                        {
+                                                            double step = d.GetFloat();
+                                                            for (int i = 0; i <= count; i++)
+                                                            {
+                                                                l.Add(new(start + i * step));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.COMPLEX:
+                                                        {
+                                                            Complex step = d.GetComplex();
+                                                            for (int i = 0; i <= count; i++)
+                                                            {
+                                                                l.Add(new(start + i * step));
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("expected integer as 2nd argument for complex number range(start, count, step)");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
 
+                            case 2:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                long count = e.GetInt();
+                                                for (int i = 0; i <= count; i++)
+                                                {
+                                                    l.Add(new(start + i * start));
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("expected integer as 2nd argument for complex number range(start, count)");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 1:
+                                {
+                                    for (int i = 1; i < start.Real; i++)
+                                    {
+                                        l.Add(new(i * start));
+                                    }
+                                    break;
+                                }
+                        }
                         break;
                     }
             }
@@ -1356,63 +1707,335 @@ namespace ExMat.BaseLib
 
         public static int BASE_range(ExVM vm, int nargs)
         {
-            ExList l = new();
+            List<ExObject> l = new();
             ExObject s = ExAPI.GetFromStack(vm, 2);
-
-            switch (nargs)
+            switch (s._type)
             {
-                case 3:
+                case ExObjType.INTEGER:
                     {
-                        double start = s.GetFloat();
-                        double end = ExAPI.GetFromStack(vm, 3).GetFloat();
-                        double step = ExAPI.GetFromStack(vm, 4).GetFloat();
-                        l._val.l_List = new();
-
-                        if (end > start)
+                        long start = s.GetInt();
+                        switch (nargs)
                         {
-                            int count = (int)((end - start) / step);
+                            case 3:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    ExObject d = ExAPI.GetFromStack(vm, 4);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                switch (d._type)
+                                                {
+                                                    case ExObjType.INTEGER:
+                                                        {
+                                                            long step = d.GetInt();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
 
-                            for (int i = 0; i < count; i++)
-                            {
-                                l._val.l_List.Add(new(start + i * step));
-                            }
+                                                                for (int i = 0; i < count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.FLOAT:
+                                                        {
+                                                            double step = d.GetFloat();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
+
+                                                                for (int i = 0; i < count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.COMPLEX:
+                                                        {
+                                                            Complex step = d.GetComplex();
+                                                            if (end > start)
+                                                            {
+                                                                if (step.Real == 0)
+                                                                {
+                                                                    vm.AddToErrorMessage("can't use real number 'start' and 'end' range with 0 real valued complex number 'step'");
+                                                                    return -1;
+                                                                }
+                                                                int count = (int)((end - start) / step.Real);
+
+                                                                for (int i = 0; i < count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 2:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                if (end > start)
+                                                {
+                                                    int count = (int)((end - start));
+
+                                                    for (int i = 0; i < count; i++)
+                                                    {
+                                                        l.Add(new(start + i));
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 1:
+                                {
+                                    for (int i = 0; i < start; i++)
+                                    {
+                                        l.Add(new(i));
+                                    }
+                                    break;
+                                }
                         }
-
                         break;
                     }
-
-                case 2:
+                case ExObjType.FLOAT:
                     {
                         double start = s.GetFloat();
-                        double end = ExAPI.GetFromStack(vm, 3).GetFloat();
-                        l._val.l_List = new();
-
-                        if (end > start)
+                        switch (nargs)
                         {
-                            int count = (int)(end - start);
-                            for (int i = 0; i < count; i++)
-                            {
-                                l._val.l_List.Add(new(start + i));
-                            }
-                        }
+                            case 3:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    ExObject d = ExAPI.GetFromStack(vm, 4);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                switch (d._type)
+                                                {
+                                                    case ExObjType.INTEGER:
+                                                        {
+                                                            long step = d.GetInt();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
 
+                                                                for (int i = 0; i < count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.FLOAT:
+                                                        {
+                                                            double step = d.GetFloat();
+                                                            if (end > start)
+                                                            {
+                                                                int count = (int)((end - start) / step);
+
+                                                                for (int i = 0; i < count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.COMPLEX:
+                                                        {
+                                                            Complex step = d.GetComplex();
+                                                            if (end > start)
+                                                            {
+                                                                if (step.Real == 0)
+                                                                {
+                                                                    vm.AddToErrorMessage("can't use real number 'start' and 'end' range with 0 real valued complex number 'step'");
+                                                                    return -1;
+                                                                }
+                                                                int count = (int)((end - start) / step.Real);
+
+                                                                for (int i = 0; i < count; i++)
+                                                                {
+                                                                    l.Add(new(start + i * step));
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 2:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                double end = e.GetFloat();
+                                                if (end > start)
+                                                {
+                                                    int count = (int)((end - start));
+
+                                                    for (int i = 0; i < count; i++)
+                                                    {
+                                                        l.Add(new(start + i));
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("can't create range from real number to complex");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 1:
+                                {
+                                    for (int i = 0; i < start; i++)
+                                    {
+                                        l.Add(new(i));
+                                    }
+                                    break;
+                                }
+                        }
                         break;
                     }
-
-                case 1:
+                case ExObjType.COMPLEX:
                     {
-                        double end = s.GetFloat();
-                        l._val.l_List = new();
-
-                        int count = (int)end;
-                        for (int i = 0; i < count; i++)
+                        Complex start = s.GetComplex();
+                        switch (nargs)
                         {
-                            l._val.l_List.Add(new(i));
-                        }
+                            case 3:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    ExObject d = ExAPI.GetFromStack(vm, 4);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                long count = e.GetInt();
+                                                switch (d._type)
+                                                {
+                                                    case ExObjType.INTEGER:
+                                                        {
+                                                            long step = d.GetInt();
+                                                            for (int i = 0; i < count; i++)
+                                                            {
+                                                                l.Add(new(start + i * step));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.FLOAT:
+                                                        {
+                                                            double step = d.GetFloat();
+                                                            for (int i = 0; i < count; i++)
+                                                            {
+                                                                l.Add(new(start + i * step));
+                                                            }
+                                                            break;
+                                                        }
+                                                    case ExObjType.COMPLEX:
+                                                        {
+                                                            Complex step = d.GetComplex();
+                                                            for (int i = 0; i < count; i++)
+                                                            {
+                                                                l.Add(new(start + i * step));
+                                                            }
+                                                            break;
+                                                        }
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("expected integer as 2nd argument for complex number range(start, count, step)");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
 
+                            case 2:
+                                {
+                                    ExObject e = ExAPI.GetFromStack(vm, 3);
+                                    switch (e._type)
+                                    {
+                                        case ExObjType.FLOAT:
+                                        case ExObjType.INTEGER:
+                                            {
+                                                long count = e.GetInt();
+                                                for (int i = 0; i < count; i++)
+                                                {
+                                                    l.Add(new(start + i * start));
+                                                }
+                                                break;
+                                            }
+                                        case ExObjType.COMPLEX:
+                                            {
+                                                vm.AddToErrorMessage("expected integer as 2nd argument for complex number range(start, count)");
+                                                return -1;
+                                            }
+                                    }
+                                    break;
+                                }
+
+                            case 1:
+                                {
+                                    for (int i = 1; i < start.Real; i++)
+                                    {
+                                        l.Add(new(i * start));
+                                    }
+                                    break;
+                                }
+                        }
                         break;
                     }
             }
+
             vm.Pop(nargs + 2);
             vm.Push(l);
             return 1;
@@ -1831,6 +2454,93 @@ namespace ExMat.BaseLib
             vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
+        public static int BASE_string_slice(ExVM vm, int nargs)
+        {
+            ExObject o = new();
+            ExAPI.GetSafeObject(vm, -1 - nargs, ExObjType.STRING, ref o);
+
+            int start = (int)ExAPI.GetFromStack(vm, 2).GetInt();
+
+            char[] arr = o.GetString().ToCharArray();
+            char[] res = null;
+
+            int n = arr.Length;
+            bool filled = false;
+
+            switch (nargs)
+            {
+                case 1:
+                    {
+                        if (start < 0)
+                        {
+                            start += n;
+                        }
+                        if (start > n || start < 0)
+                        {
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return -1;
+                        }
+
+                        filled = true;
+                        res = new char[start];
+
+                        for (int i = 0; i < start; i++)
+                        {
+                            res[i] = arr[i];
+                        }
+                        break;
+                    }
+                case 2:
+                    {
+                        int end = (int)ExAPI.GetFromStack(vm, 3).GetInt();
+                        if (start < 0)
+                        {
+                            start += n;
+                        }
+                        if (start >= n || start < 0)
+                        {
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return -1;
+                        }
+
+                        if (end < 0)
+                        {
+                            end += n;
+                        }
+                        if (end > n || end < 0)
+                        {
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return -1;
+                        }
+
+                        if (start >= end)
+                        {
+                            break;
+                        }
+
+                        filled = true;
+                        res = new char[end - start];
+
+                        for (int i = start, j = 0; i < end; i++, j++)
+                        {
+                            res[j] = arr[i];
+                        }
+                        break;
+                    }
+            }
+
+            vm.Pop(nargs + 2);
+            if (filled)
+            {
+                vm.Push(new string(res));
+            }
+            else
+            {
+                vm.Push(string.Empty);
+            }
+            return 1;
+        }
+
         // ARRAY
         public static int BASE_array_append(ExVM vm, int nargs)
         {
@@ -1928,6 +2638,18 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int BASE_array_count(ExVM vm, int nargs)
+        {
+            ExObject res = new();
+            ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
+            using ExObject obj = new(ExAPI.GetFromStack(vm, 2));
+
+            int i = ExAPI.CountValueEqualsInArray(res._val.l_List, obj);
+            vm.Pop(nargs + 2);
+            vm.Push(i);
+            return 1;
+        }
+
         public static int BASE_array_slice(ExVM vm, int nargs)
         {
             ExObject o = new();
@@ -1946,33 +2668,19 @@ namespace ExMat.BaseLib
                     {
                         if (start < 0)
                         {
-                            if (start < -n)
-                            {
-                                vm.AddToErrorMessage("negative end index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                return -1;
-                            }
-
-                            res = new(-start);
-
-                            for (int i = n + start; i < n; i++)
-                            {
-                                res.Add(new(arr[i]));
-                            }
+                            start += n;
                         }
-                        else
+                        if (start > n || start < 0)
                         {
-                            if (start >= n)
-                            {
-                                vm.AddToErrorMessage("negative end index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                return -1;
-                            }
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return -1;
+                        }
 
-                            res = new(start);
+                        res = new(start);
 
-                            for (int i = 0; i < start; i++)
-                            {
-                                res.Add(new(arr[i]));
-                            }
+                        for (int i = 0; i < start; i++)
+                        {
+                            res.Add(new(arr[i]));
                         }
                         break;
                     }
@@ -1981,68 +2689,36 @@ namespace ExMat.BaseLib
                         int end = (int)ExAPI.GetFromStack(vm, 3).GetInt();
                         if (start < 0)
                         {
-                            if (start < -n)
-                            {
-                                vm.AddToErrorMessage("negative start index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                return -1;
-                            }
-
-                            if (end < 0)
-                            {
-                                if (end < -n)
-                                {
-                                    vm.AddToErrorMessage("negative end index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                    return -1;
-                                }
-                                end = n + end;
-                            }
-                            else
-                            {
-                                if (end > n)
-                                {
-                                    vm.AddToErrorMessage("negative end index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                    return -1;
-                                }
-                            }
-                            res = new(-start);
-
-                            for (int i = n + start; i < end; i++)
-                            {
-                                res.Add(new(arr[i]));
-                            }
+                            start += n;
                         }
-                        else
+                        if (start > n || start < 0)
                         {
-                            if (start >= n)
-                            {
-                                vm.AddToErrorMessage("negative start index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                return -1;
-                            }
-
-                            if (end < 0)
-                            {
-                                if (end < -n)
-                                {
-                                    vm.AddToErrorMessage("negative end index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                    return -1;
-                                }
-                                end = n + end;
-                            }
-                            else
-                            {
-                                if (end > n)
-                                {
-                                    vm.AddToErrorMessage("negative end index out of range, must be in range: [" + (-n) + ", " + (n - 1) + "]");
-                                    return -1;
-                                }
-                            }
-                            res = new(start);
-
-                            for (int i = start; i < end; i++)
-                            {
-                                res.Add(new(arr[i]));
-                            }
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return -1;
                         }
+
+                        if (end < 0)
+                        {
+                            end += n;
+                        }
+                        if (end > n || end < 0)
+                        {
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return -1;
+                        }
+
+                        if (start >= end)
+                        {
+                            break;
+                        }
+
+                        res = new(end - start);
+
+                        for (int i = start; i < end; i++)
+                        {
+                            res.Add(new(arr[i]));
+                        }
+
                         break;
                     }
             }
@@ -2064,6 +2740,41 @@ namespace ExMat.BaseLib
             vm.Push(res);
             return 1;
         }
+
+        public static int BASE_array_copy(ExVM vm, int nargs)
+        {
+            ExObject obj = ExAPI.GetFromStack(vm, 1);
+            List<ExObject> lis = obj.GetList();
+            List<ExObject> res = new(lis.Count);
+            for (int i = 0; i < lis.Count; i++)
+            {
+                res.Add(new(lis[i]));
+            }
+            vm.Pop(nargs + 2);
+            vm.Push(res);
+            return 1;
+        }
+
+        public static int BASE_array_transpose(ExVM vm, int nargs)
+        {
+            ExObject res = new();
+            ExAPI.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res);
+            List<ExObject> vals = res.GetList();
+            int rows = vals.Count;
+            int cols = 0;
+
+            if (!ExAPI.DoMatrixTransposeChecks(vm, vals, ref cols))
+            {
+                return -1;
+            }
+
+            List<ExObject> lis = ExAPI.TransposeMatrix(rows, cols, vals);
+
+            vm.Pop(nargs + 2);
+            vm.Push(lis);
+            return 1;
+        }
+
         // DICT
         public static int BASE_dict_has_key(ExVM vm, int nargs)
         {
@@ -2101,26 +2812,6 @@ namespace ExMat.BaseLib
             }
             vm.Pop(nargs + 2);
             vm.Push(vals);
-            return 1;
-        }
-
-        public static int BASE_array_transpose(ExVM vm, int nargs)
-        {
-            ExObject res = new();
-            ExAPI.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res);
-            List<ExObject> vals = res.GetList();
-            int rows = vals.Count;
-            int cols = 0;
-
-            if (!ExAPI.DoMatrixTransposeChecks(vm, vals, ref cols))
-            {
-                return -1;
-            }
-
-            List<ExObject> lis = ExAPI.TransposeMatrix(rows, cols, vals);
-
-            vm.Pop(nargs + 2);
-            vm.Push(lis);
             return 1;
         }
 
@@ -2644,8 +3335,8 @@ namespace ExMat.BaseLib
             {
                 name = "map",
                 func = new(GetBaseLibMethod("BASE_map")),
-                n_pchecks = 3,
-                mask = ".c|ya"
+                n_pchecks = -3,
+                mask = ".c|yaa"
             },
             new()
             {

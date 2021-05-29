@@ -2,8 +2,8 @@
 {
     public enum TokenType
     {
-        UNKNOWN = -1,
-        ENDLINE,
+        UNKNOWN = -2,
+        ENDLINE = 0,
 
         /// <summary>
         /// Name

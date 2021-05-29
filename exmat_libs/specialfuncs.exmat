@@ -1,0 +1,8 @@
+function RiemannZetaFunc(s,m=10000) return iter($(prev,curr,i) prev + curr, map($(i) recip(pow(i,3)), range(1,10000)), 0.0)
+
+seq RiemannZeta(-1:-0.08333333333333333,
+                0: -0.5,
+                0.5: -1.460354508809,
+                1: INF,
+                1.5: 2.612375348685,
+                ∞: 1) RiemannZetaFunc(n)

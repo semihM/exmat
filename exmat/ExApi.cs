@@ -344,6 +344,22 @@ namespace ExMat.API
             }
         }
 
+        public static int CountValueEqualsInArray(List<ExObject> lis, ExObject obj)
+        {
+            int i = 0;
+            bool f = false;
+            int count = 0;
+            for (; i < lis.Count; i++)
+            {
+                ExVM.CheckEqual(lis[i], obj, ref f);
+                if (f)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+
         public static int GetValueIndexFromArray(List<ExObject> lis, ExObject obj)
         {
             int i = 0;

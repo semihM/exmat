@@ -8,3 +8,6 @@ csharp_style_unused_value_assignment_preference = unused_local_variable
 
 # IDE0060: Remove unused parameter
 dotnet_code_quality_unused_parameters = non_public
+
+# CA1069: Enums values should not be duplicated
+dotnet_diagnostic.CA1069.severity = silent
