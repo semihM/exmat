@@ -31,7 +31,7 @@ namespace ExMat.States
         public List<ExObject> _params = new();
         public List<int> _defparams = new();
 
-        public List<ExFuncPro> _funcs = new();
+        public List<ExPrototype> _funcs = new();
 
         public int _stacksize;
         public ExStack _tStack = new();
@@ -725,9 +725,9 @@ namespace ExMat.States
             return _defparams.Count;
         }
 
-        public ExFuncPro CreatePrototype()
+        public ExPrototype CreatePrototype()
         {
-            ExFuncPro funcPro = ExFuncPro.Create(_Sstate,
+            ExPrototype funcPro = ExPrototype.Create(_Sstate,
                                                  _instructions.Count,
                                                  _nliterals,
                                                  _params.Count,

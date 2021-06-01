@@ -312,7 +312,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.CLOSURE:
                     {
-                        ExFuncPro tmp = obj._val._Closure._func;
+                        ExPrototype tmp = obj._val._Closure._func;
                         string s = string.Empty;
                         switch (tmp.type)
                         {
@@ -721,7 +721,7 @@ namespace ExMat.VM
             _stack[_top++].Assign(o);
         }
 
-        public void Push(ExFuncPro o)
+        public void Push(ExPrototype o)
         {
             _stack[_top++].Assign(o);
         }
@@ -772,7 +772,7 @@ namespace ExMat.VM
         {
             int t_n = cls._defparams.Count;
 
-            ExFuncPro pro = cls._func;
+            ExPrototype pro = cls._func;
             List<ExObject> ts = cls._defparams;
             int nargs = lis.Count;
 
@@ -809,7 +809,7 @@ namespace ExMat.VM
         {
             int t_n = cls._defparams.Count;
 
-            ExFuncPro pro = cls._func;
+            ExPrototype pro = cls._func;
             List<ExObject> ts = cls._defparams;
 
             if (t_n > 0)
@@ -838,7 +838,7 @@ namespace ExMat.VM
 
         public bool StartCall(ExClosure cls, int trg, int args, int sbase, bool tail)
         {
-            ExFuncPro pro = cls._func;
+            ExPrototype pro = cls._func;
 
             int p = pro.n_params;
             int newt = sbase + pro._stacksize;
@@ -2312,7 +2312,7 @@ namespace ExMat.VM
                     case OPC.CLOSURE:
                         {
                             ExClosure cl = ci._val._closure.GetClosure();
-                            ExFuncPro fp = cl._func;
+                            ExPrototype fp = cl._func;
                             if (!DoClosureOP(GetTargetInStack(i), fp._funcs[(int)i.arg1]))
                             {
                                 throw new Exception("failed to create closure");
@@ -2508,7 +2508,7 @@ namespace ExMat.VM
             return -1;
         }
 
-        public bool DoClosureOP(ExObject t, ExFuncPro fp)
+        public bool DoClosureOP(ExObject t, ExPrototype fp)
         {
             int nout;
             ExClosure cl = ExClosure.Create(_sState, fp);

@@ -20,7 +20,7 @@ namespace ExMat.FuncPrototype
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExFuncPro : ExObject
+    public class ExPrototype : ExObject
     {
         public int n_instr;
         public int n_lits;
@@ -46,12 +46,12 @@ namespace ExMat.FuncPrototype
         public List<ExObject> _lits;
         public List<ExObject> _params;
         public List<int> _defparams;
-        public List<ExFuncPro> _funcs;
+        public List<ExPrototype> _funcs;
         public List<ExLocalInfo> _localinfos;
         public List<ExLineInfo> _lineinfos;
         public List<ExOuterInfo> _outers;
 
-        public static ExFuncPro Create(ExSState sState,
+        public static ExPrototype Create(ExSState sState,
                                        int n_instr,
                                        int n_lits,
                                        int n_params,
@@ -61,7 +61,7 @@ namespace ExMat.FuncPrototype
                                        int n_localinfos,
                                        int n_defparams)
         {
-            ExFuncPro funcPro = new(sState);
+            ExPrototype funcPro = new(sState);
 
             funcPro.n_instr = n_instr;
             funcPro._instr = new();
@@ -91,12 +91,12 @@ namespace ExMat.FuncPrototype
             return funcPro;
         }
 
-        public ExFuncPro()
+        public ExPrototype()
         {
             _type = ExObjType.FUNCPRO;
         }
 
-        public ExFuncPro(ExSState ss)
+        public ExPrototype(ExSState ss)
         {
             _type = ExObjType.FUNCPRO;
             _stacksize = 0;

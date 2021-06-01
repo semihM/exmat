@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using ExMat.FuncPrototype;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -10,6 +11,18 @@ using ExMat.VM;
 
 namespace ExMat.Compiler
 {
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+    public class ExScope
+    {
+        public int outers;
+        public int stack_size;
+
+        public string GetDebuggerDisplay()
+        {
+            return "SCOPE(n_outers: " + outers + ", size_stack: " + stack_size + ")";
+        }
+    }
+
     public class ExCompiler : IDisposable
     {
         private ExVM _VM;
@@ -936,7 +949,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
-            ExFuncPro fpro = f_state.CreatePrototype();
+            ExPrototype fpro = f_state.CreatePrototype();
             fpro.type = ExClosureType.SEQUENCE;
 
             _FuncState = tmp;
@@ -1145,7 +1158,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
-            ExFuncPro fpro = f_state.CreatePrototype();
+            ExPrototype fpro = f_state.CreatePrototype();
             fpro.type = ExClosureType.CLUSTER;
 
             _FuncState = tmp;
@@ -1212,7 +1225,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
-            ExFuncPro fpro = f_state.CreatePrototype();
+            ExPrototype fpro = f_state.CreatePrototype();
             fpro.type = ExClosureType.FORMULA;
 
             _FuncState = tmp;
@@ -1301,7 +1314,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
-            ExFuncPro fpro = f_state.CreatePrototype();
+            ExPrototype fpro = f_state.CreatePrototype();
             fpro.type = ExClosureType.RULE;
 
             _FuncState = tmp;
@@ -3373,7 +3386,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
-            ExFuncPro fpro = f_state.CreatePrototype();
+            ExPrototype fpro = f_state.CreatePrototype();
             fpro.type = ExClosureType.MACRO;
 
             _FuncState = tmp;
@@ -3597,7 +3610,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
-            ExFuncPro fpro = f_state.CreatePrototype();
+            ExPrototype fpro = f_state.CreatePrototype();
 
             _FuncState = tmp;
             _FuncState._funcs.Add(fpro);

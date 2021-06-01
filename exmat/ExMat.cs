@@ -114,7 +114,7 @@ namespace ExMat
         public ExClosure _Closure;    // 144
         public ExOuter _Outer;    // 152
         public ExNativeClosure _NativeClosure;    // 280
-        public ExFuncPro _FuncPro;    // 200
+        public ExPrototype _FuncPro;    // 200
         public ExClass _Class;    // 1640
         public ExInstance _Instance;  // 168
         public ExWeakRef _WeakRef;    // 104

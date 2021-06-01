@@ -545,13 +545,13 @@ namespace ExMat.Objects
             Release(t, v);
         }
 
-        public ExObject(ExFuncPro o)
+        public ExObject(ExPrototype o)
         {
             _type = ExObjType.FUNCPRO;
             _val._FuncPro = o;
             AddReference(_type, _val, true);
         }
-        public void Assign(ExFuncPro o)
+        public void Assign(ExPrototype o)
         {
             ExObjType t = _type;
             ExObjVal v = _val;

@@ -924,7 +924,7 @@ namespace ExMat.BaseLib
 
             if (iscls)
             {
-                ExFuncPro pro = cls.GetClosure()._func;
+                ExPrototype pro = cls.GetClosure()._func;
 
                 if (pro.n_params == 1)
                 {

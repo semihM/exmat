@@ -85,7 +85,7 @@ namespace ExMat.Closure
     {
         public ExWeakRef _envweakref;
         public ExClass _base;
-        public ExFuncPro _func;
+        public ExPrototype _func;
         public List<ExObject> _outervals;
         public List<ExObject> _defparams;
         public ExSState _sState;
@@ -101,7 +101,7 @@ namespace ExMat.Closure
             Disposer.DisposeList(ref _defparams);
         }
 
-        public static ExClosure Create(ExSState exS, ExFuncPro fpro)
+        public static ExClosure Create(ExSState exS, ExPrototype fpro)
         {
             ExClosure cls = new() { _sState = exS, _func = fpro };
             ExUtils.InitList(ref cls._outervals, fpro.n_outers);
@@ -117,7 +117,7 @@ namespace ExMat.Closure
 
         public ExClosure Copy()
         {
-            ExFuncPro fp = _func;
+            ExPrototype fp = _func;
             ExClosure res = Create(_sState, fp);
             res._envweakref = _envweakref;
             if (res._envweakref != null)
