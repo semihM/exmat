@@ -105,7 +105,7 @@ namespace ExMat.BaseLib
                                     }
                                 case "year":
                                     {
-                                        res.Add(new ExObject(now.Month.ToString()));
+                                        res.Add(new ExObject(now.Year.ToString()));
                                         break;
                                     }
                                 case "month":
@@ -377,29 +377,44 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         ExObject obj = ExAPI.GetFromStack(vm, 2);
-                        if (obj._type == ExObjType.ARRAY && carr)
+                        if (carr)
                         {
-                            string str = string.Empty;
-                            foreach (ExObject o in obj.GetList())
+                            if (obj._type == ExObjType.ARRAY)
                             {
-                                if (o._type == ExObjType.STRING) // && o.GetString().Length == 1)
+                                string str = string.Empty;
+                                foreach (ExObject o in obj.GetList())
                                 {
-                                    str += o.GetString();
+                                    if (o._type == ExObjType.STRING) // && o.GetString().Length == 1)
+                                    {
+                                        str += o.GetString();
+                                    }
+                                    else if (o._type == ExObjType.INTEGER && o.GetInt() >= 0)
+                                    {
+                                        str += (char)o.GetInt();
+                                    }
+                                    else
+                                    {
+                                        vm.AddToErrorMessage("failed to create string, list must contain all positive integers or strings");
+                                        return -1;
+                                    }
                                 }
-                                else if (o._type == ExObjType.INTEGER && o.GetInt() >= 0)
+
+                                vm.Pop(nargs + 2);
+                                vm.Push(str);
+                                break;
+                            }
+                            else if (obj._type == ExObjType.INTEGER)
+                            {
+                                long val = obj.GetInt();
+                                if (val < char.MinValue || val > char.MaxValue)
                                 {
-                                    str += (char)o.GetInt();
-                                }
-                                else
-                                {
-                                    vm.AddToErrorMessage("failed to create string, list must contain all positive integers or strings");
+                                    vm.AddToErrorMessage("integer out of range for char conversion");
                                     return -1;
                                 }
-                            }
 
-                            vm.Pop(nargs + 2);
-                            vm.Push(str);
-                            break;
+                                vm.Pop(nargs + 2);
+                                vm.Push(((char)val).ToString());
+                            }
                         }
                         else if (!ExAPI.ToString(vm, 2, depth, nargs + 2))
                         {

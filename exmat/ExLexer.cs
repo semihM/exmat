@@ -121,6 +121,7 @@ namespace ExMat.Lexer
         public string _error;
 
         private ExLexer _lookahead;
+
         private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)
@@ -180,6 +181,8 @@ namespace ExMat.Lexer
             CreateKeyword(ExMat._THIS, TokenType.THIS);
             CreateKeyword("base", TokenType.BASE);
 
+            //CreateKeyword("sym", TokenType.SYMBOL);
+            //CreateKeyword("formula", TokenType.FORMULA);
             CreateKeyword("rule", TokenType.RULE);
             CreateKeyword("cluster", TokenType.CLUSTER);
 
@@ -610,6 +613,82 @@ namespace ExMat.Lexer
                                             Next();
                                             break;
                                         }
+                                    case 'x':
+                                        {
+                                            int s;
+                                            Next();
+                                            if (IsValidHexChar(ref _currChar))
+                                            {
+                                                s = GetHexCharVal(_currChar) * 16;
+                                                Next();
+                                                if (IsValidHexChar(ref _currChar))
+                                                {
+                                                    s += GetHexCharVal(_currChar);
+                                                    Next();
+                                                    _aStr += (char)s;
+                                                }
+                                                else
+                                                {
+                                                    _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
+                                                    return TokenType.UNKNOWN;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
+                                                return TokenType.UNKNOWN;
+                                            }
+
+                                            break;
+                                        }
+                                    case 'u':
+                                        {
+                                            int s;
+                                            Next();
+                                            if (IsValidHexChar(ref _currChar))
+                                            {
+                                                s = GetHexCharVal(_currChar) * 4096;
+                                                Next();
+                                                if (IsValidHexChar(ref _currChar))
+                                                {
+                                                    s += GetHexCharVal(_currChar) * 256;
+                                                    Next();
+                                                    if (IsValidHexChar(ref _currChar))
+                                                    {
+                                                        s += GetHexCharVal(_currChar) * 16;
+                                                        Next();
+                                                        if (IsValidHexChar(ref _currChar))
+                                                        {
+                                                            s += GetHexCharVal(_currChar);
+                                                            Next();
+                                                            _aStr += (char)s;
+                                                        }
+                                                        else
+                                                        {
+                                                            _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
+                                                            return TokenType.UNKNOWN;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
+                                                        return TokenType.UNKNOWN;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
+                                                    return TokenType.UNKNOWN;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
+                                                return TokenType.UNKNOWN;
+                                            }
+
+                                            break;
+                                        }
                                     default:
                                         {
                                             _error = "unknown escape char '" + _currChar + "'";
@@ -639,6 +718,23 @@ namespace ExMat.Lexer
 
             str_val = _aStr;
             return TokenType.LITERAL;
+        }
+
+        private static int GetHexCharVal(char curr)
+        {
+            if (char.IsDigit(curr))
+            {
+                return curr - 48;
+            }
+            else
+            {
+                return curr - 87;
+            }
+        }
+
+        private static bool IsValidHexChar(ref char curr)
+        {
+            return char.IsDigit(curr) || (char.IsLetter(curr) && (curr = char.ToLower(curr)) <= 'f' && curr >= 'a');
         }
 
         private TokenType GetIdType()

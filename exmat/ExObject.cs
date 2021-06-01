@@ -187,6 +187,7 @@ namespace ExMat.Objects
                 case ExObjType.INTEGER: s += " " + GetInt(); break;
                 case ExObjType.FLOAT: s += " " + GetFloat(); break;
                 case ExObjType.COMPLEX: s += " " + GetComplex().ToString(); break;
+                //case ExObjType.SYMBOL: s += " (" + GetSymCoef().GetDebuggerDisplay() + ") * (" + (GetSym().type == ExSymType.VARIABLE ? GetSymName() : GetSym().GetNumeric().ToString()) + ") ** (" + GetSymExpo().GetDebuggerDisplay() + ")"; break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
                 case ExObjType.CLOSURE: s = (GetClosure() == null ? s + GetString() : _val._Closure.GetDebuggerDisplay()); break;
@@ -209,6 +210,7 @@ namespace ExMat.Objects
 
                     _val._RefC = null;
                     _val.c_Space = null;
+                    //_val.sym = null;
                     Disposer.DisposeList(ref _val.l_List);
                     Disposer.DisposeDict(ref _val.d_Dict);
                     _val._Method = null;
@@ -1137,6 +1139,99 @@ namespace ExMat.Objects
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+    }
+
+    public enum ExSymType
+    {
+        VARIABLE,
+        INTEGER,
+        FLOAT
+    }
+
+    public class ExSym : ExObject
+    {
+        private bool disposedValue;
+        public string name;
+        public ExObject coef = new(1);
+        public ExObject expo = new(1);
+        public ExSymType type = ExSymType.INTEGER;
+
+        public ExSym()
+        {
+            _type = ExObjType.SYMBOL;
+            _val._RefC = new();
+        }
+
+        public ExSym(ExObject _coef, ExObject _expo)
+        {
+            _type = ExObjType.SYMBOL;
+            _val._RefC = new();
+            coef = _coef;
+            expo = _expo;
+        }
+
+        public static ExSym CreateVar(string name)
+        {
+            ExSym s = new();
+            s.type = ExSymType.VARIABLE;
+            s.name = name;
+            return s;
+        }
+
+        public static ExSym CreateVar(string name, ExObject coef, ExObject expo)
+        {
+            ExSym s = new(coef, expo);
+            s.type = ExSymType.VARIABLE;
+            s.name = name;
+            return s;
+        }
+
+        public static ExSym CreateNum(long val, ExObject coef, ExObject expo)
+        {
+            ExSym s = new(coef, expo);
+            s.type = ExSymType.INTEGER;
+            s._val.i_Int = val;
+            return s;
+        }
+        public static ExSym CreateNum(double val, ExObject coef, ExObject expo)
+        {
+            ExSym s = new(coef, expo);
+            s.type = ExSymType.FLOAT;
+            s._val.f_Float = val;
+            return s;
+        }
+
+        public void SetName(string n)
+        {
+            _val.s_String = n[1..-1];
+        }
+
+        public string GetName()
+        {
+            return _val.s_String;
+        }
+
+        public dynamic GetNumeric()
+        {
+            return type == ExSymType.FLOAT ? _val.f_Float : _val.i_Int;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            Dispose();
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    name = null;
+                    Disposer.DisposeObjects(coef, expo);
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
         }
     }
 }

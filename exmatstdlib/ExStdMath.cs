@@ -221,6 +221,17 @@ namespace ExMat.BaseLib
             return 1;
         }
 
+        public static int MATH_areCoprime(ExVM vm, int nargs)
+        {
+            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long b = ExAPI.GetFromStack(vm, 3).GetInt();
+
+            vm.Pop(nargs + 2);
+            vm.Push(GetGCD(a, b) == 1.0);
+
+            return 1;
+        }
+
         public static int MATH_prime(ExVM vm, int nargs)
         {
             int a = (int)ExAPI.GetFromStack(vm, 2).GetInt();
@@ -399,6 +410,42 @@ namespace ExMat.BaseLib
                     }
             }
 
+            return 1;
+        }
+        public static int MATH_digits(ExVM vm, int nargs)
+        {
+            long i = ExAPI.GetFromStack(vm, 2).GetInt();
+            string s = i.ToString();
+            List<ExObject> lis = new();
+            if (i < 0)
+            {
+                if (i == long.MinValue)
+                {
+                    lis = new() { new(-9), new(2), new(2), new(3), new(3), new(7), new(2), new(0), new(3), new(6), new(8), new(5), new(4), new(7), new(7), new(5), new(8), new(0), new(8) };
+                }
+                else
+                {
+                    i = Math.Abs(i);
+                    while (i > 0)
+                    {
+                        lis.Add(new(i % 10));
+                        i /= 10;
+                    }
+                    lis.Reverse();
+                    lis[0]._val.i_Int *= -1;
+                }
+            }
+            else
+            {
+                while (i > 0)
+                {
+                    lis.Add(new(i % 10));
+                    i /= 10;
+                }
+                lis.Reverse();
+            }
+            vm.Pop(nargs + 2);
+            vm.Push(lis);
             return 1;
         }
 
@@ -2794,6 +2841,20 @@ namespace ExMat.BaseLib
             {
                 name = "isPrime",
                 func = new(GetStdMathMethod("MATH_isprime")),
+                n_pchecks = 2,
+                mask = ".i"
+            },
+            new()
+            {
+                name = "areCoPrime",
+                func = new(GetStdMathMethod("MATH_areCoprime")),
+                n_pchecks = 3,
+                mask = ".ii"
+            },
+            new()
+            {
+                name = "digits",
+                func = new(GetStdMathMethod("MATH_digits")),
                 n_pchecks = 2,
                 mask = ".i"
             },

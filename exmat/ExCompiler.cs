@@ -228,7 +228,7 @@ namespace ExMat.Compiler
                                 break;
                             }
                     }
-                    AddToErrorMessage("Expected " + expmsg);
+                    AddToErrorMessage("Expected " + expmsg + ", got " + _currToken.ToString());
                     return null;
                 }
             }
@@ -1155,7 +1155,95 @@ namespace ExMat.Compiler
             return true;
         }
 
+        public bool ExSymbolCreate(ExObject o)
+        {
+            ExFState f_state = _FuncState.PushChildState(_VM._sState);
+            f_state._name = o;
 
+            ExObject pname;
+            f_state.AddParam(_FuncState.CreateString(ExMat._THIS));
+            f_state._source = new(_source);
+
+            while (_currToken != TokenType.R_CLOSE)
+            {
+                if ((pname = Expect(TokenType.IDENTIFIER)) == null)
+                {
+                    return false;
+                }
+
+                f_state.AddParam(pname);
+
+                if (_currToken == TokenType.SEP)
+                {
+                    if (!ReadAndSetToken())
+                    {
+                        return false;
+                    }
+                }
+                else if (_currToken != TokenType.R_CLOSE)
+                {
+                    if (_currToken == TokenType.ASG)
+                    {
+                        AddToErrorMessage("default values are not supported for symbols");
+                    }
+                    else
+                    {
+                        AddToErrorMessage("expected ')' or ',' for symbol declaration");
+                    }
+                    return false;
+                }
+            }
+
+            if (Expect(TokenType.R_CLOSE) == null)
+            {
+                return false;
+            }
+
+            ExFState tmp = _FuncState.Copy();
+            _FuncState = f_state;
+
+            if (!ExExp())
+            {
+                return false;
+            }
+            f_state.AddInstr(OPC.RETURN, 1, _FuncState.PopTarget(), 0, 0);
+
+            f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
+            f_state.SetLocalStackSize(0);
+
+            ExFuncPro fpro = f_state.CreatePrototype();
+            fpro.type = ExClosureType.FORMULA;
+
+            _FuncState = tmp;
+            _FuncState._funcs.Add(fpro);
+            _FuncState.PopChildState();
+
+            return true;
+        }
+
+        public bool ProcessFormulaStatement()
+        {
+            ExObject v;
+            if (!ReadAndSetToken() || (v = Expect(TokenType.IDENTIFIER)) == null)
+            {
+                return false;
+            }
+
+            _FuncState.PushTarget(0);
+            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(v), 0, 0);
+
+            if (Expect(TokenType.R_OPEN) == null || !ExSymbolCreate(v))
+            {
+                return false;
+            }
+
+            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+
+            AddBasicDerefInstr(OPC.NEWSLOT);
+
+            return true;
+        }
         public bool ExRuleCreate(ExObject o)
         {
             ExFState f_state = _FuncState.PushChildState(_VM._sState);
@@ -1251,7 +1339,7 @@ namespace ExMat.Compiler
             return false;
         }
 
-        public bool ProcessVarAsgStatement()
+        public bool ProcessVarAsgStatement(bool sym = false)
         {
             ExObject v;
             if (!ReadAndSetToken())
@@ -1259,7 +1347,32 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (_currToken == TokenType.FUNCTION)
+            if (sym)
+            {
+                while (true)
+                {
+                    if ((v = Expect(TokenType.IDENTIFIER)) == null)
+                    {
+                        return false;
+                    }
+
+                    AddSymConstLoadInstr("_" + v.GetString() + "_", -1);
+                    _FuncState.PushVar(v);
+                    if (_currToken == TokenType.SEP)
+                    {
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                return true;
+            }
+            else if (_currToken == TokenType.FUNCTION)
             {
                 if (!ReadAndSetToken()
                     || (v = Expect(TokenType.IDENTIFIER)) == null
@@ -1307,7 +1420,6 @@ namespace ExMat.Compiler
 
             while (true)
             {
-
                 if ((v = Expect(TokenType.IDENTIFIER)) == null)
                 {
                     return false;
@@ -2383,6 +2495,15 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
+                case TokenType.SYMBOLID:
+                    {
+                        AddSymConstLoadInstr(_lexer.str_val, -1);
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
                 case TokenType.INTEGER:
                     {
                         AddIntConstLoadInstr(_lexer.i_val, -1);
@@ -2789,6 +2910,15 @@ namespace ExMat.Compiler
                 }
             }
             return true;
+        }
+
+        public void AddSymConstLoadInstr(string sval, int p)
+        {
+            if (p < 0)
+            {
+                p = _FuncState.PushTarget();
+            }
+            _FuncState.AddInstr(OPC.LOAD_SYM, p, (int)_FuncState.GetConst(new(sval)), 0, 0);
         }
 
         public void AddSpaceConstLoadInstr(ExSpace s, int p)

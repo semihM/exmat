@@ -13,6 +13,7 @@ namespace ExMat.FuncPrototype
     {
         FUNCTION,
         RULE,
+        FORMULA,
         CLUSTER,
         MACRO,
         SEQUENCE
@@ -114,6 +115,10 @@ namespace ExMat.FuncPrototype
         public bool IsCluster()
         {
             return type == ExClosureType.CLUSTER;
+        }
+        public bool IsFormula()
+        {
+            return type == ExClosureType.FORMULA;
         }
         public bool IsRule()
         {

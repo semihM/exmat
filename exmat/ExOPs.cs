@@ -91,6 +91,7 @@ namespace ExMat.OPs
         DEFAULT,
         CARTESIAN,
         LOAD_COMPLEX,
+        LOAD_SYM,
         CLOSE = 984
     }
 

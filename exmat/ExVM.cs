@@ -335,6 +335,12 @@ namespace ExMat.VM
                                     }
                                     break;
                                 }
+                            case ExClosureType.FORMULA:
+                                {
+                                    s = "FORMULA(" + tmp._name.GetString() + ", ";
+                                    s += (tmp.n_params - 1) + " symbols)";
+                                    break;
+                                }
                             case ExClosureType.RULE:
                                 {
                                     s = "RULE(" + tmp._name.GetString() + ", ";
@@ -375,6 +381,11 @@ namespace ExMat.VM
                         res = new(obj._val.c_Space.GetSpaceString());
                         break;
                     }
+                case ExObjType.SYMBOL:
+                    {
+                        //res = new(obj.GetSym().GetSymString());
+                        break;
+                    }
                 default:
                     {
                         if (obj.IsDelegable())
@@ -409,7 +420,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.INTEGER:
                     {
-                        res = new(obj.GetInt());
+                        res = new((double)obj.GetInt());
                         break;
                     }
                 case ExObjType.FLOAT:
@@ -465,12 +476,12 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        res = new((int)obj.GetFloat());
+                        res = new((long)obj.GetFloat());
                         break;
                     }
                 case ExObjType.STRING:
                     {
-                        if (int.TryParse(obj.GetString(), out int r))
+                        if (long.TryParse(obj.GetString(), out long r))
                         {
                             res = new(r);
                         }
@@ -1707,6 +1718,11 @@ namespace ExMat.VM
                     case OPC.LOAD_SPACE:
                         {
                             GetTargetInStack(i).Assign(FindSpaceObject((int)i.arg1));
+                            continue;
+                        }
+                    case OPC.LOAD_SYM:
+                        {
+                            GetTargetInStack(i).Assign(ExSym.CreateVar(ci._val._lits[(int)i.arg1].GetString()));
                             continue;
                         }
                     case OPC.DLOAD:
@@ -3386,10 +3402,17 @@ namespace ExMat.VM
         {
             INT = ExObjType.INTEGER,
             INTCOMPLEX = ExObjType.COMPLEX | ExObjType.INTEGER,
+            INTSYMBOL = ExObjType.SYMBOL | ExObjType.INTEGER,
+
+            FLOAT = ExObjType.FLOAT,
             FLOATINT = ExObjType.INTEGER | ExObjType.FLOAT,
             FLOATCOMPLEX = ExObjType.COMPLEX | ExObjType.FLOAT,
-            FLOAT = ExObjType.FLOAT,
+            FLOATSYMBOL = ExObjType.SYMBOL | ExObjType.FLOAT,
+
             COMPLEX = ExObjType.COMPLEX,
+
+            SYMBOL = ExObjType.SYMBOL,
+
             STRING = ExObjType.STRING,
             STRINGINT = ExObjType.STRING | ExObjType.INTEGER,
             STRINGFLOAT = ExObjType.STRING | ExObjType.FLOAT,
@@ -3444,6 +3467,28 @@ namespace ExMat.VM
                     case ExObjType.CLOSURE:
                         CheckEqual(x._val._Closure._func._name, y._val._Closure._func._name, ref res);
                         break;
+                    case ExObjType.ARRAY:
+                        {
+                            if (x._val.l_List.Count != y._val.l_List.Count)
+                            {
+                                res = false;
+                                break;
+                            }
+                            res = true;
+                            for (int i = 0; i < x._val.l_List.Count; i++)
+                            {
+                                ExObject r = x._val.l_List[i];
+                                if (!res)
+                                {
+                                    break;
+                                }
+                                if (!CheckEqual(r, y._val.l_List[i], ref res))
+                                {
+                                    return false;
+                                }
+                            }
+                            break;
+                        }
                     default:
                         res = x == y;   // TO-DO
                         break;

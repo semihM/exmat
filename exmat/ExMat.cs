@@ -48,7 +48,8 @@ namespace ExMat
         OUTER = 1 << 17,
         FUNCPRO = 1 << 18,
         DICT = 1 << 19,
-        DEFAULT = 1 << 20
+        DEFAULT = 1 << 20,
+        SYMBOL = 1 << 21
     }
 
     public enum ExObjFlag
@@ -61,6 +62,8 @@ namespace ExMat
 
     public enum ExObjType
     {
+        SYMBOL = ExBaseType.SYMBOL | ExObjFlag.COUNTREFERENCES,
+
         DEFAULT = ExBaseType.DEFAULT | ExObjFlag.CANBEFALSE,
         NULL = ExBaseType.NULL | ExObjFlag.CANBEFALSE,
         INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
@@ -103,6 +106,7 @@ namespace ExMat
 
         public ExRefC _RefC;  // 40
         public ExSpace c_Space;   // 48
+        //public ExSym sym;
         public List<ExObject> l_List; // 40
         public Dictionary<string, ExObject> d_Dict;   // 88
 

@@ -344,3 +344,28 @@ class Vector
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
     }
 }
+
+class Formula
+{
+    init(eq, params)
+    {
+        this.eq = eq
+        this.params = params
+    }
+
+    eq = ""
+    params = []
+
+    function _STRING()
+    {
+        return parse(format,[this.eq].extend(this.params))
+    }
+    
+    function GetFunction(args)
+    {
+        ::assert(typeof args is typeof [], "expected list of arguments")
+        ::assert(args.len() is params.len(), "expected same length as parameters array")
+
+        return compile("return " + parse(format,[this.eq].extend(args)))
+    }
+}

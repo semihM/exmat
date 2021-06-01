@@ -128,6 +128,7 @@ namespace ExMat
 
         private static int Main(string[] args)
         {
+            // From file
             if (args.Length >= 1)
             {
                 string f = File.Exists(args[0]) ? File.ReadAllText(args[0]) : string.Empty;
@@ -149,6 +150,7 @@ namespace ExMat
                 return CompileString(v, f);
             }
 
+            // Interactive
             Console.Title = "[] ExMat Interactive";
             Console.ResetColor();
 
@@ -221,20 +223,6 @@ namespace ExMat
                     return ret;
                 }
             }
-        }
-
-
-        private static double GetSize<T>() where T : new()
-        {
-            long start_mem = GC.GetTotalMemory(true);
-
-            T[] array = new T[10000000];
-            for (int n = 0; n < 10000000; n++)
-            {
-                array[n] = new T();
-            }
-
-            return (GC.GetTotalMemory(false) - start_mem) / 10000000D;
         }
     }
 }

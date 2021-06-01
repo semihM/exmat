@@ -1,0 +1,82 @@
+
+function FirstOrderEuler(dydt, y_a, a, b, n)
+{
+    ::assert(typeof dydt is "CLOSURE", "expected first parameter as y' = f(t,y)")
+    ::assert(z.n_minargs <= 2, "expected 2 parametered function for first parameter: y' = f(t,y)")
+
+    ::assert(y_a in @R@, "expected real valued second parameter as value of y(t=a)");
+
+    var h = float(b-a) / n;
+
+    var pred = list(n+1,0);
+    pred[0] = y_a;
+
+    var t = range(a,b,h);
+
+    var prev;
+
+    for(var i = 1; i <= n; i++)
+    {
+        prev = pred[i-1]
+        pred[i] = prev + h * y_a(t[i-1], prev)
+    }
+
+    return pred
+}
+
+function SecondOrderEuler(z, dz, y_a, z_a, a, b, n)
+{
+    ::assert(typeof z is "CLOSURE", "expected first parameter as z = y' = f(t,x,z)")
+    ::assert(z.n_minargs <= 3, "expected 3 parametered function for first parameter: z = y' = f(t,x,z)")
+
+    ::assert(typeof dz is "CLOSURE", "expected second parameter as z' = y'' = f(t,x,z)")
+    ::assert(dz.n_minargs <= 3, "expected 3 parametered function for second parameter: z' = y'' = f(t,x,z)")
+
+    ::assert(y_a in @R@, "expected real valued third parameter as value of y(t=a)");
+    ::assert(z_a in @R@, "expected real valued forth parameter as value of z = y'(t=a)");
+
+    var h = float(b-a) / n;
+
+    var pred = matrix(n+1,2,0);
+
+    pred[0][0] = y_a;
+    pred[0][1] = z_a;
+
+    var t = rangei(a,b,h);
+
+    for(var i = 1; i <= n; i++)
+    {
+        pred[i][1] = pred[i-1][1] + h * dz(t[i-1], pred[i-1][0], pred[i-1][1])
+
+        pred[i][0] = pred[i-1][0] + h * z(t[i-1], pred[i-1][0], pred[i-1][1])
+    }
+
+    return pred
+}
+
+
+function HigherOrderEuler(funcs, preds, a, b, n)
+{
+    ::assert(typeof funcs is "ARRAY", "expected list of functions");
+    
+    var length = funcs.len();
+
+    ::assert(preds in @R'n@(length), "expected list of real values same length of functions list");
+    
+    var h = float(b-a) / n;
+
+    var pred = matrix(n+1,length,0);
+    pred[0] = preds
+
+    var t = rangei(a,b,h);
+
+    for(var i = 1; i <= n; i++)
+    {
+        for(var j = length - 1; j >= 0; j--)
+        {
+            pred[i][j] = pred[i-1][j] + h * parse(funcs[j], [t[i-1]].extend(pred[i-1]))
+        }
+    }
+
+    return pred
+}

@@ -135,6 +135,11 @@
         CARTESIAN, // *.*
 
         SEQUENCE,   // seq
-        VARGS
+        VARGS,  // vargs
+
+        FORMULA,    // formula
+        SYMBOL,     // sym
+        SYMBOLID    // _\w+_
+
     }
 }

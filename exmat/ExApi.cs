@@ -13,7 +13,7 @@ namespace ExMat.API
     {
         public static bool GetSafeObject(ExVM vm, int idx, ExObjType typ, ref ExObject res)
         {
-            res = GetFromStack(vm, idx);
+            res.Assign(GetFromStack(vm, idx));
             if (res._type != typ)
             {
                 vm.AddToErrorMessage("wrong argument type, expected " + typ.ToString() + " got " + res._type.ToString());
