@@ -9,25 +9,23 @@ using ExMat.Utils;
 namespace ExMat.Closure
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExOuter : ExObject
+    public class ExOuter : ExRefC
     {
-        public ExObject _valptr;
-        public int idx;
-        public ExObject _v;
-        public ExOuter f_next;
+        public int Index;
+        public ExObject ValueRef;
+        public ExObject ValueReal;
+
         public ExOuter _prev;
         public ExOuter _next;
-        public ExSState _sState;
+        public ExSState SharedState;
 
         public ExOuter()
         {
-            _type = ExObjType.OUTER;
-            _val._RefC = new();
         }
 
         public static ExOuter Create(ExSState exS, ExObject o)
         {
-            ExOuter exo = new() { _sState = exS, _valptr = new(o), f_next = null };
+            ExOuter exo = new() { SharedState = exS, ValueRef = new(o) };
             return exo;
         }
 
@@ -36,11 +34,11 @@ namespace ExMat.Closure
             return ExObjType.OUTER;
         }
 
-        public override void Release()
+        public virtual void Release()
         {
-            if (--_val._RefC._refc == 0)
+            if (--ReferenceCount == 0)
             {
-                _sState = null;
+                SharedState = null;
                 if (_prev != null)
                 {
                     _prev._next = _next;
@@ -56,14 +54,14 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            return "OUTER(" + idx + ", *(" + (_valptr == null ? "null" : _valptr.GetInt()) + "), " + (_v == null ? "null" : _v._type.ToString()) + ")";
+            return "OUTER(" + Index + ", *(" + (ValueRef == null ? "null" : ValueRef.GetInt()) + "), " + (ValueReal == null ? "null" : ValueReal.Type.ToString()) + ")";
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(_valptr, _v);
+            Disposer.DisposeObjects(ValueRef, ValueReal);
 
             if (_prev != null)
             {
@@ -76,79 +74,77 @@ namespace ExMat.Closure
                 _next = null;
             }
 
-            f_next = null;
         }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClosure : ExObject
+    public class ExClosure : ExRefC
     {
-        public ExWeakRef _envweakref;
-        public ExClass _base;
-        public ExPrototype _func;
-        public List<ExObject> _outervals;
-        public List<ExObject> _defparams;
-        public ExSState _sState;
+        public ExClass Base;
+        public ExPrototype Function;
+        public List<ExObject> OutersList;
+        public List<ExObject> DefaultParams;
+        public ExSState SharedState;
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            _base = null;
+            Base = null;
 
-            _envweakref = null;
-            Disposer.DisposeObjects(_func);
-            Disposer.DisposeList(ref _outervals);
-            Disposer.DisposeList(ref _defparams);
+            WeakReference = null;
+            Disposer.DisposeObjects(Function);
+            Disposer.DisposeList(ref OutersList);
+            Disposer.DisposeList(ref DefaultParams);
         }
 
         public static ExClosure Create(ExSState exS, ExPrototype fpro)
         {
-            ExClosure cls = new() { _sState = exS, _func = fpro };
-            ExUtils.InitList(ref cls._outervals, fpro.n_outers);
-            ExUtils.InitList(ref cls._defparams, fpro.n_defparams);
+            ExClosure cls = new() { SharedState = exS, Function = fpro };
+            ExUtils.InitList(ref cls.OutersList, fpro.nOuters);
+            ExUtils.InitList(ref cls.DefaultParams, fpro.nDefaultParameters);
             return cls;
         }
 
         public ExClosure()
         {
-            _type = ExObjType.CLOSURE;
-            _val._RefC = new() { _refc = 1 };
+            ReferenceCount = 1;
         }
 
         public ExClosure Copy()
         {
-            ExPrototype fp = _func;
-            ExClosure res = Create(_sState, fp);
-            res._envweakref = _envweakref;
-            if (res._envweakref != null)
+            ExPrototype fp = Function;
+            ExClosure res = Create(SharedState, fp);
+
+            res.WeakReference = WeakReference;
+            if (res.WeakReference != null)
             {
-                res._envweakref._val._RefC._refc++;
+                res.WeakReference.ReferenceCount++;
             }
-            for (int i = 0; i < fp.n_outers; i++)
+
+            for (int i = 0; i < fp.nOuters; i++)
             {
-                res._outervals[i].Assign(_outervals[i]);
+                res.OutersList[i].Assign(OutersList[i]);
             }
-            for (int i = 0; i < fp.n_defparams; i++)
+            for (int i = 0; i < fp.nDefaultParameters; i++)
             {
-                res._defparams[i].Assign(_defparams[i]);
+                res.DefaultParams[i].Assign(DefaultParams[i]);
             }
             return res;
         }
 
-        public override void Release()
+        public virtual void Release()
         {
-            base.Release();
-            foreach (ExObject o in _outervals)
+            foreach (ExObject o in OutersList)
             {
                 o.Nullify();
             }
-            _outervals = null;
+            OutersList = null;
 
-            foreach (ExObject o in _defparams)
+            foreach (ExObject o in DefaultParams)
             {
                 o.Nullify();
             }
-            _defparams = null;
+            DefaultParams = null;
         }
         public static new ExObjType GetType()
         {
@@ -157,69 +153,70 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            if (_func._name == null || _func._name._type == ExObjType.NULL)
+            if (Function.Name == null || Function.Name.Type == ExObjType.NULL)
             {
                 return "CLOSURE";
             }
-            if (_base != null)
+            if (Base != null)
             {
-                return "[HAS BASE] CLOSURE(" + _func._name.GetString() + ")";
+                return "[HAS BASE] CLOSURE(" + Function.Name.GetString() + ")";
             }
-            return "CLOSURE(" + _func._name.GetString() + ")";
+            return "CLOSURE(" + Function.Name.GetString() + ")";
         }
 
 
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExNativeClosure : ExObject
+    public class ExNativeClosure : ExRefC
     {
-        public ExSState _sState;
-        public ExWeakRef _envweakref;
-        public ExObject _name;
-        public ExFunc _func;
-        public List<ExObject> _outervals;
-        public List<int> _typecheck = new();
-        public Dictionary<int, ExObject> d_defaults = new();
-        public int n_outervals;
-        public int n_paramscheck;
-        public bool b_deleg = false;
+        public ExSState SharedState;
+        public ExObject Name;
+        public ExFunc Function;    // Bir C# metotuna işaret eder
+        public bool IsDelegateFunction;
+
+        public int nOuters;
+        public int nParameterChecks;
+
+        public List<ExObject> OutersList;
+        public List<int> TypeMasks = new();
+
+        public Dictionary<int, ExObject> DefaultValues = new();
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
-            _envweakref = null;
-            _typecheck = null;
-            n_outervals = 0;
-            n_paramscheck = 0;
+            WeakReference = null;
+            TypeMasks = null;
+            nOuters = 0;
+            nParameterChecks = 0;
+            Function = null;
 
-            Disposer.DisposeObjects(_name, _func);
-            Disposer.DisposeList(ref _outervals);
-            Disposer.DisposeDict(ref d_defaults);
+            Disposer.DisposeObjects(Name);
+            Disposer.DisposeList(ref OutersList);
+            Disposer.DisposeDict(ref DefaultValues);
         }
 
         public ExNativeClosure()
         {
-            _type = ExObjType.NATIVECLOSURE;
-            _val._RefC = new() { _refc = 1 };
+            ReferenceCount = 1;
         }
 
         public static ExNativeClosure Create(ExSState exS, ExFunc f, int nout)
         {
-            ExNativeClosure cls = new() { _sState = exS, _func = f };
-            ExUtils.InitList(ref cls._outervals, nout);
-            cls.n_outervals = nout;
+            ExNativeClosure cls = new() { SharedState = exS, Function = f };
+            ExUtils.InitList(ref cls.OutersList, nout);
+            cls.nOuters = nout;
             return cls;
         }
 
-        public override void Release()
+        public virtual void Release()
         {
-            base.Release();
-            foreach (ExObject o in _outervals)
+            foreach (ExObject o in OutersList)
             {
                 o.Nullify();
             }
-            _outervals = null;
+            OutersList = null;
         }
         public static new ExObjType GetType()
         {
@@ -228,7 +225,7 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            return "NATIVECLOSURE(" + _name.GetString() + ")";
+            return "NATIVECLOSURE(" + Name.GetString() + ")";
         }
     }
 }

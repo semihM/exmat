@@ -14,33 +14,33 @@ namespace ExMat.Compiler
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExScope
     {
-        public int outers;
-        public int stack_size;
+        public int nOuters;
+        public int StackSize;
 
         public string GetDebuggerDisplay()
         {
-            return "SCOPE(n_outers: " + outers + ", size_stack: " + stack_size + ")";
+            return "SCOPE(nOuters: " + nOuters + ", StackSize: " + StackSize + ")";
         }
     }
 
     public class ExCompiler : IDisposable
     {
-        private ExVM _VM;
-        private string _source;
+        private ExVM VM;                // Derleyicinin hedef sanal makinesi
 
-        private ExEState _ExpState = new();
-        private ExFState _FuncState;
+        private string Source;          // Kod dizisi
+        private ExLexer Lexer;          // Sembol ayırıcı
+        private TokenType CurrentToken; // En son okunan sembol
 
-        private ExLexer _lexer;
-        private TokenType _currToken;
+        private ExEState ExpressionState = new();   // İfade durumu takibi
+        private ExFState FunctionState;             // Fonksiyon durumu takibi
 
-        private readonly bool _lineinfo;
-        private bool _inblockmacro;
+        private ExScope CurrentScope = new();       // Kod bloğu takibi
 
-        private ExScope _scope = new();
+        public string ErrorString;      // Hata mesajı
 
-        public string _error;
+        private readonly bool StoreLineInfos;
         private bool disposedValue;
+        private bool IsInMacroBlock;
 
         protected virtual void Dispose(bool disposing)
         {
@@ -48,12 +48,12 @@ namespace ExMat.Compiler
             {
                 if (disposing)
                 {
-                    _FuncState = null;
-                    _ExpState = null;
-                    _lexer.Dispose();
-                    _VM = null;
-                    _scope = null;
-                    _error = null;
+                    FunctionState = null;
+                    ExpressionState = null;
+                    Lexer.Dispose();
+                    VM = null;
+                    CurrentScope = null;
+                    ErrorString = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -64,72 +64,72 @@ namespace ExMat.Compiler
 
         public void AddToErrorMessage(string msg)
         {
-            if (string.IsNullOrEmpty(_error))
+            if (string.IsNullOrEmpty(ErrorString))
             {
-                _error = "[ERROR] " + msg;
+                ErrorString = "[ERROR] " + msg;
             }
             else
             {
-                _error += "\n[ERROR] " + msg;
+                ErrorString += "\n[ERROR] " + msg;
             }
         }
 
         public ExScope CreateScope()
         {
-            ExScope old = new() { outers = _scope.outers, stack_size = _scope.stack_size };
-            _scope.stack_size = _FuncState.GetLocalStackSize();
-            _scope.outers = _FuncState._nouters;
+            ExScope old = new() { nOuters = CurrentScope.nOuters, StackSize = CurrentScope.StackSize };
+            CurrentScope.StackSize = FunctionState.GetLocalStackSize();
+            CurrentScope.nOuters = FunctionState.nOuters;
             return old;
         }
 
         public void ResolveScopeOuters()
         {
-            if (_FuncState.GetLocalStackSize() != _scope.stack_size)
+            if (FunctionState.GetLocalStackSize() != CurrentScope.StackSize)
             {
-                if (_FuncState.GetOuterSize(_scope.stack_size) != 0)
+                if (FunctionState.GetOuterSize(CurrentScope.StackSize) != 0)
                 {
-                    _FuncState.AddInstr(OPC.CLOSE, 0, _scope.stack_size, 0, 0);
+                    FunctionState.AddInstr(OPC.CLOSE, 0, CurrentScope.StackSize, 0, 0);
                 }
             }
         }
 
         public void ReleaseScope(ExScope old, bool close = true)
         {
-            int old_nout = _FuncState._nouters;
-            if (_FuncState.GetLocalStackSize() != _scope.stack_size)
+            int old_nout = FunctionState.nOuters;
+            if (FunctionState.GetLocalStackSize() != CurrentScope.StackSize)
             {
-                _FuncState.SetLocalStackSize(_scope.stack_size);
-                if (close && old_nout != _FuncState._nouters)
+                FunctionState.SetLocalStackSize(CurrentScope.StackSize);
+                if (close && old_nout != FunctionState.nOuters)
                 {
-                    _FuncState.AddInstr(OPC.CLOSE, 0, _scope.stack_size, 0, 0);
+                    FunctionState.AddInstr(OPC.CLOSE, 0, CurrentScope.StackSize, 0, 0);
                 }
             }
-            _scope = old;
+            CurrentScope = old;
         }
 
-        public ExCompiler()
+        public ExCompiler(bool linfos = false)
         {
-            _lineinfo = false;
-            _scope.outers = 0;
-            _scope.stack_size = 0;
+            StoreLineInfos = linfos;
+            CurrentScope.nOuters = 0;
+            CurrentScope.StackSize = 0;
         }
 
         public void AddErrorInfo()
         {
-            AddToErrorMessage("[LINE: " + _lexer._currLine + ", COL: " + _lexer._currCol + "] " + _lexer._error);
+            AddToErrorMessage("[LINE: " + Lexer.CurrentLine + ", COL: " + Lexer.CurrentCol + "] " + Lexer.ErrorString);
         }
 
         public bool Compile(ExVM vm, string src, ref ExObject o)
         {
-            _VM = vm;
-            _source = src;
-            _lexer = new ExLexer(src);
+            VM = vm;
+            Source = src;
+            Lexer = new ExLexer(src);
 
             bool state = Compile(ref o);
 
             if (!state)
             {
-                if (_currToken == TokenType.ENDLINE)
+                if (CurrentToken == TokenType.ENDLINE)
                 {
                     AddToErrorMessage("syntax error");
                 }
@@ -140,30 +140,29 @@ namespace ExMat.Compiler
 
         public bool Compile(ref ExObject o)
         {
-            ExFState fst = new(_VM._sState, null);
-            fst._name = _VM.CreateString("main");
-            _FuncState = fst;
+            ExFState fst = new(VM.SharedState, null);
+            fst.Name = VM.CreateString("main");
+            FunctionState = fst;
 
-            _FuncState.AddParam(_FuncState.CreateString(ExMat._THIS));
-            _FuncState.AddParam(_FuncState.CreateString(ExMat._VARGS));
-            _FuncState._pvars = true;
-            _FuncState._source = new(_source);
+            FunctionState.AddParam(FunctionState.CreateString(ExMat.ThisName));
+            FunctionState.AddParam(FunctionState.CreateString(ExMat.VargsName));
+            FunctionState.HasVargs = true;
+            FunctionState.Source = new(Source);
 
-            int s_size = _FuncState.GetLocalStackSize();
+            int s_size = FunctionState.GetLocalStackSize();
 
             if (!ReadAndSetToken())
             {
                 return false;
             }
-            int s_count = 0;
-            while (_currToken != TokenType.ENDLINE)
+
+            while (CurrentToken != TokenType.ENDLINE)
             {
                 if (!ProcessStatement())
                 {
                     return false;
                 }
-                s_count++;
-                if (_lexer._prevToken != TokenType.CLS_CLOSE && _lexer._prevToken != TokenType.SMC)
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE && Lexer.TokenPrev != TokenType.SMC)
                 {
                     if (!CheckSMC())
                     {
@@ -171,23 +170,22 @@ namespace ExMat.Compiler
                     }
                 }
             }
-            _FuncState.n_statement = s_count;
 
-            _FuncState.SetLocalStackSize(s_size);
-            _FuncState.AddLineInfo(_lexer._currLine, _lineinfo, true);
-            _FuncState.AddInstr(OPC.RETURN, 1, _FuncState._localvs.Count + _FuncState._localinfos.Count, 0, 0);   //0,1 = root, main | 2 == stackbase == this | 3: varg | 4: result
-            _FuncState.SetLocalStackSize(0);
+            FunctionState.SetLocalStackSize(s_size);
+            FunctionState.AddLineInfo(Lexer.CurrentLine, StoreLineInfos, true);
+            FunctionState.AddInstr(OPC.RETURN, 1, FunctionState.LocalVariables.Count + FunctionState.LocalVariableInfos.Count, 0, 0);   //0,1 = root, main | 2 == stackbase == this | 3: varg | 4: result
+            FunctionState.SetLocalStackSize(0);
 
-            o._type = ExObjType.FUNCPRO;
-            o._val._FuncPro = _FuncState.CreatePrototype();
+            o.Type = ExObjType.FUNCPRO;
+            o.Value._FuncPro = FunctionState.CreatePrototype();
 
             return true;
         }
 
         private bool ReadAndSetToken()
         {
-            _currToken = _lexer.Lex();
-            if (_currToken == TokenType.UNKNOWN)
+            CurrentToken = Lexer.Lex();
+            if (CurrentToken == TokenType.UNKNOWN)
             {
                 return false;
             }
@@ -196,7 +194,7 @@ namespace ExMat.Compiler
 
         public string GetStringForTokenType(TokenType typ)
         {
-            foreach (KeyValuePair<string, TokenType> pair in _lexer._keyWordsDict)
+            foreach (KeyValuePair<string, TokenType> pair in Lexer.KeyWords)
             {
                 if (pair.Value == typ)
                 {
@@ -208,9 +206,9 @@ namespace ExMat.Compiler
 
         public ExObject Expect(TokenType typ)
         {
-            if (typ != _currToken)
+            if (typ != CurrentToken)
             {
-                if (typ != TokenType.IDENTIFIER || _currToken != TokenType.CONSTRUCTOR)
+                if (typ != TokenType.IDENTIFIER || CurrentToken != TokenType.CONSTRUCTOR)
                 {
                     string expmsg;
                     switch (typ)
@@ -241,7 +239,7 @@ namespace ExMat.Compiler
                                 break;
                             }
                     }
-                    AddToErrorMessage("Expected " + expmsg + ", got " + _currToken.ToString());
+                    AddToErrorMessage("Expected " + expmsg + ", got " + CurrentToken.ToString());
                     return null;
                 }
             }
@@ -250,28 +248,24 @@ namespace ExMat.Compiler
             switch (typ)
             {
                 case TokenType.IDENTIFIER:
-                    {
-                        res = _FuncState.CreateString(_lexer.str_val);
-                        break;
-                    }
                 case TokenType.LITERAL:
                     {
-                        res = _FuncState.CreateString(_lexer.str_val, _lexer._aStr.Length - 1);
+                        res = FunctionState.CreateString(Lexer.ValString);
                         break;
                     }
                 case TokenType.INTEGER:
                     {
-                        res = new(_lexer.i_val);
+                        res = new(Lexer.ValInteger);
                         break;
                     }
                 case TokenType.FLOAT:
                     {
-                        res = new(_lexer.f_val);
+                        res = new(Lexer.ValFloat);
                         break;
                     }
                 case TokenType.COMPLEX:
                     {
-                        res = new(_lexer.c_type == TokenType.INTEGER ? _lexer.i_val : _lexer.f_val);
+                        res = new(Lexer.TokenComplex == TokenType.INTEGER ? Lexer.ValInteger : Lexer.ValFloat);
                         break;
                     }
             }
@@ -284,15 +278,15 @@ namespace ExMat.Compiler
 
         public bool IsEOS()
         {
-            return _lexer._prevToken == TokenType.NEWLINE
-               || _currToken == TokenType.ENDLINE
-               || _currToken == TokenType.CLS_CLOSE
-               || _currToken == TokenType.SMC;
+            return Lexer.TokenPrev == TokenType.NEWLINE
+               || CurrentToken == TokenType.ENDLINE
+               || CurrentToken == TokenType.CURLYCLOSE
+               || CurrentToken == TokenType.SMC;
         }
 
         public bool CheckSMC()
         {
-            if (_currToken == TokenType.SMC || _currToken == TokenType.MACROBLOCK)
+            if (CurrentToken == TokenType.SMC)                          // || CurrentToken == TokenType.MACROBLOCK)
             {
                 if (!ReadAndSetToken())
                 {
@@ -309,31 +303,37 @@ namespace ExMat.Compiler
 
         public bool ProcessStatements(bool macro = false)
         {
-            while (_currToken != TokenType.CLS_CLOSE && (!macro || (_currToken != TokenType.MACROEND)))
+            while (CurrentToken != TokenType.CURLYCLOSE)                // && (!macro || (CurrentToken != TokenType.MACROEND)))
             {
                 if (!ProcessStatement(macro: macro))
                 {
                     return false;
                 }
-                if (_lexer._prevToken != TokenType.CLS_CLOSE && _lexer._prevToken != TokenType.SMC && (!macro || (_currToken != TokenType.MACROEND)))
+
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE
+                    && Lexer.TokenPrev != TokenType.SMC)                // && (!macro || (CurrentToken != TokenType.MACROEND)))
                 {
                     if (!CheckSMC())
                     {
                         return false;
                     }
                 }
-                if (macro && _currToken == TokenType.MACROEND)
+                #region _
+                /*
+                if (macro && CurrentToken == TokenType.MACROEND)
                 {
                     return true;
                 }
+                */
+                #endregion
             }
             return true;
         }
 
         public bool ProcessStatement(bool cl = true, bool macro = false)
         {
-            _FuncState.AddLineInfo(_lexer._currLine, _lineinfo, false);
-            switch (_currToken)
+            FunctionState.AddLineInfo(Lexer.CurrentLine, StoreLineInfos, false);
+            switch (CurrentToken)
             {
                 case TokenType.SMC:
                     {
@@ -359,14 +359,6 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
-                case TokenType.FOREACH:
-                    {
-                        if (!ProcessForeachStatement())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
                 case TokenType.VAR:
                     {
                         if (!ProcessVarAsgStatement())
@@ -378,14 +370,6 @@ namespace ExMat.Compiler
                 case TokenType.RULE:
                     {
                         if (!ProcessRuleAsgStatement())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.SUM:
-                    {
-                        if (!ProcessSumStatement())
                         {
                             return false;
                         }
@@ -424,38 +408,33 @@ namespace ExMat.Compiler
                         }
                         if (!IsEOS())
                         {
-                            int rexp = _FuncState.GetCurrPos() + 1;
+                            int rettarget = FunctionState.GetCurrPos() + 1;
                             if (!ExSepExp())
                             {
                                 return false;
                             }
-                            // TO-DO trap count check and pop
-                            _FuncState._returnE = rexp;
-                            _FuncState.AddInstr(op, 1, _FuncState.PopTarget(), _FuncState.GetLocalStackSize(), 0);
+
+                            FunctionState.ReturnExpressionTarget = rettarget;
+                            FunctionState.AddInstr(op, 1, FunctionState.PopTarget(), FunctionState.GetLocalStackSize(), 0);
                         }
                         else
                         {
-                            _FuncState._returnE = -1;
-                            _FuncState.AddInstr(op, 985, 0, _FuncState.GetLocalStackSize(), 0);
+                            FunctionState.ReturnExpressionTarget = -1;
+                            FunctionState.AddInstr(op, 985, 0, FunctionState.GetLocalStackSize(), 0);
                         }
                         break;
                     }
                 case TokenType.BREAK:
                     {
-                        if (_FuncState._breaktargs.Count <= 0)
+                        if (FunctionState.BreakTargetsList.Count <= 0)
                         {
                             AddToErrorMessage("'break' has to be in a breakable block");
                             return false;
                         }
 
-                        if (_FuncState._breaktargs[^1] > 0)
-                        {
-                            _FuncState.AddInstr(OPC.TRAPPOP, _FuncState._breaktargs[^1], 0, 0, 0);
-                        }
-
                         DoOuterControl();
-                        _FuncState.AddInstr(OPC.JMP, 0, -1234, 0, 0);
-                        _FuncState._breaks.Add(_FuncState.GetCurrPos());
+                        FunctionState.AddInstr(OPC.JMP, 0, -1234, 0, 0);
+                        FunctionState.BreakList.Add(FunctionState.GetCurrPos());
 
                         if (!ReadAndSetToken())
                         {
@@ -465,20 +444,15 @@ namespace ExMat.Compiler
                     }
                 case TokenType.CONTINUE:
                     {
-                        if (_FuncState._continuetargs.Count <= 0)
+                        if (FunctionState.ContinueTargetList.Count <= 0)
                         {
                             AddToErrorMessage("'continue' has to be in a breakable block");
                             return false;
                         }
 
-                        if (_FuncState._continuetargs[^1] > 0)
-                        {
-                            _FuncState.AddInstr(OPC.TRAPPOP, _FuncState._continuetargs[^1], 0, 0, 0);
-                        }
-
                         DoOuterControl();
-                        _FuncState.AddInstr(OPC.JMP, 0, -1234, 0, 0);
-                        _FuncState._continues.Add(_FuncState.GetCurrPos());
+                        FunctionState.AddInstr(OPC.JMP, 0, -1234, 0, 0);
+                        FunctionState.ContinueList.Add(FunctionState.GetCurrPos());
 
                         if (!ReadAndSetToken())
                         {
@@ -486,29 +460,33 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
-                case TokenType.MACROBLOCK:
+                #region _
+                /*
+            case TokenType.MACROBLOCK:
+                {
+                    if (!ProcessMacroBlockStatement())
                     {
-                        if (!ProcessMacroBlockStatement())
-                        {
-                            return false;
-                        }
-                        break;
+                        return false;
                     }
-                case TokenType.MACROSTART:
+                    break;
+                }
+            case TokenType.MACROSTART:
+                {
+                    if (!ProcessMacroStatement())
                     {
-                        if (!ProcessMacroStatement())
-                        {
-                            return false;
-                        }
-                        break;
+                        return false;
                     }
-                case TokenType.CLS_OPEN:
+                    break;
+                }
+                */
+                #endregion
+                case TokenType.CURLYOPEN:
                     {
                         ExScope scp = CreateScope();
 
                         if (!ReadAndSetToken()
                             || !ProcessStatements()
-                            || Expect(TokenType.CLS_CLOSE) == null)
+                            || Expect(TokenType.CURLYCLOSE) == null)
                         {
                             return false;
                         }
@@ -532,54 +510,54 @@ namespace ExMat.Compiler
                         }
                         if (!macro)
                         {
-                            _FuncState.DiscardTopTarget();
+                            FunctionState.DiscardTopTarget();
                         }
                         break;
                     }
             }
-            _FuncState._not_snoozed = false;
+            FunctionState.NotSnoozed = false;
             return true;
         }
 
         public void DoOuterControl()
         {
-            if (_FuncState.GetLocalStackSize() != _scope.stack_size)
+            if (FunctionState.GetLocalStackSize() != CurrentScope.StackSize)
             {
-                if (_FuncState.GetOuterSize(_scope.stack_size) > 0)
+                if (FunctionState.GetOuterSize(CurrentScope.StackSize) > 0)
                 {
-                    _FuncState.AddInstr(OPC.CLOSE, 0, _scope.stack_size, 0, 0);
+                    FunctionState.AddInstr(OPC.CLOSE, 0, CurrentScope.StackSize, 0, 0);
                 }
             }
         }
         public List<int> CreateBreakableBlock()
         {
-            _FuncState._breaktargs.Add(0);
-            _FuncState._continuetargs.Add(0);
-            return new(2) { _FuncState._breaks.Count, _FuncState._continues.Count };
+            FunctionState.BreakTargetsList.Add(0);
+            FunctionState.ContinueTargetList.Add(0);
+            return new(2) { FunctionState.BreakList.Count, FunctionState.ContinueList.Count };
         }
 
         public void ReleaseBreakableBlock(List<int> bc, int t)
         {
-            bc[0] = _FuncState._breaks.Count - bc[0];
-            bc[1] = _FuncState._continues.Count - bc[1];
+            bc[0] = FunctionState.BreakList.Count - bc[0];
+            bc[1] = FunctionState.ContinueList.Count - bc[1];
 
             if (bc[0] > 0)
             {
-                DoBreakControl(_FuncState, bc[0]);
+                DoBreakControl(FunctionState, bc[0]);
             }
 
             if (bc[1] > 0)
             {
-                DoContinueControl(_FuncState, bc[1], t);
+                DoContinueControl(FunctionState, bc[1], t);
             }
 
-            if (_FuncState._breaks.Count > 0)
+            if (FunctionState.BreakList.Count > 0)
             {
-                _FuncState._breaks.RemoveAt(_FuncState._breaks.Count - 1);
+                FunctionState.BreakList.RemoveAt(FunctionState.BreakList.Count - 1);
             }
-            if (_FuncState._continues.Count > 0)
+            if (FunctionState.ContinueList.Count > 0)
             {
-                _FuncState._continues.RemoveAt(_FuncState._continues.Count - 1);
+                FunctionState.ContinueList.RemoveAt(FunctionState.ContinueList.Count - 1);
             }
         }
 
@@ -587,8 +565,8 @@ namespace ExMat.Compiler
         {
             while (count > 0)
             {
-                int p = fs._breaks[^1];
-                fs._breaks.RemoveAt(fs._breaks.Count - 1);
+                int p = fs.BreakList[^1];
+                fs.BreakList.RemoveAt(fs.BreakList.Count - 1);
                 fs.SetInstrParams(p, 0, fs.GetCurrPos() - p, 0, 0);
                 count--;
             }
@@ -598,8 +576,8 @@ namespace ExMat.Compiler
         {
             while (count > 0)
             {
-                int p = fs._continues[^1];
-                fs._continues.RemoveAt(fs._continues.Count - 1);
+                int p = fs.ContinueList[^1];
+                fs.ContinueList.RemoveAt(fs.ContinueList.Count - 1);
                 fs.SetInstrParams(p, 0, t - p, 0, 0);
                 count--;
             }
@@ -610,22 +588,22 @@ namespace ExMat.Compiler
             int jpos;
             bool b_else = false;
             if (!ReadAndSetToken()
-                || Expect(TokenType.R_OPEN) == null
+                || Expect(TokenType.ROUNDOPEN) == null
                 || !ExSepExp()
-                || Expect(TokenType.R_CLOSE) == null)
+                || Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.JZ, _FuncState.PopTarget(), 0, 0, 0);
-            int jnpos = _FuncState.GetCurrPos();
+            FunctionState.AddInstr(OPC.JZ, FunctionState.PopTarget(), 0, 0, 0);
+            int jnpos = FunctionState.GetCurrPos();
 
             ExScope old = CreateScope();
             if (!ProcessStatement())
             {
                 return false;
             }
-            if (_currToken != TokenType.CLS_CLOSE && _currToken != TokenType.ELSE)
+            if (CurrentToken != TokenType.CURLYCLOSE && CurrentToken != TokenType.ELSE)
             {
                 if (!CheckSMC())
                 {
@@ -634,21 +612,21 @@ namespace ExMat.Compiler
             }
 
             ReleaseScope(old);
-            int epos = _FuncState.GetCurrPos();
-            if (_currToken == TokenType.ELSE)
+            int epos = FunctionState.GetCurrPos();
+            if (CurrentToken == TokenType.ELSE)
             {
                 b_else = true;
 
                 old = CreateScope();
-                _FuncState.AddInstr(OPC.JMP, 0, 0, 0, 0);
-                jpos = _FuncState.GetCurrPos();
+                FunctionState.AddInstr(OPC.JMP, 0, 0, 0, 0);
+                jpos = FunctionState.GetCurrPos();
 
                 if (!ReadAndSetToken() || !ProcessStatement())
                 {
                     return false;
                 }
 
-                if (_lexer._prevToken != TokenType.CLS_CLOSE)
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE)
                 {
                     if (!CheckSMC())
                     {
@@ -657,9 +635,9 @@ namespace ExMat.Compiler
                 }
                 ReleaseScope(old);
 
-                _FuncState.SetInstrParam(jpos, 1, _FuncState.GetCurrPos() - jpos);
+                FunctionState.SetInstrParam(jpos, 1, FunctionState.GetCurrPos() - jpos);
             }
-            _FuncState.SetInstrParam(jnpos, 1, epos - jnpos + (b_else ? 1 : 0));
+            FunctionState.SetInstrParam(jnpos, 1, epos - jnpos + (b_else ? 1 : 0));
             return true;
         }
 
@@ -671,25 +649,25 @@ namespace ExMat.Compiler
             }
 
             ExScope scp = CreateScope();
-            if (Expect(TokenType.R_OPEN) == null)
+            if (Expect(TokenType.ROUNDOPEN) == null)
             {
                 return false;
             }
 
-            if (_currToken == TokenType.VAR)
+            if (CurrentToken == TokenType.VAR)
             {
                 if (!ProcessVarAsgStatement())
                 {
                     return false;
                 }
             }
-            else if (_currToken != TokenType.SMC)
+            else if (CurrentToken != TokenType.SMC)
             {
                 if (!ExSepExp())
                 {
                     return false;
                 }
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
 
             if (Expect(TokenType.SMC) == null)
@@ -697,59 +675,59 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState._not_snoozed = false;
+            FunctionState.NotSnoozed = false;
 
-            int jpos = _FuncState.GetCurrPos();
+            int jpos = FunctionState.GetCurrPos();
             int jzpos = -1;
 
-            if (_currToken != TokenType.SMC)
+            if (CurrentToken != TokenType.SMC)
             {
                 if (!ExSepExp())
                 {
                     return false;
                 }
-                _FuncState.AddInstr(OPC.JZ, _FuncState.PopTarget(), 0, 0, 0);
-                jzpos = _FuncState.GetCurrPos();
+                FunctionState.AddInstr(OPC.JZ, FunctionState.PopTarget(), 0, 0, 0);
+                jzpos = FunctionState.GetCurrPos();
             }
 
             if (Expect(TokenType.SMC) == null)
             {
                 return false;
             }
-            _FuncState._not_snoozed = false;
+            FunctionState.NotSnoozed = false;
 
-            int estart = _FuncState.GetCurrPos() + 1;
-            if (_currToken != TokenType.R_CLOSE)
+            int estart = FunctionState.GetCurrPos() + 1;
+            if (CurrentToken != TokenType.ROUNDCLOSE)
             {
                 if (!ExSepExp())
                 {
                     return false;
                 }
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
 
-            if (Expect(TokenType.R_CLOSE) == null)
+            if (Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
 
-            _FuncState._not_snoozed = false;
+            FunctionState.NotSnoozed = false;
 
-            int eend = _FuncState.GetCurrPos();
+            int eend = FunctionState.GetCurrPos();
             int esize = eend - estart + 1;
             List<ExInstr> instrs = null;
 
             if (esize > 0)
             {
                 instrs = new(esize);
-                int n_instr = _FuncState._instructions.Count;
+                int n_instr = FunctionState.Instructions.Count;
                 for (int i = 0; i < esize; i++)
                 {
-                    instrs.Add(_FuncState._instructions[estart + i]);
+                    instrs.Add(FunctionState.Instructions[estart + i]);
                 }
                 for (int i = 0; i < esize; i++)
                 {
-                    _FuncState._instructions.RemoveAt(_FuncState._instructions.Count - 1);
+                    FunctionState.Instructions.RemoveAt(FunctionState.Instructions.Count - 1);
                 }
             }
 
@@ -759,21 +737,21 @@ namespace ExMat.Compiler
             {
                 return false;
             }
-            int ctarg = _FuncState.GetCurrPos();
+            int ctarg = FunctionState.GetCurrPos();
 
             if (esize > 0)
             {
                 for (int i = 0; i < esize; i++)
                 {
-                    _FuncState.AddInstr(instrs[i]);
+                    FunctionState.AddInstr(instrs[i]);
                 }
             }
 
-            _FuncState.AddInstr(OPC.JMP, 0, jpos - _FuncState.GetCurrPos() - 1, 0, 0);
+            FunctionState.AddInstr(OPC.JMP, 0, jpos - FunctionState.GetCurrPos() - 1, 0, 0);
 
             if (jzpos > 0)
             {
-                _FuncState.SetInstrParam(jzpos, 1, _FuncState.GetCurrPos() - jzpos);
+                FunctionState.SetInstrParam(jzpos, 1, FunctionState.GetCurrPos() - jzpos);
             }
 
             ReleaseScope(scp);
@@ -788,20 +766,20 @@ namespace ExMat.Compiler
         }
         public bool ExSequenceCreate(ExObject o)
         {
-            ExFState f_state = _FuncState.PushChildState(_VM._sState);
-            f_state._name = o;
+            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
+            f_state.Name = o;
 
             ExObject pname;
-            f_state.AddParam(_FuncState.CreateString(ExMat._THIS));
-            f_state.AddParam(_FuncState.CreateString("n"));
+            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
+            f_state.AddParam(FunctionState.CreateString("n"));
 
-            f_state._source = new(_source);
+            f_state.Source = new(Source);
             int pcount = 0;
 
-            while (_currToken != TokenType.R_CLOSE)
+            while (CurrentToken != TokenType.ROUNDCLOSE)
             {
                 bool neg = false;
-                if (_currToken == TokenType.SUB)
+                if (CurrentToken == TokenType.SUB)
                 {
                     if (!ReadAndSetToken())
                     {
@@ -829,7 +807,7 @@ namespace ExMat.Compiler
                         pcount++;
                         f_state.AddParam(pname);
 
-                        if (_currToken == TokenType.ASG)
+                        if (CurrentToken == TokenType.ASG)
                         {
                             if (!ReadAndSetToken())
                             {
@@ -841,7 +819,7 @@ namespace ExMat.Compiler
                                 return false;
                             }
 
-                            f_state.AddDefParam(_FuncState.TopTarget());
+                            f_state.AddDefParam(FunctionState.TopTarget());
                         }
                         else // TO-DO add = for referencing global and do get ops
                         {
@@ -865,20 +843,20 @@ namespace ExMat.Compiler
                 }
                 else
                 {
-                    if (pname._type == ExObjType.INTEGER)
+                    if (pname.Type == ExObjType.INTEGER)
                     {
                         if (neg)
                         {
-                            pname._val.i_Int *= -1;
+                            pname.Value.i_Int *= -1;
                         }
 
                         pname = new(pname.GetInt().ToString());
                     }
-                    else if (pname._type == ExObjType.FLOAT)
+                    else if (pname.Type == ExObjType.FLOAT)
                     {
                         if (neg)
                         {
-                            pname._val.f_Float *= -1;
+                            pname.Value.f_Float *= -1;
                         }
 
                         pname = new(pname.GetFloat().ToString());
@@ -891,7 +869,7 @@ namespace ExMat.Compiler
                     pcount++;
                     f_state.AddParam(pname);
 
-                    if (_currToken == TokenType.COL)
+                    if (CurrentToken == TokenType.COL)
                     {
                         if (!ReadAndSetToken())
                         {
@@ -903,7 +881,7 @@ namespace ExMat.Compiler
                             return false;
                         }
 
-                        f_state.AddDefParam(_FuncState.TopTarget());
+                        f_state.AddDefParam(FunctionState.TopTarget());
                     }
                     else // TO-DO add = for referencing global and do get ops
                     {
@@ -913,48 +891,48 @@ namespace ExMat.Compiler
                 }
 
 
-                if (_currToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else if (_currToken != TokenType.R_CLOSE)
+                else if (CurrentToken != TokenType.ROUNDCLOSE)
                 {
                     AddToErrorMessage("expected ')' for sequence constants definition end");
                     return false;
                 }
             }
-            if (Expect(TokenType.R_CLOSE) == null)
+            if (Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
 
             for (int i = 0; i < pcount; i++)
             {
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
 
-            ExFState tmp = _FuncState.Copy();
-            _FuncState = f_state;
+            ExFState tmp = FunctionState.Copy();
+            FunctionState = f_state;
 
             if (!ExExp())
             {
                 return false;
             }
-            f_state.AddInstr(OPC.RETURN, 1, _FuncState.PopTarget(), 0, 0);
+            f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
 
-            f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+            f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
-            fpro.type = ExClosureType.SEQUENCE;
+            fpro.ClosureType = ExClosureType.SEQUENCE;
 
-            _FuncState = tmp;
-            _FuncState._funcs.Add(fpro);
-            _FuncState.PopChildState();
+            FunctionState = tmp;
+            FunctionState.Functions.Add(fpro);
+            FunctionState.PopChildState();
 
             return true;
         }
@@ -967,19 +945,19 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.PushTarget(0);
-            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(v), 0, 0);
+            FunctionState.PushTarget(0);
+            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(v), 0, 0);
 
-            if (Expect(TokenType.R_OPEN) == null || !ExSequenceCreate(v))
+            if (Expect(TokenType.ROUNDOPEN) == null || !ExSequenceCreate(v))
             {
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
 
-            _FuncState.PopTarget();
+            FunctionState.PopTarget();
 
             return true;
         }
@@ -992,34 +970,34 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.PushTarget(0);
-            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(v), 0, 0);
+            FunctionState.PushTarget(0);
+            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(v), 0, 0);
 
-            if (Expect(TokenType.CLS_OPEN) == null || !ExClusterCreate(v))
+            if (Expect(TokenType.CURLYOPEN) == null || !ExClusterCreate(v))
             {
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
 
-            _FuncState.PopTarget();
+            FunctionState.PopTarget();
 
             return true;
         }
 
         public bool ExClusterCreate(ExObject o)
         {
-            ExFState f_state = _FuncState.PushChildState(_VM._sState);
-            f_state._name = o;
+            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
+            f_state.Name = o;
 
             ExObject pname;
-            f_state.AddParam(_FuncState.CreateString(ExMat._THIS));
-            f_state._source = new(_source);
+            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
+            f_state.Source = new(Source);
             int pcount = 0;
 
-            while (_currToken != TokenType.SMC)
+            while (CurrentToken != TokenType.SMC)
             {
                 if ((pname = Expect(TokenType.IDENTIFIER)) == null)
                 {
@@ -1029,14 +1007,14 @@ namespace ExMat.Compiler
                 pcount++;
                 f_state.AddParam(pname);
 
-                if (_currToken == TokenType.IN)
+                if (CurrentToken == TokenType.IN)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
 
-                    if (_currToken != TokenType.SPACE)
+                    if (CurrentToken != TokenType.SPACE)
                     {
                         //AddToErrorMessage("expected a constant SPACE for parameter " + pcount + "'s domain");
                         //return false;
@@ -1047,14 +1025,14 @@ namespace ExMat.Compiler
                     }
                     else
                     {
-                        AddSpaceConstLoadInstr(_lexer._space, -1);
+                        AddSpaceConstLoadInstr(Lexer.ValSpace, -1);
                         if (!ReadAndSetToken())
                         {
                             return false;
                         }
                     }
 
-                    f_state.AddDefParam(_FuncState.TopTarget());
+                    f_state.AddDefParam(FunctionState.TopTarget());
                 }
                 else // TO-DO add = for referencing global and do get ops
                 {
@@ -1062,14 +1040,14 @@ namespace ExMat.Compiler
                     return false;
                 }
 
-                if (_currToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else if (_currToken != TokenType.SMC && _currToken != TokenType.CLS_CLOSE)
+                else if (CurrentToken != TokenType.SMC && CurrentToken != TokenType.CURLYCLOSE)
                 {
                     AddToErrorMessage("expected '}' ',' '=>' or ';' for cluster definition");
                     return false;
@@ -1083,13 +1061,13 @@ namespace ExMat.Compiler
 
             for (int i = 0; i < pcount; i++)
             {
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
 
-            ExFState tmp = _FuncState.Copy();
-            _FuncState = f_state;
+            ExFState tmp = FunctionState.Copy();
+            FunctionState = f_state;
 
-            if (_currToken == TokenType.ELEMENT_DEF)
+            if (CurrentToken == TokenType.ELEMENTDEF)
             {
                 AddToErrorMessage("expected '; [expression] => [return_value] }' after space specifications of cluster");
                 return false;
@@ -1102,47 +1080,47 @@ namespace ExMat.Compiler
                 }
             }
 
-            if (_currToken != TokenType.ELEMENT_DEF)
+            if (CurrentToken != TokenType.ELEMENTDEF)
             {
                 AddToErrorMessage("expected '=>' to define elements of cluster");
                 return false;
             }
             //
-            _FuncState.AddInstr(OPC.JZ, _FuncState.PopTarget(), 0, 0, 0);
+            FunctionState.AddInstr(OPC.JZ, FunctionState.PopTarget(), 0, 0, 0);
 
-            int jzp = _FuncState.GetCurrPos();
-            int t = _FuncState.PushTarget();
+            int jzp = FunctionState.GetCurrPos();
+            int t = FunctionState.PushTarget();
 
             if (!ReadAndSetToken() || !ExExp())
             {
                 return false;
             }
 
-            int f = _FuncState.PopTarget();
+            int f = FunctionState.PopTarget();
             if (t != f)
             {
-                _FuncState.AddInstr(OPC.MOVE, t, f, 0, 0);
+                FunctionState.AddInstr(OPC.MOVE, t, f, 0, 0);
             }
-            int end_f = _FuncState.GetCurrPos();
+            int end_f = FunctionState.GetCurrPos();
 
-            _FuncState.AddInstr(OPC.JMP, 0, 0, 0, 0);
+            FunctionState.AddInstr(OPC.JMP, 0, 0, 0, 0);
 
-            int jmp = _FuncState.GetCurrPos();
+            int jmp = FunctionState.GetCurrPos();
 
-            _FuncState.AddInstr(OPC.LOAD_BOOL, _FuncState.PushTarget(), 0, 0, 0);
+            FunctionState.AddInstr(OPC.LOADBOOLEAN, FunctionState.PushTarget(), 0, 0, 0);
 
-            int s = _FuncState.PopTarget();
+            int s = FunctionState.PopTarget();
             if (t != s)
             {
-                _FuncState.AddInstr(OPC.MOVE, t, s, 0, 0);
+                FunctionState.AddInstr(OPC.MOVE, t, s, 0, 0);
             }
 
-            _FuncState.SetInstrParam(jmp, 1, _FuncState.GetCurrPos() - jmp);
-            _FuncState.SetInstrParam(jzp, 1, end_f - jzp + 1);
-            _FuncState._not_snoozed = false;
+            FunctionState.SetInstrParam(jmp, 1, FunctionState.GetCurrPos() - jmp);
+            FunctionState.SetInstrParam(jzp, 1, end_f - jzp + 1);
+            FunctionState.NotSnoozed = false;
             //
 
-            if (_currToken != TokenType.CLS_CLOSE)
+            if (CurrentToken != TokenType.CURLYCLOSE)
             {
                 AddToErrorMessage("expected '}' to declare a cluster");
                 return false;
@@ -1153,31 +1131,31 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            f_state.AddInstr(OPC.RETURN, 1, _FuncState.PopTarget(), 0, 0);
-            f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+            f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
+            f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
-            fpro.type = ExClosureType.CLUSTER;
+            fpro.ClosureType = ExClosureType.CLUSTER;
 
-            _FuncState = tmp;
-            _FuncState._funcs.Add(fpro);
-            _FuncState.PopChildState();
+            FunctionState = tmp;
+            FunctionState.Functions.Add(fpro);
+            FunctionState.PopChildState();
 
             return true;
         }
 
         public bool ExSymbolCreate(ExObject o)
         {
-            ExFState f_state = _FuncState.PushChildState(_VM._sState);
-            f_state._name = o;
+            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
+            f_state.Name = o;
 
             ExObject pname;
-            f_state.AddParam(_FuncState.CreateString(ExMat._THIS));
-            f_state._source = new(_source);
+            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
+            f_state.Source = new(Source);
 
-            while (_currToken != TokenType.R_CLOSE)
+            while (CurrentToken != TokenType.ROUNDCLOSE)
             {
                 if ((pname = Expect(TokenType.IDENTIFIER)) == null)
                 {
@@ -1186,16 +1164,16 @@ namespace ExMat.Compiler
 
                 f_state.AddParam(pname);
 
-                if (_currToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else if (_currToken != TokenType.R_CLOSE)
+                else if (CurrentToken != TokenType.ROUNDCLOSE)
                 {
-                    if (_currToken == TokenType.ASG)
+                    if (CurrentToken == TokenType.ASG)
                     {
                         AddToErrorMessage("default values are not supported for symbols");
                     }
@@ -1207,30 +1185,30 @@ namespace ExMat.Compiler
                 }
             }
 
-            if (Expect(TokenType.R_CLOSE) == null)
+            if (Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
 
-            ExFState tmp = _FuncState.Copy();
-            _FuncState = f_state;
+            ExFState tmp = FunctionState.Copy();
+            FunctionState = f_state;
 
             if (!ExExp())
             {
                 return false;
             }
-            f_state.AddInstr(OPC.RETURN, 1, _FuncState.PopTarget(), 0, 0);
+            f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
 
-            f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+            f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
-            fpro.type = ExClosureType.FORMULA;
+            //fpro.ClosureType = ExClosureType.FORMULA;
 
-            _FuncState = tmp;
-            _FuncState._funcs.Add(fpro);
-            _FuncState.PopChildState();
+            FunctionState = tmp;
+            FunctionState.Functions.Add(fpro);
+            FunctionState.PopChildState();
 
             return true;
         }
@@ -1243,15 +1221,15 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.PushTarget(0);
-            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(v), 0, 0);
+            FunctionState.PushTarget(0);
+            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(v), 0, 0);
 
-            if (Expect(TokenType.R_OPEN) == null || !ExSymbolCreate(v))
+            if (Expect(TokenType.ROUNDOPEN) == null || !ExSymbolCreate(v))
             {
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
 
@@ -1259,14 +1237,14 @@ namespace ExMat.Compiler
         }
         public bool ExRuleCreate(ExObject o)
         {
-            ExFState f_state = _FuncState.PushChildState(_VM._sState);
-            f_state._name = o;
+            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
+            f_state.Name = o;
 
             ExObject pname;
-            f_state.AddParam(_FuncState.CreateString(ExMat._THIS));
-            f_state._source = new(_source);
+            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
+            f_state.Source = new(Source);
 
-            while (_currToken != TokenType.R_CLOSE)
+            while (CurrentToken != TokenType.ROUNDCLOSE)
             {
                 if ((pname = Expect(TokenType.IDENTIFIER)) == null)
                 {
@@ -1275,16 +1253,16 @@ namespace ExMat.Compiler
 
                 f_state.AddParam(pname);
 
-                if (_currToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else if (_currToken != TokenType.R_CLOSE)
+                else if (CurrentToken != TokenType.ROUNDCLOSE)
                 {
-                    if (_currToken == TokenType.ASG)
+                    if (CurrentToken == TokenType.ASG)
                     {
                         AddToErrorMessage("default values are not supported for rules");
                     }
@@ -1296,30 +1274,30 @@ namespace ExMat.Compiler
                 }
             }
 
-            if (Expect(TokenType.R_CLOSE) == null)
+            if (Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
 
-            ExFState tmp = _FuncState.Copy();
-            _FuncState = f_state;
+            ExFState tmp = FunctionState.Copy();
+            FunctionState = f_state;
 
             if (!ExExp())
             {
                 return false;
             }
-            f_state.AddInstr(OPC.RETURNBOOL, 1, _FuncState.PopTarget(), 0, 0);
+            f_state.AddInstr(OPC.RETURNBOOL, 1, FunctionState.PopTarget(), 0, 0);
 
-            f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+            f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
-            fpro.type = ExClosureType.RULE;
+            fpro.ClosureType = ExClosureType.RULE;
 
-            _FuncState = tmp;
-            _FuncState._funcs.Add(fpro);
-            _FuncState.PopChildState();
+            FunctionState = tmp;
+            FunctionState.Functions.Add(fpro);
+            FunctionState.PopChildState();
 
             return true;
         }
@@ -1332,15 +1310,15 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.PushTarget(0);
-            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(v), 0, 0);
+            FunctionState.PushTarget(0);
+            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(v), 0, 0);
 
-            if (Expect(TokenType.R_OPEN) == null || !ExRuleCreate(v))
+            if (Expect(TokenType.ROUNDOPEN) == null || !ExRuleCreate(v))
             {
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
 
@@ -1360,74 +1338,49 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (sym)
-            {
-                while (true)
-                {
-                    if ((v = Expect(TokenType.IDENTIFIER)) == null)
-                    {
-                        return false;
-                    }
-
-                    AddSymConstLoadInstr("_" + v.GetString() + "_", -1);
-                    _FuncState.PushVar(v);
-                    if (_currToken == TokenType.SEP)
-                    {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                return true;
-            }
-            else if (_currToken == TokenType.FUNCTION)
+            if (CurrentToken == TokenType.FUNCTION)
             {
                 if (!ReadAndSetToken()
                     || (v = Expect(TokenType.IDENTIFIER)) == null
-                    || Expect(TokenType.R_OPEN) == null
+                    || Expect(TokenType.ROUNDOPEN) == null
                     || !ExFuncCreate(v))
                 {
                     return false;
                 }
 
-                _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
-                _FuncState.PopTarget();
-                _FuncState.PushVar(v);
+                FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
+                FunctionState.PopTarget();
+                FunctionState.PushVar(v);
                 return true;
             }
-            else if (_currToken == TokenType.RULE)
+            else if (CurrentToken == TokenType.RULE)
             {
                 if (!ReadAndSetToken()
                     || (v = Expect(TokenType.IDENTIFIER)) == null
-                    || Expect(TokenType.R_OPEN) == null
+                    || Expect(TokenType.ROUNDOPEN) == null
                     || !ExRuleCreate(v))
                 {
                     return false;
                 }
 
-                _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
-                _FuncState.PopTarget();
-                _FuncState.PushVar(v);
+                FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
+                FunctionState.PopTarget();
+                FunctionState.PushVar(v);
                 return true;
             }
-            else if (_currToken == TokenType.CLUSTER)
+            else if (CurrentToken == TokenType.CLUSTER)
             {
                 if (!ReadAndSetToken()
                     || (v = Expect(TokenType.IDENTIFIER)) == null
-                    || Expect(TokenType.CLS_OPEN) == null
+                    || Expect(TokenType.CURLYOPEN) == null
                     || !ExClusterCreate(v))
                 {
                     return false;
                 }
 
-                _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
-                _FuncState.PopTarget();
-                _FuncState.PushVar(v);
+                FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
+                FunctionState.PopTarget();
+                FunctionState.PushVar(v);
                 return true;
             }
 
@@ -1438,28 +1391,28 @@ namespace ExMat.Compiler
                     return false;
                 }
 
-                if (_currToken == TokenType.ASG)
+                if (CurrentToken == TokenType.ASG)
                 {
                     if (!ReadAndSetToken() || !ExExp())
                     {
                         return false;
                     }
 
-                    int s = _FuncState.PopTarget();
-                    int d = _FuncState.PushTarget();
+                    int s = FunctionState.PopTarget();
+                    int d = FunctionState.PushTarget();
 
                     if (d != s)
                     {
-                        _FuncState.AddInstr(OPC.MOVE, d, s, 0, 0);
+                        FunctionState.AddInstr(OPC.MOVE, d, s, 0, 0);
                     }
                 }
                 else
                 {
-                    _FuncState.AddInstr(OPC.LOAD_NULL, _FuncState.PushTarget(), 1, 0, 0);
+                    FunctionState.AddInstr(OPC.LOADNULL, FunctionState.PushTarget(), 1, 0, 0);
                 }
-                _FuncState.PopTarget();
-                _FuncState.PushVar(v);
-                if (_currToken == TokenType.SEP)
+                FunctionState.PopTarget();
+                FunctionState.PushVar(v);
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
@@ -1483,39 +1436,39 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.PushTarget(0);
-            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(idx), 0, 0);
+            FunctionState.PushTarget(0);
+            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
 
-            if (_currToken == TokenType.GLB)
+            if (CurrentToken == TokenType.GLOBAL)
             {
                 AddBasicOpInstr(OPC.GET);
             }
 
-            while (_currToken == TokenType.GLB)
+            while (CurrentToken == TokenType.GLOBAL)
             {
                 if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null)
                 {
                     return false;
                 }
 
-                _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(idx), 0, 0);
+                FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
 
-                if (_currToken == TokenType.GLB)
+                if (CurrentToken == TokenType.GLOBAL)
                 {
                     AddBasicOpInstr(OPC.GET);
                 }
             }
 
-            if (Expect(TokenType.R_OPEN) == null || !ExFuncCreate(idx))
+            if (Expect(TokenType.ROUNDOPEN) == null || !ExFuncCreate(idx))
             {
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
 
-            _FuncState.PopTarget();
+            FunctionState.PopTarget();
 
             return true;
         }
@@ -1527,51 +1480,51 @@ namespace ExMat.Compiler
             {
                 return false;
             }
-            ex = _ExpState.Copy();
+            ex = ExpressionState.Copy();
 
-            _ExpState.stop_deref = true;
+            ExpressionState.ShouldStopDeref = true;
 
             if (!ExPrefixed())
             {
                 return false;
             }
 
-            if (_ExpState._type == ExEType.EXPRESSION)
+            if (ExpressionState.Type == ExEType.EXPRESSION)
             {
                 AddToErrorMessage("invalid class name");
                 return false;
             }
-            else if (_ExpState._type == ExEType.OBJECT || _ExpState._type == ExEType.BASE)
+            else if (ExpressionState.Type == ExEType.OBJECT || ExpressionState.Type == ExEType.BASE)
             {
                 if (!ExClassResolveExp())
                 {
                     return false;
                 }
                 AddBasicDerefInstr(OPC.NEWSLOT);
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
             else
             {
                 AddToErrorMessage("can't create a class as local");
                 return false;
             }
-            _ExpState = ex;
+            ExpressionState = ex;
             return true;
         }
 
         public bool ExInvokeExp(string ex)
         {
-            ExEState eState = _ExpState.Copy();
-            _ExpState._type = ExEType.EXPRESSION;
-            _ExpState._pos = -1;
-            _ExpState.stop_deref = false;
+            ExEState eState = ExpressionState.Copy();
+            ExpressionState.Type = ExEType.EXPRESSION;
+            ExpressionState.Position = -1;
+            ExpressionState.ShouldStopDeref = false;
 
             if (!(bool)Type.GetType("ExMat.Compiler.ExCompiler").GetMethod(ex).Invoke(this, null))
             {
                 return false;
             }
 
-            _ExpState = eState;
+            ExpressionState = eState;
             return true;
         }
 
@@ -1582,26 +1535,26 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            int arg1 = _FuncState.PopTarget();
-            int arg2 = _FuncState.PopTarget();
+            int arg1 = FunctionState.PopTarget();
+            int arg2 = FunctionState.PopTarget();
 
-            _FuncState.AddInstr(op, _FuncState.PushTarget(), arg1, arg2, lastop);
+            FunctionState.AddInstr(op, FunctionState.PushTarget(), arg1, arg2, lastop);
             return true;
         }
 
         public bool ExExp()
         {
-            ExEState estate = _ExpState.Copy();
-            _ExpState._type = ExEType.EXPRESSION;
-            _ExpState._pos = -1;
-            _ExpState.stop_deref = false;
+            ExEState estate = ExpressionState.Copy();
+            ExpressionState.Type = ExEType.EXPRESSION;
+            ExpressionState.Position = -1;
+            ExpressionState.ShouldStopDeref = false;
 
             if (!ExLogicOr())
             {
                 return false;
             }
 
-            switch (_currToken)
+            switch (CurrentToken)
             {
                 case TokenType.ASG:
                 case TokenType.ADDEQ:
@@ -1611,9 +1564,9 @@ namespace ExMat.Compiler
                 case TokenType.MODEQ:
                 case TokenType.NEWSLOT:
                     {
-                        TokenType op = _currToken;
-                        ExEType etyp = _ExpState._type;
-                        int pos = _ExpState._pos;
+                        TokenType op = CurrentToken;
+                        ExEType etyp = ExpressionState.Type;
+                        int pos = ExpressionState.Position;
 
                         if (etyp == ExEType.EXPRESSION)
                         {
@@ -1652,9 +1605,9 @@ namespace ExMat.Compiler
                                     {
                                         case ExEType.VAR:
                                             {
-                                                int s = _FuncState.PopTarget();
-                                                int d = _FuncState.TopTarget();
-                                                _FuncState.AddInstr(OPC.MOVE, d, s, 0, 0);
+                                                int s = FunctionState.PopTarget();
+                                                int d = FunctionState.TopTarget();
+                                                FunctionState.AddInstr(OPC.MOVE, d, s, 0, 0);
                                                 break;
                                             }
                                         case ExEType.OBJECT:
@@ -1665,9 +1618,9 @@ namespace ExMat.Compiler
                                             }
                                         case ExEType.OUTER:
                                             {
-                                                int s = _FuncState.PopTarget();
-                                                int d = _FuncState.PushTarget();
-                                                _FuncState.AddInstr(OPC.SETOUTER, d, pos, s, 0);
+                                                int s = FunctionState.PopTarget();
+                                                int d = FunctionState.PushTarget();
+                                                FunctionState.AddInstr(OPC.SETOUTER, d, pos, s, 0);
                                                 break;
                                             }
                                     }
@@ -1692,50 +1645,50 @@ namespace ExMat.Compiler
                             return false;
                         }
 
-                        _FuncState.AddInstr(OPC.JZ, _FuncState.PopTarget(), 0, 0, 0);
+                        FunctionState.AddInstr(OPC.JZ, FunctionState.PopTarget(), 0, 0, 0);
 
-                        int jzp = _FuncState.GetCurrPos();
-                        int t = _FuncState.PushTarget();
+                        int jzp = FunctionState.GetCurrPos();
+                        int t = FunctionState.PushTarget();
 
                         if (!ExExp())
                         {
                             return false;
                         }
 
-                        int f = _FuncState.PopTarget();
+                        int f = FunctionState.PopTarget();
                         if (t != f)
                         {
-                            _FuncState.AddInstr(OPC.MOVE, t, f, 0, 0);
+                            FunctionState.AddInstr(OPC.MOVE, t, f, 0, 0);
                         }
-                        int end_f = _FuncState.GetCurrPos();
+                        int end_f = FunctionState.GetCurrPos();
 
-                        _FuncState.AddInstr(OPC.JMP, 0, 0, 0, 0);
+                        FunctionState.AddInstr(OPC.JMP, 0, 0, 0, 0);
                         if (Expect(TokenType.COL) == null)
                         {
                             return false;
                         }
 
-                        int jmp = _FuncState.GetCurrPos();
+                        int jmp = FunctionState.GetCurrPos();
 
                         if (!ExExp())
                         {
                             return false;
                         }
 
-                        int s = _FuncState.PopTarget();
+                        int s = FunctionState.PopTarget();
                         if (t != s)
                         {
-                            _FuncState.AddInstr(OPC.MOVE, t, s, 0, 0);
+                            FunctionState.AddInstr(OPC.MOVE, t, s, 0, 0);
                         }
 
-                        _FuncState.SetInstrParam(jmp, 1, _FuncState.GetCurrPos() - jmp);
-                        _FuncState.SetInstrParam(jzp, 1, end_f - jzp + 1);
-                        _FuncState._not_snoozed = false;
+                        FunctionState.SetInstrParam(jmp, 1, FunctionState.GetCurrPos() - jmp);
+                        FunctionState.SetInstrParam(jzp, 1, end_f - jzp + 1);
+                        FunctionState.NotSnoozed = false;
 
                         break;
                     }
             }
-            _ExpState = estate;
+            ExpressionState = estate;
             return true;
         }
 
@@ -1747,20 +1700,20 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.OR:
                         {
-                            int f = _FuncState.PopTarget();
-                            int t = _FuncState.PushTarget();
+                            int f = FunctionState.PopTarget();
+                            int t = FunctionState.PushTarget();
 
-                            _FuncState.AddInstr(OPC.OR, t, 0, f, 0);
+                            FunctionState.AddInstr(OPC.OR, t, 0, f, 0);
 
-                            int j = _FuncState.GetCurrPos();
+                            int j = FunctionState.GetCurrPos();
 
                             if (t != f)
                             {
-                                _FuncState.AddInstr(OPC.MOVE, t, f, 0, 0);
+                                FunctionState.AddInstr(OPC.MOVE, t, f, 0, 0);
                             }
 
                             if (!ReadAndSetToken() || !ExInvokeExp("ExLogicOr"))
@@ -1768,17 +1721,17 @@ namespace ExMat.Compiler
                                 return false;
                             }
 
-                            _FuncState._not_snoozed = false;
+                            FunctionState.NotSnoozed = false;
 
-                            int s = _FuncState.PopTarget();
+                            int s = FunctionState.PopTarget();
 
                             if (t != s)
                             {
-                                _FuncState.AddInstr(OPC.MOVE, t, s, 0, 0);
+                                FunctionState.AddInstr(OPC.MOVE, t, s, 0, 0);
                             }
 
-                            _FuncState._not_snoozed = false;
-                            _FuncState.SetInstrParam(j, 1, _FuncState.GetCurrPos() - j);
+                            FunctionState.NotSnoozed = false;
+                            FunctionState.SetInstrParam(j, 1, FunctionState.GetCurrPos() - j);
                             break;
                         }
                     default:
@@ -1794,37 +1747,37 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.AND:
                         {
-                            int f = _FuncState.PopTarget();
-                            int t = _FuncState.PushTarget();
+                            int f = FunctionState.PopTarget();
+                            int t = FunctionState.PushTarget();
 
-                            _FuncState.AddInstr(OPC.AND, t, 0, f, 0);
+                            FunctionState.AddInstr(OPC.AND, t, 0, f, 0);
 
-                            int j = _FuncState.GetCurrPos();
+                            int j = FunctionState.GetCurrPos();
 
                             if (t != f)
                             {
-                                _FuncState.AddInstr(OPC.MOVE, t, f, 0, 0);
+                                FunctionState.AddInstr(OPC.MOVE, t, f, 0, 0);
                             }
                             if (!ReadAndSetToken() || !ExInvokeExp("ExLogicAnd"))
                             {
                                 return false;
                             }
 
-                            _FuncState._not_snoozed = false;
+                            FunctionState.NotSnoozed = false;
 
-                            int s = _FuncState.PopTarget();
+                            int s = FunctionState.PopTarget();
 
                             if (t != s)
                             {
-                                _FuncState.AddInstr(OPC.MOVE, t, s, 0, 0);
+                                FunctionState.AddInstr(OPC.MOVE, t, s, 0, 0);
                             }
 
-                            _FuncState._not_snoozed = false;
-                            _FuncState.SetInstrParam(j, 1, _FuncState.GetCurrPos() - j);
+                            FunctionState.NotSnoozed = false;
+                            FunctionState.SetInstrParam(j, 1, FunctionState.GetCurrPos() - j);
                             break;
                         }
                     default:
@@ -1840,7 +1793,7 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.BOR:
                         {
@@ -1863,7 +1816,7 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.BXOR:
                         {
@@ -1886,7 +1839,7 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.BAND:
                         {
@@ -1909,7 +1862,7 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.EQU:
                         {
@@ -1940,7 +1893,7 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.GRT:
                         {
@@ -1977,7 +1930,7 @@ namespace ExMat.Compiler
                     case TokenType.NOTIN:
                     case TokenType.IN:
                         {
-                            if (!ExBinaryExp(OPC.EXISTS, "ExLogicShift", _currToken == TokenType.NOTIN ? 1 : 0))
+                            if (!ExBinaryExp(OPC.EXISTS, "ExLogicShift", CurrentToken == TokenType.NOTIN ? 1 : 0))
                             {
                                 return false;
                             }
@@ -2004,7 +1957,7 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.LSHF:
                         {
@@ -2035,12 +1988,12 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.ADD:
                     case TokenType.SUB:
                         {
-                            if (!ExBinaryExp(ExOPDecideArithmetic(_currToken), "ExLogicMlt"))
+                            if (!ExBinaryExp(ExOPDecideArithmetic(CurrentToken), "ExLogicMlt"))
                             {
                                 return false;
                             }
@@ -2060,16 +2013,16 @@ namespace ExMat.Compiler
 
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.CARTESIAN:
                     case TokenType.EXP:
                     case TokenType.MLT:
-                    case TokenType.MMLT:
+                    case TokenType.MATMLT:
                     case TokenType.DIV:
                     case TokenType.MOD:
                         {
-                            if (!ExBinaryExp(ExOPDecideArithmetic(_currToken), "ExPrefixed"))
+                            if (!ExBinaryExp(ExOPDecideArithmetic(CurrentToken), "ExPrefixed"))
                             {
                                 return false;
                             }
@@ -2099,7 +2052,7 @@ namespace ExMat.Compiler
                 case TokenType.MOD:
                 case TokenType.MODEQ:
                     return OPC.MOD;
-                case TokenType.MMLT:
+                case TokenType.MATMLT:
                     return OPC.MMLT;
                 case TokenType.CARTESIAN:
                     return OPC.CARTESIAN;
@@ -2141,7 +2094,7 @@ namespace ExMat.Compiler
             }
             for (; ; )
             {
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.DOT:
                         {
@@ -2157,14 +2110,14 @@ namespace ExMat.Compiler
                                 return false;
                             }
 
-                            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(tmp), 0, 0);
+                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(tmp), 0, 0);
 
-                            if (_ExpState._type == ExEType.BASE)
+                            if (ExpressionState.Type == ExEType.BASE)
                             {
                                 AddBasicOpInstr(OPC.GET);
-                                p = _FuncState.TopTarget();
-                                _ExpState._type = ExEType.EXPRESSION;
-                                _ExpState._pos = p;
+                                p = FunctionState.TopTarget();
+                                ExpressionState.Type = ExEType.EXPRESSION;
+                                ExpressionState.Position = p;
                             }
                             else
                             {
@@ -2172,28 +2125,28 @@ namespace ExMat.Compiler
                                 {
                                     AddBasicOpInstr(OPC.GET);
                                 }
-                                _ExpState._type = ExEType.OBJECT;
+                                ExpressionState.Type = ExEType.OBJECT;
                             }
                             break;
                         }
-                    case TokenType.ARR_OPEN:
+                    case TokenType.SQUAREOPEN:
                         {
-                            if (_lexer._prevToken == TokenType.NEWLINE)
+                            if (Lexer.TokenPrev == TokenType.NEWLINE)
                             {
                                 AddToErrorMessage("can't break deref OR ',' needed after [exp] = exp decl");
                                 return false;
                             }
-                            if (!ReadAndSetToken() || !ExExp() || Expect(TokenType.ARR_CLOSE) == null)
+                            if (!ReadAndSetToken() || !ExExp() || Expect(TokenType.SQUARECLOSE) == null)
                             {
                                 return false;
                             }
 
-                            if (_ExpState._type == ExEType.BASE)
+                            if (ExpressionState.Type == ExEType.BASE)
                             {
                                 AddBasicOpInstr(OPC.GET);
-                                p = _FuncState.TopTarget();
-                                _ExpState._type = ExEType.EXPRESSION;
-                                _ExpState._pos = p;
+                                p = FunctionState.TopTarget();
+                                ExpressionState.Type = ExEType.EXPRESSION;
+                                ExpressionState.Position = p;
                             }
                             else
                             {
@@ -2201,18 +2154,18 @@ namespace ExMat.Compiler
                                 {
                                     AddBasicOpInstr(OPC.GET);
                                 }
-                                _ExpState._type = ExEType.OBJECT;
+                                ExpressionState.Type = ExEType.OBJECT;
                             }
                             break;
                         }
-                    case TokenType.MTRS:
+                    case TokenType.MATTRANSPOSE:
                         {
                             if (!ReadAndSetToken())
                             {
                                 return false;
                             }
 
-                            switch (_ExpState._type)
+                            switch (ExpressionState.Type)
                             {
                                 case ExEType.EXPRESSION:
                                 //{
@@ -2223,17 +2176,17 @@ namespace ExMat.Compiler
                                 case ExEType.BASE:
                                 case ExEType.VAR:
                                     {
-                                        int s = _FuncState.PopTarget();
-                                        _FuncState.AddInstr(OPC.TRANSPOSE, _FuncState.PushTarget(), s, 0, 0);
+                                        int s = FunctionState.PopTarget();
+                                        FunctionState.AddInstr(OPC.TRANSPOSE, FunctionState.PushTarget(), s, 0, 0);
                                         break;
                                     }
                                 case ExEType.OUTER:
                                     {
-                                        int t1 = _FuncState.PushTarget();
-                                        int t2 = _FuncState.PushTarget();
-                                        _FuncState.AddInstr(OPC.GETOUTER, t2, _ExpState._pos, 0, 0);
-                                        _FuncState.AddInstr(OPC.TRANSPOSE, t1, t2, 0, 0);
-                                        _FuncState.PopTarget();
+                                        int t1 = FunctionState.PushTarget();
+                                        int t2 = FunctionState.PushTarget();
+                                        FunctionState.AddInstr(OPC.GETOUTER, t2, ExpressionState.Position, 0, 0);
+                                        FunctionState.AddInstr(OPC.TRANSPOSE, t1, t2, 0, 0);
+                                        FunctionState.PopTarget();
                                         break;
                                     }
                             }
@@ -2246,14 +2199,14 @@ namespace ExMat.Compiler
                             {
                                 return true;
                             }
-                            int v = _currToken == TokenType.DEC ? -1 : 1;
+                            int v = CurrentToken == TokenType.DEC ? -1 : 1;
 
                             if (!ReadAndSetToken())
                             {
                                 return false;
                             }
 
-                            switch (_ExpState._type)
+                            switch (ExpressionState.Type)
                             {
                                 case ExEType.EXPRESSION:
                                     {
@@ -2268,54 +2221,54 @@ namespace ExMat.Compiler
                                     }
                                 case ExEType.VAR:
                                     {
-                                        int s = _FuncState.PopTarget();
-                                        _FuncState.AddInstr(OPC.PINCL, _FuncState.PushTarget(), s, 0, v);
+                                        int s = FunctionState.PopTarget();
+                                        FunctionState.AddInstr(OPC.PINCL, FunctionState.PushTarget(), s, 0, v);
                                         break;
                                     }
                                 case ExEType.OUTER:
                                     {
-                                        int t1 = _FuncState.PushTarget();
-                                        int t2 = _FuncState.PushTarget();
-                                        _FuncState.AddInstr(OPC.GETOUTER, t2, _ExpState._pos, 0, 0);
-                                        _FuncState.AddInstr(OPC.PINCL, t1, t2, 0, v);
-                                        _FuncState.AddInstr(OPC.SETOUTER, t2, _ExpState._pos, t2, 0);
-                                        _FuncState.PopTarget();
+                                        int t1 = FunctionState.PushTarget();
+                                        int t2 = FunctionState.PushTarget();
+                                        FunctionState.AddInstr(OPC.GETOUTER, t2, ExpressionState.Position, 0, 0);
+                                        FunctionState.AddInstr(OPC.PINCL, t1, t2, 0, v);
+                                        FunctionState.AddInstr(OPC.SETOUTER, t2, ExpressionState.Position, t2, 0);
+                                        FunctionState.PopTarget();
                                         break;
                                     }
                             }
                             return true;
                         }
-                    case TokenType.R_OPEN:
+                    case TokenType.ROUNDOPEN:
                         {
-                            switch (_ExpState._type)
+                            switch (ExpressionState.Type)
                             {
                                 case ExEType.OBJECT:
                                     {
-                                        int k_loc = _FuncState.PopTarget();
-                                        int obj_loc = _FuncState.PopTarget();
-                                        int closure = _FuncState.PushTarget();
-                                        int target = _FuncState.PushTarget();
-                                        _FuncState.AddInstr(OPC.PREPCALL, closure, k_loc, obj_loc, target);
+                                        int k_loc = FunctionState.PopTarget();
+                                        int obj_loc = FunctionState.PopTarget();
+                                        int closure = FunctionState.PushTarget();
+                                        int target = FunctionState.PushTarget();
+                                        FunctionState.AddInstr(OPC.PREPCALL, closure, k_loc, obj_loc, target);
                                         break;
                                     }
                                 case ExEType.BASE:
                                     {
-                                        _FuncState.AddInstr(OPC.MOVE, _FuncState.PushTarget(), 0, 0, 0);
+                                        FunctionState.AddInstr(OPC.MOVE, FunctionState.PushTarget(), 0, 0, 0);
                                         break;
                                     }
                                 case ExEType.OUTER:
                                     {
-                                        _FuncState.AddInstr(OPC.GETOUTER, _FuncState.PushTarget(), _ExpState._pos, 0, 0);
-                                        _FuncState.AddInstr(OPC.MOVE, _FuncState.PushTarget(), 0, 0, 0);
+                                        FunctionState.AddInstr(OPC.GETOUTER, FunctionState.PushTarget(), ExpressionState.Position, 0, 0);
+                                        FunctionState.AddInstr(OPC.MOVE, FunctionState.PushTarget(), 0, 0, 0);
                                         break;
                                     }
                                 default:
                                     {
-                                        _FuncState.AddInstr(OPC.MOVE, _FuncState.PushTarget(), 0, 0, 0);
+                                        FunctionState.AddInstr(OPC.MOVE, FunctionState.PushTarget(), 0, 0, 0);
                                         break;
                                     }
                             }
-                            _ExpState._type = ExEType.EXPRESSION;
+                            ExpressionState.Type = ExEType.EXPRESSION;
                             if (!ReadAndSetToken() || !ExFuncCall())
                             {
                                 return false;
@@ -2326,19 +2279,19 @@ namespace ExMat.Compiler
                         {
                             if (macro)
                             {
-                                int k_loc = _FuncState.PopTarget();
-                                int obj_loc = _FuncState.PopTarget();
-                                int closure = _FuncState.PushTarget();
-                                int target = _FuncState.PushTarget();
+                                int k_loc = FunctionState.PopTarget();
+                                int obj_loc = FunctionState.PopTarget();
+                                int closure = FunctionState.PushTarget();
+                                int target = FunctionState.PushTarget();
 
-                                _FuncState.AddInstr(OPC.PREPCALL, closure, k_loc, obj_loc, target);
+                                FunctionState.AddInstr(OPC.PREPCALL, closure, k_loc, obj_loc, target);
 
-                                _ExpState._type = ExEType.EXPRESSION;
+                                ExpressionState.Type = ExEType.EXPRESSION;
 
-                                int st = _FuncState.PopTarget();
-                                int cl = _FuncState.PopTarget();
+                                int st = FunctionState.PopTarget();
+                                int cl = FunctionState.PopTarget();
 
-                                _FuncState.AddInstr(OPC.CALL, _FuncState.PushTarget(), cl, st, 1);
+                                FunctionState.AddInstr(OPC.CALL, FunctionState.PushTarget(), cl, st, 1);
                             }
                             return true;
                         }
@@ -2348,13 +2301,13 @@ namespace ExMat.Compiler
 
         public bool ExFactor(ref int pos, ref bool macro)
         {
-            _ExpState._type = ExEType.EXPRESSION;
+            ExpressionState.Type = ExEType.EXPRESSION;
 
-            switch (_currToken)
+            switch (CurrentToken)
             {
                 case TokenType.LITERAL:
                     {
-                        _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(_FuncState.CreateString(_lexer.str_val)), 0, 0);
+                        FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(FunctionState.CreateString(Lexer.ValString)), 0, 0);
 
                         if (!ReadAndSetToken())
                         {
@@ -2368,11 +2321,11 @@ namespace ExMat.Compiler
                         {
                             return false;
                         }
-                        _FuncState.AddInstr(OPC.GETBASE, _FuncState.PushTarget(), 0, 0, 0);
+                        FunctionState.AddInstr(OPC.GETBASE, FunctionState.PushTarget(), 0, 0, 0);
 
-                        _ExpState._type = ExEType.BASE;
-                        _ExpState._pos = _FuncState.TopTarget();
-                        pos = _ExpState._pos;
+                        ExpressionState.Type = ExEType.BASE;
+                        ExpressionState.Position = FunctionState.TopTarget();
+                        pos = ExpressionState.Position;
                         return true;
                     }
                 case TokenType.IDENTIFIER:
@@ -2381,21 +2334,21 @@ namespace ExMat.Compiler
                     {
                         ExObject idx = new();
                         ExObject c = new();
-                        switch (_currToken)
+                        switch (CurrentToken)
                         {
                             case TokenType.IDENTIFIER:
                                 {
-                                    idx = _FuncState.CreateString(_lexer.str_val);
+                                    idx = FunctionState.CreateString(Lexer.ValString);
                                     break;
                                 }
                             case TokenType.THIS:
                                 {
-                                    idx = _FuncState.CreateString(ExMat._THIS);
+                                    idx = FunctionState.CreateString(ExMat.ThisName);
                                     break;
                                 }
                             case TokenType.CONSTRUCTOR:
                                 {
-                                    idx = _FuncState.CreateString(ExMat._CONSTRUCTOR);
+                                    idx = FunctionState.CreateString(ExMat.ConstructorName);
                                     break;
                                 }
                         }
@@ -2405,121 +2358,94 @@ namespace ExMat.Compiler
                         {
                             return false;
                         }
-
-                        if (_FuncState.IsBlockMacro(idx.GetString()))
+                        #region _
+                        /*
+                        if (FunctionState.IsBlockMacro(idx.GetString()))
                         {
-                            _FuncState.PushTarget(0);
-                            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(idx), 0, 0);
+                            FunctionState.PushTarget(0);
+                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
                             //macro = true;
-                            _ExpState._type = ExEType.OBJECT;
+                            ExpressionState.Type = ExEType.OBJECT;
                         }
-                        else if (_FuncState.IsMacro(idx) && !_FuncState.IsFuncMacro(idx))
+                        else if (FunctionState.IsMacro(idx) && !FunctionState.IsFuncMacro(idx))
                         {
-                            _FuncState.PushTarget(0);
-                            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(idx), 0, 0);
+                            FunctionState.PushTarget(0);
+                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
                             macro = true;
-                            _ExpState._type = ExEType.OBJECT;
+                            ExpressionState.Type = ExEType.OBJECT;
                         }
-                        else if ((p = _FuncState.GetLocal(idx)) != -1)
+                        */
+                        #endregion
+                        if ((p = FunctionState.GetLocal(idx)) != -1)
                         {
-                            _FuncState.PushTarget(p);
-                            _ExpState._type = ExEType.VAR;
-                            _ExpState._pos = p;
+                            FunctionState.PushTarget(p);
+                            ExpressionState.Type = ExEType.VAR;
+                            ExpressionState.Position = p;
                         }
-                        else if ((p = _FuncState.GetOuter(idx)) != -1)
+                        else if ((p = FunctionState.GetOuter(idx)) != -1)
                         {
                             if (ExRequiresGetter())
                             {
-                                _ExpState._pos = _FuncState.PushTarget();
-                                _FuncState.AddInstr(OPC.GETOUTER, _ExpState._pos, p, 0, 0);
+                                ExpressionState.Position = FunctionState.PushTarget();
+                                FunctionState.AddInstr(OPC.GETOUTER, ExpressionState.Position, p, 0, 0);
                             }
                             else
                             {
-                                _ExpState._type = ExEType.OUTER;
-                                _ExpState._pos = p;
+                                ExpressionState.Type = ExEType.OUTER;
+                                ExpressionState.Position = p;
                             }
-                        }
-                        else if (_FuncState.IsConstArg(idx._val.s_String, ref c))
-                        {
-                            ExObject cval = c;
-                            _ExpState._pos = _FuncState.PushTarget();
-
-                            switch (cval._type)
-                            {
-                                case ExObjType.INTEGER:
-                                    {
-                                        AddIntConstLoadInstr(cval._val.i_Int, _ExpState._pos);
-                                        break;
-                                    }
-                                case ExObjType.FLOAT:
-                                    {
-                                        AddFloatConstLoadInstr(new FloatInt() { f = cval._val.f_Float }.i, _ExpState._pos);
-                                        break;
-                                    }
-                                default:
-                                    {
-                                        _FuncState.AddInstr(OPC.LOAD, _ExpState._pos, (int)_FuncState.GetConst(cval), 0, 0);
-                                        break;
-                                    }
-                            }
-                            _ExpState._type = ExEType.EXPRESSION;
                         }
                         else
                         {
-                            _FuncState.PushTarget(0);
-                            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(idx), 0, 0);
+                            FunctionState.PushTarget(0);
+                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
 
                             if (ExRequiresGetter())
                             {
                                 AddBasicOpInstr(OPC.GET);
                             }
-                            _ExpState._type = ExEType.OBJECT;
+                            ExpressionState.Type = ExEType.OBJECT;
                         }
-                        pos = _ExpState._pos;
+                        pos = ExpressionState.Position;
                         return true;
                     }
-                case TokenType.GLB:
+                case TokenType.GLOBAL:
                     {
-                        _FuncState.AddInstr(OPC.LOAD_ROOT, _FuncState.PushTarget(), 0, 0, 0);
-                        _ExpState._type = ExEType.OBJECT;
-                        _currToken = TokenType.DOT;
-                        _ExpState._pos = -1;
-                        pos = _ExpState._pos;
+                        FunctionState.AddInstr(OPC.LOADROOT, FunctionState.PushTarget(), 0, 0, 0);
+                        ExpressionState.Type = ExEType.OBJECT;
+                        CurrentToken = TokenType.DOT;
+                        ExpressionState.Position = -1;
+                        pos = ExpressionState.Position;
                         return true;
                     }
                 case TokenType.DEFAULT:
                 case TokenType.NULL:
                     {
-                        _FuncState.AddInstr(OPC.LOAD_NULL, _FuncState.PushTarget(), 1, _currToken == TokenType.DEFAULT ? 1 : 0, 0);
+                        FunctionState.AddInstr(OPC.LOADNULL, FunctionState.PushTarget(), 1, CurrentToken == TokenType.DEFAULT ? 1 : 0, 0);
                         if (!ReadAndSetToken())
                         {
                             return false;
                         }
                         break;
                     }
-                case TokenType.MACROPARAM_NUM:
-                case TokenType.MACROPARAM_STR:
-                    {
-                        _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(_FuncState.CreateString(_lexer.str_val)), 0, 0);
+                #region _
+                /*
+            case TokenType.MACROPARAMNUM:
+            case TokenType.MACROPARAMSTR:
+                {
+                    FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(FunctionState.CreateString(Lexer.ValString)), 0, 0);
 
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.SYMBOLID:
+                    if (!ReadAndSetToken())
                     {
-                        AddSymConstLoadInstr(_lexer.str_val, -1);
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        break;
+                        return false;
                     }
+                    break;
+                }
+                */
+                #endregion
                 case TokenType.INTEGER:
                     {
-                        AddIntConstLoadInstr(_lexer.i_val, -1);
+                        AddIntConstLoadInstr(Lexer.ValInteger, -1);
                         if (!ReadAndSetToken())
                         {
                             return false;
@@ -2528,7 +2454,7 @@ namespace ExMat.Compiler
                     }
                 case TokenType.FLOAT:
                     {
-                        AddFloatConstLoadInstr(new FloatInt() { f = _lexer.f_val }.i, -1);
+                        AddFloatConstLoadInstr(new FloatInt() { f = Lexer.ValFloat }.i, -1);
 
                         if (!ReadAndSetToken())
                         {
@@ -2538,13 +2464,13 @@ namespace ExMat.Compiler
                     }
                 case TokenType.COMPLEX:
                     {
-                        if (_lexer.c_type == TokenType.INTEGER)
+                        if (Lexer.TokenComplex == TokenType.INTEGER)
                         {
-                            AddComplexConstLoadInstr(_lexer.i_val, -1);
+                            AddComplexConstLoadInstr(Lexer.ValInteger, -1);
                         }
                         else
                         {
-                            AddComplexConstLoadInstr(new FloatInt() { f = _lexer.f_val }.i, -1, true);
+                            AddComplexConstLoadInstr(new FloatInt() { f = Lexer.ValFloat }.i, -1, true);
                         }
 
                         if (!ReadAndSetToken())
@@ -2556,7 +2482,7 @@ namespace ExMat.Compiler
                 case TokenType.TRUE:
                 case TokenType.FALSE:
                     {
-                        _FuncState.AddInstr(OPC.LOAD_BOOL, _FuncState.PushTarget(), _currToken == TokenType.TRUE ? 1 : 0, 0, 0);
+                        FunctionState.AddInstr(OPC.LOADBOOLEAN, FunctionState.PushTarget(), CurrentToken == TokenType.TRUE ? 1 : 0, 0, 0);
 
                         if (!ReadAndSetToken())
                         {
@@ -2566,53 +2492,53 @@ namespace ExMat.Compiler
                     }
                 case TokenType.SPACE:
                     {
-                        AddSpaceConstLoadInstr(_lexer._space, -1);
+                        AddSpaceConstLoadInstr(Lexer.ValSpace, -1);
                         if (!ReadAndSetToken())
                         {
                             return false;
                         }
                         break;
                     }
-                case TokenType.ARR_OPEN:
+                case TokenType.SQUAREOPEN:
                     {
-                        _FuncState.AddInstr(OPC.NEW_OBJECT, _FuncState.PushTarget(), 0, 0, (int)ExNOT.ARRAY);
-                        int p = _FuncState.GetCurrPos();
+                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, 0, (int)ExNOT.ARRAY);
+                        int p = FunctionState.GetCurrPos();
                         int k = 0;
 
                         if (!ReadAndSetToken())
                         {
                             return false;
                         }
-                        while (_currToken != TokenType.ARR_CLOSE)
+                        while (CurrentToken != TokenType.SQUARECLOSE)
                         {
                             if (!ExExp())
                             {
                                 return false;
                             }
-                            if (_currToken == TokenType.SEP)
+                            if (CurrentToken == TokenType.SEP)
                             {
                                 if (!ReadAndSetToken())
                                 {
                                     return false;
                                 }
                             }
-                            int v = _FuncState.PopTarget();
-                            int a = _FuncState.TopTarget();
-                            _FuncState.AddInstr(OPC.ARRAY_APPEND, a, v, (int)ArrayAType.STACK, 0);
+                            int v = FunctionState.PopTarget();
+                            int a = FunctionState.TopTarget();
+                            FunctionState.AddInstr(OPC.APPENDTOARRAY, a, v, (int)ArrayAType.STACK, 0);
                             k++;
                         }
-                        _FuncState.SetInstrParam(p, 1, k);
+                        FunctionState.SetInstrParam(p, 1, k);
                         if (!ReadAndSetToken())
                         {
                             return false;
                         }
                         break;
                     }
-                case TokenType.CLS_OPEN:
+                case TokenType.CURLYOPEN:
                     {
-                        _FuncState.AddInstr(OPC.NEW_OBJECT, _FuncState.PushTarget(), 0, (int)ExNOT.DICT, 0);
+                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
 
-                        if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.CLS_CLOSE))
+                        if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.CURLYCLOSE))
                         {
                             return false;
                         }
@@ -2621,7 +2547,7 @@ namespace ExMat.Compiler
                 case TokenType.LAMBDA:
                 case TokenType.FUNCTION:
                     {
-                        if (!ExFuncResolveExp(_currToken))
+                        if (!ExFuncResolveExp(CurrentToken))
                         {
                             return false;
                         }
@@ -2665,11 +2591,11 @@ namespace ExMat.Compiler
                         {
                             return false;
                         }
-                        switch (_currToken)
+                        switch (CurrentToken)
                         {
                             case TokenType.INTEGER:
                                 {
-                                    AddIntConstLoadInstr(-_lexer.i_val, -1);
+                                    AddIntConstLoadInstr(-Lexer.ValInteger, -1);
                                     if (!ReadAndSetToken())
                                     {
                                         return false;
@@ -2678,7 +2604,7 @@ namespace ExMat.Compiler
                                 }
                             case TokenType.FLOAT:
                                 {
-                                    AddFloatConstLoadInstr(new FloatInt() { f = -_lexer.f_val }.i, -1);
+                                    AddFloatConstLoadInstr(new FloatInt() { f = -Lexer.ValFloat }.i, -1);
                                     if (!ReadAndSetToken())
                                     {
                                         return false;
@@ -2687,13 +2613,13 @@ namespace ExMat.Compiler
                                 }
                             case TokenType.COMPLEX:
                                 {
-                                    if (_lexer.c_type == TokenType.INTEGER)
+                                    if (Lexer.TokenComplex == TokenType.INTEGER)
                                     {
-                                        AddComplexConstLoadInstr(_lexer.i_val, -1);
+                                        AddComplexConstLoadInstr(Lexer.ValInteger, -1);
                                     }
                                     else
                                     {
-                                        AddComplexConstLoadInstr(new FloatInt() { f = _lexer.f_val }.i, -1, true);
+                                        AddComplexConstLoadInstr(new FloatInt() { f = Lexer.ValFloat }.i, -1, true);
                                     }
 
                                     if (!ReadAndSetToken())
@@ -2727,9 +2653,9 @@ namespace ExMat.Compiler
                         {
                             return false;
                         }
-                        if (_currToken == TokenType.INTEGER)
+                        if (CurrentToken == TokenType.INTEGER)
                         {
-                            AddIntConstLoadInstr(~_lexer.i_val, -1);
+                            AddIntConstLoadInstr(~Lexer.ValInteger, -1);
                             if (!ReadAndSetToken())
                             {
                                 return false;
@@ -2753,17 +2679,17 @@ namespace ExMat.Compiler
                 case TokenType.INC:
                 case TokenType.DEC:
                     {
-                        if (!ExPrefixedIncDec(_currToken))
+                        if (!ExPrefixedIncDec(CurrentToken))
                         {
                             return false;
                         }
                         break;
                     }
-                case TokenType.R_OPEN:
+                case TokenType.ROUNDOPEN:
                     {
                         if (!ReadAndSetToken()
                             || !ExSepExp()
-                            || Expect(TokenType.R_CLOSE) == null)
+                            || Expect(TokenType.ROUNDCLOSE) == null)
                         {
                             return false;
                         }
@@ -2778,11 +2704,15 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
-                case TokenType.MACROSTART:
-                    {
-                        AddToErrorMessage("macros can only be defined on new lines");
-                        return false;
-                    }
+                #region _
+                /*
+            case TokenType.MACROSTART:
+                {
+                    AddToErrorMessage("macros can only be defined on new lines");
+                    return false;
+                }
+                */
+                #endregion
                 default:
                     {
                         AddToErrorMessage("expression expected");
@@ -2802,21 +2732,21 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            es = _ExpState.Copy();
-            _ExpState.stop_deref = true;
+            es = ExpressionState.Copy();
+            ExpressionState.ShouldStopDeref = true;
 
             if (!ExPrefixed())
             {
                 return false;
             }
 
-            if (_ExpState._type == ExEType.EXPRESSION)
+            if (ExpressionState.Type == ExEType.EXPRESSION)
             {
                 AddToErrorMessage("cant 'delete' and expression");
                 return false;
             }
 
-            if (_ExpState._type == ExEType.OBJECT || _ExpState._type == ExEType.BASE)
+            if (ExpressionState.Type == ExEType.OBJECT || ExpressionState.Type == ExEType.BASE)
             {
                 AddBasicOpInstr(OPC.DELETE);
             }
@@ -2826,15 +2756,15 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _ExpState = es;
+            ExpressionState = es;
             return true;
         }
 
         public bool ExRequiresGetter()
         {
-            switch (_currToken)
+            switch (CurrentToken)
             {
-                case TokenType.R_OPEN:
+                case TokenType.ROUNDOPEN:
                 case TokenType.ASG:
                 case TokenType.ADDEQ:
                 case TokenType.SUBEQ:
@@ -2848,8 +2778,10 @@ namespace ExMat.Compiler
                         return false;
                     }
             }
-            return !_ExpState.stop_deref
-                   || (_ExpState.stop_deref && (_currToken == TokenType.DOT || _currToken == TokenType.ARR_OPEN));
+            return !ExpressionState.ShouldStopDeref
+                   || (ExpressionState.ShouldStopDeref
+                        && (CurrentToken == TokenType.DOT || CurrentToken == TokenType.SQUAREOPEN)
+                      );
         }
 
         public bool ExPrefixedIncDec(TokenType typ)
@@ -2862,15 +2794,15 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            eState = _ExpState.Copy();
-            _ExpState.stop_deref = true;
+            eState = ExpressionState.Copy();
+            ExpressionState.ShouldStopDeref = true;
 
             if (!ExPrefixed())
             {
                 return false;
             }
 
-            switch (_ExpState._type)
+            switch (ExpressionState.Type)
             {
                 case ExEType.EXPRESSION:
                     {
@@ -2885,20 +2817,20 @@ namespace ExMat.Compiler
                     }
                 case ExEType.VAR:
                     {
-                        int s = _FuncState.TopTarget();
-                        _FuncState.AddInstr(OPC.INCL, s, s, 0, v);
+                        int s = FunctionState.TopTarget();
+                        FunctionState.AddInstr(OPC.INCL, s, s, 0, v);
                         break;
                     }
                 case ExEType.OUTER:
                     {
-                        int tmp = _FuncState.PushTarget();
-                        _FuncState.AddInstr(OPC.GETOUTER, tmp, _ExpState._pos, 0, 0);
-                        _FuncState.AddInstr(OPC.INCL, tmp, tmp, 0, _ExpState._pos);
-                        _FuncState.AddInstr(OPC.SETOUTER, tmp, _ExpState._pos, 0, tmp);
+                        int tmp = FunctionState.PushTarget();
+                        FunctionState.AddInstr(OPC.GETOUTER, tmp, ExpressionState.Position, 0, 0);
+                        FunctionState.AddInstr(OPC.INCL, tmp, tmp, 0, ExpressionState.Position);
+                        FunctionState.AddInstr(OPC.SETOUTER, tmp, ExpressionState.Position, 0, tmp);
                         break;
                     }
             }
-            _ExpState = eState;
+            ExpressionState = eState;
             return true;
         }
 
@@ -2910,12 +2842,12 @@ namespace ExMat.Compiler
                 {
                     return false;
                 }
-                if (_currToken != TokenType.SEP)
+                if (CurrentToken != TokenType.SEP)
                 {
                     break;
                 }
 
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
 
                 if (!ReadAndSetToken() || !ExSepExp())
                 {
@@ -2925,67 +2857,58 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public void AddSymConstLoadInstr(string sval, int p)
-        {
-            if (p < 0)
-            {
-                p = _FuncState.PushTarget();
-            }
-            _FuncState.AddInstr(OPC.LOAD_SYM, p, (int)_FuncState.GetConst(new(sval)), 0, 0);
-        }
-
         public void AddSpaceConstLoadInstr(ExSpace s, int p)
         {
             if (p < 0)
             {
-                p = _FuncState.PushTarget();
+                p = FunctionState.PushTarget();
             }
-            ExObject tspc = new() { _type = ExObjType.SPACE };
-            tspc._val.c_Space = _lexer._space;
-            _FuncState.AddInstr(OPC.LOAD_SPACE, p, (int)_FuncState.GetConst(tspc), 0, 0);
+            ExObject tspc = new() { Type = ExObjType.SPACE };
+            tspc.Value.c_Space = Lexer.ValSpace;
+            FunctionState.AddInstr(OPC.LOADSPACE, p, (int)FunctionState.GetConst(tspc), 0, 0);
         }
 
         public void AddIntConstLoadInstr(long cval, int p)
         {
             if (p < 0)
             {
-                p = _FuncState.PushTarget();
+                p = FunctionState.PushTarget();
             }
-            _FuncState.AddInstr(OPC.LOAD_INT, p, cval, 0, 0);
+            FunctionState.AddInstr(OPC.LOADINTEGER, p, cval, 0, 0);
         }
         public void AddFloatConstLoadInstr(long cval, int p)
         {
             if (p < 0)
             {
-                p = _FuncState.PushTarget();
+                p = FunctionState.PushTarget();
             }
 
-            _FuncState.AddInstr(OPC.LOAD_FLOAT, p, cval, 0, 0);
+            FunctionState.AddInstr(OPC.LOADFLOAT, p, cval, 0, 0);
         }
 
         public void AddComplexConstLoadInstr(long cval, int p, bool isfloat = false)
         {
             if (p < 0)
             {
-                p = _FuncState.PushTarget();
+                p = FunctionState.PushTarget();
             }
 
-            _FuncState.AddInstr(OPC.LOAD_COMPLEX, p, cval, isfloat ? 1 : 0, 0);
+            FunctionState.AddInstr(OPC.LOADCOMPLEX, p, cval, isfloat ? 1 : 0, 0);
         }
 
         public void AddBasicDerefInstr(OPC op)
         {
-            int v = _FuncState.PopTarget();
-            int k = _FuncState.PopTarget();
-            int s = _FuncState.PopTarget();
-            _FuncState.AddInstr(op, _FuncState.PushTarget(), s, k, v);
+            int v = FunctionState.PopTarget();
+            int k = FunctionState.PopTarget();
+            int s = FunctionState.PopTarget();
+            FunctionState.AddInstr(op, FunctionState.PushTarget(), s, k, v);
         }
 
-        public void AddBasicOpInstr(OPC op, int last_arg = 0)
+        public void AddBasicOpInstr(OPC op, int last = 0)
         {
-            int arg2 = _FuncState.PopTarget();
-            int arg1 = _FuncState.PopTarget();
-            _FuncState.AddInstr(op, _FuncState.PushTarget(), arg1, arg2, last_arg);
+            int arg2 = FunctionState.PopTarget();
+            int arg1 = FunctionState.PopTarget();
+            FunctionState.AddInstr(op, FunctionState.PushTarget(), arg1, arg2, last);
         }
 
         public void AddCompoundOpInstr(TokenType typ, ExEType etyp, int pos)
@@ -2994,31 +2917,31 @@ namespace ExMat.Compiler
             {
                 case ExEType.VAR:
                     {
-                        int s = _FuncState.PopTarget();
-                        int d = _FuncState.PopTarget();
-                        _FuncState.PushTarget(d);
+                        int s = FunctionState.PopTarget();
+                        int d = FunctionState.PopTarget();
+                        FunctionState.PushTarget(d);
 
-                        _FuncState.AddInstr(ExOPDecideArithmetic(typ), d, s, d, 0);
-                        _FuncState._not_snoozed = false;
+                        FunctionState.AddInstr(ExOPDecideArithmetic(typ), d, s, d, 0);
+                        FunctionState.NotSnoozed = false;
                         break;
                     }
                 case ExEType.BASE:
                 case ExEType.OBJECT:
                     {
-                        int v = _FuncState.PopTarget();
-                        int k = _FuncState.PopTarget();
-                        int s = _FuncState.PopTarget();
-                        _FuncState.AddInstr(OPC.CMP_ARTH, _FuncState.PushTarget(), (s << 16) | v, k, ExOPDecideArithmeticInt(typ));
+                        int v = FunctionState.PopTarget();
+                        int k = FunctionState.PopTarget();
+                        int s = FunctionState.PopTarget();
+                        FunctionState.AddInstr(OPC.COMPOUNDARITH, FunctionState.PushTarget(), (s << 16) | v, k, ExOPDecideArithmeticInt(typ));
                         break;
                     }
                 case ExEType.OUTER:
                     {
-                        int v = _FuncState.TopTarget();
-                        int tmp = _FuncState.PushTarget();
+                        int v = FunctionState.TopTarget();
+                        int tmp = FunctionState.PushTarget();
 
-                        _FuncState.AddInstr(OPC.GETOUTER, tmp, pos, 0, 0);
-                        _FuncState.AddInstr(ExOPDecideArithmetic(typ), tmp, v, tmp, 0);
-                        _FuncState.AddInstr(OPC.SETOUTER, tmp, pos, tmp, 0);
+                        FunctionState.AddInstr(OPC.GETOUTER, tmp, pos, 0, 0);
+                        FunctionState.AddInstr(ExOPDecideArithmetic(typ), tmp, v, tmp, 0);
+                        FunctionState.AddInstr(OPC.SETOUTER, tmp, pos, tmp, 0);
 
                         break;
                     }
@@ -3027,19 +2950,19 @@ namespace ExMat.Compiler
 
         public bool ParseDictClusterOrClass(TokenType sep, TokenType end)
         {
-            int p = _FuncState.GetCurrPos();
+            int p = FunctionState.GetCurrPos();
             int n = 0;
 
-            while (_currToken != end)
+            while (CurrentToken != end)
             {
                 bool a_present = false;
                 if (sep == TokenType.SMC)
                 {
-                    if (_currToken == TokenType.A_START)
+                    if (CurrentToken == TokenType.ATTRIBUTEBEGIN)
                     {
-                        _FuncState.AddInstr(OPC.NEW_OBJECT, _FuncState.PushTarget(), 0, (int)ExNOT.DICT, 0);
+                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
 
-                        if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.A_END))
+                        if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
                         {
                             AddToErrorMessage("failed to parse attribute");
                             return false;
@@ -3047,39 +2970,39 @@ namespace ExMat.Compiler
                         a_present = true;
                     }
                 }
-                switch (_currToken)
+                switch (CurrentToken)
                 {
                     case TokenType.FUNCTION:
                     case TokenType.CONSTRUCTOR:
                         {
-                            TokenType typ = _currToken;
+                            TokenType typ = CurrentToken;
                             if (!ReadAndSetToken())
                             {
                                 return false;
                             }
 
-                            ExObject o = typ == TokenType.FUNCTION ? Expect(TokenType.IDENTIFIER) : _FuncState.CreateString(ExMat._CONSTRUCTOR);
+                            ExObject o = typ == TokenType.FUNCTION ? Expect(TokenType.IDENTIFIER) : FunctionState.CreateString(ExMat.ConstructorName);
 
-                            if (o == null || Expect(TokenType.R_OPEN) == null)
+                            if (o == null || Expect(TokenType.ROUNDOPEN) == null)
                             {
                                 return false;
                             }
 
-                            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(o), 0, 0);
+                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(o), 0, 0);
 
                             if (!ExFuncCreate(o))
                             {
                                 return false;
                             }
 
-                            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+                            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
                             break;
                         }
-                    case TokenType.ARR_OPEN:
+                    case TokenType.SQUAREOPEN:
                         {
                             if (!ReadAndSetToken()
                                 || !ExSepExp()
-                                || Expect(TokenType.ARR_CLOSE) == null
+                                || Expect(TokenType.SQUARECLOSE) == null
                                 || Expect(TokenType.ASG) == null
                                 || !ExExp())
                             {
@@ -3096,7 +3019,7 @@ namespace ExMat.Compiler
                                 {
                                     return false;
                                 }
-                                _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(o), 0, 0);
+                                FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(o), 0, 0);
 
                                 if (Expect(TokenType.COL) == null || !ExExp())
                                 {
@@ -3115,7 +3038,7 @@ namespace ExMat.Compiler
                                 return false;
                             }
 
-                            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(o), 0, 0);
+                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(o), 0, 0);
 
                             if (Expect(TokenType.ASG) == null || !ExExp())
                             {
@@ -3126,7 +3049,7 @@ namespace ExMat.Compiler
                         }
                 }
 
-                if (_currToken == sep)
+                if (CurrentToken == sep)
                 {
                     if (!ReadAndSetToken())
                     {
@@ -3135,9 +3058,9 @@ namespace ExMat.Compiler
                 }
                 n++;
 
-                int v = _FuncState.PopTarget();
-                int k = _FuncState.PopTarget();
-                int a = a_present ? _FuncState.PopTarget() : -1;
+                int v = FunctionState.PopTarget();
+                int k = FunctionState.PopTarget();
+                int a = a_present ? FunctionState.PopTarget() : -1;
 
                 if (!((a_present && (a == k - 1)) || !a_present))
                 {
@@ -3145,20 +3068,20 @@ namespace ExMat.Compiler
                 }
 
                 int flg = a_present ? (int)ExNewSlotFlag.ATTR : 0; // to-do static flag
-                int t = _FuncState.TopTarget();
+                int t = FunctionState.TopTarget();
                 if (sep == TokenType.SEP)
                 {
-                    _FuncState.AddInstr(OPC.NEWSLOT, 985, t, k, v);
+                    FunctionState.AddInstr(OPC.NEWSLOT, 985, t, k, v);
                 }
                 else
                 {
-                    _FuncState.AddInstr(OPC.NEWSLOTA, flg, t, k, v);
+                    FunctionState.AddInstr(OPC.NEWSLOTA, flg, t, k, v);
                 }
             }
 
             if (sep == TokenType.SEP)
             {
-                _FuncState.SetInstrParam(p, 1, n);
+                FunctionState.SetInstrParam(p, 1, n);
             }
 
             return ReadAndSetToken();
@@ -3168,7 +3091,7 @@ namespace ExMat.Compiler
         {
             int _this = 1;
 
-            while (_currToken != TokenType.R_CLOSE)
+            while (CurrentToken != TokenType.ROUNDCLOSE)
             {
                 if (!ExExp())
                 {
@@ -3176,13 +3099,13 @@ namespace ExMat.Compiler
                 }
                 TargetLocalMove();
                 _this++;
-                if (_currToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
-                    if (_currToken == TokenType.R_CLOSE)
+                    if (CurrentToken == TokenType.ROUNDCLOSE)
                     {
                         AddToErrorMessage("expression expected, found ')'");
                         return false;
@@ -3196,23 +3119,23 @@ namespace ExMat.Compiler
 
             for (int i = 0; i < (_this - 1); i++)
             {
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
 
-            int st = _FuncState.PopTarget();
-            int cl = _FuncState.PopTarget();
+            int st = FunctionState.PopTarget();
+            int cl = FunctionState.PopTarget();
 
-            _FuncState.AddInstr(OPC.CALL, _FuncState.PushTarget(), cl, st, _this);
+            FunctionState.AddInstr(OPC.CALL, FunctionState.PushTarget(), cl, st, _this);
             return true;
         }
 
         public void TargetLocalMove()
         {
-            int t = _FuncState.TopTarget();
-            if (_FuncState.IsLocalArg(t))
+            int t = FunctionState.TopTarget();
+            if (FunctionState.IsLocalArg(t))
             {
-                t = _FuncState.PopTarget();
-                _FuncState.AddInstr(OPC.MOVE, _FuncState.PushTarget(), t, 0, 0);
+                t = FunctionState.PopTarget();
+                FunctionState.AddInstr(OPC.MOVE, FunctionState.PushTarget(), t, 0, 0);
             }
         }
 
@@ -3230,7 +3153,7 @@ namespace ExMat.Compiler
 
         public bool ExRuleResolveExp()
         {
-            if (!ReadAndSetToken() || Expect(TokenType.R_OPEN) == null)
+            if (!ReadAndSetToken() || Expect(TokenType.ROUNDOPEN) == null)
             {
                 return false;
             }
@@ -3241,15 +3164,15 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 1, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 1, 0);
 
             return true;
         }
 
         public bool ExFuncResolveExp(TokenType typ)
         {
-            bool lambda = _currToken == TokenType.LAMBDA;
-            if (!ReadAndSetToken() || Expect(TokenType.R_OPEN) == null)
+            bool lambda = CurrentToken == TokenType.LAMBDA;
+            if (!ReadAndSetToken() || Expect(TokenType.ROUNDOPEN) == null)
             {
                 return false;
             }
@@ -3260,7 +3183,7 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, typ == TokenType.FUNCTION ? 0 : 1, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, typ == TokenType.FUNCTION ? 0 : 1, 0);
 
             return true;
         }
@@ -3268,52 +3191,52 @@ namespace ExMat.Compiler
         {
             int at = 985;
 
-            if (_currToken == TokenType.A_START)
+            if (CurrentToken == TokenType.ATTRIBUTEBEGIN)
             {
                 if (!ReadAndSetToken())
                 {
                     return false;
                 }
-                _FuncState.AddInstr(OPC.NEW_OBJECT, _FuncState.PushTarget(), 0, (int)ExNOT.DICT, 0);
+                FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
 
-                if (!ParseDictClusterOrClass(TokenType.SEP, TokenType.A_END))
+                if (!ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
                 {
                     return false;
                 }
 
-                at = _FuncState.TopTarget();
+                at = FunctionState.TopTarget();
             }
 
-            if (Expect(TokenType.CLS_OPEN) == null)
+            if (Expect(TokenType.CURLYOPEN) == null)
             {
                 return false;
             }
 
             if (at != 985)
             {
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
 
-            _FuncState.AddInstr(OPC.NEW_OBJECT, _FuncState.PushTarget(), -1, at, (int)ExNOT.CLASS);
+            FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), -1, at, (int)ExNOT.CLASS);
 
-            return ParseDictClusterOrClass(TokenType.SMC, TokenType.CLS_CLOSE);
+            return ParseDictClusterOrClass(TokenType.SMC, TokenType.CURLYCLOSE);
         }
 
         public bool ExMacroCreate(ExObject o, bool isfunc = false)
         {
-            ExFState f_state = _FuncState.PushChildState(_VM._sState);
-            f_state._name = o;
+            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
+            f_state.Name = o;
 
             ExObject pname;
-            f_state.AddParam(_FuncState.CreateString(ExMat._THIS));
-            f_state._source = new(_source);
+            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
+            f_state.Source = new(Source);
 
             if (isfunc && !ReadAndSetToken())
             {
                 return false;
             }
 
-            while (isfunc && _currToken != TokenType.R_CLOSE)
+            while (isfunc && CurrentToken != TokenType.ROUNDCLOSE)
             {
                 if ((pname = Expect(TokenType.IDENTIFIER)) == null)
                 {
@@ -3322,16 +3245,16 @@ namespace ExMat.Compiler
 
                 f_state.AddParam(pname);
 
-                if (_currToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else if (_currToken != TokenType.R_CLOSE)
+                else if (CurrentToken != TokenType.ROUNDCLOSE)
                 {
-                    if (_currToken == TokenType.ASG)
+                    if (CurrentToken == TokenType.ASG)
                     {
                         AddToErrorMessage("default values are not supported for macros");
                     }
@@ -3343,20 +3266,20 @@ namespace ExMat.Compiler
                 }
             }
 
-            if (isfunc && Expect(TokenType.R_CLOSE) == null)
+            if (isfunc && Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
 
-            ExFState tmp = _FuncState.Copy();
-            _FuncState = f_state;
+            ExFState tmp = FunctionState.Copy();
+            FunctionState = f_state;
 
-            if (!_inblockmacro)
+            if (!IsInMacroBlock)
             {
-                while (_currToken != TokenType.NEWLINE
-                     && _currToken != TokenType.ENDLINE
-                     && _currToken != TokenType.MACROEND
-                     && _currToken != TokenType.UNKNOWN)
+                while (CurrentToken != TokenType.NEWLINE
+                     && CurrentToken != TokenType.ENDLINE
+                     && CurrentToken != TokenType.MACROEND
+                     && CurrentToken != TokenType.UNKNOWN)
                 {
                     if (!ProcessStatements(true))
                     {
@@ -3372,53 +3295,47 @@ namespace ExMat.Compiler
                     return false;
                 }
 
-                f_state.AddInstr(OPC.RETURN, 1, _FuncState.PopTarget(), 0, 0);
+                f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
 
-                f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+                f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
 
             }
             else
             {
                 // TO-DO
-                f_state.AddInstr(OPC.RETURNMACRO, 1, _FuncState.PopTarget(), 0, 0);
+                f_state.AddInstr(OPC.RETURNMACRO, 1, FunctionState.PopTarget(), 0, 0);
             }
 
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
-            fpro.type = ExClosureType.MACRO;
+            //fpro.ClosureType = ExClosureType.MACRO;
 
-            _FuncState = tmp;
-            _FuncState._funcs.Add(fpro);
-            _FuncState.PopChildState();
+            FunctionState = tmp;
+            FunctionState.Functions.Add(fpro);
+            FunctionState.PopChildState();
 
             return true;
         }
 
         private void FixAfterMacro(ExLexer old_lex, TokenType old_currToken, string old_src)
         {
-            _lexer = old_lex;
-            _currToken = old_currToken;
-            _source = old_src;
-            _inblockmacro = false;
+            Lexer = old_lex;
+            CurrentToken = old_currToken;
+            Source = old_src;
+            IsInMacroBlock = false;
         }
 
-        public bool ProcessMacroBlockStatement()
+        public bool ProcessMacroBlockStatement()    // TO-DO
         {
-            if (true)    // TO-DO
-            {
-                return false;
-            }
-#pragma warning disable CS0162 // Unreachable code detected
             ExObject idx;
-#pragma warning restore CS0162 // Unreachable code detected
 
-            ExLexer old_lex = _lexer;
-            TokenType old_currToken = _currToken;
-            string old_src = _source;
+            ExLexer old_lex = Lexer;
+            TokenType old_currToken = CurrentToken;
+            string old_src = Source;
 
-            _lexer = new(_lexer.m_block) { m_params = _lexer.m_params, m_block = _lexer.m_block };
+            Lexer = new(Lexer.MacroBlock) { MacroParams = Lexer.MacroParams, MacroBlock = Lexer.MacroBlock, IsReadingMacroBlock = true };
 
             if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null)
             {
@@ -3433,11 +3350,11 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.PushTarget(0);
-            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(idx), 0, 0);
-            bool isfunc = _currToken == TokenType.R_OPEN;
+            FunctionState.PushTarget(0);
+            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
+            bool isfunc = CurrentToken == TokenType.ROUNDOPEN;
 
-            _inblockmacro = true;
+            IsInMacroBlock = true;
 
             if (!ExMacroCreate(idx, isfunc))
             {
@@ -3445,7 +3362,7 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (_FuncState.IsBlockMacro(idx.GetString()))
+            if (FunctionState.IsBlockMacro(idx.GetString()))
             {
                 AddToErrorMessage("macro '" + idx.GetString() + "' already exists!");
                 FixAfterMacro(old_lex, old_currToken, old_src);
@@ -3453,14 +3370,14 @@ namespace ExMat.Compiler
             }
             else
             {
-                _FuncState.AddBlockMacro(idx.GetString(), new() { name = idx.GetString(), source = _lexer.m_block, _params = _lexer.m_params });
+                FunctionState.AddBlockMacro(idx.GetString(), new() { Name = idx.GetString(), Source = Lexer.MacroBlock, Parameters = Lexer.MacroParams });
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
 
-            _FuncState.PopTarget();
+            FunctionState.PopTarget();
 
             FixAfterMacro(old_lex, old_currToken, old_src);
             return true;
@@ -3481,56 +3398,56 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            _FuncState.PushTarget(0);
-            _FuncState.AddInstr(OPC.LOAD, _FuncState.PushTarget(), (int)_FuncState.GetConst(idx), 0, 0);
-            bool isfunc = _currToken == TokenType.R_OPEN;
+            FunctionState.PushTarget(0);
+            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
+            bool isfunc = CurrentToken == TokenType.ROUNDOPEN;
             if (!ExMacroCreate(idx, isfunc))
             {
                 return false;
             }
 
-            if (!_FuncState.AddMacro(idx, isfunc, true))   // TO-DO stop using forced param
+            if (!FunctionState.AddMacro(idx, isfunc, true))   // TO-DO stop using forced param
             {
                 AddToErrorMessage("macro " + idx.GetString() + " already exists");
                 return false;
             }
 
-            _FuncState.AddInstr(OPC.CLOSURE, _FuncState.PushTarget(), _FuncState._funcs.Count - 1, 0, 0);
+            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
 
-            _FuncState.PopTarget();
+            FunctionState.PopTarget();
 
             return true;
         }
 
         public bool ExFuncCreate(ExObject o, bool lambda = false)
         {
-            ExFState f_state = _FuncState.PushChildState(_VM._sState);
-            f_state._name = o;
+            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
+            f_state.Name = o;
 
             ExObject pname;
-            f_state.AddParam(_FuncState.CreateString(ExMat._THIS));
-            f_state._source = new(_source);
+            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
+            f_state.Source = new(Source);
 
             int def_param_count = 0;
 
-            while (_currToken != TokenType.R_CLOSE)
+            while (CurrentToken != TokenType.ROUNDCLOSE)
             {
-                if (_currToken == TokenType.VARGS)
+                if (CurrentToken == TokenType.VARGS)
                 {
                     if (def_param_count > 0)
                     {
                         AddToErrorMessage("can't use vargs alongside default valued parameters");
                         return false;
                     }
-                    f_state.AddParam(_FuncState.CreateString(ExMat._VARGS));
-                    f_state._pvars = true;
+                    f_state.AddParam(FunctionState.CreateString(ExMat.VargsName));
+                    f_state.HasVargs = true;
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
-                    if (_currToken != TokenType.R_CLOSE)
+                    if (CurrentToken != TokenType.ROUNDCLOSE)
                     {
                         AddToErrorMessage("expected ')' after vargs '...'");
                         return false;
@@ -3544,14 +3461,14 @@ namespace ExMat.Compiler
 
                 f_state.AddParam(pname);
 
-                if (_currToken == TokenType.ASG)
+                if (CurrentToken == TokenType.ASG)
                 {
                     if (!ReadAndSetToken() || !ExExp())
                     {
                         return false;
                     }
 
-                    f_state.AddDefParam(_FuncState.TopTarget());
+                    f_state.AddDefParam(FunctionState.TopTarget());
                     def_param_count++;
                 }
                 else
@@ -3563,32 +3480,32 @@ namespace ExMat.Compiler
                     }
                 }
 
-                if (_currToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else if (_currToken != TokenType.R_CLOSE)
+                else if (CurrentToken != TokenType.ROUNDCLOSE)
                 {
                     AddToErrorMessage("expected ')' or ',' for function declaration");
                     return false;
                 }
             }
 
-            if (Expect(TokenType.R_CLOSE) == null)
+            if (Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
 
             for (int i = 0; i < def_param_count; i++)
             {
-                _FuncState.PopTarget();
+                FunctionState.PopTarget();
             }
 
-            ExFState tmp = _FuncState.Copy();
-            _FuncState = f_state;
+            ExFState tmp = FunctionState.Copy();
+            FunctionState = f_state;
 
             if (lambda)
             {
@@ -3596,7 +3513,7 @@ namespace ExMat.Compiler
                 {
                     return false;
                 }
-                f_state.AddInstr(OPC.RETURN, 1, _FuncState.PopTarget(), 0, 0);
+                f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
             }
             else
             {
@@ -3606,15 +3523,15 @@ namespace ExMat.Compiler
                 }
             }
 
-            f_state.AddLineInfo(_lexer._prevToken == TokenType.NEWLINE ? _lexer._lastTokenLine : _lexer._currLine, _lineinfo, true);
+            f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
             f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
 
-            _FuncState = tmp;
-            _FuncState._funcs.Add(fpro);
-            _FuncState.PopChildState();
+            FunctionState = tmp;
+            FunctionState.Functions.Add(fpro);
+            FunctionState.PopChildState();
 
             return true;
         }
@@ -3625,8 +3542,8 @@ namespace ExMat.Compiler
             {
                 return false;
             }
-            int s = _FuncState.PopTarget();
-            _FuncState.AddInstr(op, _FuncState.PushTarget(), s, 0, 0);
+            int s = FunctionState.PopTarget();
+            FunctionState.AddInstr(op, FunctionState.PushTarget(), s, 0, 0);
 
             return true;
         }

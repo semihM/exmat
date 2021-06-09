@@ -16,7 +16,7 @@ namespace ExMat.BaseLib
     public static class ExBaseLib
     {
         // BASIC FUNCTIONS
-        public static int BASE_print(ExVM vm, int nargs)
+        public static int StdPrint(ExVM vm, int nargs)
         {
             int maxdepth = 2;
             if (nargs == 2)
@@ -34,7 +34,7 @@ namespace ExMat.BaseLib
             vm.Print(s);
             return 0;
         }
-        public static int BASE_printl(ExVM vm, int nargs)
+        public static int StdPrintl(ExVM vm, int nargs)
         {
             int maxdepth = 2;
             if (nargs == 2)
@@ -54,23 +54,23 @@ namespace ExMat.BaseLib
             return 0;
         }
 
-        public static int BASE_type(ExVM vm, int nargs)
+        public static int StdType(ExVM vm, int nargs)
         {
             ExObject o = ExAPI.GetFromStack(vm, 2);
-            string t = o._type.ToString();
+            string t = o.Type.ToString();
             vm.Pop(nargs + 2);
             vm.Push(new ExObject(t));
             return 1;
         }
 
-        public static int BASE_time(ExVM vm, int nargs)
+        public static int StdTime(ExVM vm, int nargs)
         {
             vm.Pop(nargs + 2);
             vm.Push(new ExObject((double)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
             return 1;
         }
 
-        public static int BASE_date(ExVM vm, int nargs)
+        public static int StdDate(ExVM vm, int nargs)
         {
             bool shrt = false;
             DateTime now = DateTime.Now;
@@ -238,7 +238,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_assert(ExVM vm, int nargs)
+        public static int StdAssert(ExVM vm, int nargs)
         {
             if (nargs == 2)
             {
@@ -262,14 +262,14 @@ namespace ExMat.BaseLib
         }
 
         // BASIC CLASS-LIKE FUNCTIONS
-        public static int BASE_complex(ExVM vm, int nargs)
+        public static int StdComplex(ExVM vm, int nargs)
         {
             switch (nargs)
             {
                 case 2:
                     {
                         ExObject o = ExAPI.GetFromStack(vm, 2);
-                        if (o._type == ExObjType.COMPLEX)
+                        if (o.Type == ExObjType.COMPLEX)
                         {
                             vm.AddToErrorMessage("can't use complex number as real part");
                             return -1;
@@ -284,7 +284,7 @@ namespace ExMat.BaseLib
                     {
                         ExObject obj = ExAPI.GetFromStack(vm, 2);
                         Complex c;
-                        if (obj._type == ExObjType.COMPLEX)
+                        if (obj.Type == ExObjType.COMPLEX)
                         {
                             c = new(obj.GetComplex().Real, obj.GetComplex().Imaginary);
                         }
@@ -307,7 +307,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_complex2(ExVM vm, int nargs)
+        public static int StdComplex2(ExVM vm, int nargs)
         {
             switch (nargs)
             {
@@ -336,7 +336,7 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int BASE_bool(ExVM vm, int nargs)
+        public static int StdBool(ExVM vm, int nargs)
         {
             switch (nargs)
             {
@@ -358,7 +358,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_string(ExVM vm, int nargs)
+        public static int StdString(ExVM vm, int nargs)
         {
             bool carr = false;
             int depth = 2;
@@ -379,16 +379,16 @@ namespace ExMat.BaseLib
                         ExObject obj = ExAPI.GetFromStack(vm, 2);
                         if (carr)
                         {
-                            if (obj._type == ExObjType.ARRAY)
+                            if (obj.Type == ExObjType.ARRAY)
                             {
                                 string str = string.Empty;
                                 foreach (ExObject o in obj.GetList())
                                 {
-                                    if (o._type == ExObjType.STRING) // && o.GetString().Length == 1)
+                                    if (o.Type == ExObjType.STRING) // && o.GetString().Length == 1)
                                     {
                                         str += o.GetString();
                                     }
-                                    else if (o._type == ExObjType.INTEGER && o.GetInt() >= 0)
+                                    else if (o.Type == ExObjType.INTEGER && o.GetInt() >= 0)
                                     {
                                         str += (char)o.GetInt();
                                     }
@@ -403,7 +403,7 @@ namespace ExMat.BaseLib
                                 vm.Push(str);
                                 break;
                             }
-                            else if (obj._type == ExObjType.INTEGER)
+                            else if (obj.Type == ExObjType.INTEGER)
                             {
                                 long val = obj.GetInt();
                                 if (val < char.MinValue || val > char.MaxValue)
@@ -432,7 +432,7 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int BASE_float(ExVM vm, int nargs)
+        public static int StdFloat(ExVM vm, int nargs)
         {
             switch (nargs)
             {
@@ -454,7 +454,7 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int BASE_integer(ExVM vm, int nargs)
+        public static int StdInteger(ExVM vm, int nargs)
         {
             switch (nargs)
             {
@@ -476,7 +476,7 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int BASE_bits32(ExVM vm, int nargs)
+        public static int StdBits32(ExVM vm, int nargs)
         {
             bool reverse = true;
             switch (nargs)
@@ -490,7 +490,7 @@ namespace ExMat.BaseLib
                     {
                         ExObject v = ExAPI.GetFromStack(vm, 2);
                         long b = 0;
-                        switch (v._type)
+                        switch (v.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -506,7 +506,7 @@ namespace ExMat.BaseLib
                                 {
                                     if (b >= int.MaxValue || b <= int.MinValue)
                                     {
-                                        vm.AddToErrorMessage("64bit integer out of range for 32bit use");
+                                        vm.AddToErrorMessage("64bit '" + v.Type.ToString() + "' out of range for 32bit use");
                                         return -1;
                                     }
                                     b = (int)b;
@@ -541,7 +541,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_bits(ExVM vm, int nargs)
+        public static int StdBits(ExVM vm, int nargs)
         {
             bool reverse = true;
             switch (nargs)
@@ -555,7 +555,7 @@ namespace ExMat.BaseLib
                     {
                         ExObject v = ExAPI.GetFromStack(vm, 2);
                         long b = 0;
-                        switch (v._type)
+                        switch (v.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -599,7 +599,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_bytes(ExVM vm, int nargs)
+        public static int StdBytes(ExVM vm, int nargs)
         {
             bool reverse = true;
             switch (nargs)
@@ -613,7 +613,7 @@ namespace ExMat.BaseLib
                     {
                         ExObject v = ExAPI.GetFromStack(vm, 2);
                         byte[] bytes = null;
-                        switch (v._type)
+                        switch (v.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -670,7 +670,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_map(ExVM vm, int nargs)
+        public static int StdMap(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
             ExObject obj = new(ExAPI.GetFromStack(vm, 3));
@@ -684,19 +684,19 @@ namespace ExMat.BaseLib
             int n = 2;
             int m = 0;
 
-            int argcount = obj._val.l_List.Count;
+            int argcount = obj.Value.l_List.Count;
 
-            List<ExObject> l = new(obj._val.l_List.Count);
+            List<ExObject> l = new(obj.Value.l_List.Count);
 
-            switch (cls._type)
+            switch (cls.Type)
             {
                 case ExObjType.CLOSURE:
                     {
-                        if (cls.GetClosure()._func.IsSequence())
+                        if (cls.GetClosure().Function.IsSequence())
                         {
-                            bool _bm = vm.b_main;
-                            vm.b_main = false;
-                            List<ExObject> _defs = cls.GetClosure()._func._params;
+                            bool _bm = vm.IsMainCall;
+                            vm.IsMainCall = false;
+                            List<ExObject> _defs = cls.GetClosure().Function.Parameters;
                             List<string> defs = new(_defs.Count);
                             for (int i = 0; i < _defs.Count; i++)
                             {
@@ -714,22 +714,22 @@ namespace ExMat.BaseLib
 
                                 for (int i = 0; i < argcount; i++)
                                 {
-                                    ExObject o = obj._val.l_List[i];
-                                    ExObject o2 = obj2._val.l_List[i];
+                                    ExObject o = obj.Value.l_List[i];
+                                    ExObject o2 = obj2.Value.l_List[i];
                                     vm.Push(cls);
-                                    vm.Push(vm._rootdict);
+                                    vm.Push(vm.RootDictionary);
 
                                     vm.Push(o);
                                     vm.Push(o2);
-                                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                                    if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                                     {
                                         vm.Pop();
-                                        vm.b_main = _bm;
+                                        vm.IsMainCall = _bm;
                                         return -1;
                                     }
                                     else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
                                     {
-                                        l.Add(new(vm.GetAt(vm._top - n - 1)));
+                                        l.Add(new(vm.GetAt(vm.StackTop - n - 1)));
                                         vm.Pop(n + 1 + m);
                                     }
                                     else
@@ -743,20 +743,20 @@ namespace ExMat.BaseLib
                             {
                                 for (int i = 0; i < argcount; i++)
                                 {
-                                    ExObject o = obj._val.l_List[i];
+                                    ExObject o = obj.Value.l_List[i];
                                     vm.Push(cls);
-                                    vm.Push(vm._rootdict);
+                                    vm.Push(vm.RootDictionary);
 
                                     vm.Push(o);
-                                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                                    if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                                     {
                                         vm.Pop();
-                                        vm.b_main = _bm;
+                                        vm.IsMainCall = _bm;
                                         return -1;
                                     }
                                     else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
                                     {
-                                        l.Add(new(vm.GetAt(vm._top - n - 1)));
+                                        l.Add(new(vm.GetAt(vm.StackTop - n - 1)));
                                         vm.Pop(n + 1 + m);
                                     }
                                     else
@@ -767,7 +767,7 @@ namespace ExMat.BaseLib
                                 }
                             }
 
-                            vm.b_main = _bm;
+                            vm.IsMainCall = _bm;
                             vm.Pop(n + m + 1);
                             vm.Push(new ExObject(l));
                             return 1;
@@ -776,7 +776,7 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
-                        if (cls.GetNClosure().b_deleg)
+                        if (cls.GetNClosure().IsDelegateFunction)
                         {
                             n--;
                             m++;
@@ -785,8 +785,8 @@ namespace ExMat.BaseLib
                     }
             }
 
-            bool bm = vm.b_main;
-            vm.b_main = false;
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
 
             if (obj2 != null)
             {
@@ -797,19 +797,19 @@ namespace ExMat.BaseLib
                 }
                 n++;
 
-                for (int i = 0; i < obj._val.l_List.Count; i++)
+                for (int i = 0; i < obj.Value.l_List.Count; i++)
                 {
-                    ExObject o = obj._val.l_List[i];
-                    ExObject o2 = obj2._val.l_List[i];
+                    ExObject o = obj.Value.l_List[i];
+                    ExObject o2 = obj2.Value.l_List[i];
                     vm.Push(cls);
-                    vm.Push(vm._rootdict);
+                    vm.Push(vm.RootDictionary);
 
                     vm.Push(o);
                     vm.Push(o2);
-                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                    if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                     {
                         vm.Pop();
-                        vm.b_main = bm;
+                        vm.IsMainCall = bm;
                         return -1;
                     }
                     else
@@ -821,16 +821,16 @@ namespace ExMat.BaseLib
             }
             else
             {
-                foreach (ExObject o in obj._val.l_List)
+                foreach (ExObject o in obj.Value.l_List)
                 {
                     vm.Push(cls);
-                    vm.Push(vm._rootdict);
+                    vm.Push(vm.RootDictionary);
 
                     vm.Push(o);
-                    if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                    if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                     {
                         vm.Pop();
-                        vm.b_main = bm;
+                        vm.IsMainCall = bm;
                         return -1;
                     }
                     else
@@ -841,25 +841,25 @@ namespace ExMat.BaseLib
                 }
             }
 
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(n + m + 1);
             vm.Push(new ExObject(l));
             return 1;
         }
 
-        public static int BASE_filter(ExVM vm, int nargs)
+        public static int StdFilter(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
             ExObject obj = new(ExAPI.GetFromStack(vm, 3));
-            List<ExObject> l = new(obj._val.l_List.Count);
+            List<ExObject> l = new(obj.Value.l_List.Count);
 
             vm.Pop();
 
             ExObject res = new();
 
-            bool iscls = cls._type == ExObjType.CLOSURE;
+            bool iscls = cls.Type == ExObjType.CLOSURE;
 
-            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
+            if (!iscls && cls.Type != ExObjType.NATIVECLOSURE)
             {
                 vm.AddToErrorMessage("can't call non-closure type");
                 return -1;
@@ -869,23 +869,23 @@ namespace ExMat.BaseLib
 
             int n = 2;
             int m = 0;
-            if (!iscls && cls.GetNClosure().b_deleg)
+            if (!iscls && cls.GetNClosure().IsDelegateFunction)
             {
                 n--;
                 m++;
             }
-            bool bm = vm.b_main;
-            vm.b_main = false;
-            foreach (ExObject o in obj._val.l_List)
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
+            foreach (ExObject o in obj.Value.l_List)
             {
                 vm.Push(cls);
-                vm.Push(vm._rootdict);
+                vm.Push(vm.RootDictionary);
 
                 vm.Push(o);
-                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                 {
                     vm.Pop();
-                    vm.b_main = bm;
+                    vm.IsMainCall = bm;
                     return -1;
                 }
                 else
@@ -898,22 +898,22 @@ namespace ExMat.BaseLib
                 }
             }
 
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(n + m + 1);
             vm.Push(new ExObject(l));
             return 1;
         }
 
-        public static int BASE_call(ExVM vm, int nargs)
+        public static int StdCall(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
 
             ExObject res = new();
 
             bool need_b = false;
-            bool iscls = cls._type == ExObjType.CLOSURE;
+            bool iscls = cls.Type == ExObjType.CLOSURE;
 
-            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
+            if (!iscls && cls.Type != ExObjType.NATIVECLOSURE)
             {
                 vm.AddToErrorMessage("can't call non-closure type");
                 return -1;
@@ -924,9 +924,9 @@ namespace ExMat.BaseLib
 
             if (iscls)
             {
-                ExPrototype pro = cls.GetClosure()._func;
+                ExPrototype pro = cls.GetClosure().Function;
 
-                if (pro.n_params == 1)
+                if (pro.nParams == 1)
                 {
                     if (nargs != 1)
                     {
@@ -937,7 +937,7 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    int p = pro.n_params;
+                    int p = pro.nParams;
                     need_b = p > 1;
 
                     if (need_b)
@@ -952,19 +952,19 @@ namespace ExMat.BaseLib
                     }
 
                     if (need_b
-                        && pro.n_defparams > 0)
+                        && pro.nDefaultParameters > 0)
                     {
-                        int n_def = pro.n_defparams;
+                        int n_def = pro.nDefaultParameters;
                         int diff;
                         if (n_def > 0 && nargs < p && (diff = p - nargs) <= n_def)
                         {
                             for (int n = n_def - diff; n < n_def; n++)
                             {
-                                args.Add(cls.GetClosure()._defparams[n]);
+                                args.Add(cls.GetClosure().DefaultParams[n]);
                             }
                         }
                     }
-                    else if (pro.n_params != nargs)
+                    else if (pro.nParams != nargs)
                     {
                         vm.AddToErrorMessage("wrong number of arguments");
                         return -1;
@@ -987,8 +987,8 @@ namespace ExMat.BaseLib
                 nargs = args.Count + 1;
             }
 
-            bool bm = vm.b_main;
-            vm.b_main = false;
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
             if (ExAPI.Call(vm, 3, true, need_b, iscls, nargs))
             {
                 res.Assign(vm.GetAbove(-1)); // ExAPI.GetFromStack(vm, nargs - (iscls ? 1 : 0))
@@ -996,11 +996,11 @@ namespace ExMat.BaseLib
             }
             else
             {
-                vm.b_main = bm;
+                vm.IsMainCall = bm;
                 return -1;
             }
 
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(3);
             vm.Push(res);
             return 1;
@@ -1008,13 +1008,13 @@ namespace ExMat.BaseLib
 
         private static bool DecideCallNeedNC(ExVM v, ExNativeClosure c, int n, ref bool b)
         {
-            if (c.b_deleg)
+            if (c.IsDelegateFunction)
             {
-                b = c.n_paramscheck == 1;
+                b = c.nParameterChecks == 1;
             }
-            else if (c.n_paramscheck > 0)
+            else if (c.nParameterChecks > 0)
             {
-                if (c.n_paramscheck == 1)
+                if (c.nParameterChecks == 1)
                 {
                     if (n != 1)
                     {
@@ -1025,24 +1025,24 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    b = c.n_paramscheck == 2;
+                    b = c.nParameterChecks == 2;
                 }
             }
             else
             {
-                b = c.n_paramscheck == -1;
+                b = c.nParameterChecks == -1;
             }
 
             return true;
         }
 
-        public static int BASE_parse(ExVM vm, int nargs)
+        public static int StdParse(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
-            List<ExObject> args = new ExObject(ExAPI.GetFromStack(vm, 3))._val.l_List;
-            if (args.Count > vm._stack.Count - vm._top - 3)
+            List<ExObject> args = new ExObject(ExAPI.GetFromStack(vm, 3)).Value.l_List;
+            if (args.Count > vm.Stack.Count - vm.StackTop - 3)
             {
-                vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm._stack.Count);
+                vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm.Stack.Count);
                 return -1;
             }
 
@@ -1051,14 +1051,14 @@ namespace ExMat.BaseLib
             ExObject res = new();
             int n = args.Count + 1;
             int extra = 0;
-            switch (cls._type)
+            switch (cls.Type)
             {
                 case ExObjType.CLOSURE:
                     {
                         vm.Push(cls);
-                        vm.Push(vm._rootdict);
-                        if (cls.GetClosure()._func.IsCluster()
-                            && cls.GetClosure()._defparams.Count == 1)
+                        vm.Push(vm.RootDictionary);
+                        if (cls.GetClosure().Function.IsCluster()
+                            && cls.GetClosure().DefaultParams.Count == 1)
                         {
                             vm.Push(args); // Handle 1 parameter clusters => [args]
                             n = 2;
@@ -1083,35 +1083,35 @@ namespace ExMat.BaseLib
                 case ExObjType.CLASS:
                     {
                         vm.Push(cls);
-                        vm.Push(vm._rootdict);
+                        vm.Push(vm.RootDictionary);
                         vm.PushParse(args);
                         extra++;
                         break;
                     }
                 default:
                     {
-                        vm.AddToErrorMessage("can't call '" + cls._type + "' type");
+                        vm.AddToErrorMessage("can't call '" + cls.Type + "' type");
                         return -1;
                     }
             }
 
             ExObject tmp = new();
-            bool bm = vm.b_main;
-            vm.b_main = false;
-            if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
+            if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
             {
                 vm.Pop(n + extra);
-                vm.b_main = bm;
+                vm.IsMainCall = bm;
                 return -1;
             }
 
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(n + 3 + extra);
             vm.Push(tmp);
             return 1;
         }
 
-        public static int BASE_iter(ExVM vm, int nargs)
+        public static int StdIter(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
             ExObject obj = new(ExAPI.GetFromStack(vm, 3));
@@ -1119,9 +1119,9 @@ namespace ExMat.BaseLib
 
             vm.Pop();
 
-            bool iscls = cls._type == ExObjType.CLOSURE;
+            bool iscls = cls.Type == ExObjType.CLOSURE;
 
-            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
+            if (!iscls && cls.Type != ExObjType.NATIVECLOSURE)
             {
                 vm.AddToErrorMessage("can't call non-closure type");
                 return -1;
@@ -1131,25 +1131,25 @@ namespace ExMat.BaseLib
 
             int n = 4;
             int m = 0;
-            if (!iscls && cls.GetNClosure().b_deleg)
+            if (!iscls && cls.GetNClosure().IsDelegateFunction)
             {
                 n--;
                 m++;
             }
-            bool bm = vm.b_main;
-            vm.b_main = false;
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
             int i = 0;
-            foreach (ExObject o in obj._val.l_List) // TO-DO use for loop, remove need of 3rd arg in iter
+            foreach (ExObject o in obj.Value.l_List) // TO-DO use for loop, remove need of 3rd arg in iter
             {
                 vm.Push(cls);
-                vm.Push(vm._rootdict);
+                vm.Push(vm.RootDictionary);
                 vm.Push(o); // curr
                 vm.Push(prev);  // prev
                 vm.Push(i); // idx
-                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                 {
                     vm.Pop();
-                    vm.b_main = bm;
+                    vm.IsMainCall = bm;
                     return -1;
                 }
                 else
@@ -1160,13 +1160,13 @@ namespace ExMat.BaseLib
                 }
             }
 
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(n + m);
             vm.Push(prev);
             return 1;
         }
 
-        public static int BASE_first(ExVM vm, int nargs)
+        public static int StdFirst(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
             ExObject obj = new(ExAPI.GetFromStack(vm, 3));
@@ -1174,9 +1174,9 @@ namespace ExMat.BaseLib
 
             vm.Pop();
 
-            bool iscls = cls._type == ExObjType.CLOSURE;
+            bool iscls = cls.Type == ExObjType.CLOSURE;
 
-            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
+            if (!iscls && cls.Type != ExObjType.NATIVECLOSURE)
             {
                 vm.AddToErrorMessage("can't call non-closure type");
                 return -1;
@@ -1186,23 +1186,23 @@ namespace ExMat.BaseLib
 
             int n = 2;
             int m = 0;
-            if (!iscls && cls.GetNClosure().b_deleg)
+            if (!iscls && cls.GetNClosure().IsDelegateFunction)
             {
                 n--;
                 m++;
             }
-            bool bm = vm.b_main;
-            vm.b_main = false;
-            foreach (ExObject o in obj._val.l_List)
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
+            foreach (ExObject o in obj.Value.l_List)
             {
                 vm.Push(cls);
-                vm.Push(vm._rootdict);
+                vm.Push(vm.RootDictionary);
 
                 vm.Push(o);
-                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                 {
                     vm.Pop();
-                    vm.b_main = bm;
+                    vm.IsMainCall = bm;
                     return -1;
                 }
                 else
@@ -1216,22 +1216,22 @@ namespace ExMat.BaseLib
                 }
             }
 
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(n + m + 1);
             vm.Push(res);
             return 1;
         }
 
-        public static int BASE_all(ExVM vm, int nargs)
+        public static int StdAll(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
             ExObject obj = new(ExAPI.GetFromStack(vm, 3));
 
             vm.Pop();
 
-            bool iscls = cls._type == ExObjType.CLOSURE;
+            bool iscls = cls.Type == ExObjType.CLOSURE;
 
-            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
+            if (!iscls && cls.Type != ExObjType.NATIVECLOSURE)
             {
                 vm.AddToErrorMessage("can't call non-closure type");
                 return -1;
@@ -1241,27 +1241,27 @@ namespace ExMat.BaseLib
 
             int n = 2;
             int m = 0;
-            if (!iscls && cls.GetNClosure().b_deleg)
+            if (!iscls && cls.GetNClosure().IsDelegateFunction)
             {
                 n--;
                 m++;
             }
 
-            bool found = obj._val.l_List.Count > 0;
+            bool found = obj.Value.l_List.Count > 0;
             ExObject res = new(found);
 
-            bool bm = vm.b_main;
-            vm.b_main = false;
-            foreach (ExObject o in obj._val.l_List)
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
+            foreach (ExObject o in obj.Value.l_List)
             {
                 vm.Push(cls);
-                vm.Push(vm._rootdict);
+                vm.Push(vm.RootDictionary);
 
                 vm.Push(o);
-                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                 {
                     vm.Pop();
-                    vm.b_main = bm;
+                    vm.IsMainCall = bm;
                     return -1;
                 }
                 else
@@ -1275,22 +1275,22 @@ namespace ExMat.BaseLib
                 }
             }
 
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(n + m + 1);
             vm.Push(res);
             return 1;
         }
 
-        public static int BASE_any(ExVM vm, int nargs)
+        public static int StdAny(ExVM vm, int nargs)
         {
             ExObject cls = ExAPI.GetFromStack(vm, 2);
             ExObject obj = new(ExAPI.GetFromStack(vm, 3));
 
             vm.Pop();
 
-            bool iscls = cls._type == ExObjType.CLOSURE;
+            bool iscls = cls.Type == ExObjType.CLOSURE;
 
-            if (!iscls && cls._type != ExObjType.NATIVECLOSURE)
+            if (!iscls && cls.Type != ExObjType.NATIVECLOSURE)
             {
                 vm.AddToErrorMessage("can't call non-closure type");
                 return -1;
@@ -1300,7 +1300,7 @@ namespace ExMat.BaseLib
 
             int n = 2;
             int m = 0;
-            if (!iscls && cls.GetNClosure().b_deleg)
+            if (!iscls && cls.GetNClosure().IsDelegateFunction)
             {
                 n--;
                 m++;
@@ -1309,18 +1309,18 @@ namespace ExMat.BaseLib
             bool found = false;
             ExObject res = new(false);
 
-            bool bm = vm.b_main;
-            vm.b_main = false;
-            foreach (ExObject o in obj._val.l_List)
+            bool bm = vm.IsMainCall;
+            vm.IsMainCall = false;
+            foreach (ExObject o in obj.Value.l_List)
             {
                 vm.Push(cls);
-                vm.Push(vm._rootdict);
+                vm.Push(vm.RootDictionary);
 
                 vm.Push(o);
-                if (!vm.Call(ref cls, n, vm._top - n, ref tmp, true))
+                if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
                 {
                     vm.Pop();
-                    vm.b_main = bm;
+                    vm.IsMainCall = bm;
                     return -1;
                 }
                 else
@@ -1335,17 +1335,17 @@ namespace ExMat.BaseLib
             }
 
             res.Assign(found);
-            vm.b_main = bm;
+            vm.IsMainCall = bm;
             vm.Pop(n + m + 1);
             vm.Push(res);
             return 1;
         }
 
         ///
-        public static int BASE_list(ExVM vm, int nargs)
+        public static int StdList(ExVM vm, int nargs)
         {
             ExObject o = ExAPI.GetFromStack(vm, 2);
-            if (o._type == ExObjType.STRING)
+            if (o.Type == ExObjType.STRING)
             {
                 char[] s = o.GetString().ToCharArray();
 
@@ -1370,13 +1370,13 @@ namespace ExMat.BaseLib
                 }
                 if (ExAPI.GetTopOfStack(vm) > 2)
                 {
-                    l._val.l_List = new(s);
-                    ExUtils.InitList(ref l._val.l_List, s, ExAPI.GetFromStack(vm, 3));
+                    l.Value.l_List = new(s);
+                    ExUtils.InitList(ref l.Value.l_List, s, ExAPI.GetFromStack(vm, 3));
                 }
                 else
                 {
-                    l._val.l_List = new(s);
-                    ExUtils.InitList(ref l._val.l_List, s);
+                    l.Value.l_List = new(s);
+                    ExUtils.InitList(ref l.Value.l_List, s);
                 }
                 vm.Pop(nargs + 2);
                 vm.Push(l);
@@ -1384,12 +1384,12 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static int BASE_rangei(ExVM vm, int nargs)
+        public static int StdRangei(ExVM vm, int nargs)
         {
             List<ExObject> l = new();
             ExObject s = ExAPI.GetFromStack(vm, 2);
 
-            switch (s._type)
+            switch (s.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1400,13 +1400,13 @@ namespace ExMat.BaseLib
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
                                     ExObject d = ExAPI.GetFromStack(vm, 4);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
                                             {
                                                 double end = e.GetFloat();
-                                                switch (d._type)
+                                                switch (d.Type)
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
@@ -1470,7 +1470,7 @@ namespace ExMat.BaseLib
                             case 2:
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
@@ -1516,13 +1516,13 @@ namespace ExMat.BaseLib
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
                                     ExObject d = ExAPI.GetFromStack(vm, 4);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
                                             {
                                                 double end = e.GetFloat();
-                                                switch (d._type)
+                                                switch (d.Type)
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
@@ -1586,7 +1586,7 @@ namespace ExMat.BaseLib
                             case 2:
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
@@ -1632,13 +1632,13 @@ namespace ExMat.BaseLib
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
                                     ExObject d = ExAPI.GetFromStack(vm, 4);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
                                             {
                                                 long count = e.GetInt();
-                                                switch (d._type)
+                                                switch (d.Type)
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
@@ -1682,7 +1682,7 @@ namespace ExMat.BaseLib
                             case 2:
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
@@ -1720,11 +1720,11 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_range(ExVM vm, int nargs)
+        public static int StdRange(ExVM vm, int nargs)
         {
             List<ExObject> l = new();
             ExObject s = ExAPI.GetFromStack(vm, 2);
-            switch (s._type)
+            switch (s.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1735,13 +1735,13 @@ namespace ExMat.BaseLib
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
                                     ExObject d = ExAPI.GetFromStack(vm, 4);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
                                             {
                                                 double end = e.GetFloat();
-                                                switch (d._type)
+                                                switch (d.Type)
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
@@ -1805,7 +1805,7 @@ namespace ExMat.BaseLib
                             case 2:
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
@@ -1851,13 +1851,13 @@ namespace ExMat.BaseLib
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
                                     ExObject d = ExAPI.GetFromStack(vm, 4);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
                                             {
                                                 double end = e.GetFloat();
-                                                switch (d._type)
+                                                switch (d.Type)
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
@@ -1921,7 +1921,7 @@ namespace ExMat.BaseLib
                             case 2:
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
@@ -1967,13 +1967,13 @@ namespace ExMat.BaseLib
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
                                     ExObject d = ExAPI.GetFromStack(vm, 4);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
                                             {
                                                 long count = e.GetInt();
-                                                switch (d._type)
+                                                switch (d.Type)
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
@@ -2017,7 +2017,7 @@ namespace ExMat.BaseLib
                             case 2:
                                 {
                                     ExObject e = ExAPI.GetFromStack(vm, 3);
-                                    switch (e._type)
+                                    switch (e.Type)
                                     {
                                         case ExObjType.FLOAT:
                                         case ExObjType.INTEGER:
@@ -2056,7 +2056,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_matrix(ExVM vm, int nargs)
+        public static int StdMatrix(ExVM vm, int nargs)
         {
             ExList l = new();
             ExObject s = ExAPI.GetFromStack(vm, 2);
@@ -2079,62 +2079,62 @@ namespace ExMat.BaseLib
                         }
 
                         ExObject filler = nargs == 3 ? ExAPI.GetFromStack(vm, 4) : new();
-                        l._val.l_List = new(m);
+                        l.Value.l_List = new(m);
 
-                        switch (filler._type)
+                        switch (filler.Type)
                         {
                             case ExObjType.CLOSURE:
                                 {
-                                    if (filler.GetClosure()._func.n_params != 3
-                                        && (filler.GetClosure()._func.n_params - filler.GetClosure()._func.n_defparams) > 3)
+                                    if (filler.GetClosure().Function.nParams != 3
+                                        && (filler.GetClosure().Function.nParams - filler.GetClosure().Function.nDefaultParameters) > 3)
                                     {
                                         vm.AddToErrorMessage("given function must allow 2-argument calls");
                                         return -1;
                                     }
 
-                                    bool bm = vm.b_main;
-                                    vm.b_main = false;
+                                    bool bm = vm.IsMainCall;
+                                    vm.IsMainCall = false;
                                     for (int i = 0; i < m; i++)
                                     {
                                         List<ExObject> lis = new(n);
                                         for (int j = 0; j < n; j++)
                                         {
                                             ExObject res = new();
-                                            vm.Push(vm._rootdict);
+                                            vm.Push(vm.RootDictionary);
                                             vm.Push(i);
                                             vm.Push(j);
-                                            if (!vm.Call(ref filler, 3, vm._top - 3, ref res, true))
+                                            if (!vm.Call(ref filler, 3, vm.StackTop - 3, ref res, true))
                                             {
-                                                vm.b_main = bm;
+                                                vm.IsMainCall = bm;
                                                 return -1;
                                             }
                                             vm.Pop(3);
 
                                             lis.Add(new(res));
                                         }
-                                        l._val.l_List.Add(new ExObject(lis));
+                                        l.Value.l_List.Add(new ExObject(lis));
                                     }
 
-                                    vm.b_main = bm;
+                                    vm.IsMainCall = bm;
                                     break;
                                 }
                             case ExObjType.NATIVECLOSURE:
                                 {
-                                    int nparamscheck = filler.GetNClosure().n_paramscheck;
+                                    int nparamscheck = filler.GetNClosure().nParameterChecks;
                                     if (((nparamscheck > 0) && (nparamscheck != 3)) ||
                                         ((nparamscheck < 0) && (3 < (-nparamscheck))))
                                     {
                                         if (nparamscheck < 0)
                                         {
-                                            vm.AddToErrorMessage("'" + filler.GetNClosure()._name.GetString() + "' takes minimum " + (-nparamscheck - 1) + " arguments");
+                                            vm.AddToErrorMessage("'" + filler.GetNClosure().Name.GetString() + "' takes minimum " + (-nparamscheck - 1) + " arguments");
                                             return -1;
                                         }
-                                        vm.AddToErrorMessage("'" + filler.GetNClosure()._name.GetString() + "' takes exactly " + (nparamscheck - 1) + " arguments");
+                                        vm.AddToErrorMessage("'" + filler.GetNClosure().Name.GetString() + "' takes exactly " + (nparamscheck - 1) + " arguments");
                                         return -1;
                                     }
 
-                                    bool bm = vm.b_main;
-                                    vm.b_main = false;
+                                    bool bm = vm.IsMainCall;
+                                    vm.IsMainCall = false;
                                     for (int i = 0; i < m; i++)
                                     {
                                         List<ExObject> lis = new(n);
@@ -2143,7 +2143,7 @@ namespace ExMat.BaseLib
                                             ExObject res = new();
                                             vm.Push(i);
                                             vm.Push(j);
-                                            if (!vm.Call(ref filler, 2, vm._top - 2, ref res, true))
+                                            if (!vm.Call(ref filler, 2, vm.StackTop - 2, ref res, true))
                                             {
                                                 return -1;
                                             }
@@ -2151,10 +2151,10 @@ namespace ExMat.BaseLib
 
                                             lis.Add(new(res));
                                         }
-                                        l._val.l_List.Add(new ExObject(lis));
+                                        l.Value.l_List.Add(new ExObject(lis));
                                     }
 
-                                    vm.b_main = bm;
+                                    vm.IsMainCall = bm;
                                     break;
                                 }
                             default:
@@ -2163,7 +2163,7 @@ namespace ExMat.BaseLib
                                     {
                                         List<ExObject> lis = null;
                                         ExUtils.InitList(ref lis, n, filler);
-                                        l._val.l_List.Add(new ExObject(lis));
+                                        l.Value.l_List.Add(new ExObject(lis));
                                     }
                                     break;
                                 }
@@ -2176,35 +2176,35 @@ namespace ExMat.BaseLib
             return 1;
         }
         // COMPLEX
-        public static int BASE_complex_phase(ExVM vm, int nargs)
+        public static int StdComplexPhase(ExVM vm, int nargs)
         {
             double size = ExAPI.GetFromStack(vm, 1).GetComplex().Phase;
             vm.Pop(nargs + 2);
             vm.Push(new ExObject(size));
             return 1;
         }
-        public static int BASE_complex_magnitude(ExVM vm, int nargs)
+        public static int StdComplexMagnitude(ExVM vm, int nargs)
         {
             double size = ExAPI.GetFromStack(vm, 1).GetComplex().Magnitude;
             vm.Pop(nargs + 2);
             vm.Push(new ExObject(size));
             return 1;
         }
-        public static int BASE_complex_img(ExVM vm, int nargs)
+        public static int StdComplexImg(ExVM vm, int nargs)
         {
-            double size = ExAPI.GetFromStack(vm, 1)._val.c_Float;
+            double size = ExAPI.GetFromStack(vm, 1).Value.c_Float;
             vm.Pop(nargs + 2);
             vm.Push(new ExObject(size));
             return 1;
         }
-        public static int BASE_complex_real(ExVM vm, int nargs)
+        public static int StdComplexReal(ExVM vm, int nargs)
         {
-            double size = ExAPI.GetFromStack(vm, 1)._val.f_Float;
+            double size = ExAPI.GetFromStack(vm, 1).Value.f_Float;
             vm.Pop(nargs + 2);
             vm.Push(new ExObject(size));
             return 1;
         }
-        public static int BASE_complex_conjugate(ExVM vm, int nargs)
+        public static int StdComplexConjugate(ExVM vm, int nargs)
         {
             Complex c = ExAPI.GetFromStack(vm, 1).GetComplexConj();
             vm.Pop(nargs + 2);
@@ -2213,20 +2213,20 @@ namespace ExMat.BaseLib
         }
 
         // COMMON
-        public static int BASE_default_length(ExVM vm, int nargs)
+        public static int StdDefaultLength(ExVM vm, int nargs)
         {
             int size = -1;
             ExObject obj = ExAPI.GetFromStack(vm, 1);
-            switch (obj._type)
+            switch (obj.Type)
             {
                 case ExObjType.ARRAY:
                     {
-                        size = obj._val.l_List.Count;
+                        size = obj.Value.l_List.Count;
                         break;
                     }
                 case ExObjType.DICT:
                     {
-                        size = obj._val.d_Dict.Count;
+                        size = obj.Value.d_Dict.Count;
                         break;
                     }
                 case ExObjType.STRING:
@@ -2236,12 +2236,12 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.CLASS:
                     {
-                        size = obj._val._Class._udsize;
+                        size = obj.Value._Class.LengthReprestation;
                         break;
                     }
                 case ExObjType.INSTANCE:
                     {
-                        size = obj._val._Instance._class._udsize;
+                        size = obj.Value._Instance.Class.LengthReprestation;
                         break;
                     }
                 default:
@@ -2255,7 +2255,7 @@ namespace ExMat.BaseLib
         }
 
         // STRING
-        public static int BASE_string_index_of(ExVM vm, int nargs)
+        public static int StdStringIndexOf(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.STRING, ref res);
@@ -2266,21 +2266,21 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_string_toupper(ExVM vm, int nargs)
+        public static int StdStringToUpper(ExVM vm, int nargs)
         {
             string obj = ExAPI.GetFromStack(vm, 1).GetString();
             vm.Pop(nargs + 2);
             vm.Push(obj.ToUpper());
             return 1;
         }
-        public static int BASE_string_tolower(ExVM vm, int nargs)
+        public static int StdStringToLower(ExVM vm, int nargs)
         {
             string obj = ExAPI.GetFromStack(vm, 1).GetString();
             vm.Pop(nargs + 2);
             vm.Push(obj.ToLower());
             return 1;
         }
-        public static int BASE_string_reverse(ExVM vm, int nargs)
+        public static int StdStringReverse(ExVM vm, int nargs)
         {
             string obj = ExAPI.GetFromStack(vm, 1).GetString();
             char[] ch = obj.ToCharArray();
@@ -2289,7 +2289,7 @@ namespace ExMat.BaseLib
             vm.Push(new string(ch));
             return 1;
         }
-        public static int BASE_string_replace(ExVM vm, int nargs)
+        public static int StdStringReplace(ExVM vm, int nargs)
         {
             string obj = ExAPI.GetFromStack(vm, 1).GetString();
             string old = ExAPI.GetFromStack(vm, 2).GetString();
@@ -2299,7 +2299,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_string_repeat(ExVM vm, int nargs)
+        public static int StdStringRepeat(ExVM vm, int nargs)
         {
             string obj = ExAPI.GetFromStack(vm, 1).GetString();
             int rep = (int)ExAPI.GetFromStack(vm, 2).GetInt();
@@ -2314,7 +2314,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_string_isAlphabetic(ExVM vm, int nargs)
+        public static int StdStringAlphabetic(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
@@ -2331,7 +2331,7 @@ namespace ExMat.BaseLib
             vm.Push(Regex.IsMatch(s, "^[A-Za-z]+$"));
             return 1;
         }
-        public static int BASE_string_isNumeric(ExVM vm, int nargs)
+        public static int StdStringNumeric(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
@@ -2348,7 +2348,7 @@ namespace ExMat.BaseLib
             vm.Push(Regex.IsMatch(s, @"^\d+(\.\d+)?((E|e)(\+|\-)\d+)?$"));
             return 1;
         }
-        public static int BASE_string_isAlphaNumeric(ExVM vm, int nargs)
+        public static int StdStringAlphaNumeric(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
@@ -2365,7 +2365,7 @@ namespace ExMat.BaseLib
             vm.Push(Regex.IsMatch(s, "^[A-Za-z0-9]+$"));
             return 1;
         }
-        public static int BASE_string_isLower(ExVM vm, int nargs)
+        public static int StdStringLower(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
@@ -2391,7 +2391,7 @@ namespace ExMat.BaseLib
             vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
-        public static int BASE_string_isUpper(ExVM vm, int nargs)
+        public static int StdStringUpper(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
@@ -2417,7 +2417,7 @@ namespace ExMat.BaseLib
             vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
-        public static int BASE_string_isWhitespace(ExVM vm, int nargs)
+        public static int StdStringWhitespace(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
@@ -2443,7 +2443,7 @@ namespace ExMat.BaseLib
             vm.Push(true && s.Length > 0);
             return 1;
         }
-        public static int BASE_string_isSymbol(ExVM vm, int nargs)
+        public static int StdStringSymbol(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 1).GetString();
             if (nargs == 1)
@@ -2469,7 +2469,7 @@ namespace ExMat.BaseLib
             vm.Push(true && !string.IsNullOrEmpty(s));
             return 1;
         }
-        public static int BASE_string_slice(ExVM vm, int nargs)
+        public static int StdStringSlice(ExVM vm, int nargs)
         {
             ExObject o = new();
             ExAPI.GetSafeObject(vm, -1 - nargs, ExObjType.STRING, ref o);
@@ -2557,32 +2557,32 @@ namespace ExMat.BaseLib
         }
 
         // ARRAY
-        public static int BASE_array_append(ExVM vm, int nargs)
+        public static int StdArrayAppend(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
-            res._val.l_List.Add(new(vm.GetAbove(-1)));
+            res.Value.l_List.Add(new(vm.GetAbove(-1)));
             vm.Pop(nargs + 2);
             vm.Push(res);
             return 1;
         }
-        public static int BASE_array_extend(ExVM vm, int nargs)
+        public static int StdArrayExtend(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
-            res._val.l_List.AddRange(vm.GetAbove(-1)._val.l_List);
+            res.Value.l_List.AddRange(vm.GetAbove(-1).Value.l_List);
             vm.Pop(nargs + 2);
             vm.Push(res);
             return 1;
         }
-        public static int BASE_array_pop(ExVM vm, int nargs)
+        public static int StdArrayPop(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
-            if (res._val.l_List.Count > 0)
+            if (res.Value.l_List.Count > 0)
             {
-                ExObject p = new(res._val.l_List[^1]);
-                res._val.l_List.RemoveAt(res._val.l_List.Count - 1);
+                ExObject p = new(res.Value.l_List[^1]);
+                res.Value.l_List.RemoveAt(res.Value.l_List.Count - 1);
                 vm.Pop(nargs + 2);
                 vm.Push(p); // TO-DO make this optional
                 return 1;
@@ -2594,7 +2594,7 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static int BASE_array_resize(ExVM vm, int nargs)
+        public static int StdArrayResize(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
@@ -2604,68 +2604,68 @@ namespace ExMat.BaseLib
                 newsize = 0;
             }
 
-            int curr = res._val.l_List.Count;
+            int curr = res.Value.l_List.Count;
             if (curr > 0 && newsize > 0)
             {
                 if (newsize >= curr)
                 {
                     for (int i = curr; i < newsize; i++)
                     {
-                        res._val.l_List.Add(new());
+                        res.Value.l_List.Add(new());
                     }
                 }
                 else
                 {
                     while (curr != newsize)
                     {
-                        res._val.l_List[curr - 1].Nullify();
-                        res._val.l_List.RemoveAt(curr - 1);
+                        res.Value.l_List[curr - 1].Nullify();
+                        res.Value.l_List.RemoveAt(curr - 1);
                         curr--;
                     }
                 }
             }
             else if (newsize > 0)
             {
-                res._val.l_List = new(newsize);
+                res.Value.l_List = new(newsize);
                 for (int i = 0; i < newsize; i++)
                 {
-                    res._val.l_List.Add(new());
+                    res.Value.l_List.Add(new());
                 }
             }
             else
             {
-                res._val.l_List = new();
+                res.Value.l_List = new();
             }
 
             vm.Pop();
             return 1;
         }
 
-        public static int BASE_array_index_of(ExVM vm, int nargs)
+        public static int StdArrayIndexOf(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             using ExObject obj = new(ExAPI.GetFromStack(vm, 2));
 
-            int i = ExAPI.GetValueIndexFromArray(res._val.l_List, obj);
+            int i = ExAPI.GetValueIndexFromArray(res.Value.l_List, obj);
             vm.Pop(nargs + 2);
             vm.Push(i);
             return 1;
         }
 
-        public static int BASE_array_count(ExVM vm, int nargs)
+        public static int StdArrayCount(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             using ExObject obj = new(ExAPI.GetFromStack(vm, 2));
 
-            int i = ExAPI.CountValueEqualsInArray(res._val.l_List, obj);
+            int i = ExAPI.CountValueEqualsInArray(res.Value.l_List, obj);
             vm.Pop(nargs + 2);
             vm.Push(i);
             return 1;
         }
 
-        public static int BASE_array_slice(ExVM vm, int nargs)
+        public static int StdArraySlice(ExVM vm, int nargs)
         {
             ExObject o = new();
             ExAPI.GetSafeObject(vm, -1 - nargs, ExObjType.ARRAY, ref o);
@@ -2742,7 +2742,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_array_reverse(ExVM vm, int nargs)
+        public static int StdArrayReverse(ExVM vm, int nargs)
         {
             ExObject obj = ExAPI.GetFromStack(vm, 1);
             List<ExObject> lis = obj.GetList();
@@ -2756,7 +2756,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_array_copy(ExVM vm, int nargs)
+        public static int StdArrayCopy(ExVM vm, int nargs)
         {
             ExObject obj = ExAPI.GetFromStack(vm, 1);
             List<ExObject> lis = obj.GetList();
@@ -2770,7 +2770,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_array_transpose(ExVM vm, int nargs)
+        public static int StdArrayTranspose(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res);
@@ -2791,18 +2791,18 @@ namespace ExMat.BaseLib
         }
 
         // DICT
-        public static int BASE_dict_has_key(ExVM vm, int nargs)
+        public static int StdDictHasKey(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.DICT, ref res);
             string key = vm.GetAbove(-1).GetString();
-            bool b = res._val.d_Dict.ContainsKey(key);
+            bool b = res.Value.d_Dict.ContainsKey(key);
 
             vm.Pop(nargs + 2);
             vm.Push(b);
             return 1;
         }
-        public static int BASE_dict_keys(ExVM vm, int nargs)
+        public static int StdDictKeys(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -1, ExObjType.DICT, ref res);
@@ -2816,7 +2816,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int BASE_dict_values(ExVM vm, int nargs)
+        public static int StdDictValues(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -1, ExObjType.DICT, ref res);
@@ -2831,7 +2831,7 @@ namespace ExMat.BaseLib
         }
 
         // CLASS
-        public static int BASE_class_hasattr(ExVM vm, int nargs)
+        public static int StdClassHasAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
 
@@ -2839,13 +2839,13 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-2).GetString();
             string attr = vm.GetAbove(-1).GetString();
 
-            ExClass cls = res._val._Class;
-            if (cls._members.ContainsKey(mem))
+            ExClass cls = res.Value._Class;
+            if (cls.Members.ContainsKey(mem))
             {
-                ExObject v = cls._members[mem];
+                ExObject v = cls.Members[mem];
                 if (v.IsField())
                 {
-                    if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.DefaultValues[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
                         vm.Pop(nargs + 2);
                         vm.Push(true);
@@ -2854,7 +2854,7 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.Methods[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
                         vm.Pop(nargs + 2);
                         vm.Push(true);
@@ -2869,7 +2869,7 @@ namespace ExMat.BaseLib
             vm.AddToErrorMessage("unknown member or method '" + mem + "'");
             return -1;
         }
-        public static int BASE_class_getattr(ExVM vm, int nargs)
+        public static int StdClassGetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
 
@@ -2877,15 +2877,15 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-2).GetString();
             string attr = vm.GetAbove(-1).GetString();
 
-            ExClass cls = res._val._Class;
-            if (cls._members.ContainsKey(mem))
+            ExClass cls = res.Value._Class;
+            if (cls.Members.ContainsKey(mem))
             {
-                ExObject v = cls._members[mem];
+                ExObject v = cls.Members[mem];
                 if (v.IsField())
                 {
-                    if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.DefaultValues[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        ExObject val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls.DefaultValues[v.GetMemberID()].Attributes.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -2893,9 +2893,9 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.Methods[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        ExObject val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls.Methods[v.GetMemberID()].Attributes.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -2909,7 +2909,7 @@ namespace ExMat.BaseLib
             return -1;
         }
 
-        public static int BASE_class_setattr(ExVM vm, int nargs)
+        public static int StdClassSetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
 
@@ -2918,24 +2918,24 @@ namespace ExMat.BaseLib
             string attr = vm.GetAbove(-2).GetString();
             ExObject val = vm.GetAbove(-1);
 
-            ExClass cls = res._val._Class;
-            if (cls._members.ContainsKey(mem))
+            ExClass cls = res.Value._Class;
+            if (cls.Members.ContainsKey(mem))
             {
-                ExObject v = cls._members[mem];
+                ExObject v = cls.Members[mem];
                 if (v.IsField())
                 {
-                    if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.DefaultValues[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        cls._defvals[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        cls.DefaultValues[v.GetMemberID()].Attributes.GetDict()[attr].Assign(val);
                         vm.Pop(nargs + 2);
                         return 1;
                     }
                 }
                 else
                 {
-                    if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.Methods[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        cls._methods[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        cls.Methods[v.GetMemberID()].Attributes.GetDict()[attr].Assign(val);
                         vm.Pop(nargs + 2);
                         return 1;
                     }
@@ -2949,7 +2949,7 @@ namespace ExMat.BaseLib
         }
 
         // INSTANCE
-        public static int BASE_instance_hasattr(ExVM vm, int nargs)
+        public static int StdInstanceHasAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
 
@@ -2957,13 +2957,13 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-2).GetString();
             string attr = vm.GetAbove(-1).GetString();
 
-            ExClass cls = res._val._Instance._class;
-            if (cls._members.ContainsKey(mem))
+            ExClass cls = res.Value._Instance.Class;
+            if (cls.Members.ContainsKey(mem))
             {
-                ExObject v = cls._members[mem];
+                ExObject v = cls.Members[mem];
                 if (v.IsField())
                 {
-                    if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.DefaultValues[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
                         vm.Pop(nargs + 2);
                         vm.Push(true);
@@ -2972,7 +2972,7 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.Methods[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
                         vm.Pop(nargs + 2);
                         vm.Push(true);
@@ -2987,7 +2987,7 @@ namespace ExMat.BaseLib
             vm.AddToErrorMessage("unknown member or method '" + mem + "'");
             return -1;
         }
-        public static int BASE_instance_getattr(ExVM vm, int nargs)
+        public static int StdInstanceGetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
 
@@ -2995,15 +2995,15 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-2).GetString();
             string attr = vm.GetAbove(-1).GetString();
 
-            ExClass cls = res._val._Instance._class;
-            if (cls._members.ContainsKey(mem))
+            ExClass cls = res.Value._Instance.Class;
+            if (cls.Members.ContainsKey(mem))
             {
-                ExObject v = cls._members[mem];
+                ExObject v = cls.Members[mem];
                 if (v.IsField())
                 {
-                    if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.DefaultValues[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        ExObject val = new(cls._defvals[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls.DefaultValues[v.GetMemberID()].Attributes.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -3011,9 +3011,9 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.Methods[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        ExObject val = new(cls._methods[v.GetMemberID()].attrs.GetDict()[attr]);
+                        ExObject val = new(cls.Methods[v.GetMemberID()].Attributes.GetDict()[attr]);
                         vm.Pop(nargs + 2);
                         vm.Push(val);
                         return 1;
@@ -3027,7 +3027,7 @@ namespace ExMat.BaseLib
             return -1;
         }
 
-        public static int BASE_instance_setattr(ExVM vm, int nargs)
+        public static int StdInstanceSetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
 
@@ -3035,24 +3035,24 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-3).GetString();
             string attr = vm.GetAbove(-2).GetString();
             ExObject val = vm.GetAbove(-1);
-            ExClass cls = res._val._Instance._class;
-            if (cls._members.ContainsKey(mem))
+            ExClass cls = res.Value._Instance.Class;
+            if (cls.Members.ContainsKey(mem))
             {
-                ExObject v = cls._members[mem];
+                ExObject v = cls.Members[mem];
                 if (v.IsField())
                 {
-                    if (cls._defvals[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.DefaultValues[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        cls._defvals[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        cls.DefaultValues[v.GetMemberID()].Attributes.GetDict()[attr].Assign(val);
                         vm.Pop(nargs + 2);
                         return 1;
                     }
                 }
                 else
                 {
-                    if (cls._methods[v.GetMemberID()].attrs.GetDict().ContainsKey(attr))
+                    if (cls.Methods[v.GetMemberID()].Attributes.GetDict().ContainsKey(attr))
                     {
-                        cls._methods[v.GetMemberID()].attrs.GetDict()[attr].Assign(val);
+                        cls.Methods[v.GetMemberID()].Attributes.GetDict()[attr].Assign(val);
                         vm.Pop(nargs + 2);
                         return 1;
                     }
@@ -3065,7 +3065,7 @@ namespace ExMat.BaseLib
             return -1;
         }
         //
-        public static int BASE_reloadbase(ExVM vm, int nargs)
+        public static int StdReloadBase(ExVM vm, int nargs)
         {
             if (nargs == 1)
             {
@@ -3073,7 +3073,7 @@ namespace ExMat.BaseLib
                 if (name == ReloadBaseFunc)
                 {
                     vm.Pop(nargs + 2);
-                    vm.Push(vm._rootdict);
+                    vm.Push(vm.RootDictionary);
                     return 1;
                 }
 
@@ -3090,11 +3090,11 @@ namespace ExMat.BaseLib
                 }
             }
             vm.Pop(nargs + 2);
-            vm.Push(vm._rootdict);
+            vm.Push(vm.RootDictionary);
             return 1;
         }
 
-        public static int BASE_exit(ExVM vm, int nargs)
+        public static int StdExit(ExVM vm, int nargs)
         {
             long ret = ExAPI.GetFromStack(vm, 2).GetInt();
             vm.Pop(nargs + 2);
@@ -3102,18 +3102,43 @@ namespace ExMat.BaseLib
             return 985;
         }
 
-        public static int BASE_isinteractive(ExVM vm, int nargs)
+        public static int StdInteractive(ExVM vm, int nargs)
         {
             vm.Pop(2);
-            vm.Push(vm.isInteractive);
+            vm.Push(vm.IsInteractive);
             return 1;
         }
 
-        public static int BASE_GC_collect(ExVM vm, int nargs)
+        public static int StdGCCollect(ExVM vm, int nargs)
         {
             vm.Pop(2);
             ExAPI.CollectGarbage();
             return 0;
+        }
+
+        public static int StdWeakRef(ExVM vm, int nargs)
+        {
+            ExObject ret = ExAPI.GetFromStack(vm, 1);
+            if (ret.IsCountingRefs())
+            {
+                vm.Push(ret.Value._RefC.GetWeakRef(ret.Type, ret.Value));
+                return 1;
+            }
+            vm.Push(ret);
+            return 1;
+        }
+
+        public static int StdWeakRefValue(ExVM vm, int nargs)
+        {
+            ExObject ret = ExAPI.GetFromStack(vm, 1);
+            if (ret.Type != ExObjType.WEAKREF)
+            {
+                vm.AddToErrorMessage("can't get reference value of non-weakref object");
+                return -1;
+            }
+
+            vm.Push(ret.Value._WeakRef.ReferencedObject);
+            return 1;
         }
 
         public static MethodInfo GetBaseLibMethod(string name)
@@ -3125,11 +3150,11 @@ namespace ExMat.BaseLib
         {
             new()
             {
-                name = "print",
-                func = new(GetBaseLibMethod("BASE_print")),
-                n_pchecks = -2,
-                mask = "..n",
-                d_defaults = new()
+                Name = "print",
+                Function = new(GetBaseLibMethod("StdPrint")),
+                nParameterChecks = -2,
+                ParameterMask = "..n",
+                DefaultValues = new()
                 {
                     { 2, new() }
                 }
@@ -3137,11 +3162,11 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "printl",
-                func = new(GetBaseLibMethod("BASE_printl")),
-                n_pchecks = -2,
-                mask = "..n",
-                d_defaults = new()
+                Name = "printl",
+                Function = new(GetBaseLibMethod("StdPrintl")),
+                nParameterChecks = -2,
+                ParameterMask = "..n",
+                DefaultValues = new()
                 {
                     { 2, new() }
                 }
@@ -3149,18 +3174,18 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "time",
-                func = new(GetBaseLibMethod("BASE_time")),
-                n_pchecks = -1,
-                mask = null
+                Name = "time",
+                Function = new(GetBaseLibMethod("StdTime")),
+                nParameterChecks = -1,
+                ParameterMask = null
             },
             new()
             {
-                name = "date",
-                func = new(GetBaseLibMethod("BASE_date")),
-                n_pchecks = -1,
-                mask = ".s.",
-                d_defaults = new()
+                Name = "date",
+                Function = new(GetBaseLibMethod("StdDate")),
+                nParameterChecks = -1,
+                ParameterMask = ".s.",
+                DefaultValues = new()
                 {
                     { 1, new("today") },
                     { 2, new(false) }
@@ -3169,18 +3194,18 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "type",
-                func = new(GetBaseLibMethod("BASE_type")),
-                n_pchecks = 2,
-                mask = null
+                Name = "type",
+                Function = new(GetBaseLibMethod("StdType")),
+                nParameterChecks = 2,
+                ParameterMask = null
             },
             new()
             {
-                name = "assert",
-                func = new(GetBaseLibMethod("BASE_assert")),
-                n_pchecks = -2,
-                mask = "..s",
-                d_defaults = new()
+                Name = "assert",
+                Function = new(GetBaseLibMethod("StdAssert")),
+                nParameterChecks = -2,
+                ParameterMask = "..s",
+                DefaultValues = new()
                 {
                     { 1, new(true) },
                     { 2, new("") }
@@ -3189,11 +3214,11 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "string",
-                func = new(GetBaseLibMethod("BASE_string")),
-                n_pchecks = -1,
-                mask = "...i",
-                d_defaults = new()
+                Name = "string",
+                Function = new(GetBaseLibMethod("StdString")),
+                nParameterChecks = -1,
+                ParameterMask = "...i",
+                DefaultValues = new()
                 {
                     { 1, new("") },
                     { 2, new(false) },
@@ -3202,11 +3227,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "complex",
-                func = new(GetBaseLibMethod("BASE_complex")),
-                n_pchecks = -1,
-                mask = ".n|Cn",
-                d_defaults = new()
+                Name = "complex",
+                Function = new(GetBaseLibMethod("StdComplex")),
+                nParameterChecks = -1,
+                ParameterMask = ".n|Cn",
+                DefaultValues = new()
                 {
                     { 1, new(0.0) },
                     { 2, new(0.0) }
@@ -3214,11 +3239,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "complex2",
-                func = new(GetBaseLibMethod("BASE_complex2")),
-                n_pchecks = -1,
-                mask = ".i|fi|f",
-                d_defaults = new()
+                Name = "complex2",
+                Function = new(GetBaseLibMethod("StdComplex2")),
+                nParameterChecks = -1,
+                ParameterMask = ".i|fi|f",
+                DefaultValues = new()
                 {
                     { 1, new(0.0) },
                     { 2, new(0.0) }
@@ -3226,44 +3251,44 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "float",
-                func = new(GetBaseLibMethod("BASE_float")),
-                n_pchecks = -1,
-                mask = "..",
-                d_defaults = new()
+                Name = "float",
+                Function = new(GetBaseLibMethod("StdFloat")),
+                nParameterChecks = -1,
+                ParameterMask = "..",
+                DefaultValues = new()
                 {
                     { 1, new(0) }
                 }
             },
             new()
             {
-                name = "integer",
-                func = new(GetBaseLibMethod("BASE_integer")),
-                n_pchecks = -1,
-                mask = "..",
-                d_defaults = new()
+                Name = "integer",
+                Function = new(GetBaseLibMethod("StdInteger")),
+                nParameterChecks = -1,
+                ParameterMask = "..",
+                DefaultValues = new()
                 {
                     { 1, new(0) }
                 }
             },
             new()
             {
-                name = "bool",
-                func = new(GetBaseLibMethod("BASE_bool")),
-                n_pchecks = -1,
-                mask = "..",
-                d_defaults = new()
+                Name = "bool",
+                Function = new(GetBaseLibMethod("StdBool")),
+                nParameterChecks = -1,
+                ParameterMask = "..",
+                DefaultValues = new()
                 {
                     { 1, new(true) }
                 }
             },
             new()
             {
-                name = "bits",
-                func = new(GetBaseLibMethod("BASE_bits")),
-                n_pchecks = -1,
-                mask = ".i|f.",
-                d_defaults = new()
+                Name = "bits",
+                Function = new(GetBaseLibMethod("StdBits")),
+                nParameterChecks = -1,
+                ParameterMask = ".i|f.",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(false) }
@@ -3271,11 +3296,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "bits32",
-                func = new(GetBaseLibMethod("BASE_bits32")),
-                n_pchecks = -1,
-                mask = ".i|f.",
-                d_defaults = new()
+                Name = "bits32",
+                Function = new(GetBaseLibMethod("StdBits32")),
+                nParameterChecks = -1,
+                ParameterMask = ".i|f.",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(false) }
@@ -3283,11 +3308,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "bytes",
-                func = new(GetBaseLibMethod("BASE_bytes")),
-                n_pchecks = -1,
-                mask = ".i|f|s.",
-                d_defaults = new()
+                Name = "bytes",
+                Function = new(GetBaseLibMethod("StdBytes")),
+                nParameterChecks = -1,
+                ParameterMask = ".i|f|s.",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(false) }
@@ -3296,11 +3321,11 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "list",
-                func = new(GetBaseLibMethod("BASE_list")),
-                n_pchecks = -1,
-                mask = ".n|s.",
-                d_defaults = new()
+                Name = "list",
+                Function = new(GetBaseLibMethod("StdList")),
+                nParameterChecks = -1,
+                ParameterMask = ".n|s.",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new() }
@@ -3308,11 +3333,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "range",
-                func = new(GetBaseLibMethod("BASE_range")),
-                n_pchecks = -2,
-                mask = ".nnn",
-                d_defaults = new()
+                Name = "range",
+                Function = new(GetBaseLibMethod("StdRange")),
+                nParameterChecks = -2,
+                ParameterMask = ".nnn",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(0) },
@@ -3321,11 +3346,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "rangei",
-                func = new(GetBaseLibMethod("BASE_rangei")),
-                n_pchecks = -2,
-                mask = ".nnn",
-                d_defaults = new()
+                Name = "rangei",
+                Function = new(GetBaseLibMethod("StdRangei")),
+                nParameterChecks = -2,
+                ParameterMask = ".nnn",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(0) },
@@ -3334,11 +3359,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "matrix",
-                func = new(GetBaseLibMethod("BASE_matrix")),
-                n_pchecks = -3,
-                mask = ".ii.",
-                d_defaults = new()
+                Name = "matrix",
+                Function = new(GetBaseLibMethod("StdMatrix")),
+                nParameterChecks = -3,
+                ParameterMask = ".ii.",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(0) },
@@ -3348,94 +3373,93 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "map",
-                func = new(GetBaseLibMethod("BASE_map")),
-                n_pchecks = -3,
-                mask = ".c|yaa"
+                Name = "map",
+                Function = new(GetBaseLibMethod("StdMap")),
+                nParameterChecks = -3,
+                ParameterMask = ".c|yaa"
             },
             new()
             {
-                name = "filter",
-                func = new(GetBaseLibMethod("BASE_filter")),
-                n_pchecks = 3,
-                mask = ".ca"
+                Name = "filter",
+                Function = new(GetBaseLibMethod("StdFilter")),
+                nParameterChecks = 3,
+                ParameterMask = ".ca"
             },
             new()
             {
-                name = "call",
-                func = new(GetBaseLibMethod("BASE_call")),
-                n_pchecks = -2,
-                mask = null
+                Name = "call",
+                Function = new(GetBaseLibMethod("StdCall")),
+                nParameterChecks = -2,
+                ParameterMask = null
             },
             new()
             {
-                name = "parse",
-                func = new(GetBaseLibMethod("BASE_parse")),
-                n_pchecks = 3,
-                mask = ".c|ya"
+                Name = "parse",
+                Function = new(GetBaseLibMethod("StdParse")),
+                nParameterChecks = 3,
+                ParameterMask = ".c|ya"
             },
             new()
             {
-                name = "iter",
-                func = new(GetBaseLibMethod("BASE_iter")),
-                n_pchecks = 4,
-                mask = ".c|ya."
+                Name = "iter",
+                Function = new(GetBaseLibMethod("StdIter")),
+                nParameterChecks = 4,
+                ParameterMask = ".c|ya."
             },
             new()
             {
-                name = "first",
-                func = new(GetBaseLibMethod("BASE_first")),
-                n_pchecks = 3,
-                mask = ".ca"
+                Name = "first",
+                Function = new(GetBaseLibMethod("StdFirst")),
+                nParameterChecks = 3,
+                ParameterMask = ".ca"
             },
             new()
             {
-                name = "any",
-                func = new(GetBaseLibMethod("BASE_any")),
-                n_pchecks = 3,
-                mask = ".ca"
+                Name = "any",
+                Function = new(GetBaseLibMethod("StdAny")),
+                nParameterChecks = 3,
+                ParameterMask = ".ca"
             },
             new()
             {
-                name = "all",
-                func = new(GetBaseLibMethod("BASE_all")),
-                n_pchecks = 3,
-                mask = ".ca"
-            },
-
-            new()
-            {
-                name = "exit",
-                func = new(GetBaseLibMethod("BASE_exit")),
-                n_pchecks = -1,
-                mask = ".i|f"
-            },
-            new()
-            {
-                name = "is_interactive",
-                func = new(GetBaseLibMethod("BASE_isinteractive")),
-                n_pchecks = 1,
-                mask = "."
-            },
-            new()
-            {
-                name = "collect_garbage",
-                func = new(GetBaseLibMethod("BASE_GC_collect")),
-                n_pchecks = 1,
-                mask = "."
+                Name = "all",
+                Function = new(GetBaseLibMethod("StdAll")),
+                nParameterChecks = 3,
+                ParameterMask = ".ca"
             },
 
             new()
             {
-                name = ReloadBaseFunc,
-                func = new(GetBaseLibMethod("BASE_reloadbase")),
-                n_pchecks = -1,
-                mask = ".s"
+                Name = "exit",
+                Function = new(GetBaseLibMethod("StdExit")),
+                nParameterChecks = -1,
+                ParameterMask = ".i|f"
+            },
+            new()
+            {
+                Name = "is_interactive",
+                Function = new(GetBaseLibMethod("StdInteractive")),
+                nParameterChecks = 1,
+                ParameterMask = "."
+            },
+            new()
+            {
+                Name = "collect_garbage",
+                Function = new(GetBaseLibMethod("StdGCCollect")),
+                nParameterChecks = 1,
+                ParameterMask = "."
             },
 
             new()
             {
-                name = string.Empty
+                Name = ReloadBaseFunc,
+                Function = new(GetBaseLibMethod("StdReloadbase")),
+                nParameterChecks = -1,
+                ParameterMask = ".s"
+            },
+            new()
+            {
+                Name = string.Empty
             }
         };
         public static List<ExRegFunc> BaseFuncs => _exRegFuncs;

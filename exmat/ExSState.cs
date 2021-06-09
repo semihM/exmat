@@ -10,376 +10,459 @@ namespace ExMat.States
 {
     public class ExSState : IDisposable
     {
-        public Dictionary<string, ExObject> _strings = new();
-        public Dictionary<string, ExObject> _macros = new();
-        public Dictionary<string, ExMacro> _blockmacros = new();
+        // Kullanılan ana sanal makine
+        public ExVM Root;
 
-        public List<ExObject> _metaMethods = new();
-        public ExObject _metaMethodsMap = new(new Dictionary<string, ExObject>());
+        // Meta metotların listesi
+        public List<ExObject> MetaMethods = new();
 
-        public Dictionary<string, ExObject> _consts = new();
+        // Meta metot isimleri tablosu
+        public ExObject MetaMethodsMap = new(new Dictionary<string, ExObject>());
 
-        public ExVM _rootVM;
+        // Sınıfların inşa edici metot ismi
+        public ExObject ConstructorID = new(ExMat.ConstructorName);
 
-        public ExObject _constdict = new(new Dictionary<string, ExObject>());
+        // Kullanılan yazı dizileri ve değişken isimleri
+        public Dictionary<string, ExObject> Strings = new();
 
-        public ExObject _reg = new(new Dictionary<string, ExObject>());
+        #region _
+        public Dictionary<string, ExObject> Macros = new();
+        public Dictionary<string, ExMacro> BlockMacros = new();
+        #endregion
 
-        public ExObject _constructid = new(ExMat._CONSTRUCTOR);
-
-        public ExObject _class_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _class_delF = new()
+        // Sınıf temisili metotları
+        public ExObject ClassDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> ClassDelegateFuncs = new()
         {
             new()
             {
-                name = "has_attr",
-                n_pchecks = 3,
-                mask = "yss",
-                func = new(GetDelegMethod("BASE_class_hasattr"))
+                Name = "has_attr",
+                nParameterChecks = 3,
+                ParameterMask = "yss",
+                Function = new(GetDelegMethod("StdClassHasAttr"))
             },
             new()
             {
-                name = "get_attr",
-                n_pchecks = 3,
-                mask = "yss",
-                func = new(GetDelegMethod("BASE_class_getattr"))
+                Name = "get_attr",
+                nParameterChecks = 3,
+                ParameterMask = "yss",
+                Function = new(GetDelegMethod("StdClassGetAttr"))
             },
             new()
             {
-                name = "set_attr",
-                n_pchecks = 4,
-                mask = "yss.",
-                func = new(GetDelegMethod("BASE_class_setattr"))
+                Name = "set_attr",
+                nParameterChecks = 4,
+                ParameterMask = "yss.",
+                Function = new(GetDelegMethod("StdClassSetAttr"))
+            },
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "y"
             },
 
-            new() { name = string.Empty }
+            new() { Name = string.Empty }
         };
 
-        public ExObject _dict_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _dict_delF = new()
+        // Tablo temisili metotları
+        public ExObject DictDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> DictDelegateFuncs = new()
         {
             new()
             {
-                name = "len",
-                n_pchecks = 1,
-                mask = "d",
-                func = new(GetDelegMethod("BASE_default_length"))
+                Name = "len",
+                nParameterChecks = 1,
+                ParameterMask = "d",
+                Function = new(GetDelegMethod("StdDefaultLength"))
             },
             new()
             {
-                name = "has_key",
-                n_pchecks = 2,
-                mask = "ds",
-                func = new(GetDelegMethod("BASE_dict_has_key"))
+                Name = "has_key",
+                nParameterChecks = 2,
+                ParameterMask = "ds",
+                Function = new(GetDelegMethod("StdDictHasKey"))
             },
             new()
             {
-                name = "get_keys",
-                n_pchecks = 1,
-                mask = "d",
-                func = new(GetDelegMethod("BASE_dict_keys"))
+                Name = "get_keys",
+                nParameterChecks = 1,
+                ParameterMask = "d",
+                Function = new(GetDelegMethod("StdDictKeys"))
             },
             new()
             {
-                name = "get_values",
-                n_pchecks = 1,
-                mask = "d",
-                func = new(GetDelegMethod("BASE_dict_values"))
+                Name = "get_values",
+                nParameterChecks = 1,
+                ParameterMask = "d",
+                Function = new(GetDelegMethod("StdDictValues"))
             },
-            new() { name = string.Empty }
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "d"
+            },
+            new() { Name = string.Empty }
         };
 
-        public ExObject _list_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _list_delF = new()
+        // Liste temisili metotları
+        public ExObject ListDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> ListDelegateFuncs = new()
         {
             new()
             {
-                name = "len",
-                n_pchecks = 1,
-                mask = "a",
-                func = new(GetDelegMethod("BASE_default_length"))
+                Name = "len",
+                nParameterChecks = 1,
+                ParameterMask = "a",
+                Function = new(GetDelegMethod("StdDefaultLength"))
             },
             new()
             {
-                name = "append",
-                n_pchecks = 2,
-                mask = "a.",
-                func = new(GetDelegMethod("BASE_array_append"))
+                Name = "append",
+                nParameterChecks = 2,
+                ParameterMask = "a.",
+                Function = new(GetDelegMethod("StdArrayAppend"))
             },
             new()
             {
-                name = "extend",
-                n_pchecks = 2,
-                mask = "aa",
-                func = new(GetDelegMethod("BASE_array_extend"))
+                Name = "extend",
+                nParameterChecks = 2,
+                ParameterMask = "aa",
+                Function = new(GetDelegMethod("StdArrayExtend"))
             },
             new()
             {
-                name = "push",
-                n_pchecks = 2,
-                mask = "a.",
-                func = new(GetDelegMethod("BASE_array_append"))
+                Name = "push",
+                nParameterChecks = 2,
+                ParameterMask = "a.",
+                Function = new(GetDelegMethod("StdArrayAppend"))
             },
             new()
             {
-                name = "pop",
-                n_pchecks = 1,
-                mask = "a",
-                func = new(GetDelegMethod("BASE_array_pop"))
+                Name = "pop",
+                nParameterChecks = 1,
+                ParameterMask = "a",
+                Function = new(GetDelegMethod("StdArrayPop"))
             },
             new()
             {
-                name = "resize",
-                n_pchecks = 2,
-                mask = "ai",
-                func = new(GetDelegMethod("BASE_array_resize"))
+                Name = "resize",
+                nParameterChecks = 2,
+                ParameterMask = "ai",
+                Function = new(GetDelegMethod("StdArrayResize"))
             },
             new()
             {
-                name = "index_of",
-                n_pchecks = 2,
-                mask = "a.",
-                func = new(GetDelegMethod("BASE_array_index_of"))
+                Name = "index_of",
+                nParameterChecks = 2,
+                ParameterMask = "a.",
+                Function = new(GetDelegMethod("StdArrayIndexOf"))
             },
             new()
             {
-                name = "count",
-                n_pchecks = 2,
-                mask = "a.",
-                func = new(GetDelegMethod("BASE_array_count"))
+                Name = "count",
+                nParameterChecks = 2,
+                ParameterMask = "a.",
+                Function = new(GetDelegMethod("StdArrayCount"))
             },
             new()
             {
-                name = "reverse",
-                n_pchecks = 1,
-                mask = "a",
-                func = new(GetDelegMethod("BASE_array_reverse"))
+                Name = "reverse",
+                nParameterChecks = 1,
+                ParameterMask = "a",
+                Function = new(GetDelegMethod("StdArrayReverse"))
             },
             new()
             {
-                name = "slice",
-                n_pchecks = -2,
-                mask = "aii",
-                func = new(GetDelegMethod("BASE_array_slice"))
+                Name = "slice",
+                nParameterChecks = -2,
+                ParameterMask = "aii",
+                Function = new(GetDelegMethod("StdArraySlice"))
             },
             new()
             {
-                name = "copy",
-                n_pchecks = 1,
-                mask = "a",
-                func = new(GetDelegMethod("BASE_array_copy"))
+                Name = "copy",
+                nParameterChecks = 1,
+                ParameterMask = "a",
+                Function = new(GetDelegMethod("StdArrayCopy"))
             },
             new()
             {
-                name = "transpose",
-                n_pchecks = 1,
-                mask = "a",
-                func = new(GetDelegMethod("BASE_array_transpose"))
+                Name = "transpose",
+                nParameterChecks = 1,
+                ParameterMask = "a",
+                Function = new(GetDelegMethod("StdArrayTranspose"))
+            },
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "a"
             },
 
-            new() { name = string.Empty }
+            new() { Name = string.Empty }
         };
 
-        public ExObject _complex_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _complex_delF = new()
+        // Kompleks sayı temisili metotları
+        public ExObject ComplexDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> ComplexDelegateFuncs = new()
         {
             new()
             {
-                name = "abs",
-                n_pchecks = 1,
-                mask = "C",
-                func = new(GetDelegMethod("BASE_complex_magnitude"))
+                Name = "abs",
+                nParameterChecks = 1,
+                ParameterMask = "C",
+                Function = new(GetDelegMethod("StdComplexMagnitude"))
             },
             new()
             {
-                name = "phase",
-                n_pchecks = 1,
-                mask = "C",
-                func = new(GetDelegMethod("BASE_complex_phase"))
+                Name = "phase",
+                nParameterChecks = 1,
+                ParameterMask = "C",
+                Function = new(GetDelegMethod("StdComplexPhase"))
             },
             new()
             {
-                name = "img",
-                n_pchecks = 1,
-                mask = "C",
-                func = new(GetDelegMethod("BASE_complex_img"))
+                Name = "img",
+                nParameterChecks = 1,
+                ParameterMask = "C",
+                Function = new(GetDelegMethod("StdComplexImg"))
             },
             new()
             {
-                name = "real",
-                n_pchecks = 1,
-                mask = "C",
-                func = new(GetDelegMethod("BASE_complex_real"))
+                Name = "real",
+                nParameterChecks = 1,
+                ParameterMask = "C",
+                Function = new(GetDelegMethod("StdComplexReal"))
             },
             new()
             {
-                name = "conj",
-                n_pchecks = 1,
-                mask = "C",
-                func = new(GetDelegMethod("BASE_complex_conjugate"))
+                Name = "conj",
+                nParameterChecks = 1,
+                ParameterMask = "C",
+                Function = new(GetDelegMethod("StdComplexConjugate"))
+            },
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "C"
             },
 
-            new() { name = string.Empty }
+            new() { Name = string.Empty }
         };
 
-        public ExObject _num_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _num_delF = new()
-        {
-            new() { name = string.Empty }
-        };
-
-        public ExObject _str_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _str_delF = new()
-        {
-            new()
-            {
-                name = "len",
-                n_pchecks = 1,
-                mask = "s",
-                func = new(GetDelegMethod("BASE_default_length"))
-            },
-            new()
-            {
-                name = "index_of",
-                n_pchecks = 2,
-                mask = "ss",
-                func = new(GetDelegMethod("BASE_string_index_of"))
-            },
-            new()
-            {
-                name = "to_upper",
-                n_pchecks = 1,
-                mask = "s",
-                func = new(GetDelegMethod("BASE_string_toupper"))
-            },
-            new()
-            {
-                name = "to_lower",
-                n_pchecks = 1,
-                mask = "s",
-                func = new(GetDelegMethod("BASE_string_tolower"))
-            },
-            new()
-            {
-                name = "reverse",
-                n_pchecks = 1,
-                mask = "s",
-                func = new(GetDelegMethod("BASE_string_reverse"))
-            },
-            new()
-            {
-                name = "replace",
-                n_pchecks = 3,
-                mask = "sss",
-                func = new(GetDelegMethod("BASE_string_replace"))
-            },
-            new()
-            {
-                name = "repeat",
-                n_pchecks = 2,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_repeat"))
-            },
-
-            new()
-            {
-                name = "isAlphabetic",
-                n_pchecks = -1,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_isAlphabetic"))
-            },
-            new()
-            {
-                name = "isNumeric",
-                n_pchecks = -1,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_isNumeric"))
-            },
-            new()
-            {
-                name = "isAlphaNumeric",
-                n_pchecks = -1,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_isAlphaNumeric"))
-            },
-            new()
-            {
-                name = "isLower",
-                n_pchecks = -1,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_isLower"))
-            },
-            new()
-            {
-                name = "isUpper",
-                n_pchecks = -1,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_isUpper"))
-            },
-            new()
-            {
-                name = "isWhitespace",
-                n_pchecks = -1,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_isWhitespace"))
-            },
-            new()
-            {
-                name = "isSymbol",
-                n_pchecks = -1,
-                mask = "si",
-                func = new(GetDelegMethod("BASE_string_isSymbol"))
-            },
-            new()
-            {
-                name = "slice",
-                n_pchecks = -2,
-                mask = "sii",
-                func = new(GetDelegMethod("BASE_string_slice"))
-            },
-
-            new() { name = string.Empty }
-        };
-
-        public ExObject _closure_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _closure_delF = new()
-        {
-            new() { name = string.Empty }
-        };
-
-        public ExObject _inst_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _inst_delF = new()
+        // Gerçek sayı temisili metotları
+        public ExObject NumberDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> NumberDelegateFuncs = new()
         {
             new()
             {
-                name = "has_attr",
-                n_pchecks = 3,
-                mask = "xss",
-                func = new(GetDelegMethod("BASE_instance_hasattr"))
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "n"
             },
-            new()
-            {
-                name = "get_attr",
-                n_pchecks = 3,
-                mask = "xss",
-                func = new(GetDelegMethod("BASE_instance_getattr"))
-            },
-            new()
-            {
-                name = "set_attr",
-                n_pchecks = 4,
-                mask = "xss.",
-                func = new(GetDelegMethod("BASE_instance_setattr"))
-            },
-
-            new() { name = string.Empty }
+            new() { Name = string.Empty }
         };
 
-        public ExObject _wref_del = new(new Dictionary<string, ExObject>());
-        public List<ExRegFunc> _wref_delF = new()
+        // Yazı dizisi temisili metotları
+        public ExObject StringDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> StringDelegateFuncs = new()
         {
-            new() { name = string.Empty }
+            new()
+            {
+                Name = "len",
+                nParameterChecks = 1,
+                ParameterMask = "s",
+                Function = new(GetDelegMethod("StdDefaultLength"))
+            },
+            new()
+            {
+                Name = "index_of",
+                nParameterChecks = 2,
+                ParameterMask = "ss",
+                Function = new(GetDelegMethod("StdStringIndexOf"))
+            },
+            new()
+            {
+                Name = "to_upper",
+                nParameterChecks = 1,
+                ParameterMask = "s",
+                Function = new(GetDelegMethod("StdStringToupper"))
+            },
+            new()
+            {
+                Name = "to_lower",
+                nParameterChecks = 1,
+                ParameterMask = "s",
+                Function = new(GetDelegMethod("StdStringToLower"))
+            },
+            new()
+            {
+                Name = "reverse",
+                nParameterChecks = 1,
+                ParameterMask = "s",
+                Function = new(GetDelegMethod("StdStringReverse"))
+            },
+            new()
+            {
+                Name = "replace",
+                nParameterChecks = 3,
+                ParameterMask = "sss",
+                Function = new(GetDelegMethod("StdStringReplace"))
+            },
+            new()
+            {
+                Name = "repeat",
+                nParameterChecks = 2,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringRepeat"))
+            },
+
+            new()
+            {
+                Name = "isAlphabetic",
+                nParameterChecks = -1,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringAlphabetic"))
+            },
+            new()
+            {
+                Name = "isNumeric",
+                nParameterChecks = -1,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringNumeric"))
+            },
+            new()
+            {
+                Name = "isAlphaNumeric",
+                nParameterChecks = -1,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringAlphaNumeric"))
+            },
+            new()
+            {
+                Name = "isLower",
+                nParameterChecks = -1,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringLower"))
+            },
+            new()
+            {
+                Name = "isUpper",
+                nParameterChecks = -1,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringUpper"))
+            },
+            new()
+            {
+                Name = "isWhitespace",
+                nParameterChecks = -1,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringWhitespace"))
+            },
+            new()
+            {
+                Name = "isSymbol",
+                nParameterChecks = -1,
+                ParameterMask = "si",
+                Function = new(GetDelegMethod("StdStringSymbol"))
+            },
+            new()
+            {
+                Name = "slice",
+                nParameterChecks = -2,
+                ParameterMask = "sii",
+                Function = new(GetDelegMethod("StdStringSlice"))
+            },
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "s"
+            },
+
+            new() { Name = string.Empty }
         };
+
+        // Fonksiyon/kod bloğu temisili metotları
+        public ExObject ClosureDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> ClosureDelegateFuncs = new()
+        {
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "c"
+            },
+            new() { Name = string.Empty }
+        };
+
+        // Sınıfa ait obje temisili metotları
+        public ExObject InstanceDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> InstanceDelegateFuncs = new()
+        {
+            new()
+            {
+                Name = "has_attr",
+                nParameterChecks = 3,
+                ParameterMask = "xss",
+                Function = new(GetDelegMethod("StdInstanceHasAttr"))
+            },
+            new()
+            {
+                Name = "get_attr",
+                nParameterChecks = 3,
+                ParameterMask = "xss",
+                Function = new(GetDelegMethod("StdInstanceGetAttr"))
+            },
+            new()
+            {
+                Name = "set_attr",
+                nParameterChecks = 4,
+                ParameterMask = "xss.",
+                Function = new(GetDelegMethod("StdInstanceSetAttr"))
+            },
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "x"
+            },
+
+            new() { Name = string.Empty }
+        };
+
+        // Zayıf referans temisili metotları
+        public ExObject WeakRefDelegate = new(new Dictionary<string, ExObject>());
+        public List<ExRegFunc> WeakRefDelegateFuncs = new()
+        {
+            new()
+            {
+                Name = "ref",
+                Function = new(GetDelegMethod("StdWeakRefValue")),
+                nParameterChecks = 1,
+                ParameterMask = "w"
+            },
+            new()
+            {
+                Name = "weakref",
+                Function = new(GetDelegMethod("StdWeakRef")),
+                nParameterChecks = 1,
+                ParameterMask = "w"
+            },
+            new() { Name = string.Empty }
+        };
+
         private bool disposedValue;
 
         public static MethodInfo GetDelegMethod(string name)
@@ -389,49 +472,49 @@ namespace ExMat.States
 
         public void Initialize()
         {
-            _metaMethodsMap._val.d_Dict = new();
+            MetaMethodsMap.Value.d_Dict = new();
 
-            for (int i = 0; i < (int)ExMetaM._LAST; i++)
+            for (int i = 0; i < (int)ExMetaM.LAST; i++)
             {
                 string mname = "_" + ((ExMetaM)i).ToString();
 
-                _metaMethods.Add(new(mname));
-                _metaMethodsMap._val.d_Dict.Add(mname, new(i));
+                MetaMethods.Add(new(mname));
+                MetaMethodsMap.Value.d_Dict.Add(mname, new(i));
             }
 
-            _dict_del.Assign(CreateDefDel(this, _dict_delF));
-            _class_del.Assign(CreateDefDel(this, _class_delF));
-            _list_del.Assign(CreateDefDel(this, _list_delF));
-            _num_del.Assign(CreateDefDel(this, _num_delF));
-            _complex_del.Assign(CreateDefDel(this, _complex_delF));
-            _str_del.Assign(CreateDefDel(this, _str_delF));
-            _closure_del.Assign(CreateDefDel(this, _closure_delF));
-            _inst_del.Assign(CreateDefDel(this, _inst_delF));
-            _wref_del.Assign(CreateDefDel(this, _wref_delF));
+            DictDelegate.Assign(CreateDefDel(this, DictDelegateFuncs));
+            ClassDelegate.Assign(CreateDefDel(this, ClassDelegateFuncs));
+            ListDelegate.Assign(CreateDefDel(this, ListDelegateFuncs));
+            NumberDelegate.Assign(CreateDefDel(this, NumberDelegateFuncs));
+            ComplexDelegate.Assign(CreateDefDel(this, ComplexDelegateFuncs));
+            StringDelegate.Assign(CreateDefDel(this, StringDelegateFuncs));
+            ClosureDelegate.Assign(CreateDefDel(this, ClosureDelegateFuncs));
+            InstanceDelegate.Assign(CreateDefDel(this, InstanceDelegateFuncs));
+            WeakRefDelegate.Assign(CreateDefDel(this, WeakRefDelegateFuncs));
         }
 
         public static ExObject CreateDefDel(ExSState exs, List<ExRegFunc> f)
         {
             int i = 0;
             Dictionary<string, ExObject> d = new();
-            while (f[i].name != string.Empty)
+            while (f[i].Name != string.Empty)
             {
-                f[i].b_isdeleg = true;
-                ExNativeClosure cls = ExNativeClosure.Create(exs, f[i].func, 0);
-                cls.n_paramscheck = f[i].n_pchecks;
-                cls.b_deleg = true;
+                f[i].IsDelegateFunction = true;
+                ExNativeClosure cls = ExNativeClosure.Create(exs, f[i].Function, 0);
+                cls.nParameterChecks = f[i].nParameterChecks;
+                cls.IsDelegateFunction = true;
 
-                if (!exs._strings.ContainsKey(f[i].name))
+                if (!exs.Strings.ContainsKey(f[i].Name))
                 {
-                    exs._strings.Add(f[i].name, new(f[i].name));
+                    exs.Strings.Add(f[i].Name, new(f[i].Name));
                 }
-                cls._name = new(f[i].name);
+                cls.Name = new(f[i].Name);
 
-                if (!string.IsNullOrEmpty(f[i].mask) && !API.ExAPI.CompileTypeMask(cls._typecheck, f[i].mask))
+                if (!string.IsNullOrEmpty(f[i].ParameterMask) && !API.ExAPI.CompileTypeMask(cls.TypeMasks, f[i].ParameterMask))
                 {
                     return new();
                 }
-                d.Add(f[i].name, cls);
+                d.Add(f[i].Name, new(cls));
                 i++;
             }
             return new(d);
@@ -439,7 +522,7 @@ namespace ExMat.States
 
         public int GetMetaIdx(string mname)
         {
-            return _metaMethodsMap != null && _metaMethodsMap.GetDict() != null && _metaMethodsMap.GetDict().ContainsKey(mname) ? (int)_metaMethodsMap.GetDict()[mname].GetInt() : -1;
+            return MetaMethodsMap != null && MetaMethodsMap.GetDict() != null && MetaMethodsMap.GetDict().ContainsKey(mname) ? (int)MetaMethodsMap.GetDict()[mname].GetInt() : -1;
         }
 
         protected virtual void Dispose(bool disposing)
@@ -448,37 +531,34 @@ namespace ExMat.States
             {
                 if (disposing)
                 {
-                    _rootVM = null;
+                    Root = null;
 
-                    Disposer.DisposeObjects(_constructid,
-                                            _reg,
-                                            _constdict,
-                                            _metaMethodsMap,
-                                            _wref_del,
-                                            _inst_del,
-                                            _closure_del,
-                                            _str_del,
-                                            _num_del,
-                                            _complex_del,
-                                            _list_del,
-                                            _dict_del,
-                                            _class_del);
+                    Disposer.DisposeObjects(ConstructorID,
+                                            MetaMethodsMap,
+                                            WeakRefDelegate,
+                                            InstanceDelegate,
+                                            ClosureDelegate,
+                                            StringDelegate,
+                                            NumberDelegate,
+                                            ComplexDelegate,
+                                            ListDelegate,
+                                            DictDelegate,
+                                            ClassDelegate);
 
-                    Disposer.DisposeDict(ref _consts);
-                    Disposer.DisposeDict(ref _blockmacros);
-                    Disposer.DisposeDict(ref _macros);
-                    Disposer.DisposeDict(ref _strings);
+                    Disposer.DisposeDict(ref BlockMacros);
+                    Disposer.DisposeDict(ref Macros);
+                    Disposer.DisposeDict(ref Strings);
 
-                    Disposer.DisposeList(ref _metaMethods);
-                    Disposer.DisposeList(ref _wref_delF);
-                    Disposer.DisposeList(ref _inst_delF);
-                    Disposer.DisposeList(ref _closure_delF);
-                    Disposer.DisposeList(ref _str_delF);
-                    Disposer.DisposeList(ref _num_delF);
-                    Disposer.DisposeList(ref _complex_delF);
-                    Disposer.DisposeList(ref _list_delF);
-                    Disposer.DisposeList(ref _dict_delF);
-                    Disposer.DisposeList(ref _class_delF);
+                    Disposer.DisposeList(ref MetaMethods);
+                    Disposer.DisposeList(ref WeakRefDelegateFuncs);
+                    Disposer.DisposeList(ref InstanceDelegateFuncs);
+                    Disposer.DisposeList(ref ClosureDelegateFuncs);
+                    Disposer.DisposeList(ref StringDelegateFuncs);
+                    Disposer.DisposeList(ref NumberDelegateFuncs);
+                    Disposer.DisposeList(ref ComplexDelegateFuncs);
+                    Disposer.DisposeList(ref ListDelegateFuncs);
+                    Disposer.DisposeList(ref DictDelegateFuncs);
+                    Disposer.DisposeList(ref ClassDelegateFuncs);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

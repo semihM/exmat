@@ -23,75 +23,98 @@ namespace ExMat.OPs
 
     public enum OPC
     {
-        LINE,
-        LOAD,
-        DLOAD,
-        LOAD_INT,
-        LOAD_FLOAT,
-        LOAD_BOOL,
-        UNLOAD,
-        CALL,
-        PREPCALL,
-        PREPCALLK,
-        CALL_TAIL,
-        GETK,
-        MOVE,
-        DELETE,
-        SET,
-        GET,
-        EQ,
-        NEQ,
-        DEC,
-        DECL,
-        CMP,
-        EXISTS,
-        INSTANCEOF,
-        TRAPPOP,
-        ARRAY_APPEND,
-        RETURN,
-        LOAD_NULL,
-        LOAD_ROOT,
-        DMOVE,
-        JMP,
-        JCMP,
-        JZ,
-        SETOUTER,
-        GETOUTER,
-        NEW_OBJECT,
-        NEWSLOT,
-        NEWSLOTA,
-        MOD,
-        CMP_ARTH,
-        INC,
-        INCL,
-        PINC,
-        MLT,
-        ADD,
-        PINCL,
-        SUB,
+        LOADINTEGER,    // Tamsayı atama
+        LOADFLOAT,      // Ondalıklı sayı atama
+        LOADBOOLEAN,    // Boolean atama
+        LOADCOMPLEX,    // Kompleks sayı atama
+        LOADSPACE,      // Uzay atama
+
+        EQ,             // Eşitlik kontrolü
+        NEQ,            // Eşitsizlik kontrolü
+        CMP,            // Karşılaştır
+        JCMP,           // Karşılaştırma koşullu komut atla
+        JMP,            // Komut atla
+        JZ,             // Koşullu komut atla
+
+        CALL,           // Fonksiyon çağır
+        PREPCALL,       // Fonksiyon çağırma hazırlığı(bilinen değişken)
+        PREPCALLK,      // Fonksiyon çağırma hazırlığı(dışardan değişken)
+        CALLTAIL,       // Fonksiyon sonucunu çağır
+
+        LOAD,           // Yazı dizisi atama(direkt)
+        DLOAD,          // Yazı dizisi atama(ifade işlenmeli)
+
+        GET,            // Bilinen değişken değeri
+        GETK,           // Dışardan değişken değeri
+
+        MOVE,           // Değerin bellekteki yerini değiştir(direkt)
+        DMOVE,          // Değerin bellekteki yerini değiştir(ifade işlenmeli)
+
+        SET,            // Global değişkene, metota, özelliğe değer atama
+
+        DELETE,         // Değerin denkini sil
+
+        CLOSURE,        // Fonksiyon oluştur
+
+        EXISTS,         // Objeye aitlik kontrolü
+        INSTANCEOF,     // Sınıfa aitlik kontrolü
+        TYPEOF,         // Obje tipi
+
+        RETURN,         // Değer dön
+
+        APPENDTOARRAY,  // Liste sonuna ekle
+
+        LOADNULL,       // Boş değer ata
+        LOADROOT,       // Temel kütüphaneyi yükle
+
+        SETOUTER,       // Dışardaki değişkenin değerini değiştir
+        GETOUTER,       // Dışardan değişken bul
+
+        NEWOBJECT,      // Yeni obje oluştur
+        NEWSLOT,        // Yeni obje özelliği oluştur
+        NEWSLOTA,       // Sınıf elemanına ek özellik oluştur
+
+        COMPOUNDARITH,  // Bileşik aritmetik işlem
+
+        MOD,            // Modulo işlemi
+
+        INC,            // Tipi belirsiz değeri 1 arttır veya azalt(sonucu dönme)
+        PINC,           // Tipi belirsiz değeri 1 arttır veya azalt(sonucu dön)
+        INCL,           // Değişken değerini 1 arttır veya azalt(sonucu dönme)
+        PINCL,          // Değişken değerini 1 arttır veya azalt(sonucu dön)
+
+        MLT,            // Çarpım işlemi
+        ADD,            // Toplama işlemi
+
+        LINE,           // Hata takibine yardımcı
+
+        SUB,            // Çıkarma işlemi
+
         BITWISE,
+
         DIV,
         EXP,
+
         AND,
         OR,
         NEGATE,
         NOT,
         BNOT,
-        CLOSURE,
-        FOREACH,
-        POSTFOREACH,
-        TYPEOF,
+
         GETBASE,
+
         RETURNBOOL,
-        LOAD_SPACE,
+
         JZS,
+
         RETURNMACRO,
+
         MMLT,
         TRANSPOSE,
-        DEFAULT,
         CARTESIAN,
-        LOAD_COMPLEX,
-        LOAD_SYM,
+
+        DEFAULT,
+
         CLOSE = 984
     }
 
@@ -118,9 +141,9 @@ namespace ExMat.OPs
     {
         public OPC op;
         public ExObject arg0;
+        public long arg1;
         public ExObject arg2;
         public ExObject arg3;
-        public long arg1;
         private bool disposedValue;
 
         public ExInstr() { }
@@ -169,16 +192,16 @@ namespace ExMat.OPs
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExTrap
     {
-        public int _sbase;
-        public int _ssize;
-        public ExInstr instr;
-        public int _target;
+        public int StackBase;
+        public int StackSize;
+        public ExInstr Instruction;
+        public int Target;
 
         public ExTrap() { }
-        public ExTrap(ExTrap e) { _sbase = e._sbase; _ssize = e._ssize; instr = e.instr; _target = e._target; }
+        public ExTrap(ExTrap e) { StackBase = e.StackBase; StackSize = e.StackSize; Instruction = e.Instruction; Target = e.Target; }
         private string GetDebuggerDisplay()
         {
-            return "TRAP(" + instr.GetDebuggerDisplay() + "): " + _sbase + ", " + _ssize + ", " + _target;
+            return "TRAP(" + Instruction.GetDebuggerDisplay() + "): " + StackBase + ", " + StackSize + ", " + Target;
         }
     }
 

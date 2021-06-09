@@ -10,14 +10,14 @@ namespace ExMat.BaseLib
 {
     public static class ExStdString
     {
-        public static int STRING_strip(ExVM vm, int nargs)
+        public static int Strip(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 2).GetString();
             vm.Pop(nargs + 2);
             vm.Push(s.Trim());
             return 1;
         }
-        public static int STRING_lstrip(ExVM vm, int nargs)
+        public static int Lstrip(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 2).GetString();
             vm.Pop(nargs + 2);
@@ -25,7 +25,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int STRING_rstrip(ExVM vm, int nargs)
+        public static int Rstrip(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 2).GetString();
             vm.Pop(nargs + 2);
@@ -33,7 +33,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int STRING_split(ExVM vm, int nargs)
+        public static int Split(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 2).GetString();
             string c = ExAPI.GetFromStack(vm, 3).GetString();
@@ -56,7 +56,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int STRING_join(ExVM vm, int nargs)
+        public static int Join(ExVM vm, int nargs)
         {
             string s = ExAPI.GetFromStack(vm, 2).GetString();
             List<ExObject> lis = ExAPI.GetFromStack(vm, 3).GetList();
@@ -98,19 +98,19 @@ namespace ExMat.BaseLib
 
         public static void ReplaceMacroParams(ExMacro m, List<ExObject> args)
         {
-            string[] lines = m.source.Split('\n');
-            for (int i = 0; i < m._params.Count; i++)
+            string[] lines = m.Source.Split('\n');
+            for (int i = 0; i < m.Parameters.Count; i++)
             {
-                ExMacroParam p = m._params[i];
+                ExMacroParam p = m.Parameters[i];
                 string val = args[i].GetString();
-                for (int j = 0; j < p.lines.Count; j++)
+                for (int j = 0; j < p.Lines.Count; j++)
                 {
-                    lines[p.lines[j]] = lines[p.lines[j]].Substring(0, p.cols[j]) + val + lines[p.lines[j]].Substring(p.cols[j] + p.name.Length + 4, lines[p.lines[j]].Length);
+                    lines[p.Lines[j]] = lines[p.Lines[j]].Substring(0, p.Columns[j]) + val + lines[p.Lines[j]].Substring(p.Columns[j] + p.Name.Length + 4, lines[p.Lines[j]].Length);
                 }
             }
         }
 
-        public static int STRING_compile(ExVM vm, int nargs)
+        public static int Compile(ExVM vm, int nargs)
         {
             string code = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -125,7 +125,7 @@ namespace ExMat.BaseLib
             return -1;
         }
 
-        public static int STRING_format(ExVM vm, int nargs)
+        public static int Format(ExVM vm, int nargs)
         {
             string format = ExAPI.GetFromStack(vm, 2).GetString();
             object[] ps = new object[nargs - 1];
@@ -164,64 +164,64 @@ namespace ExMat.BaseLib
         {
             new()
             {
-                name = "compile",
-                func = new(GetStdStringMethod("STRING_compile")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = "compile",
+                Function = new(GetStdStringMethod("Compile")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
 
             new()
             {
-                name = "strip",
-                func = new(GetStdStringMethod("STRING_strip")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = "strip",
+                Function = new(GetStdStringMethod("Strip")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
             new()
             {
-                name = "lstrip",
-                func = new(GetStdStringMethod("STRING_lstrip")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = "lstrip",
+                Function = new(GetStdStringMethod("Lstrip")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
             new()
             {
-                name = "rstrip",
-                func = new(GetStdStringMethod("STRING_rstrip")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = "rstrip",
+                Function = new(GetStdStringMethod("Rstrip")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
             new()
             {
-                name = "split",
-                func = new(GetStdStringMethod("STRING_split")),
-                n_pchecks = -3,
-                mask = ".ssb",
-                d_defaults = new()
+                Name = "split",
+                Function = new(GetStdStringMethod("Split")),
+                nParameterChecks = -3,
+                ParameterMask = ".ssb",
+                DefaultValues = new()
                 {
                     { 3, new(false) }
                 }
             },
             new()
             {
-                name = "join",
-                func = new(GetStdStringMethod("STRING_join")),
-                n_pchecks = -3,
-                mask = ".sai",
-                d_defaults = new()
+                Name = "join",
+                Function = new(GetStdStringMethod("Join")),
+                nParameterChecks = -3,
+                ParameterMask = ".sai",
+                DefaultValues = new()
                 {
                     { 3, new(2) }
                 }
             },
             new()
             {
-                name = "format",
-                func = new(GetStdStringMethod("STRING_format")),
-                n_pchecks = -2,
-                mask = null
+                Name = "format",
+                Function = new(GetStdStringMethod("Format")),
+                nParameterChecks = -2,
+                ParameterMask = null
             },
 
-            new() { name = string.Empty }
+            new() { Name = string.Empty }
         };
         public static List<ExRegFunc> StringFuncs => _stdstrfuncs;
 

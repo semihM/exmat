@@ -11,56 +11,65 @@ namespace ExMat.States
 {
     public class ExFState : IDisposable
     {
-        public ExObject _source;
+        public ExSState SharedState;
 
-        public ExObject _name;
+        // Kod dizisi kopyası
+        public ExObject Source;
 
-        public Dictionary<string, ExObject> _names = new();
+        // İçinde bulunulan fonksiyon ismi
+        public ExObject Name;
 
-        public int _nliterals;
-        public Dictionary<string, ExObject> _literals = new();
+        // Kullanılan değişken isimleri ve yazı dizileri
+        public Dictionary<string, ExObject> Literals = new();
+        public int nLiterals;
 
-        public List<ExLocalInfo> _localvs = new();
-        public List<ExLocalInfo> _localinfos = new();
+        // Değişken bilgisi listeleri
+        public List<ExLocalInfo> LocalVariables = new();
+        public List<ExLocalInfo> LocalVariableInfos = new();
 
-        public int _nouters;
-        public List<ExOuterInfo> _outerinfos = new();
+        // Bilinmeyen değişken bilgisi listesi
+        public int nOuters;
+        public List<ExOuterInfo> OuterInfos = new();
 
-        public List<ExLineInfo> _lineinfos = new();
+        // Parametre bilgileri
+        public List<ExObject> Parameters = new();
+        public List<int> DefaultParameters = new();
 
-        public List<ExObject> _params = new();
-        public List<int> _defparams = new();
+        // Fonksiyon(lar)
+        public List<ExPrototype> Functions = new();
 
-        public List<ExPrototype> _funcs = new();
+        // Sanal bellekteki pozisyonların ayarlanacağı ufak bellek
+        public int StackSize;
+        public ExStack Stack = new();
 
-        public int _stacksize;
-        public ExStack _tStack = new();
+        // Oluşturulan komutlar
+        public List<ExInstr> Instructions = new();
 
-        public List<ExInstr> _instructions = new();
+        // Fonksiyonun ait olduğu üst fonksiyon
+        public ExFState ParentFState;
+        // Fonksiyonun sahip olduğu alt fonksiyonlar
+        public List<ExFState> ChildrenFStates = new();
 
-        public ExFState _parent;
-        public List<ExFState> _children = new();
+        // İterasyon manipulasyonu pozisyon ve hedefleri
+        public List<int> BreakList = new();
+        public List<int> ContinueList = new();
+        public List<int> BreakTargetsList = new();
+        public List<int> ContinueTargetList = new();
 
-        public ExSState _Sstate;
-        public ExSState _SstateB;
+        // Bir önceki komuta bağımlı ?
+        public bool NotSnoozed;
+        // Belirsiz sayıda parametreli ?
+        public bool HasVargs;
 
-        public List<int> _breaks = new();
-        public List<int> _continues = new();
-        public List<int> _breaktargs = new();
-        public List<int> _continuetargs = new();
-
-        public bool _not_snoozed;
-
-        public int _returnE;
-
-        public int _lastline;
-
-        public bool _pvars;
+        // Değerin dönüleceği bellek pozisyonu
+        public int ReturnExpressionTarget;
 
         private const int MAX_STACK_SIZE = 255;
         private const int MAX_LITERALS = int.MaxValue;
 
-        public int n_statement = 0;
+        public List<ExLineInfo> LineInfos = new();
+        public int LastLine;
+
         private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)
@@ -69,29 +78,27 @@ namespace ExMat.States
             {
                 if (disposing)
                 {
-                    _breaks = null;
-                    _continues = null;
-                    _breaktargs = null;
-                    _continuetargs = null;
-                    _Sstate = null;
-                    _SstateB = null;
-                    _lineinfos = null;
+                    BreakList = null;
+                    ContinueList = null;
+                    BreakTargetsList = null;
+                    ContinueTargetList = null;
+                    SharedState = null;
+                    LineInfos = null;
 
-                    _parent.Dispose();
-                    _tStack.Dispose();
-                    _source.Dispose();
-                    _name.Dispose();
+                    ParentFState.Dispose();
+                    Stack.Dispose();
+                    Source.Dispose();
+                    Name.Dispose();
 
-                    Disposer.DisposeList(ref _children);
-                    Disposer.DisposeList(ref _instructions);
-                    Disposer.DisposeList(ref _localvs);
-                    Disposer.DisposeList(ref _localinfos);
-                    Disposer.DisposeList(ref _outerinfos);
-                    Disposer.DisposeList(ref _params);
-                    Disposer.DisposeList(ref _funcs);
+                    Disposer.DisposeList(ref ChildrenFStates);
+                    Disposer.DisposeList(ref Instructions);
+                    Disposer.DisposeList(ref LocalVariables);
+                    Disposer.DisposeList(ref LocalVariableInfos);
+                    Disposer.DisposeList(ref OuterInfos);
+                    Disposer.DisposeList(ref Parameters);
+                    Disposer.DisposeList(ref Functions);
 
-                    Disposer.DisposeDict(ref _literals);
-                    Disposer.DisposeDict(ref _names);
+                    Disposer.DisposeDict(ref Literals);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -103,27 +110,26 @@ namespace ExMat.States
 
         public ExFState(ExSState sState, ExFState parent)
         {
-            _nliterals = 0;
+            nLiterals = 0;
 
-            _Sstate = sState;
-            _SstateB = sState;
+            SharedState = sState;
 
-            _not_snoozed = true;
-            _parent = parent;
+            NotSnoozed = true;
+            ParentFState = parent;
 
-            _stacksize = 0;
-            _returnE = 0;
-            _nouters = 0;
+            StackSize = 0;
+            ReturnExpressionTarget = 0;
+            nOuters = 0;
 
-            _pvars = false;
+            HasVargs = false;
         }
 
         public void SetInstrParams(int pos, int p1, int p2, int p3, dynamic p4)
         {
-            _instructions[pos].arg0._val.i_Int = p1;
-            _instructions[pos].arg1 = p2;
-            _instructions[pos].arg2._val.i_Int = p3;
-            _instructions[pos].arg3._val.i_Int = p4;
+            Instructions[pos].arg0.Value.i_Int = p1;
+            Instructions[pos].arg1 = p2;
+            Instructions[pos].arg2.Value.i_Int = p3;
+            Instructions[pos].arg3.Value.i_Int = p4;
         }
         public void SetInstrParam(int pos, int pno, int val)
         {
@@ -131,23 +137,23 @@ namespace ExMat.States
             {
                 case 0:
                     {
-                        _instructions[pos].arg0._val.i_Int = val;
+                        Instructions[pos].arg0.Value.i_Int = val;
                         break;
                     }
                 case 1:
                 case 4:
                     {
-                        _instructions[pos].arg1 = val;
+                        Instructions[pos].arg1 = val;
                         break;
                     }
                 case 2:
                     {
-                        _instructions[pos].arg2._val.i_Int = val;
+                        Instructions[pos].arg2.Value.i_Int = val;
                         break;
                     }
                 case 3:
                     {
-                        _instructions[pos].arg3._val.i_Int = val;
+                        Instructions[pos].arg3.Value.i_Int = val;
                         break;
                     }
             }
@@ -155,39 +161,39 @@ namespace ExMat.States
 
         public bool IsBlockMacro(string name)
         {
-            return _Sstate._blockmacros.ContainsKey(name);
+            return SharedState.BlockMacros.ContainsKey(name);
         }
 
         public bool AddBlockMacro(string name, ExMacro mac)
         {
-            _Sstate._blockmacros.Add(name, mac);
+            SharedState.BlockMacros.Add(name, mac);
             return true;
         }
 
         public bool IsMacro(ExObject o)
         {
-            return _Sstate._macros.ContainsKey(o.GetString());
+            return SharedState.Macros.ContainsKey(o.GetString());
         }
 
         public bool IsFuncMacro(ExObject o)
         {
-            return _Sstate._macros[o.GetString()].GetBool();
+            return SharedState.Macros[o.GetString()].GetBool();
         }
 
         public bool AddMacro(ExObject o, bool isfunc, bool forced = false)
         {
-            if (_Sstate._macros.ContainsKey(o.GetString()))
+            if (SharedState.Macros.ContainsKey(o.GetString()))
             {
                 if (forced)
                 {
-                    _Sstate._macros[o.GetString()].Assign(isfunc);
+                    SharedState.Macros[o.GetString()].Assign(isfunc);
                     return true;
                 }
                 return false;
             }
             else
             {
-                _Sstate._macros.Add(o.GetString(), new(isfunc));
+                SharedState.Macros.Add(o.GetString(), new(isfunc));
                 return true;
             }
         }
@@ -195,9 +201,9 @@ namespace ExMat.States
         public long GetConst(ExObject o)
         {
             string name;
-            if (o._type == ExObjType.SPACE)
+            if (o.Type == ExObjType.SPACE)
             {
-                name = o._val.c_Space.GetString();
+                name = o.Value.c_Space.GetString();
             }
             else
             {
@@ -205,12 +211,12 @@ namespace ExMat.States
             }
 
             ExObject v = new();
-            if (!_literals.ContainsKey(name))
+            if (!Literals.ContainsKey(name))
             {
-                v._val.i_Int = _nliterals;
-                _literals.Add(name, v);
-                _nliterals++;
-                if (_nliterals > MAX_LITERALS)
+                v.Value.i_Int = nLiterals;
+                Literals.Add(name, v);
+                nLiterals++;
+                if (nLiterals > MAX_LITERALS)
                 {
                     v.Nullify();
                     throw new Exception("too many literals");
@@ -218,10 +224,10 @@ namespace ExMat.States
             }
             else
             {
-                ExObject val = _literals[name];
-                if (val._type == ExObjType.WEAKREF)
+                ExObject val = Literals[name];
+                if (val.Type == ExObjType.WEAKREF)
                 {
-                    v = val._val._WeakRef.obj;
+                    v = val.Value._WeakRef.ReferencedObject;
                 }
                 else
                 {
@@ -229,47 +235,47 @@ namespace ExMat.States
                 }
             }
 
-            return v._val.i_Int;
+            return v.Value.i_Int;
         }
 
         public int GetCurrPos()
         {
-            return _instructions.Count - 1;
+            return Instructions.Count - 1;
         }
 
         public int GetLocalStackSize()
         {
-            return _localvs.Count;
+            return LocalVariables.Count;
         }
 
         public void SetLocalStackSize(int s)
         {
-            int c_s = _localvs.Count;
+            int c_s = LocalVariables.Count;
 
             while (c_s > s)
             {
                 c_s--;
-                ExLocalInfo li = _localvs.Last();
-                if (li.name._type != ExObjType.NULL)
+                ExLocalInfo li = LocalVariables.Last();
+                if (li.Name.Type != ExObjType.NULL)
                 {
-                    if (li._eopc == int.MaxValue)
+                    if (li.EndOPC == int.MaxValue)
                     {
-                        _nouters--;
+                        nOuters--;
                     }
-                    li._eopc = GetCurrPos();
-                    _localinfos.Add(li);
+                    li.EndOPC = GetCurrPos();
+                    LocalVariableInfos.Add(li);
                 }
-                _localvs.RemoveAt(_localvs.Count - 1);
+                LocalVariables.RemoveAt(LocalVariables.Count - 1);
             }
         }
 
-        public int GetOuterSize(int s_size)
+        public int GetOuterSize(int size)
         {
             int c = 0;
-            int ls = _localvs.Count - 1;
-            while (ls >= s_size)
+            int ls = LocalVariables.Count - 1;
+            while (ls >= size)
             {
-                if (_localvs[ls--]._eopc == int.MaxValue)
+                if (LocalVariables[ls--].EndOPC == int.MaxValue)
                 {
                     c++;
                 }
@@ -277,31 +283,31 @@ namespace ExMat.States
             return c;
         }
 
-        public void AddLineInfo(int line, bool l_op, bool forced)
+        public void AddLineInfo(int line, bool op, bool forced)
         {
-            if (_lastline != line || forced)
+            if (LastLine != line || forced)
             {
                 ExLineInfo li = new();
-                li.line = line;
-                li.op = (OPC)GetCurrPos() + 1;
-                if (l_op)
+                li.Line = line;
+                li.Position = GetCurrPos() + 1;
+                if (op)
                 {
                     AddInstr(OPC.LINE, 0, line, 0, 0);
                 }
-                if (_lastline != line)
+                if (LastLine != line)
                 {
-                    _lineinfos.Add(li);
+                    LineInfos.Add(li);
                 }
-                _lastline = line;
+                LastLine = line;
             }
         }
         public void DiscardTopTarget()
         {
             int dissed = PopTarget();
-            int s = _instructions.Count;
-            if (s > 0 && _not_snoozed)
+            int s = Instructions.Count;
+            if (s > 0 && NotSnoozed)
             {
-                ExInstr instr = _instructions[s - 1];
+                ExInstr instr = Instructions[s - 1];
                 switch (instr.op)
                 {
                     case OPC.SET:
@@ -309,9 +315,9 @@ namespace ExMat.States
                     case OPC.SETOUTER:
                     case OPC.CALL:
                         {
-                            if (instr.arg0._val.i_Int == dissed)
+                            if (instr.arg0.Value.i_Int == dissed)
                             {
-                                instr.arg0._val.i_Int = 985;
+                                instr.arg0.Value.i_Int = 985;
                             }
                             break;
                         }
@@ -321,23 +327,19 @@ namespace ExMat.States
 
         public int TopTarget()
         {
-            return (int)_tStack.Back().GetInt();
+            return (int)Stack.Back().GetInt();
         }
 
         public int PopTarget()
         {
-            int n = (int)_tStack.Back().GetInt();
+            int n = (int)Stack.Back().GetInt();
 
-            if (n >= _localvs.Count)
+            ExLocalInfo l = LocalVariables[n];
+            if (l.Name.Type == ExObjType.NULL)
             {
-                throw new Exception("unknown variable"); // TO-DO which var name
+                LocalVariables.RemoveAt(LocalVariables.Count - 1);
             }
-            ExLocalInfo l = _localvs[n];
-            if (l.name._type == ExObjType.NULL)
-            {
-                _localvs.RemoveAt(_localvs.Count - 1);
-            }
-            _tStack.Pop();
+            Stack.Pop();
 
             return n;
         }
@@ -346,80 +348,61 @@ namespace ExMat.States
         {
             if (n != -1)
             {
-                _tStack.Push(new(n));
+                Stack.Push(new(n));
                 return n;
             }
 
             n = FindAStackPos();
-            _tStack.Push(new(n));
+            Stack.Push(new(n));
 
             return n;
         }
 
         public int FindAStackPos()
         {
-            int size = _localvs.Count;
-            _localvs.Add(new ExLocalInfo());
-            if (_localvs.Count > _stacksize)
+            int size = LocalVariables.Count;
+            LocalVariables.Add(new ExLocalInfo());
+            if (LocalVariables.Count > StackSize)
             {
-                if (_stacksize > MAX_STACK_SIZE)
+                if (StackSize > MAX_STACK_SIZE)
                 {
                     throw new Exception("Too many locals!");
                 }
-                _stacksize = _localvs.Count;
+                StackSize = LocalVariables.Count;
             }
             return size;
         }
 
-        public bool IsConstArg(string name, ref ExObject e)
-        {
-            if (_Sstate._consts.ContainsKey(name))
-            {
-                ExObject val = _Sstate._consts[name];
-                if (val._type == ExObjType.WEAKREF)
-                {
-                    e = val._val._WeakRef.obj;
-                }
-                else
-                {
-                    e = val;
-                }
-                return true;
-            }
-
-            return false;
-        }
-
         public bool IsLocalArg(long pos)
         {
-            return pos < _localvs.Count && _localvs[(int)pos].name._type != ExObjType.NULL;
+            return pos < LocalVariables.Count && LocalVariables[(int)pos].Name.Type != ExObjType.NULL;
         }
         public bool IsLocalArg(int pos)
         {
-            return pos < _localvs.Count && _localvs[pos].name._type != ExObjType.NULL;
+            return pos < LocalVariables.Count && LocalVariables[pos].Name.Type != ExObjType.NULL;
         }
 
         public int PushVar(ExObject v)
         {
-            int n = _localvs.Count;
+            int n = LocalVariables.Count;
             ExLocalInfo l = new();
-            l.name.Assign(v.GetString());
-            l._sopc = GetCurrPos() + 1;
-            l._pos = _localvs.Count;
-            _localvs.Add(l);
-            if (_localvs.Count > _stacksize)
+            l.Name.Assign(v.GetString());
+            l.StartOPC = GetCurrPos() + 1;
+            l.Position = LocalVariables.Count;
+            LocalVariables.Add(l);
+            if (LocalVariables.Count > StackSize)
             {
-                _stacksize = _localvs.Count;
+                StackSize = LocalVariables.Count;
             }
             return n;
         }
 
         public int GetLocal(ExObject local)
         {
-            int c = _localvs.Count;
+            int c = LocalVariables.Count;
             while (c > 0)
             {
-                if (_localvs[--c].name._val.s_String == local._val.s_String)
+                if (LocalVariables[--c].Name.Value.s_String == local.Value.s_String)
                 {
                     return c;
                 }
@@ -428,33 +411,33 @@ namespace ExMat.States
         }
         public int GetOuter(ExObject obj)
         {
-            int c = _outerinfos.Count;
+            int c = OuterInfos.Count;
             for (int i = 0; i < c; i++)
             {
-                if (_outerinfos[i].name._val.s_String == obj._val.s_String)
+                if (OuterInfos[i].Name.Value.s_String == obj.Value.s_String)
                 {
                     return i;
                 }
             }
 
             int p;
-            if (_parent != null)
+            if (ParentFState != null)
             {
-                p = _parent.GetLocal(obj);
+                p = ParentFState.GetLocal(obj);
                 if (p == -1)
                 {
-                    p = _parent.GetOuter(obj);
+                    p = ParentFState.GetOuter(obj);
                     if (p != -1)
                     {
-                        _outerinfos.Add(new ExOuterInfo(obj, new(p), ExOuterType.OUTER));
-                        return _outerinfos.Count - 1;
+                        OuterInfos.Add(new ExOuterInfo(obj, new(p), ExOuterType.OUTER));
+                        return OuterInfos.Count - 1;
                     }
                 }
                 else
                 {
-                    _parent.SetLocalToOuter(p);
-                    _outerinfos.Add(new ExOuterInfo(obj, new(p), ExOuterType.LOCAL));
-                    return _outerinfos.Count - 1;
+                    ParentFState.SetLocalToOuter(p);
+                    OuterInfos.Add(new ExOuterInfo(obj, new(p), ExOuterType.LOCAL));
+                    return OuterInfos.Count - 1;
                 }
             }
             return -1;
@@ -462,28 +445,28 @@ namespace ExMat.States
 
         public void SetLocalToOuter(int p)
         {
-            _localvs[p]._eopc = int.MaxValue;
-            _nouters++;
+            LocalVariables[p].EndOPC = int.MaxValue;
+            nOuters++;
         }
 
         public ExObject CreateString(string s, int len = -1)
         {
-            if (!_Sstate._strings.ContainsKey(s))
+            if (!SharedState.Strings.ContainsKey(s))
             {
-                ExObject str = new() { _type = ExObjType.STRING };
-                str._val.s_String = s;
-                _Sstate._strings.Add(s, str);
+                ExObject str = new() { Type = ExObjType.STRING };
+                str.Value.s_String = s;
+                SharedState.Strings.Add(s, str);
                 return str;
             }
-            return _Sstate._strings[s];
+            return SharedState.Strings[s];
         }
         public void AddInstr(ExInstr curr)
         {
-            int size = _instructions.Count;
+            int size = Instructions.Count;
 
-            if (size > 0 && _not_snoozed)
+            if (size > 0 && NotSnoozed)
             {
-                ExInstr prev = _instructions[size - 1];
+                ExInstr prev = Instructions[size - 1];
 
                 switch (curr.op)
                 {
@@ -494,67 +477,67 @@ namespace ExMat.States
                                 prev.op = OPC.JCMP;
                                 prev.arg0 = new(prev.arg1);
                                 prev.arg1 = curr.arg1;
-                                _instructions[size - 1] = prev;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
                             goto case OPC.SET;
                         }
                     case OPC.SET:
                         {
-                            if (curr.arg0._val.i_Int == curr.arg3._val.i_Int)
+                            if (curr.arg0.Value.i_Int == curr.arg3.Value.i_Int)
                             {
-                                curr.arg0._val.i_Int = 985;
+                                curr.arg0.Value.i_Int = 985;
                             }
                             break;
                         }
                     case OPC.SETOUTER:
                         {
-                            if (curr.arg0._val.i_Int == curr.arg2._val.i_Int)
+                            if (curr.arg0.Value.i_Int == curr.arg2.Value.i_Int)
                             {
-                                curr.arg0._val.i_Int = 985;
+                                curr.arg0.Value.i_Int = 985;
                             }
                             break;
                         }
                     case OPC.RETURN:
                         {
-                            if (_parent != null && curr.arg0._val.i_Int != 985 && prev.op == OPC.CALL && _returnE < size - 1)
+                            if (ParentFState != null && curr.arg0.Value.i_Int != 985 && prev.op == OPC.CALL && ReturnExpressionTarget < size - 1)
                             {
-                                prev.op = OPC.CALL_TAIL;
-                                _instructions[size - 1] = prev;
+                                prev.op = OPC.CALLTAIL;
+                                Instructions[size - 1] = prev;
                             }
                             else if (prev.op == OPC.CLOSE)
                             {
-                                _instructions[size - 1] = curr;
+                                Instructions[size - 1] = curr;
                                 return;
                             }
                             break;
                         }
                     case OPC.GET:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg2._val.i_Int && (!IsLocalArg((int)prev.arg0._val.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0.Value.i_Int == curr.arg2.Value.i_Int && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
                             {
                                 prev.arg2 = new(curr.arg1);
                                 prev.op = OPC.GETK;
-                                prev.arg0._val.i_Int = curr.arg0._val.i_Int;
-                                _instructions[size - 1] = prev;
+                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
                             break;
                         }
                     case OPC.PREPCALL:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0._val.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0.Value.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
                             {
                                 prev.op = OPC.PREPCALLK;
-                                prev.arg0._val.i_Int = curr.arg0._val.i_Int;
-                                prev.arg2._val.i_Int = curr.arg2._val.i_Int;
-                                prev.arg3._val.i_Int = curr.arg3._val.i_Int;
-                                _instructions[size - 1] = prev;
+                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
+                                prev.arg2.Value.i_Int = curr.arg2.Value.i_Int;
+                                prev.arg3.Value.i_Int = curr.arg3.Value.i_Int;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
                             break;
                         }
-                    case OPC.ARRAY_APPEND:
+                    case OPC.APPENDTOARRAY:
                         {
                             ArrayAType idx = ArrayAType.INVALID;
                             switch (prev.op)
@@ -564,17 +547,17 @@ namespace ExMat.States
                                         idx = ArrayAType.LITERAL;
                                         break;
                                     }
-                                case OPC.LOAD_INT:
+                                case OPC.LOADINTEGER:
                                     {
                                         idx = ArrayAType.INTEGER;
                                         break;
                                     }
-                                case OPC.LOAD_FLOAT:
+                                case OPC.LOADFLOAT:
                                     {
                                         idx = ArrayAType.FLOAT;
                                         break;
                                     }
-                                case OPC.LOAD_BOOL:
+                                case OPC.LOADBOOLEAN:
                                     {
                                         idx = ArrayAType.BOOL;
                                         break;
@@ -583,13 +566,13 @@ namespace ExMat.States
                                     break;
                             }
 
-                            if (idx != ArrayAType.INVALID && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0._val.i_Int)))
+                            if (idx != ArrayAType.INVALID && prev.arg0.Value.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
                             {
-                                prev.op = OPC.ARRAY_APPEND;
-                                prev.arg0._val.i_Int = curr.arg0._val.i_Int;
-                                prev.arg2._val.i_Int = (int)idx;
-                                prev.arg3._val.i_Int = 985;
-                                _instructions[size - 1] = prev;
+                                prev.op = OPC.APPENDTOARRAY;
+                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
+                                prev.arg2.Value.i_Int = (int)idx;
+                                prev.arg3.Value.i_Int = 985;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
                             break;
@@ -605,17 +588,22 @@ namespace ExMat.States
                                 case OPC.EXP:
                                 case OPC.DIV:
                                 case OPC.MOD:
+                                case OPC.MMLT:
+                                case OPC.TRANSPOSE:
+                                case OPC.CARTESIAN:
                                 case OPC.BITWISE:
                                 case OPC.LOAD:
-                                case OPC.LOAD_INT:
-                                case OPC.LOAD_FLOAT:
-                                case OPC.LOAD_BOOL:
+                                case OPC.LOADINTEGER:
+                                case OPC.LOADFLOAT:
+                                case OPC.LOADBOOLEAN:
+                                case OPC.LOADCOMPLEX:
+                                case OPC.LOADSPACE:
                                     {
-                                        if (prev.arg0._val.i_Int == curr.arg1)
+                                        if (prev.arg0.Value.i_Int == curr.arg1)
                                         {
-                                            prev.arg0._val.i_Int = curr.arg0._val.i_Int;
-                                            _not_snoozed = false;
-                                            _instructions[size - 1] = prev;
+                                            prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
+                                            NotSnoozed = false;
+                                            Instructions[size - 1] = prev;
                                             return;
                                         }
                                         break;
@@ -625,9 +613,9 @@ namespace ExMat.States
                             if (prev.op == OPC.MOVE)
                             {
                                 prev.op = OPC.DMOVE;
-                                prev.arg2._val.i_Int = curr.arg0._val.i_Int;
-                                prev.arg3._val.i_Int = curr.arg1;
-                                _instructions[size - 1] = prev;
+                                prev.arg2.Value.i_Int = curr.arg0.Value.i_Int;
+                                prev.arg3.Value.i_Int = curr.arg1;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
 
@@ -638,9 +626,9 @@ namespace ExMat.States
                             if (prev.op == OPC.LOAD && curr.arg1 <= 985)
                             {
                                 prev.op = OPC.DLOAD;
-                                prev.arg2._val.i_Int = curr.arg0._val.i_Int;
-                                prev.arg3._val.i_Int = curr.arg1;
-                                _instructions[size - 1] = prev;
+                                prev.arg2.Value.i_Int = curr.arg0.Value.i_Int;
+                                prev.arg3.Value.i_Int = curr.arg1;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
                             break;
@@ -648,24 +636,24 @@ namespace ExMat.States
                     case OPC.EQ:
                     case OPC.NEQ:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0._val.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0._val.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0.Value.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
                             {
                                 prev.op = curr.op;
-                                prev.arg0._val.i_Int = curr.arg0._val.i_Int;
-                                prev.arg2._val.i_Int = curr.arg2._val.i_Int;
-                                prev.arg3._val.i_Int = 985;
-                                _instructions[size - 1] = prev;
+                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
+                                prev.arg2.Value.i_Int = curr.arg2.Value.i_Int;
+                                prev.arg3.Value.i_Int = 985;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
                             break;
                         }
-                    case OPC.LOAD_NULL:
+                    case OPC.LOADNULL:
                         {
-                            if (prev.op == OPC.LOAD_NULL && (prev.arg0._val.i_Int + prev.arg1 == curr.arg0._val.i_Int))
+                            if (prev.op == OPC.LOADNULL && (prev.arg0.Value.i_Int + prev.arg1 == curr.arg0.Value.i_Int))
                             {
                                 prev.arg1++;
-                                prev.op = OPC.LOAD_NULL;
-                                _instructions[size - 1] = prev;
+                                prev.op = OPC.LOADNULL;
+                                Instructions[size - 1] = prev;
                                 return;
                             }
                             break;
@@ -674,16 +662,16 @@ namespace ExMat.States
                         {
                             if (prev.op == OPC.LINE)
                             {
-                                _instructions.RemoveAt(size - 1);
-                                _lineinfos.RemoveAt(_lineinfos.Count - 1);
+                                Instructions.RemoveAt(size - 1);
+                                LineInfos.RemoveAt(LineInfos.Count - 1);
                             }
                             break;
                         }
                 }
             }
 
-            _not_snoozed = true;
-            _instructions.Add(curr);
+            NotSnoozed = true;
+            Instructions.Add(curr);
         }
 
         public void AddInstr(OPC op, int arg0, long arg1, int arg2, int arg3)
@@ -694,107 +682,107 @@ namespace ExMat.States
 
         public ExFState PushChildState(ExSState es)
         {
-            ExFState ch = new() { _Sstate = es, _parent = this };
-            _children.Add(ch);
+            ExFState ch = new() { SharedState = es, ParentFState = this };
+            ChildrenFStates.Add(ch);
             return ch;
         }
 
         public void PopChildState()
         {
-            ExFState ch = _children.Last();
-            while (ch._children.Count > 0)
+            ExFState ch = ChildrenFStates.Last();
+            while (ch.ChildrenFStates.Count > 0)
             {
                 ch.PopChildState();
             }
-            _children.RemoveAt(_children.Count - 1);
+            ChildrenFStates.RemoveAt(ChildrenFStates.Count - 1);
         }
 
         public void AddParam(ExObject p)
         {
             PushVar(p);
-            _params.Add(p);
+            Parameters.Add(p);
         }
 
         public void AddDefParam(int p)
         {
-            _defparams.Add(p);
+            DefaultParameters.Add(p);
         }
 
         public int GetDefParamCount()
         {
-            return _defparams.Count;
+            return DefaultParameters.Count;
         }
 
         public ExPrototype CreatePrototype()
         {
-            ExPrototype funcPro = ExPrototype.Create(_Sstate,
-                                                 _instructions.Count,
-                                                 _nliterals,
-                                                 _params.Count,
-                                                 _funcs.Count,
-                                                 _outerinfos.Count,
-                                                 _lineinfos.Count,
-                                                 _localinfos.Count,
-                                                 _defparams.Count);
+            ExPrototype funcPro = ExPrototype.Create(SharedState,
+                                                 Instructions.Count,
+                                                 nLiterals,
+                                                 Parameters.Count,
+                                                 Functions.Count,
+                                                 OuterInfos.Count,
+                                                 LineInfos.Count,
+                                                 LocalVariableInfos.Count,
+                                                 DefaultParameters.Count);
 
-            funcPro._stacksize = _stacksize;
-            funcPro._source = _source;
-            funcPro._name = _name;
+            funcPro.StackSize = StackSize;
+            funcPro.Source = Source;
+            funcPro.Name = Name;
 
-            foreach (KeyValuePair<string, ExObject> pair in _literals)
+            foreach (KeyValuePair<string, ExObject> pair in Literals)
             {
-                if (pair.Value._type == ExObjType.WEAKREF)
+                if (pair.Value.Type == ExObjType.WEAKREF)
                 {
-                    int ind = (int)(pair.Value._val._WeakRef.obj._val.i_Int);
-                    while (funcPro._lits.Count <= ind)
+                    int ind = (int)(pair.Value.Value._WeakRef.ReferencedObject.Value.i_Int);
+                    while (funcPro.Literals.Count <= ind)
                     {
-                        funcPro._lits.Add(new(string.Empty));
+                        funcPro.Literals.Add(new(string.Empty));
                     }
-                    funcPro._lits[ind]._val.s_String = pair.Key;
+                    funcPro.Literals[ind].Value.s_String = pair.Key;
                 }
                 else
                 {
-                    int ind = (int)pair.Value._val.i_Int;
-                    while (funcPro._lits.Count <= ind)
+                    int ind = (int)pair.Value.Value.i_Int;
+                    while (funcPro.Literals.Count <= ind)
                     {
-                        funcPro._lits.Add(new(string.Empty));
+                        funcPro.Literals.Add(new(string.Empty));
                     }
-                    funcPro._lits[ind]._val.s_String = pair.Key;
+                    funcPro.Literals[ind].Value.s_String = pair.Key;
                 }
             }
 
             int i;
-            for (i = 0; i < _funcs.Count; i++)
+            for (i = 0; i < Functions.Count; i++)
             {
-                funcPro._funcs.Add(_funcs[i]);
+                funcPro.Functions.Add(Functions[i]);
             }
-            for (i = 0; i < _params.Count; i++)
+            for (i = 0; i < Parameters.Count; i++)
             {
-                funcPro._params.Add(_params[i]);
+                funcPro.Parameters.Add(Parameters[i]);
             }
-            for (i = 0; i < _outerinfos.Count; i++)
+            for (i = 0; i < OuterInfos.Count; i++)
             {
-                funcPro._outers.Add(_outerinfos[i]);
+                funcPro.Outers.Add(OuterInfos[i]);
             }
-            for (i = 0; i < _localinfos.Count; i++)
+            for (i = 0; i < LocalVariableInfos.Count; i++)
             {
-                funcPro._localinfos.Add(_localinfos[i]);
+                funcPro.LocalInfos.Add(LocalVariableInfos[i]);
             }
-            for (i = 0; i < _lineinfos.Count; i++)
+            for (i = 0; i < LineInfos.Count; i++)
             {
-                funcPro._lineinfos.Add(_lineinfos[i]);
+                funcPro.LineInfos.Add(LineInfos[i]);
             }
-            for (i = 0; i < _defparams.Count; i++)
+            for (i = 0; i < DefaultParameters.Count; i++)
             {
-                funcPro._defparams.Add(_defparams[i]);
-            }
-
-            foreach (ExInstr it in _instructions)
-            {
-                funcPro._instr.Add(new ExInstr() { op = it.op, arg0 = it.arg0, arg1 = it.arg1, arg2 = it.arg2, arg3 = it.arg3 });
+                funcPro.DefaultParameters.Add(DefaultParameters[i]);
             }
 
-            funcPro._pvars = _pvars;
+            foreach (ExInstr it in Instructions)
+            {
+                funcPro.Instructions.Add(new ExInstr() { op = it.op, arg0 = it.arg0, arg1 = it.arg1, arg2 = it.arg2, arg3 = it.arg3 });
+            }
+
+            funcPro.HasVargs = HasVargs;
 
             return funcPro;
         }
@@ -803,30 +791,28 @@ namespace ExMat.States
         {
             return new()
             {
-                _children = _children,
-                _defparams = _defparams,
-                _funcs = _funcs,
-                _instructions = _instructions,
-                _lastline = _lastline,
-                _lineinfos = _lineinfos,
-                _literals = _literals,
-                _localinfos = _localinfos,
-                _localvs = _localvs,
-                _name = _name,
-                _names = _names,
-                _nliterals = _nliterals,
-                _not_snoozed = _not_snoozed,
-                _nouters = _nouters,
-                _outerinfos = _outerinfos,
-                _params = _params,
-                _parent = _parent,
-                _pvars = _pvars,
-                _returnE = _returnE,
-                _source = _source,
-                _Sstate = _Sstate,
-                _SstateB = _SstateB,
-                _stacksize = _stacksize,
-                _tStack = _tStack
+                ChildrenFStates = ChildrenFStates,
+                DefaultParameters = DefaultParameters,
+                Functions = Functions,
+                Instructions = Instructions,
+                LastLine = LastLine,
+                LineInfos = LineInfos,
+                Literals = Literals,
+                LocalVariableInfos = LocalVariableInfos,
+                LocalVariables = LocalVariables,
+                Name = Name,
+                nLiterals = nLiterals,
+                NotSnoozed = NotSnoozed,
+                nOuters = nOuters,
+                OuterInfos = OuterInfos,
+                Parameters = Parameters,
+                ParentFState = ParentFState,
+                HasVargs = HasVargs,
+                ReturnExpressionTarget = ReturnExpressionTarget,
+                Source = Source,
+                SharedState = SharedState,
+                StackSize = StackSize,
+                Stack = Stack
             };
         }
 

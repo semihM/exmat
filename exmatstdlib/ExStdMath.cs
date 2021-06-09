@@ -11,8 +11,13 @@ namespace ExMat.BaseLib
     public static class ExStdMath
     {
         private static Random rand = new();
+        private static List<int> Primes;
+        private static readonly int PrimeSearchSize = int.MaxValue / 100;
+        private static readonly int PrimeCacheMaxSize = 1358124 * 2;
+        private static int PrimeCount = 1358124;
+        private static int PrimeMax = 21474829;
 
-        public static int MATH_srand(ExVM vm, int nargs)
+        public static int MathSrand(ExVM vm, int nargs)
         {
             int seed = (int)ExAPI.GetFromStack(vm, 2).GetInt();
             vm.Pop(3);
@@ -21,7 +26,7 @@ namespace ExMat.BaseLib
             return 0;
         }
 
-        public static int MATH_rand(ExVM vm, int nargs)
+        public static int MathRand(ExVM vm, int nargs)
         {
             switch (nargs)
             {
@@ -52,7 +57,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_randf(ExVM vm, int nargs)
+        public static int MathRandf(ExVM vm, int nargs)
         {
             switch (nargs)
             {
@@ -80,12 +85,6 @@ namespace ExMat.BaseLib
             }
             return 1;
         }
-
-        private static List<int> Primes = null;
-        private static readonly int PrimeSearchSize = int.MaxValue / 100;
-        private static readonly int PrimeCacheMaxSize = 1358124 * 2;
-        private static int PrimeCount = 1358124;
-        private static int PrimeMax = 21474829;
 
         private static void FindPrimes()
         {
@@ -187,7 +186,7 @@ namespace ExMat.BaseLib
             return last;
         }
 
-        public static int MATH_nextprime(ExVM vm, int nargs)
+        public static int MathNextPrime(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
 
@@ -211,7 +210,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_isprime(ExVM vm, int nargs)
+        public static int MathIsPrime(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
 
@@ -221,7 +220,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_areCoprime(ExVM vm, int nargs)
+        public static int MathAreCoprime(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
             long b = ExAPI.GetFromStack(vm, 3).GetInt();
@@ -232,7 +231,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_prime(ExVM vm, int nargs)
+        public static int MathPrime(ExVM vm, int nargs)
         {
             int a = (int)ExAPI.GetFromStack(vm, 2).GetInt();
 
@@ -261,7 +260,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_pfactors(ExVM vm, int nargs)
+        public static int MathPrimeFactors(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
 
@@ -314,7 +313,7 @@ namespace ExMat.BaseLib
             return a;
         }
 
-        public static int MATH_gcd(ExVM vm, int nargs)
+        public static int MathGcd(ExVM vm, int nargs)
         {
             double a = ExAPI.GetFromStack(vm, 2).GetFloat();
             double b = ExAPI.GetFromStack(vm, 3).GetFloat();
@@ -325,7 +324,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_lcd(ExVM vm, int nargs)
+        public static int MathLcd(ExVM vm, int nargs)
         {
             double a = ExAPI.GetFromStack(vm, 2).GetFloat();
             double b = ExAPI.GetFromStack(vm, 3).GetFloat();
@@ -335,7 +334,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_isdivisible(ExVM vm, int nargs)
+        public static int MathIsDivisible(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
             long b = ExAPI.GetFromStack(vm, 3).GetInt();
@@ -346,7 +345,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_divquot(ExVM vm, int nargs)
+        public static int MathDivQuot(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
             long b = ExAPI.GetFromStack(vm, 3).GetInt();
@@ -358,7 +357,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_divrem(ExVM vm, int nargs)
+        public static int MathDivRem(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
             long b = ExAPI.GetFromStack(vm, 3).GetInt();
@@ -370,7 +369,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_divremquot(ExVM vm, int nargs)
+        public static int MathDivRemQuot(ExVM vm, int nargs)
         {
             long a = ExAPI.GetFromStack(vm, 2).GetInt();
             long b = ExAPI.GetFromStack(vm, 3).GetInt();
@@ -382,10 +381,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_recip(ExVM vm, int nargs)
+        public static int MathRecip(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -412,7 +411,7 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_digits(ExVM vm, int nargs)
+        public static int MathDigits(ExVM vm, int nargs)
         {
             long i = ExAPI.GetFromStack(vm, 2).GetInt();
             string s = i.ToString();
@@ -432,7 +431,7 @@ namespace ExMat.BaseLib
                         i /= 10;
                     }
                     lis.Reverse();
-                    lis[0]._val.i_Int *= -1;
+                    lis[0].Value.i_Int *= -1;
                 }
             }
             else
@@ -449,10 +448,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_abs(ExVM vm, int nargs)
+        public static int MathAbs(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -481,10 +480,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_sqrt(ExVM vm, int nargs)
+        public static int MathSqrt(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -512,10 +511,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_cbrt(ExVM vm, int nargs)
+        public static int MathCbrt(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -542,10 +541,10 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_sin(ExVM vm, int nargs)
+        public static int MathSin(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -572,10 +571,10 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_sinh(ExVM vm, int nargs)
+        public static int MathSinh(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -603,10 +602,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_cos(ExVM vm, int nargs)
+        public static int MathCos(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -633,10 +632,10 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_cosh(ExVM vm, int nargs)
+        public static int MathCosh(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -664,10 +663,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_tan(ExVM vm, int nargs)
+        public static int MathTan(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -694,10 +693,10 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_tanh(ExVM vm, int nargs)
+        public static int MathTanh(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -725,10 +724,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_acos(ExVM vm, int nargs)
+        public static int MathAcos(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -755,10 +754,10 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_acosh(ExVM vm, int nargs)
+        public static int MathAcosh(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -769,9 +768,9 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i._val.c_Float == 0.0)
+                        if (i.Value.c_Float == 0.0)
                         {
-                            double o = i._val.f_Float;
+                            double o = i.Value.f_Float;
                             vm.Pop(nargs + 2);
                             vm.Push(Math.Acosh(o));
                             break;
@@ -794,10 +793,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_asin(ExVM vm, int nargs)
+        public static int MathAsin(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -824,10 +823,10 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_asinh(ExVM vm, int nargs)
+        public static int MathAsinh(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -838,9 +837,9 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i._val.c_Float == 0.0)
+                        if (i.Value.c_Float == 0.0)
                         {
-                            double o = i._val.f_Float;
+                            double o = i.Value.f_Float;
                             vm.Pop(nargs + 2);
                             vm.Push(Math.Asinh(o));
                             break;
@@ -863,10 +862,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_atan(ExVM vm, int nargs)
+        public static int MathAtan(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -893,10 +892,10 @@ namespace ExMat.BaseLib
 
             return 1;
         }
-        public static int MATH_atanh(ExVM vm, int nargs)
+        public static int MathAtanh(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -907,9 +906,9 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i._val.c_Float == 0.0)
+                        if (i.Value.c_Float == 0.0)
                         {
-                            double o = i._val.f_Float;
+                            double o = i.Value.f_Float;
                             vm.Pop(nargs + 2);
                             vm.Push(Math.Atanh(o));
                             break;
@@ -932,19 +931,19 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_atan2(ExVM vm, int nargs)
+        public static int MathAtan2(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
             ExObject i2 = ExAPI.GetFromStack(vm, 3);
             double b = 0.0;
             long l;
 
-            switch (i._type)    // TO-DO refactor
+            switch (i.Type)    // TO-DO refactor
             {
                 case ExObjType.INTEGER:
                     {
                         l = i.GetInt();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -955,9 +954,9 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2._val.c_Float == 0.0)
+                                    if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2._val.f_Float;
+                                        double o = i2.Value.f_Float;
                                         vm.Pop(nargs + 2);
                                         vm.Push((double)Math.Atan2(l, o));
                                         break;
@@ -981,9 +980,9 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i._val.c_Float == 0.0)
+                        if (i.Value.c_Float == 0.0)
                         {
-                            b = i._val.f_Float;
+                            b = i.Value.f_Float;
                             goto default;
                         }
                         else
@@ -999,7 +998,7 @@ namespace ExMat.BaseLib
                     }
                 default:
                     {
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1010,9 +1009,9 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2._val.c_Float == 0.0)
+                                    if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2._val.f_Float;
+                                        double o = i2.Value.f_Float;
                                         vm.Pop(nargs + 2);
                                         vm.Push((double)Math.Atan2(b, o));
                                         break;
@@ -1039,10 +1038,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_loge(ExVM vm, int nargs)
+        public static int MathLoge(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1070,10 +1069,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_log2(ExVM vm, int nargs)
+        public static int MathLog2(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1101,10 +1100,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_log10(ExVM vm, int nargs)
+        public static int MathLog10(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1132,10 +1131,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_exp(ExVM vm, int nargs)
+        public static int MathExp(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1163,7 +1162,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_round(ExVM vm, int nargs)
+        public static int MathRound(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
             int dec = 0;
@@ -1172,7 +1171,7 @@ namespace ExMat.BaseLib
                 dec = (int)ExAPI.GetFromStack(vm, 3).GetInt();
             }
 
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1200,10 +1199,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_floor(ExVM vm, int nargs)
+        public static int MathFloor(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1231,10 +1230,10 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_ceil(ExVM vm, int nargs)
+        public static int MathCeil(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1262,17 +1261,17 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_pow(ExVM vm, int nargs)
+        public static int MathPow(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
             ExObject i2 = ExAPI.GetFromStack(vm, 3);
 
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
                         long b = i.GetInt();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1302,7 +1301,7 @@ namespace ExMat.BaseLib
                 case ExObjType.COMPLEX:
                     {
                         Complex b = i.GetComplex();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1331,7 +1330,7 @@ namespace ExMat.BaseLib
                 default:
                     {
                         double b = i.GetFloat();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1363,17 +1362,17 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_min(ExVM vm, int nargs)
+        public static int MathMin(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
             ExObject i2 = ExAPI.GetFromStack(vm, 3);
 
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
                         long b = i.GetInt();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1384,9 +1383,9 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2._val.c_Float == 0.0)
+                                    if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2._val.f_Float;
+                                        double o = i2.Value.f_Float;
                                         vm.Pop(nargs + 2);
                                         vm.Push((double)Math.Min(b, o));
                                         break;
@@ -1410,10 +1409,10 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i._val.c_Float == 0.0)
+                        if (i.Value.c_Float == 0.0)
                         {
-                            double b = i._val.f_Float;
-                            switch (i2._type)
+                            double b = i.Value.f_Float;
+                            switch (i2.Type)
                             {
                                 case ExObjType.INTEGER:
                                     {
@@ -1424,9 +1423,9 @@ namespace ExMat.BaseLib
                                     }
                                 case ExObjType.COMPLEX:
                                     {
-                                        if (i2._val.c_Float == 0.0)
+                                        if (i2.Value.c_Float == 0.0)
                                         {
-                                            double o = i2._val.f_Float;
+                                            double o = i2.Value.f_Float;
                                             vm.Pop(nargs + 2);
                                             vm.Push((double)Math.Min(b, o));
                                             break;
@@ -1456,7 +1455,7 @@ namespace ExMat.BaseLib
                 default:
                     {
                         double b = i.GetFloat();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1467,9 +1466,9 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2._val.c_Float == 0.0)
+                                    if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2._val.f_Float;
+                                        double o = i2.Value.f_Float;
                                         vm.Pop(nargs + 2);
                                         vm.Push((double)Math.Min(b, o));
                                         break;
@@ -1496,17 +1495,17 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_max(ExVM vm, int nargs)
+        public static int MathMax(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
             ExObject i2 = ExAPI.GetFromStack(vm, 3);
 
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
                         long b = i.GetInt();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1517,9 +1516,9 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2._val.c_Float == 0.0)
+                                    if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2._val.f_Float;
+                                        double o = i2.Value.f_Float;
                                         vm.Pop(nargs + 2);
                                         vm.Push((double)Math.Max(b, o));
                                         break;
@@ -1543,10 +1542,10 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i._val.c_Float == 0.0)
+                        if (i.Value.c_Float == 0.0)
                         {
-                            double b = i._val.f_Float;
-                            switch (i2._type)
+                            double b = i.Value.f_Float;
+                            switch (i2.Type)
                             {
                                 case ExObjType.INTEGER:
                                     {
@@ -1557,9 +1556,9 @@ namespace ExMat.BaseLib
                                     }
                                 case ExObjType.COMPLEX:
                                     {
-                                        if (i2._val.c_Float == 0.0)
+                                        if (i2.Value.c_Float == 0.0)
                                         {
-                                            double o = i2._val.f_Float;
+                                            double o = i2.Value.f_Float;
                                             vm.Pop(nargs + 2);
                                             vm.Push((double)Math.Max(b, o));
                                             break;
@@ -1589,7 +1588,7 @@ namespace ExMat.BaseLib
                 default:
                     {
                         double b = i.GetFloat();
-                        switch (i2._type)
+                        switch (i2.Type)
                         {
                             case ExObjType.INTEGER:
                                 {
@@ -1600,9 +1599,9 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2._val.c_Float == 0.0)
+                                    if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2._val.f_Float;
+                                        double o = i2.Value.f_Float;
                                         vm.Pop(nargs + 2);
                                         vm.Push((double)Math.Max(b, o));
                                         break;
@@ -1629,11 +1628,11 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_sum(ExVM vm, int nargs)
+        public static int MathSum(ExVM vm, int nargs)
         {
             ExObject sum = new(new Complex());
             ExObject[] args;
-            if (nargs == 1 && ExAPI.GetFromStack(vm, 2)._type == ExObjType.ARRAY)
+            if (nargs == 1 && ExAPI.GetFromStack(vm, 2).Type == ExObjType.ARRAY)
             {
                 ExObject res = new();
                 args = ExAPI.GetFromStack(vm, 2).GetList().ToArray();
@@ -1641,8 +1640,8 @@ namespace ExMat.BaseLib
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
                     {
-                        sum._val.f_Float = res._val.f_Float;
-                        sum._val.c_Float = res._val.c_Float;
+                        sum.Value.f_Float = res.Value.f_Float;
+                        sum.Value.c_Float = res.Value.c_Float;
                     }
                     else
                     {
@@ -1659,8 +1658,8 @@ namespace ExMat.BaseLib
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
                     {
-                        sum._val.f_Float = res._val.f_Float;
-                        sum._val.c_Float = res._val.c_Float;
+                        sum.Value.f_Float = res.Value.f_Float;
+                        sum.Value.c_Float = res.Value.c_Float;
                     }
                     else
                     {
@@ -1670,9 +1669,9 @@ namespace ExMat.BaseLib
                 vm.Pop(nargs + 2);
             }
 
-            if (sum._val.c_Float == 0.0)
+            if (sum.Value.c_Float == 0.0)
             {
-                vm.Push(sum._val.f_Float);
+                vm.Push(sum.Value.f_Float);
             }
             else
             {
@@ -1681,12 +1680,12 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_mul(ExVM vm, int nargs)
+        public static int MathMul(ExVM vm, int nargs)
         {
             ExObject mul = new(1.0);
             ExObject[] args;
 
-            if (nargs == 1 && ExAPI.GetFromStack(vm, 2)._type == ExObjType.ARRAY)
+            if (nargs == 1 && ExAPI.GetFromStack(vm, 2).Type == ExObjType.ARRAY)
             {
                 ExObject res = new();
                 args = ExAPI.GetFromStack(vm, 2).GetList().ToArray();
@@ -1694,8 +1693,8 @@ namespace ExMat.BaseLib
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.MLT, args[i], mul, ref res))
                     {
-                        mul._val.f_Float = res._val.f_Float;
-                        mul._val.c_Float = res._val.c_Float;
+                        mul.Value.f_Float = res.Value.f_Float;
+                        mul.Value.c_Float = res.Value.c_Float;
                     }
                     else
                     {
@@ -1712,8 +1711,8 @@ namespace ExMat.BaseLib
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.MLT, args[i], mul, ref res))
                     {
-                        mul._val.f_Float = res._val.f_Float;
-                        mul._val.c_Float = res._val.c_Float;
+                        mul.Value.f_Float = res.Value.f_Float;
+                        mul.Value.c_Float = res.Value.c_Float;
                     }
                     else
                     {
@@ -1723,9 +1722,9 @@ namespace ExMat.BaseLib
                 vm.Pop(nargs + 2);
             }
 
-            if (mul._val.c_Float == 0.0)
+            if (mul.Value.c_Float == 0.0)
             {
-                vm.Push(mul._val.f_Float);
+                vm.Push(mul.Value.f_Float);
             }
             else
             {
@@ -1734,11 +1733,11 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_sign(ExVM vm, int nargs)
+        public static int MathSign(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
 
-            switch (i._type)
+            switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
@@ -1749,9 +1748,9 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i._val.c_Float == 0.0)
+                        if (i.Value.c_Float == 0.0)
                         {
-                            double o = i._val.f_Float;
+                            double o = i.Value.f_Float;
                             vm.Pop(nargs + 2);
                             vm.Push(Math.Sign(o));
                             break;
@@ -1774,40 +1773,40 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATH_isFIN(ExVM vm, int nargs)
+        public static int MathIsFIN(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i._type == ExObjType.COMPLEX ? Complex.IsFinite(i.GetComplex()) : double.IsFinite(i.GetFloat());
+            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsFinite(i.GetComplex()) : double.IsFinite(i.GetFloat());
 
             vm.Pop(nargs + 2);
             vm.Push(b);
             return 1;
         }
 
-        public static int MATH_isINF(ExVM vm, int nargs)
+        public static int MathIsINF(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i._type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsPositiveInfinity(i.GetFloat());
+            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsPositiveInfinity(i.GetFloat());
 
             vm.Pop(nargs + 2);
             vm.Push(b);
             return 1;
         }
 
-        public static int MATH_isNINF(ExVM vm, int nargs)
+        public static int MathIsNINF(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i._type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsNegativeInfinity(i.GetFloat());
+            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsNegativeInfinity(i.GetFloat());
 
             vm.Pop(nargs + 2);
             vm.Push(b);
             return 1;
         }
 
-        public static int MATH_isNAN(ExVM vm, int nargs)
+        public static int MathIsNAN(ExVM vm, int nargs)
         {
             ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i._type == ExObjType.COMPLEX ? Complex.IsNaN(i.GetComplex()) : double.IsNaN(i.GetFloat());
+            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsNaN(i.GetComplex()) : double.IsNaN(i.GetFloat());
 
             vm.Pop(nargs + 2);
             vm.Push(b);
@@ -1864,7 +1863,7 @@ namespace ExMat.BaseLib
         }
 
         // TO-DO extremely redundant, refactor...
-        public static int MATHPLOT_save_scatters(ExVM vm, int nargs)
+        public static int MathPlotSaveScatters(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -1890,7 +1889,7 @@ namespace ExMat.BaseLib
 
             foreach (ExObject plot in plots)
             {
-                if (plot._type != ExObjType.ARRAY)
+                if (plot.Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list of lists containing plot data");
                     return -1;
@@ -1905,7 +1904,7 @@ namespace ExMat.BaseLib
                 {
                     case 4:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for label");
                                 return -1;
@@ -1916,7 +1915,7 @@ namespace ExMat.BaseLib
                         }
                     case 3:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for color name");
                                 return -1;
@@ -1935,14 +1934,14 @@ namespace ExMat.BaseLib
                         }
                 }
 
-                if (plotdata[0]._type != ExObjType.ARRAY)
+                if (plotdata[0].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for X axis");
                     return -1;
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
-                if (plotdata[1]._type != ExObjType.ARRAY)
+                if (plotdata[1].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for Y axis");
                     return -1;
@@ -1988,7 +1987,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter(ExVM vm, int nargs)
+        public static int MathPlotSaveScatter(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2059,7 +2058,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter_lines(ExVM vm, int nargs)
+        public static int MathPlotSaveScatterLines(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2085,7 +2084,7 @@ namespace ExMat.BaseLib
 
             foreach (ExObject plot in plots)
             {
-                if (plot._type != ExObjType.ARRAY)
+                if (plot.Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list of lists containing plot data");
                     return -1;
@@ -2100,7 +2099,7 @@ namespace ExMat.BaseLib
                 {
                     case 4:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for label");
                                 return -1;
@@ -2111,7 +2110,7 @@ namespace ExMat.BaseLib
                         }
                     case 3:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for color name");
                                 return -1;
@@ -2130,14 +2129,14 @@ namespace ExMat.BaseLib
                         }
                 }
 
-                if (plotdata[0]._type != ExObjType.ARRAY)
+                if (plotdata[0].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for X axis");
                     return -1;
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
-                if (plotdata[1]._type != ExObjType.ARRAY)
+                if (plotdata[1].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for Y axis");
                     return -1;
@@ -2183,7 +2182,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter_line(ExVM vm, int nargs)
+        public static int MathPlotSaveScatterLine(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2254,7 +2253,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter_points(ExVM vm, int nargs)
+        public static int MathPlotSaveScatterPoints(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2280,7 +2279,7 @@ namespace ExMat.BaseLib
 
             foreach (ExObject plot in plots)
             {
-                if (plot._type != ExObjType.ARRAY)
+                if (plot.Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list of lists containing plot data");
                     return -1;
@@ -2295,7 +2294,7 @@ namespace ExMat.BaseLib
                 {
                     case 4:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for label");
                                 return -1;
@@ -2306,7 +2305,7 @@ namespace ExMat.BaseLib
                         }
                     case 3:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for color name");
                                 return -1;
@@ -2325,14 +2324,14 @@ namespace ExMat.BaseLib
                         }
                 }
 
-                if (plotdata[0]._type != ExObjType.ARRAY)
+                if (plotdata[0].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for X axis");
                     return -1;
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
-                if (plotdata[1]._type != ExObjType.ARRAY)
+                if (plotdata[1].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for Y axis");
                     return -1;
@@ -2378,7 +2377,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter_point(ExVM vm, int nargs)
+        public static int MathPlotSaveScatterPoint(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2449,7 +2448,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter_steps(ExVM vm, int nargs)
+        public static int MathPlotSaveScatterSteps(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2475,7 +2474,7 @@ namespace ExMat.BaseLib
 
             foreach (ExObject plot in plots)
             {
-                if (plot._type != ExObjType.ARRAY)
+                if (plot.Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list of lists containing plot data");
                     return -1;
@@ -2490,7 +2489,7 @@ namespace ExMat.BaseLib
                 {
                     case 4:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for label");
                                 return -1;
@@ -2501,7 +2500,7 @@ namespace ExMat.BaseLib
                         }
                     case 3:
                         {
-                            if (plotdata[2]._type != ExObjType.STRING)
+                            if (plotdata[2].Type != ExObjType.STRING)
                             {
                                 vm.AddToErrorMessage("expected string for color name");
                                 return -1;
@@ -2520,14 +2519,14 @@ namespace ExMat.BaseLib
                         }
                 }
 
-                if (plotdata[0]._type != ExObjType.ARRAY)
+                if (plotdata[0].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for X axis");
                     return -1;
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
-                if (plotdata[1]._type != ExObjType.ARRAY)
+                if (plotdata[1].Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("expected list for Y axis");
                     return -1;
@@ -2573,7 +2572,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter_step(ExVM vm, int nargs)
+        public static int MathPlotSaveScatterStep(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2644,7 +2643,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int MATHPLOT_save_scatter_complex(ExVM vm, int nargs)
+        public static int MathPlotSaveScatterComplex(ExVM vm, int nargs)
         {
             string name = ExAPI.GetFromStack(vm, 2).GetString();
             if (!CheckFileName(vm, ref name))
@@ -2660,7 +2659,7 @@ namespace ExMat.BaseLib
             for (int i = 0; i < count; i++)
             {
                 ExObject v = x[i];
-                if (v._type != ExObjType.COMPLEX)
+                if (v.Type != ExObjType.COMPLEX)
                 {
                     if (!v.IsNumeric())
                     {
@@ -2672,8 +2671,8 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    X[i] = v._val.f_Float;
-                    Y[i] = v._val.c_Float;
+                    X[i] = v.Value.f_Float;
+                    Y[i] = v.Value.c_Float;
                 }
             }
 
@@ -2737,18 +2736,18 @@ namespace ExMat.BaseLib
         {
             new()
             {
-                name = "srand",
-                func = new(GetStdMathMethod("MATH_srand")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "srand",
+                Function = new(GetStdMathMethod("MathSrand")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "rand",
-                func = new(GetStdMathMethod("MATH_rand")),
-                n_pchecks = -1,
-                mask = ".nn",
-                d_defaults = new()
+                Name = "rand",
+                Function = new(GetStdMathMethod("MathRand")),
+                nParameterChecks = -1,
+                ParameterMask = ".nn",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(int.MaxValue) }
@@ -2756,11 +2755,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "randf",
-                func = new(GetStdMathMethod("MATH_randf")),
-                n_pchecks = -1,
-                mask = ".nn",
-                d_defaults = new()
+                Name = "randf",
+                Function = new(GetStdMathMethod("MathRandf")),
+                nParameterChecks = -1,
+                ParameterMask = ".nn",
+                DefaultValues = new()
                 {
                     { 1, new(0) },
                     { 2, new(1) }
@@ -2769,343 +2768,343 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "isDivisible",
-                func = new(GetStdMathMethod("MATH_isdivisible")),
-                n_pchecks = 3,
-                mask = ".ii"
+                Name = "isDivisible",
+                Function = new(GetStdMathMethod("MathIsdivisible")),
+                nParameterChecks = 3,
+                ParameterMask = ".ii"
             },
             new()
             {
-                name = "divRem",
-                func = new(GetStdMathMethod("MATH_divrem")),
-                n_pchecks = 3,
-                mask = ".ii"
+                Name = "divRem",
+                Function = new(GetStdMathMethod("Math_divrem")),
+                nParameterChecks = 3,
+                ParameterMask = ".ii"
             },
             new()
             {
-                name = "divQuot",
-                func = new(GetStdMathMethod("MATH_divquot")),
-                n_pchecks = 3,
-                mask = ".ii"
+                Name = "divQuot",
+                Function = new(GetStdMathMethod("Math_divquot")),
+                nParameterChecks = 3,
+                ParameterMask = ".ii"
             },
             new()
             {
-                name = "divRemQuot",
-                func = new(GetStdMathMethod("MATH_divremquot")),
-                n_pchecks = 3,
-                mask = ".ii"
+                Name = "divRemQuot",
+                Function = new(GetStdMathMethod("Math_divremquot")),
+                nParameterChecks = 3,
+                ParameterMask = ".ii"
             },
             new()
             {
-                name = "recip",
-                func = new(GetStdMathMethod("MATH_recip")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "recip",
+                Function = new(GetStdMathMethod("MathRecip")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "GCD",
-                func = new(GetStdMathMethod("MATH_gcd")),
-                n_pchecks = 3,
-                mask = ".i|fi|f"
+                Name = "GCD",
+                Function = new(GetStdMathMethod("Math_gcd")),
+                nParameterChecks = 3,
+                ParameterMask = ".i|fi|f"
             },
             new()
             {
-                name = "LCD",
-                func = new(GetStdMathMethod("MATH_lcd")),
-                n_pchecks = 3,
-                mask = ".i|fi|f"
+                Name = "LCD",
+                Function = new(GetStdMathMethod("MathLcd")),
+                nParameterChecks = 3,
+                ParameterMask = ".i|fi|f"
             },
             new()
             {
-                name = "factorize",
-                func = new(GetStdMathMethod("MATH_pfactors")),
-                n_pchecks = 2,
-                mask = ".i|f"
+                Name = "factorize",
+                Function = new(GetStdMathMethod("MathPrimeFactors")),
+                nParameterChecks = 2,
+                ParameterMask = ".i|f"
             },
             new()
             {
-                name = "next_prime",
-                func = new(GetStdMathMethod("MATH_nextprime")),
-                n_pchecks = 2,
-                mask = ".i"
+                Name = "next_prime",
+                Function = new(GetStdMathMethod("MathNextPrime")),
+                nParameterChecks = 2,
+                ParameterMask = ".i"
             },
             new()
             {
-                name = "prime",
-                func = new(GetStdMathMethod("MATH_prime")),
-                n_pchecks = 2,
-                mask = ".i"
+                Name = "prime",
+                Function = new(GetStdMathMethod("MathPrime")),
+                nParameterChecks = 2,
+                ParameterMask = ".i"
             },
             new()
             {
-                name = "isPrime",
-                func = new(GetStdMathMethod("MATH_isprime")),
-                n_pchecks = 2,
-                mask = ".i"
+                Name = "isPrime",
+                Function = new(GetStdMathMethod("MathIsPrime")),
+                nParameterChecks = 2,
+                ParameterMask = ".i"
             },
             new()
             {
-                name = "areCoPrime",
-                func = new(GetStdMathMethod("MATH_areCoprime")),
-                n_pchecks = 3,
-                mask = ".ii"
+                Name = "areCoPrime",
+                Function = new(GetStdMathMethod("MathAreCoprime")),
+                nParameterChecks = 3,
+                ParameterMask = ".ii"
             },
             new()
             {
-                name = "digits",
-                func = new(GetStdMathMethod("MATH_digits")),
-                n_pchecks = 2,
-                mask = ".i"
+                Name = "digits",
+                Function = new(GetStdMathMethod("Math_digits")),
+                nParameterChecks = 2,
+                ParameterMask = ".i"
             },
             new()
             {
-                name = "abs",
-                func = new(GetStdMathMethod("MATH_abs")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "abs",
+                Function = new(GetStdMathMethod("MathAbs")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "sqrt",
-                func = new(GetStdMathMethod("MATH_sqrt")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "sqrt",
+                Function = new(GetStdMathMethod("MathSqrt")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "cbrt",
-                func = new(GetStdMathMethod("MATH_cbrt")),
-                n_pchecks = 2,
-                mask = ".n"
-            },
-
-            new()
-            {
-                name = "sin",
-                func = new(GetStdMathMethod("MATH_sin")),
-                n_pchecks = 2,
-                mask = ".n"
-            },
-            new()
-            {
-                name = "cos",
-                func = new(GetStdMathMethod("MATH_cos")),
-                n_pchecks = 2,
-                mask = ".n"
-            },
-            new()
-            {
-                name = "tan",
-                func = new(GetStdMathMethod("MATH_tan")),
-                n_pchecks = 2,
-                mask = ".n"
-            },
-            new()
-            {
-                name = "sinh",
-                func = new(GetStdMathMethod("MATH_sinh")),
-                n_pchecks = 2,
-                mask = ".n"
-            },
-            new()
-            {
-                name = "cosh",
-                func = new(GetStdMathMethod("MATH_cosh")),
-                n_pchecks = 2,
-                mask = ".n"
-            },
-            new()
-            {
-                name = "tanh",
-                func = new(GetStdMathMethod("MATH_tanh")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "cbrt",
+                Function = new(GetStdMathMethod("MathCbrt")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
 
             new()
             {
-                name = "asin",
-                func = new(GetStdMathMethod("MATH_asin")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "sin",
+                Function = new(GetStdMathMethod("MathSin")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "acos",
-                func = new(GetStdMathMethod("MATH_acos")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "cos",
+                Function = new(GetStdMathMethod("MathCos")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "atan",
-                func = new(GetStdMathMethod("MATH_atan")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "tan",
+                Function = new(GetStdMathMethod("MathTan")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "atan2",
-                func = new(GetStdMathMethod("MATH_atan2")),
-                n_pchecks = 3,
-                mask = ".nn"
+                Name = "sinh",
+                Function = new(GetStdMathMethod("MathSinh")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "asinh",
-                func = new(GetStdMathMethod("MATH_asinh")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "cosh",
+                Function = new(GetStdMathMethod("MathCosh")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "acosh",
-                func = new(GetStdMathMethod("MATH_acosh")),
-                n_pchecks = 2,
-                mask = ".n"
-            },
-            new()
-            {
-                name = "atanh",
-                func = new(GetStdMathMethod("MATH_atanh")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "tanh",
+                Function = new(GetStdMathMethod("MathTanh")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
 
             new()
             {
-                name = "loge",
-                func = new(GetStdMathMethod("MATH_loge")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "asin",
+                Function = new(GetStdMathMethod("MathAsin")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "log2",
-                func = new(GetStdMathMethod("MATH_log2")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "acos",
+                Function = new(GetStdMathMethod("MathAcos")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "log10",
-                func = new(GetStdMathMethod("MATH_log10")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "atan",
+                Function = new(GetStdMathMethod("MathAtan")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "exp",
-                func = new(GetStdMathMethod("MATH_exp")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "atan2",
+                Function = new(GetStdMathMethod("MathAtan2")),
+                nParameterChecks = 3,
+                ParameterMask = ".nn"
             },
             new()
             {
-                name = "round",
-                func = new(GetStdMathMethod("MATH_round")),
-                n_pchecks = -2,
-                mask = ".nn",
-                d_defaults = new()
+                Name = "asinh",
+                Function = new(GetStdMathMethod("MathAsinh")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "acosh",
+                Function = new(GetStdMathMethod("MathAcosh")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "atanh",
+                Function = new(GetStdMathMethod("MathAtanh")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+
+            new()
+            {
+                Name = "loge",
+                Function = new(GetStdMathMethod("MathLoge")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "log2",
+                Function = new(GetStdMathMethod("MathLog2")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "log10",
+                Function = new(GetStdMathMethod("MathLog10")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "exp",
+                Function = new(GetStdMathMethod("MathExp")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "round",
+                Function = new(GetStdMathMethod("MathRound")),
+                nParameterChecks = -2,
+                ParameterMask = ".nn",
+                DefaultValues = new()
                 {
                     { 2, new(0) }
                 }
             },
             new()
             {
-                name = "floor",
-                func = new(GetStdMathMethod("MATH_floor")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "floor",
+                Function = new(GetStdMathMethod("MathFloor")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "ceil",
-                func = new(GetStdMathMethod("MATH_ceil")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "ceil",
+                Function = new(GetStdMathMethod("MathCeil")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "pow",
-                func = new(GetStdMathMethod("MATH_pow")),
-                n_pchecks = 3,
-                mask = ".nn"
-            },
-
-            new()
-            {
-                name = "sum",
-                func = new(GetStdMathMethod("MATH_sum")),
-                n_pchecks = -1,
-                mask = null
-            },
-            new()
-            {
-                name = "mul",
-                func = new(GetStdMathMethod("MATH_mul")),
-                n_pchecks = -1,
-                mask = null
+                Name = "pow",
+                Function = new(GetStdMathMethod("MathPow")),
+                nParameterChecks = 3,
+                ParameterMask = ".nn"
             },
 
             new()
             {
-                name = "min",
-                func = new(GetStdMathMethod("MATH_min")),
-                n_pchecks = 3,
-                mask = ".nn"
+                Name = "sum",
+                Function = new(GetStdMathMethod("MathSum")),
+                nParameterChecks = -1,
+                ParameterMask = null
             },
             new()
             {
-                name = "max",
-                func = new(GetStdMathMethod("MATH_max")),
-                n_pchecks = 3,
-                mask = ".nn"
-            },
-            new()
-            {
-                name = "sign",
-                func = new(GetStdMathMethod("MATH_sign")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "mul",
+                Function = new(GetStdMathMethod("MathMul")),
+                nParameterChecks = -1,
+                ParameterMask = null
             },
 
             new()
             {
-                name = "isFIN",
-                func = new(GetStdMathMethod("MATH_isFIN")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "min",
+                Function = new(GetStdMathMethod("MathMin")),
+                nParameterChecks = 3,
+                ParameterMask = ".nn"
             },
             new()
             {
-                name = "isINF",
-                func = new(GetStdMathMethod("MATH_isINF")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "max",
+                Function = new(GetStdMathMethod("MathMax")),
+                nParameterChecks = 3,
+                ParameterMask = ".nn"
             },
             new()
             {
-                name = "isNINF",
-                func = new(GetStdMathMethod("MATH_isNINF")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "sign",
+                Function = new(GetStdMathMethod("MathSign")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+
+            new()
+            {
+                Name = "isFIN",
+                Function = new(GetStdMathMethod("MathIsFIN")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "isNAN",
-                func = new(GetStdMathMethod("MATH_isNAN")),
-                n_pchecks = 2,
-                mask = ".n"
+                Name = "isINF",
+                Function = new(GetStdMathMethod("MathIsINF")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
             },
             new()
             {
-                name = "save_scatter",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter")),
-                n_pchecks = -4,
-                mask = ".saannss",
-                d_defaults = new()
+                Name = "isNINF",
+                Function = new(GetStdMathMethod("MathIsNINF")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "isNAN",
+                Function = new(GetStdMathMethod("MathIsNAN")),
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "save_scatter",
+                Function = new(GetStdMathMethod("MathPlotSaveScatter")),
+                nParameterChecks = -4,
+                ParameterMask = ".saannss",
+                DefaultValues = new()
                 {
                     { 4, new(1200) },
                     { 5, new(800) },
@@ -3115,11 +3114,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_scatters",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatters")),
-                n_pchecks = -3,
-                mask = ".sann",
-                d_defaults = new()
+                Name = "save_scatters",
+                Function = new(GetStdMathMethod("MathPlotSaveScatters")),
+                nParameterChecks = -3,
+                ParameterMask = ".sann",
+                DefaultValues = new()
                 {
                     { 3, new(1200) },
                     { 4, new(800) }
@@ -3127,11 +3126,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_scatter_step",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter_step")),
-                n_pchecks = -4,
-                mask = ".saannss",
-                d_defaults = new()
+                Name = "save_scatter_step",
+                Function = new(GetStdMathMethod("MathPlotSaveScatterStep")),
+                nParameterChecks = -4,
+                ParameterMask = ".saannss",
+                DefaultValues = new()
                 {
                     { 4, new(1200) },
                     { 5, new(800) },
@@ -3141,11 +3140,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_scatter_steps",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter_steps")),
-                n_pchecks = -3,
-                mask = ".sann",
-                d_defaults = new()
+                Name = "save_scatter_steps",
+                Function = new(GetStdMathMethod("MathPlotSaveScatterSteps")),
+                nParameterChecks = -3,
+                ParameterMask = ".sann",
+                DefaultValues = new()
                 {
                     { 3, new(1200) },
                     { 4, new(800) }
@@ -3153,11 +3152,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_scatter_point",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter_point")),
-                n_pchecks = -4,
-                mask = ".saannss",
-                d_defaults = new()
+                Name = "save_scatter_point",
+                Function = new(GetStdMathMethod("MathPlotSaveScatterPoint")),
+                nParameterChecks = -4,
+                ParameterMask = ".saannss",
+                DefaultValues = new()
                 {
                     { 4, new(1200) },
                     { 5, new(800) },
@@ -3167,11 +3166,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_scatter_points",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter_points")),
-                n_pchecks = -3,
-                mask = ".sann",
-                d_defaults = new()
+                Name = "save_scatter_points",
+                Function = new(GetStdMathMethod("MathPlotSaveScatterPoints")),
+                nParameterChecks = -3,
+                ParameterMask = ".sann",
+                DefaultValues = new()
                 {
                     { 3, new(1200) },
                     { 4, new(800) }
@@ -3179,11 +3178,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_scatter_line",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter_line")),
-                n_pchecks = -4,
-                mask = ".saannss",
-                d_defaults = new()
+                Name = "save_scatter_line",
+                Function = new(GetStdMathMethod("MathPlotSaveScatterLine")),
+                nParameterChecks = -4,
+                ParameterMask = ".saannss",
+                DefaultValues = new()
                 {
                     { 4, new(1200) },
                     { 5, new(800) },
@@ -3193,11 +3192,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_scatter_lines",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter_lines")),
-                n_pchecks = -3,
-                mask = ".sann",
-                d_defaults = new()
+                Name = "save_scatter_lines",
+                Function = new(GetStdMathMethod("MathPlotSaveScatterLines")),
+                nParameterChecks = -3,
+                ParameterMask = ".sann",
+                DefaultValues = new()
                 {
                     { 3, new(1200) },
                     { 4, new(800) }
@@ -3205,11 +3204,11 @@ namespace ExMat.BaseLib
             },
             new()
             {
-                name = "save_complex",
-                func = new(GetStdMathMethod("MATHPLOT_save_scatter_complex")),
-                n_pchecks = -3,
-                mask = ".sannss",
-                d_defaults = new()
+                Name = "save_complex",
+                Function = new(GetStdMathMethod("MathPlotSaveScatterComplex")),
+                nParameterChecks = -3,
+                ParameterMask = ".sannss",
+                DefaultValues = new()
                 {
                     { 3, new(1200) },
                     { 4, new(800) },
@@ -3218,7 +3217,7 @@ namespace ExMat.BaseLib
                 }
             },
 
-            new() { name = string.Empty }
+            new() { Name = string.Empty }
         };
         public static List<ExRegFunc> MathFuncs => _stdmathfuncs;
         public static Random Rand { get => rand; set => rand = value; }

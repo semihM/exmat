@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using ExMat.Objects;
 using ExMat.Token;
 
@@ -8,9 +7,9 @@ namespace ExMat.Lexer
 {
     public class ExMacroParam : IDisposable
     {
-        public List<int> lines = new();
-        public List<int> cols = new();
-        public string name;
+        public List<int> Lines = new();
+        public List<int> Columns = new();
+        public string Name;
         private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)
@@ -19,9 +18,9 @@ namespace ExMat.Lexer
             {
                 if (disposing)
                 {
-                    name = null;
-                    cols = null;
-                    lines = null;
+                    Name = null;
+                    Columns = null;
+                    Lines = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -47,9 +46,9 @@ namespace ExMat.Lexer
 
     public class ExMacro : IDisposable
     {
-        public List<ExMacroParam> _params = new();
-        public string name;
-        public string source;
+        public List<ExMacroParam> Parameters = new();
+        public string Name;
+        public string Source;
         private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)
@@ -58,9 +57,9 @@ namespace ExMat.Lexer
             {
                 if (disposing)
                 {
-                    name = null;
-                    source = null;
-                    Disposer.DisposeList(ref _params);
+                    Name = null;
+                    Source = null;
+                    Disposer.DisposeList(ref Parameters);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -86,41 +85,40 @@ namespace ExMat.Lexer
 
     public class ExLexer : IDisposable
     {
-        private string _source_;
-        public string Source => _source_;
+        private string _source;
+        private int _source_idx;
+        private readonly int _source_len;
 
-        private readonly int _sourcelen = 0;
-        private int _sourceidx = 0;
+        public int CurrentLine;
+        public int PrevTokenLine;
+        public int CurrentCol;
+        public char CurrentChar;
 
-        public int _currLine;
-        public int _currCol;
-        public char _currChar;
+        public TokenType TokenPrev;
+        public TokenType TokenCurr;
 
-        public int _lastTokenLine;
 
-        public TokenType c_type;
+        // Tamsayı
+        public long ValInteger;
+        // Ondalıklı
+        public double ValFloat;
+        // Yazı dizisi
+        public string ValString;
+        // Uzay
+        public ExSpace ValSpace;
 
-        public string _aStr;
-        public string str_val;
-        public string m_pname;
-        public double f_val;
-        public long i_val;
-        public Objects.ExSpace _space;
-        public string m_block;
-        public List<ExMacroParam> m_params = new();
+        // En son okunan karakter dizisi
+        public string ValTempString;
+        // Karmaşık sayı katsayısının sembolü ( tamsayı / ondalıklı )
+        public TokenType TokenComplex;
 
-        public bool reading_macro = false;
+        public string MacroBlock;
+        public string MacroParamName;
+        public List<ExMacroParam> MacroParams = new();
 
-        public Dictionary<string, TokenType> _keyWordsDict = new();
+        public bool IsReadingMacroBlock;
 
-        public bool _reached_end = false;
-
-        public TokenType _prevToken;
-        public TokenType _currToken;
-
-        public string _error;
-
-        private ExLexer _lookahead;
+        public string ErrorString;
 
         private bool disposedValue;
 
@@ -130,19 +128,17 @@ namespace ExMat.Lexer
             {
                 if (disposing)
                 {
-                    Disposer.DisposeList(ref m_params);
+                    Disposer.DisposeList(ref MacroParams);
 
-                    _keyWordsDict = null;
-                    _lookahead.Dispose();
-                    _space.Dispose();
+                    ValSpace.Dispose();
 
-                    _error = null;
-                    _aStr = null;
-                    str_val = null;
-                    m_pname = null;
-                    m_block = null;
+                    ErrorString = null;
+                    ValTempString = null;
+                    ValString = null;
+                    MacroParamName = null;
+                    MacroBlock = null;
 
-                    _source_ = null;
+                    _source = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -151,79 +147,91 @@ namespace ExMat.Lexer
             }
         }
 
+        public readonly Dictionary<string, TokenType> KeyWords = new()
+        {
+            // Sabit değerler
+            { "null", TokenType.NULL },
+            { "true", TokenType.TRUE },
+            { "false", TokenType.FALSE },
+            // Koşullu veya döngüsel
+            { "if", TokenType.IF },
+            { "else", TokenType.ELSE },
+            { "for", TokenType.FOR },
+            { "continue", TokenType.CONTINUE },
+            { "break", TokenType.BREAK },
+            // Tanımsal
+            { "var", TokenType.VAR },
+            { "function", TokenType.FUNCTION },
+            { "cluster", TokenType.CLUSTER },
+            { "rule", TokenType.RULE },
+            { "class", TokenType.CLASS },
+            { "seq", TokenType.SEQUENCE },
+            // Değer dönen
+            { "return", TokenType.RETURN },
+            { "typeof", TokenType.TYPEOF },
+            { "instanceof", TokenType.INSTANCEOF },
+            { "delete", TokenType.DELETE },
+            // Karşılaştırma operatörleri alternatifi
+            { "and", TokenType.AND },
+            { "or", TokenType.OR },
+            { "is", TokenType.EQU },
+            { "not", TokenType.NEQ },
+            // Diğer
+            { "in", TokenType.IN },     // Değer varlığı kontrolü
+            { "base", TokenType.BASE },
+            { ExMat.ConstructorName, TokenType.CONSTRUCTOR },
+            { ExMat.ThisName, TokenType.THIS }
+        };
+
         public ExLexer(string source)
         {
-            CreateKeyword("if", TokenType.IF);
-            CreateKeyword("else", TokenType.ELSE);
-            CreateKeyword("for", TokenType.FOR);
-            //CreateKeyword("foreach", TokenType.FOREACH);
-            //CreateKeyword("while", TokenType.WHILE);
+            PrevTokenLine = 1;
+            CurrentLine = 1;
+            CurrentCol = 0;
+            TokenPrev = TokenType.STARTERTOKEN;
 
-            CreateKeyword("break", TokenType.BREAK);
-            CreateKeyword("continue", TokenType.CONTINUE);
-            CreateKeyword("return", TokenType.RETURN);
+            _source = source;
+            _source_idx = 0;
+            _source_len = source.Length;
 
-            CreateKeyword("in", TokenType.IN);
-            CreateKeyword("and", TokenType.AND);
-            CreateKeyword("or", TokenType.OR);
-            CreateKeyword("is", TokenType.EQU);
-            CreateKeyword("not", TokenType.NEQ);
-
-            CreateKeyword("null", TokenType.NULL);
-            CreateKeyword("true", TokenType.TRUE);
-            CreateKeyword("false", TokenType.FALSE);
-
-            CreateKeyword("function", TokenType.FUNCTION);
-            CreateKeyword("class", TokenType.CLASS);
-            CreateKeyword("var", TokenType.VAR);
-
-            CreateKeyword(ExMat._CONSTRUCTOR, TokenType.CONSTRUCTOR);
-            CreateKeyword(ExMat._THIS, TokenType.THIS);
-            CreateKeyword("base", TokenType.BASE);
-
-            //CreateKeyword("sym", TokenType.SYMBOL);
-            //CreateKeyword("formula", TokenType.FORMULA);
-            CreateKeyword("rule", TokenType.RULE);
-            CreateKeyword("cluster", TokenType.CLUSTER);
-
-            CreateKeyword("typeof", TokenType.TYPEOF);
-            CreateKeyword("instanceof", TokenType.INSTANCEOF);
-            CreateKeyword("delete", TokenType.DELETE);
-
-            CreateKeyword("seq", TokenType.SEQUENCE);
-
-            //CreateKeyword("sum", TokenType.SUM);
-            //CreateKeyword("mul", TokenType.MUL);
-
-            _lastTokenLine = 1;
-            _currLine = 1;
-            _prevToken = TokenType.NONE;
-            _currCol = 0;
-            _reached_end = false;
-
-            _source_ = source;
-            _sourceidx = 0;
-            _sourcelen = source.Length;
-
-            Next();
+            NextChar();
         }
 
-        private void CreateKeyword(string name, TokenType typ)
+        public ExLexer(string source, int sourceIdx, char currentChar, int currentCol, TokenType tokenCurr, int prevTokenLine, string valTempString)
         {
-            if (_keyWordsDict.Keys.Contains(name))
-            {
-                throw new Exception(name + " keyword already exists!");
-            }
+            PrevTokenLine = 1;
+            CurrentLine = 1;
+            CurrentCol = 0;
+            TokenPrev = TokenType.STARTERTOKEN;
 
-            _keyWordsDict.Add(name, typ);
+            _source = source;
+            _source_idx = 0;
+            _source_len = source.Length;
+            _source_idx = sourceIdx;
+            CurrentChar = currentChar;
+            CurrentCol = currentCol;
+            TokenCurr = tokenCurr;
+            PrevTokenLine = prevTokenLine;
+            ValTempString = valTempString;
+        }
+
+        public ExLexer GetCopy()
+        {
+            return new(_source,
+                       _source_idx,
+                       CurrentChar,
+                       CurrentCol,
+                       TokenCurr,
+                       PrevTokenLine,
+                       ValTempString);
         }
 
         private void SkipComment()
         {
             do
             {
-                Next();
-            } while (_currChar != '\n' && _currChar != ExMat._END);
+                NextChar();
+            } while (CurrentChar != '\n' && CurrentChar != ExMat.EndChar);
         }
 
         private bool SkipBlockComment()
@@ -231,32 +239,32 @@ namespace ExMat.Lexer
             bool finished = false;
             while (!finished)
             {
-                switch (_currChar)
+                switch (CurrentChar)
                 {
                     case '*':
                         {
-                            Next();
-                            if (_currChar == '/')
+                            NextChar();
+                            if (CurrentChar == '/')
                             {
                                 finished = true;
-                                Next();
+                                NextChar();
                             }
                             continue;
                         }
                     case '\n':
                         {
-                            _currLine++;
-                            Next();
+                            CurrentLine++;
+                            NextChar();
                             continue;
                         }
-                    case ExMat._END:
+                    case ExMat.EndChar:
                         {
-                            _error = "expected '*/' to finish the block comment";
+                            ErrorString = "expected '*/' to finish the block comment";
                             return false;
                         }
                     default:
                         {
-                            Next();
+                            NextChar();
                             break;
                         }
                 }
@@ -264,105 +272,92 @@ namespace ExMat.Lexer
             return true;
         }
 
-        private char ReadSourceChar()
+        private void NextChar()
         {
-            if (_sourceidx == _sourcelen)
-            {
-                return ExMat._END;
-            }
+            CurrentChar = _source_idx == _source_len
+                ? ExMat.EndChar
+                : _source[_source_idx++];
 
-            char next = Source[_sourceidx];
-            _sourceidx++;
-            return next;
+            CurrentCol++;
         }
 
         private TokenType SetAndReturnToken(TokenType typ)
         {
-            _prevToken = _currToken;
-            _currToken = typ;
+            TokenPrev = TokenCurr;
+            TokenCurr = typ;
             return typ;
-        }
-
-        private void Next()
-        {
-            char c = ReadSourceChar();
-            if (c == ExMat._END)
-            {
-                _reached_end = true;
-            }
-            _currCol++;
-            _currChar = c;
         }
 
         private TokenType ReadSpaceDim(char curr)
         {
-            Next();
-            char currchar = _currChar;
-            switch (ReadNumber())
+            NextChar();
+            char currchar = CurrentChar;
+            switch (ReadNumber(CurrentChar))
             {
                 case TokenType.INTEGER:
                     {
-                        if (i_val < 0)
+                        if (ValInteger < 0)
                         {
-                            _error = "dimension can't be less than zero";
+                            ErrorString = "dimension can't be less than zero";
                             return TokenType.UNKNOWN;
                         }
-                        _space.dim = (int)i_val;
-                        if (_currChar == '*')
+                        ValSpace.Dimension = (int)ValInteger;
+                        if (CurrentChar == '*')
                         {
-                            ExSpace parent = null;
-                            while (_currChar == '*')
+                            ExSpace parent = new();
+                            while (CurrentChar == '*')
                             {
-                                parent = new() { dim = _space.dim, sign = _space.sign, space = _space.space + "", _child = _space._child };
+                                ExSpace.Copy(parent, ValSpace);
 
                                 if (ReadSpaceDim(curr) != TokenType.SPACE)
                                 {
                                     return TokenType.UNKNOWN;
                                 }
-
-                                parent._child = new() { dim = _space.dim, sign = _space.sign, space = _space.space + "", _child = _space._child };
+                                parent.AddDimension(ValSpace);
                             }
-                            _space = parent;
+                            ValSpace = parent;
                         }
                         break;
                     }
                 default:
                     {
-                        if (_currChar == '@' && char.IsLetter(currchar))
+                        if (CurrentChar == '@' && char.IsLetter(currchar))  // @A'b@
                         {
-                            _space.dim = -1;
-                            _error = string.Empty;
+                            ValSpace.Dimension = -1;
+                            ErrorString = string.Empty;
                             return TokenType.SPACE;
                         }
-                        else if (_currChar == '*')
+                        else if (CurrentChar == '*')    // @A'b*...
                         {
                             if (char.IsLetter(currchar))
                             {
-                                _space.dim = -1;
+                                ValSpace.Dimension = -1;
                             }
 
                             ExSpace parent = null;
-                            while (_currChar == '*')
+                            while (CurrentChar == '*')
                             {
-                                parent = new() { dim = -1, sign = _space.sign, space = _space.space + "", _child = _space._child };
+                                parent = new(-1, ValSpace.Domain, ValSpace.Sign, ValSpace.Child);
 
                                 if (ReadSpaceDim(curr) != TokenType.SPACE)
                                 {
                                     return TokenType.UNKNOWN;
                                 }
-
-                                parent._child = new() { dim = _space.dim, sign = _space.sign, space = _space.space + "", _child = _space._child }; ;
+                                parent.AddDimension(ValSpace);
                             }
-                            _space = parent;
+                            ValSpace = parent;
                             break;
                         }
-                        _error = "expected integer as dimension";
-                        return TokenType.UNKNOWN;
+                        else
+                        {
+                            ErrorString = "expected integer as dimension";
+                            return TokenType.UNKNOWN;
+                        }
                     }
             }
-            if (_currChar != curr)
+            if (CurrentChar != curr)
             {
-                _error = "expected '" + curr + "' to finish space reference after dimension";
+                ErrorString = "expected '" + curr + "' to finish space reference after dimension";
                 return TokenType.UNKNOWN;
             }
             return TokenType.SPACE;
@@ -371,34 +366,52 @@ namespace ExMat.Lexer
 
         private TokenType ReadSpace(char curr)
         {
-            Next();
+            NextChar();
             if (ReadId() != TokenType.IDENTIFIER)
             {
-                _error = "expected space identifier";
+                ErrorString = "expected space identifier";
                 return TokenType.UNKNOWN;
             }
 
-            _space = new();
-            _space.space = str_val;
+            ValSpace = new();
+            switch (ValString)
+            {
+                case "R":
+                case "r":
+                case "Z":
+                case "z":
+                case "C":
+                case "E":
+                    {
+                        break;
+                    }
+                default:
+                    {
+                        ErrorString = "unknown domain '" + ValString + "'";
+                        return TokenType.UNKNOWN;
+                    }
+            }
 
-            if (_currChar == ExMat._END)
+            ValSpace.Domain = ValString;
+
+            if (CurrentChar == ExMat.EndChar)
             {
                 return TokenType.UNKNOWN;
             }
 
-            if (_currChar == curr)
+            if (CurrentChar == curr)
             {
                 return TokenType.SPACE;
             }
 
-            switch (_currChar)
+            switch (CurrentChar)
             {
                 case '+':
                 case '-':
                     //case '*':
                     {
-                        _space.sign = _currChar;
-                        Next();
+                        ValSpace.Sign = CurrentChar;
+                        NextChar();
                         break;
                     }
                 case '\'':
@@ -407,19 +420,19 @@ namespace ExMat.Lexer
                     }
                 default:
                     {
-                        _error = "expected sign(+,-) or dimension(') characters";
+                        ErrorString = "expected sign(+,-) or dimension(') characters";
                         return TokenType.UNKNOWN;
                     }
             }
 
-            if (_currChar == curr)
+            if (CurrentChar == curr)
             {
                 return TokenType.SPACE;
             }
 
-            if (_currChar != '\'')
+            if (CurrentChar != '\'')
             {
-                _error = "unexpected space character '" + _currChar + "'";
+                ErrorString = "unexpected space character '" + CurrentChar + "'";
                 return TokenType.UNKNOWN;
             }
 
@@ -431,45 +444,45 @@ namespace ExMat.Lexer
             string pname = string.Empty;
             do
             {
-                pname += _currChar;
-                Next();
+                pname += CurrentChar;
+                NextChar();
 
-            } while (char.IsLetterOrDigit(_currChar) || _currChar == '_');
+            } while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_');
 
-            if (_currChar != '#')
+            if (CurrentChar != '#')
             {
                 return null;
             }
-            Next();
-            if (_currChar != '#')
+            NextChar();
+            if (CurrentChar != '#')
             {
                 return null;
             }
-            Next();
+            NextChar();
 
             return string.IsNullOrWhiteSpace(pname) ? null : pname;
         }
 
         private TokenType ReadMacroBlock()
         {
-            m_block = string.Empty;
+            MacroBlock = string.Empty;
             for (; ; )
             {
-                while (_currChar != ExMat._END && _currChar != '#')
+                while (CurrentChar != ExMat.EndChar && CurrentChar != '#')
                 {
-                    m_block += _currChar;
-                    Next();
+                    MacroBlock += CurrentChar;
+                    NextChar();
                 }
 
-                if (_currChar == '#')
+                if (CurrentChar == '#')
                 {
                     string mtag = string.Empty;
-                    Next();
+                    NextChar();
 
                     string pname = string.Empty;
-                    if (_currChar == '#')    // ##param##
+                    if (CurrentChar == '#')    // ##param##
                     {
-                        Next();
+                        NextChar();
                         pname = ReadMacroParam();
                         if (pname == null)
                         {
@@ -477,23 +490,23 @@ namespace ExMat.Lexer
                         }
 
                         ExMacroParam ep;
-                        if ((ep = m_params.Find((ExMacroParam e) => e.name == pname)) != null)
+                        if ((ep = MacroParams.Find((ExMacroParam e) => e.Name == pname)) != null)
                         {
-                            ep.cols.Add(_currCol);
-                            ep.lines.Add(_currLine);
+                            ep.Columns.Add(CurrentCol);
+                            ep.Lines.Add(CurrentLine);
                         }
                         else
                         {
-                            m_params.Add(new() { name = pname, cols = new() { _currCol }, lines = new() { _currLine } });
+                            MacroParams.Add(new() { Name = pname, Columns = new() { CurrentCol }, Lines = new() { CurrentLine } });
                         }
-                        m_block += "##" + pname + "##";
+                        MacroBlock += "##" + pname + "##";
                     }
                     else // #end 
                     {
-                        while (char.IsLetterOrDigit(_currChar) || _currChar == '_')
+                        while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_')
                         {
-                            mtag += _currChar;
-                            Next();
+                            mtag += CurrentChar;
+                            NextChar();
                         }
                     }
 
@@ -516,512 +529,286 @@ namespace ExMat.Lexer
             }
         }
 
-        private TokenType ReadString(char curr)
-        {
-            _aStr = string.Empty;
-            Next();
-            if (_currChar == ExMat._END)
-            {
-                return TokenType.UNKNOWN;
-            }
-            for (; ; )
-            {
-                while (_currChar != curr)
-                {
-                    switch (_currChar)
-                    {
-                        case ExMat._END:
-                            {
-                                _error = "unfinished string";
-                                return TokenType.UNKNOWN;
-                            }
-                        //case '\n':
-                        //    {
-                        //        _aStr += _currChar;
-                        //        Next();
-                        //        _currLine++;
-                        //        break;
-                        //    }
-                        case '\\':
-                            {
-                                Next();
-                                switch (_currChar)
-                                {
-                                    case 't':
-                                        {
-                                            _aStr += '\t';
-                                            Next();
-                                            break;
-                                        }
-                                    case 'a':
-                                        {
-                                            _aStr += '\a';
-                                            Next();
-                                            break;
-                                        }
-                                    case 'b':
-                                        {
-                                            _aStr += '\b';
-                                            Next();
-                                            break;
-                                        }
-                                    case 'n':
-                                        {
-                                            _aStr += '\n';
-                                            Next();
-                                            break;
-                                        }
-                                    case 'r':
-                                        {
-                                            _aStr += '\r';
-                                            Next();
-                                            break;
-                                        }
-                                    case 'v':
-                                        {
-                                            _aStr += '\v';
-                                            Next();
-                                            break;
-                                        }
-                                    case 'f':
-                                        {
-                                            _aStr += '\f';
-                                            Next();
-                                            break;
-                                        }
-                                    case '0':
-                                        {
-                                            _aStr += ExMat._END;
-                                            Next();
-                                            break;
-                                        }
-                                    case '\\':
-                                        {
-                                            _aStr += '\\';
-                                            Next();
-                                            break;
-                                        }
-                                    case '"':
-                                        {
-                                            _aStr += '\"';
-                                            Next();
-                                            break;
-                                        }
-                                    case '\'':
-                                        {
-                                            _aStr += '\'';
-                                            Next();
-                                            break;
-                                        }
-                                    case 'x':
-                                        {
-                                            int s;
-                                            Next();
-                                            if (IsValidHexChar(ref _currChar))
-                                            {
-                                                s = GetHexCharVal(_currChar) * 16;
-                                                Next();
-                                                if (IsValidHexChar(ref _currChar))
-                                                {
-                                                    s += GetHexCharVal(_currChar);
-                                                    Next();
-                                                    _aStr += (char)s;
-                                                }
-                                                else
-                                                {
-                                                    _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
-                                                    return TokenType.UNKNOWN;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
-                                                return TokenType.UNKNOWN;
-                                            }
-
-                                            break;
-                                        }
-                                    case 'u':
-                                        {
-                                            int s;
-                                            Next();
-                                            if (IsValidHexChar(ref _currChar))
-                                            {
-                                                s = GetHexCharVal(_currChar) * 4096;
-                                                Next();
-                                                if (IsValidHexChar(ref _currChar))
-                                                {
-                                                    s += GetHexCharVal(_currChar) * 256;
-                                                    Next();
-                                                    if (IsValidHexChar(ref _currChar))
-                                                    {
-                                                        s += GetHexCharVal(_currChar) * 16;
-                                                        Next();
-                                                        if (IsValidHexChar(ref _currChar))
-                                                        {
-                                                            s += GetHexCharVal(_currChar);
-                                                            Next();
-                                                            _aStr += (char)s;
-                                                        }
-                                                        else
-                                                        {
-                                                            _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
-                                                            return TokenType.UNKNOWN;
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
-                                                        return TokenType.UNKNOWN;
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
-                                                    return TokenType.UNKNOWN;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                _error = "hexadecimal character out of range [0-16]: '" + _currChar + "'";
-                                                return TokenType.UNKNOWN;
-                                            }
-
-                                            break;
-                                        }
-                                    default:
-                                        {
-                                            _error = "unknown escape char '" + _currChar + "'";
-                                            return TokenType.UNKNOWN;
-                                        }
-                                }
-                                break;
-                            }
-                        case '\r':
-                        case '\n':
-                            {
-                                _error = "unfinished string";
-                                return TokenType.UNKNOWN;
-                            }
-                        default:
-                            {
-                                _aStr += _currChar;
-                                Next();
-                                break;
-                            }
-                    }
-                }
-                Next();
-                break;
-            }
-            // TO-DO maybe handle '' as char ?
-
-            str_val = _aStr;
-            return TokenType.LITERAL;
-        }
-
         private static int GetHexCharVal(char curr)
         {
-            if (char.IsDigit(curr))
-            {
-                return curr - 48;
-            }
-            else
-            {
-                return curr - 87;
-            }
+            return curr - (char.IsDigit(curr) ? 48 : 87);
         }
-
         private static bool IsValidHexChar(ref char curr)
         {
             return char.IsDigit(curr) || (char.IsLetter(curr) && (curr = char.ToLower(curr)) <= 'f' && curr >= 'a');
         }
 
-        private TokenType GetIdType()
+        private bool ReadAsHex(int Base, out int Result)
         {
-            if (_keyWordsDict.Keys.Contains(_aStr))
+            NextChar();
+
+            if (Base <= 0)
             {
-                return _keyWordsDict[_aStr];
+                Result = 0;
+                return true;
             }
 
-            return TokenType.IDENTIFIER;
-        }
-
-        private TokenType ReadId(bool macro = false)
-        {
-            TokenType typ;
-            _aStr = string.Empty;
-            if (!reading_macro)
+            if (IsValidHexChar(ref CurrentChar))
             {
-                do
+                int s = GetHexCharVal(CurrentChar) * Base;
+                if (!ReadAsHex(Base / 16, out Result))
                 {
-                    _aStr += _currChar;
-                    Next();
-
-                } while (char.IsLetterOrDigit(_currChar) || _currChar == '_');
+                    return false;
+                }
+                Result += s;
+                return true;
             }
             else
             {
-                do
-                {
-                    if (_currChar == '#')
-                    {
-                        Next();
-                        if (_currChar != '#')
-                        {
-                            return TokenType.UNKNOWN;
-                        }
-                        Next();
-                        string pname = ReadMacroParam();
-                        if (string.IsNullOrWhiteSpace(pname))
-                        {
-                            return TokenType.UNKNOWN;
-                        }
+                ErrorString = "expected hexadecimal characters [0-9A-Fa-f], got '" + CurrentChar + "'";
+                Result = 0;
+                return false;
+            }
+        }
 
-                        _aStr += "##" + pname + "##";
-                    }
-                    else
-                    {
-                        _aStr += _currChar;
-                        Next();
-                    }
-
-                } while (char.IsLetterOrDigit(_currChar) || _currChar == '_' || _currChar == '#');
-
-                return TokenType.MACROPARAM_STR;
+        private TokenType ReadString(char curr)
+        {
+            ValTempString = string.Empty;
+            NextChar();
+            if (CurrentChar == ExMat.EndChar)
+            {
+                return TokenType.UNKNOWN;
             }
 
-            if (macro)
+            while (CurrentChar != curr)
             {
-                switch (_aStr)
+                switch (CurrentChar)
                 {
-                    case "define":
-                        return TokenType.MACROSTART;
-                    case "end":
-                        return TokenType.MACROEND;
-                    case "block":
-                        return TokenType.MACROBLOCK;
+                    case ExMat.EndChar:
+                    case '\r':
+                    case '\n':
+                        {
+                            ErrorString = "unfinished string";
+                            return TokenType.UNKNOWN;
+                        }
+                    case '\\':
+                        {
+                            NextChar();
+                            switch (CurrentChar)
+                            {
+                                case 't':
+                                    ValTempString += '\t'; NextChar(); break;
+                                #region Rest of the known escape characters \n \r \a \v \f \0 \\ \" \'
+                                case 'a':
+                                    ValTempString += '\a'; NextChar(); break;
+                                case 'b':
+                                    ValTempString += '\b'; NextChar(); break;
+                                case 'n':
+                                    ValTempString += '\n'; NextChar(); break;
+                                case 'r':
+                                    ValTempString += '\r'; NextChar(); break;
+                                case 'v':
+                                    ValTempString += '\v'; NextChar(); break;
+                                case 'f':
+                                    ValTempString += '\f'; NextChar(); break;
+                                case '0':
+                                    ValTempString += ExMat.EndChar; NextChar(); break;
+                                case '\\':
+                                    ValTempString += '\\'; NextChar(); break;
+                                case '"':
+                                    ValTempString += '\"'; NextChar(); break;
+                                case '\'':
+                                    ValTempString += '\''; NextChar(); break;
+                                #endregion
+
+                                #region Hexadecimal \xnn \unnnn
+                                case 'u':
+                                case 'x':
+                                    {
+                                        if (ReadAsHex(16 * (CurrentChar == 'u' ? 256 : 1), out int res))
+                                        {
+                                            ValTempString += (char)res;
+                                            break;
+                                        }
+                                        else
+                                        {
+                                            return TokenType.UNKNOWN;
+                                        }
+                                    }
+                                #endregion
+                                default:    // Unknown
+                                    {
+                                        ErrorString = "unknown escape char '" + CurrentChar + "'";
+                                        return TokenType.UNKNOWN;
+                                    }
+                            }
+                            break;
+                        }
                     default:
-                        return TokenType.UNKNOWN;
+                        {
+                            ValTempString += CurrentChar;
+                            NextChar();
+                            break;
+                        }
                 }
             }
+            ValString = ValTempString; NextChar();
+            return TokenType.LITERAL;
+        }
 
-            typ = GetIdType();
+        private TokenType GetIdType()
+        {
+            return KeyWords.ContainsKey(ValTempString) ? KeyWords[ValTempString] : TokenType.IDENTIFIER;
+        }
+
+        private void LookForNext(TokenType lookfor, string name, TokenType then, ref TokenType res)
+        {
+            using ExLexer ahead = GetCopy();
+            ahead.Lex();
+
+            if (ahead.TokenCurr == lookfor && ahead.ValTempString == name)
+            {
+                res = then;
+                Lex();
+            }
+        }
+
+        private TokenType ReadId()
+        {
+            ValTempString = string.Empty;
+            do
+            {
+                ValTempString += CurrentChar;
+                NextChar();
+
+            } while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_');
+
+            TokenType typ = GetIdType();
             if (typ == TokenType.EQU)
             {
-                LookForNext(TokenType.NEQ, "not", TokenType.NEQ, ref typ);
+                LookForNext(TokenType.NEQ, "not", TokenType.NEQ, ref typ);  // x is not y => x != y
             }
             else if (typ == TokenType.NEQ)
             {
-                LookForNext(TokenType.IN, "in", TokenType.NOTIN, ref typ);
+                LookForNext(TokenType.IN, "in", TokenType.NOTIN, ref typ); // x not in y => !(x in y)
             }
 
             if (typ == TokenType.IDENTIFIER)
             {
-                str_val = _aStr + "";
+                ValString = ValTempString;
             }
 
             return typ;
         }
 
-        private void LookForNext(TokenType lookfor, string name, TokenType then, ref TokenType res)
-        {
-            _lookahead = new(Source) { _sourceidx = _sourceidx, _currChar = _currChar, _currCol = _currCol, _currToken = _currToken, _lastTokenLine = _lastTokenLine, _aStr = _aStr };
-            _lookahead.Lex();
-            if (_lookahead._currToken == lookfor && _lookahead._aStr == name)
-            {
-                res = then;
-                Lex();
-            }
-            _lookahead = null;
-        }
 
-        private static bool IsExp(char c)
+        private static bool IsExponent(char c)
         {
             return c == 'e' || c == 'E';
         }
-
         private static bool IsSign(char c)
         {
             return c == '+' || c == '-';
         }
-
-        private TokenType ReadNumber()
+        private static bool IsDotNetNumberChar(char c)
         {
-            TokenType typ = TokenType.INTEGER;
-            char start = _currChar;
-            _aStr = string.Empty;
-            Next();
-
-            bool m_typed = false;
-            _aStr += start;
-            if (start == '∞')
-            {
-                return ParseNumberString(TokenType.FLOAT, false);
-            }
-
-            if (reading_macro)
-            {
-                while (_currChar == '.'
-                       || char.IsDigit(_currChar)
-                       || IsExp(_currChar)
-                       || _currChar == '#')
-                {
-
-                    if (_currChar == '#')
-                    {
-                        Next();
-                        if (_currChar != '#')
-                        {
-                            return TokenType.UNKNOWN;
-                        }
-                        Next();
-                        string pname = ReadMacroParam();
-                        if (string.IsNullOrWhiteSpace(pname))
-                        {
-                            return TokenType.UNKNOWN;
-                        }
-
-                        _aStr += "##" + pname + "##";
-                        typ = TokenType.FLOAT;
-                    }
-
-                    if (!m_typed && (_currChar == '.' || IsExp(_currChar)))
-                    {
-                        typ = TokenType.FLOAT;
-                    }
-
-                    if (IsExp(_currChar))
-                    {
-                        if (typ != TokenType.FLOAT)
-                        {
-                            _error = "Wrong double number format";
-                            return TokenType.UNKNOWN;
-                        }
-
-                        typ = TokenType.SCI;
-
-                        _aStr += _currChar;
-                        Next();
-
-                        if (IsSign(_currChar))
-                        {
-                            _aStr += _currChar;
-                            Next();
-                        }
-
-                        if (!char.IsDigit(_currChar) && _currChar != '#')
-                        {
-                            _error = "Wrong exponent value format";
-                            return TokenType.UNKNOWN;
-                        }
-                    }
-
-                    _aStr += _currChar;
-                    Next();
-                }
-
-                return TokenType.MACROPARAM_NUM;
-            }
-            else
-            {
-                while (_currChar == '.' || char.IsDigit(_currChar) || IsExp(_currChar))
-                {
-                    if (_currChar == '.' || IsExp(_currChar))
-                    {
-                        typ = TokenType.FLOAT;
-                    }
-
-                    if (IsExp(_currChar))
-                    {
-                        if (typ != TokenType.FLOAT)
-                        {
-                            _error = "Wrong double number format";
-                            return TokenType.UNKNOWN;
-                        }
-
-                        typ = TokenType.SCI;
-
-                        _aStr += _currChar;
-                        Next();
-
-                        if (IsSign(_currChar))
-                        {
-                            _aStr += _currChar;
-                            Next();
-                        }
-
-                        if (!char.IsDigit(_currChar))
-                        {
-                            _error = "Wrong exponent value format";
-                            return TokenType.UNKNOWN;
-                        }
-                    }
-
-                    _aStr += _currChar;
-                    Next();
-                }
-
-                if (_aStr[^1] == '.')
-                {
-                    _error = "expected digits after '.' ";
-                    return TokenType.UNKNOWN;
-                }
-
-                if (_currChar == 'i')
-                {
-                    c_type = typ == TokenType.INTEGER ? TokenType.INTEGER : TokenType.FLOAT;
-                    Next();
-                    return ParseNumberString(typ, true);
-                }
-                else
-                {
-                    return ParseNumberString(typ, false);
-                }
-            }
+            return c == '∞';
         }
 
-        private TokenType ParseNumberString(TokenType typ, bool c = false)
+        private TokenType ParseNumberString(TokenType typ, bool isComplex = false)
         {
             switch (typ)
             {
                 case TokenType.FLOAT:
-                case TokenType.SCI:
+                case TokenType.SCIENTIFIC:
                     {
-                        if (!double.TryParse(_aStr, out f_val))
+                        if (!double.TryParse(ValTempString, out ValFloat))
                         {
-                            _error = "failed to parse as float";
+                            ErrorString = "failed to parse as float";
                             return TokenType.UNKNOWN;
                         }
-                        return c ? TokenType.COMPLEX : TokenType.FLOAT;
+                        return isComplex ? TokenType.COMPLEX : TokenType.FLOAT;
                     }
                 case TokenType.INTEGER:
                     {
-                        if (!long.TryParse(_aStr, out i_val))
+                        if (!long.TryParse(ValTempString, out ValInteger))
                         {
-                            if (!double.TryParse(_aStr, out f_val))
+                            if (!double.TryParse(ValTempString, out ValFloat))
                             {
-                                _error = "failed to parse as integer";
+                                ErrorString = "failed to parse as integer";
                                 return TokenType.UNKNOWN;
                             }
-                            if (c)
+                            if (isComplex)
                             {
-                                c_type = TokenType.FLOAT;
+                                TokenComplex = TokenType.FLOAT;
                                 return TokenType.COMPLEX;
                             }
                             return TokenType.FLOAT;
                         }
-                        return c ? TokenType.COMPLEX : TokenType.INTEGER;
+                        return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
                     }
             }
             return TokenType.UNKNOWN;
         }
 
-        public static TokenType GetTokenTypeForChar(char c)
+        private TokenType ReadNumber(char start)
+        {
+            TokenType typ = TokenType.INTEGER;
+            ValTempString = start.ToString();   // ilk karakter
+
+            NextChar();
+            if (IsDotNetNumberChar(start)) // .NET nümerik karakteri
+            {
+                return ParseNumberString(TokenType.FLOAT, false);
+            }
+
+            while (CurrentChar == '.' || char.IsDigit(CurrentChar) || IsExponent(CurrentChar))
+            {
+                if (CurrentChar == '.')
+                {
+                    typ = TokenType.FLOAT;
+                }
+                else if (IsExponent(CurrentChar))
+                {
+                    if (ValTempString[^1] == '.')
+                    {
+                        ErrorString = "expected digits after '.' ";
+                        return TokenType.UNKNOWN;
+                    }
+
+                    typ = TokenType.SCIENTIFIC;
+
+                    ValTempString += CurrentChar; NextChar();
+
+                    if (IsSign(CurrentChar))
+                    {
+                        ValTempString += CurrentChar; NextChar();
+                    }
+
+                    if (!char.IsDigit(CurrentChar))
+                    {
+                        ErrorString = "Wrong exponent value format";
+                        return TokenType.UNKNOWN;
+                    }
+                }
+
+                ValTempString += CurrentChar; NextChar();
+            }
+
+            if (ValTempString[^1] == '.')
+            {
+                ErrorString = "expected digits after '.' ";
+                return TokenType.UNKNOWN;
+            }
+            else if (CurrentChar == 'i')
+            {
+                TokenComplex = typ == TokenType.INTEGER ? TokenType.INTEGER : TokenType.FLOAT;
+                NextChar();
+                return ParseNumberString(typ, true);
+            }
+            return ParseNumberString(typ, false);
+        }
+
+        public TokenType GetTokenTypeForChar(char c)
         {
             switch (c)
             {
-                case ExMat._END:
+                case ExMat.EndChar:
                     return TokenType.ENDLINE;
                 case '+':
                     return TokenType.ADD;
@@ -1056,64 +843,65 @@ namespace ExMat.Lexer
                 case ',':
                     return TokenType.SEP;
                 case '{':
-                    return TokenType.CLS_OPEN;
+                    return TokenType.CURLYOPEN;
                 case '}':
-                    return TokenType.CLS_CLOSE;
+                    return TokenType.CURLYCLOSE;
                 case '[':
-                    return TokenType.ARR_OPEN;
+                    return TokenType.SQUAREOPEN;
                 case ']':
-                    return TokenType.ARR_CLOSE;
+                    return TokenType.SQUARECLOSE;
                 case '(':
-                    return TokenType.R_OPEN;
+                    return TokenType.ROUNDOPEN;
                 case ')':
-                    return TokenType.R_CLOSE;
+                    return TokenType.ROUNDCLOSE;
                 case '?':
                     return TokenType.QMARK;
                 case '\'':
-                    return TokenType.MTRS;
+                    return TokenType.MATTRANSPOSE;
                 case '$':
                     return TokenType.LAMBDA;
                 default:
+                    ErrorString = "unknown symbol '" + c + "'";
                     return TokenType.UNKNOWN;
             }
         }
 
         public TokenType Lex()
         {
-            _lastTokenLine = _currLine;
-            while (_currChar != ExMat._END)
+            PrevTokenLine = CurrentLine;
+            while (CurrentChar != ExMat.EndChar)
             {
-                switch (_currChar)
+                switch (CurrentChar)
                 {
+                    #region Special characters
                     case '\t':
                     case '\r':
                     case ' ':
                         {
-                            Next();
+                            NextChar();
                             continue;
                         }
                     case '\n':
                         {
-                            _currLine++;
-                            _prevToken = _currToken;
-                            _currToken = TokenType.NEWLINE;
-                            Next();
-                            _currCol = 1;
+                            CurrentLine++;
+                            SetAndReturnToken(TokenType.NEWLINE);
+                            NextChar();
+                            CurrentCol = 1;
                             continue;
                         }
                     case '#':
                         {
-                            if (reading_macro)
+                            if (IsReadingMacroBlock)    // TO-DO
                             {
-                                Next();
-                                if (_currChar != '#')
+                                NextChar();
+                                if (CurrentChar != '#')
                                 {
                                     // SHOULDNT GO HERE 
                                     return TokenType.UNKNOWN;
                                 }
 
-                                m_pname = ReadMacroParam();
-                                if (string.IsNullOrWhiteSpace(m_pname))
+                                MacroParamName = ReadMacroParam();
+                                if (string.IsNullOrWhiteSpace(MacroParamName))
                                 {
                                     return TokenType.UNKNOWN;
                                 }
@@ -1121,8 +909,8 @@ namespace ExMat.Lexer
                             }
                             else
                             {
-                                Next();
-                                TokenType typ = ReadId(true);
+                                NextChar();
+                                TokenType typ = ReadId(); // ReadId(true);
                                 switch (typ)
                                 {
                                     case TokenType.MACROSTART:
@@ -1136,7 +924,7 @@ namespace ExMat.Lexer
                                         }
                                     default:
                                         {
-                                            _error = "expected 'define' or 'end' after '#'";
+                                            ErrorString = "expected 'define' or 'end' after '#'";
                                             return TokenType.UNKNOWN;
                                         }
                                 }
@@ -1145,16 +933,16 @@ namespace ExMat.Lexer
                         }
                     case '=':
                         {
-                            Next();
-                            if (_currChar == '=')
+                            NextChar();
+                            if (CurrentChar == '=')
                             {
-                                Next();
+                                NextChar();
                                 return SetAndReturnToken(TokenType.EQU);
                             }
-                            else if (_currChar == '>')
+                            else if (CurrentChar == '>')
                             {
-                                Next();
-                                return SetAndReturnToken(TokenType.ELEMENT_DEF);
+                                NextChar();
+                                return SetAndReturnToken(TokenType.ELEMENTDEF);
                             }
                             else
                             {
@@ -1163,22 +951,22 @@ namespace ExMat.Lexer
                         }
                     case '<':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '=':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.LET);
                                     }
                                 case '<':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.LSHF);
                                     }
                                 case '>':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.NEWSLOT);
                                     }
                             }
@@ -1186,17 +974,17 @@ namespace ExMat.Lexer
                         }
                     case '>':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '=':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.GET);
                                     }
                                 case '>':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.RSHF);
                                     }
                             }
@@ -1204,10 +992,10 @@ namespace ExMat.Lexer
                         }
                     case '!':
                         {
-                            Next();
-                            if (_currChar == '=')
+                            NextChar();
+                            if (CurrentChar == '=')
                             {
-                                Next();
+                                NextChar();
                                 return SetAndReturnToken(TokenType.NEQ);
                             }
                             else
@@ -1217,18 +1005,18 @@ namespace ExMat.Lexer
                         }
                     case '\\':
                         {
-                            _error = "escape char outside string";
+                            ErrorString = "escape char outside string";
                             return TokenType.UNKNOWN;
                         }
                     case '\'':
                         {
-                            Next();
-                            return SetAndReturnToken(TokenType.MTRS);
+                            NextChar();
+                            return SetAndReturnToken(TokenType.MATTRANSPOSE);
                         }
                     case '"':
                         {
                             TokenType res;
-                            if ((res = ReadString(_currChar)) != TokenType.UNKNOWN)
+                            if ((res = ReadString(CurrentChar)) != TokenType.UNKNOWN)
                             {
                                 return SetAndReturnToken(res);
                             }
@@ -1236,20 +1024,20 @@ namespace ExMat.Lexer
                         }
                     case '$':
                         {
-                            Next();
+                            NextChar();
                             return SetAndReturnToken(TokenType.LAMBDA);
                         }
                     case '@':
                         {
                             TokenType res;
-                            if ((res = ReadSpace(_currChar)) != TokenType.UNKNOWN)
+                            if ((res = ReadSpace(CurrentChar)) != TokenType.UNKNOWN)
                             {
-                                Next();
+                                NextChar();
                                 return SetAndReturnToken(TokenType.SPACE);
                             }
                             else
                             {
-                                _error = "expected the pattern @(Z|R|N|C|A)[+-]?('\\d(\\*\\d)*)?@ for spaces";
+                                ErrorString = "expected the pattern @(Z|R|N|C|E)[+-]?('\\d(\\*\\d)*)?@ for spaces";
                                 return TokenType.UNKNOWN;
                             }
                         }
@@ -1264,31 +1052,31 @@ namespace ExMat.Lexer
                     case '?':
                     case '~':
                         {
-                            TokenType tmp = GetTokenTypeForChar(_currChar);
-                            Next();
+                            TokenType tmp = GetTokenTypeForChar(CurrentChar);
+                            NextChar();
                             return SetAndReturnToken(tmp);
                         }
                     case '.':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '/':
                                     {
-                                        Next();
-                                        return SetAndReturnToken(TokenType.A_END);
+                                        NextChar();
+                                        return SetAndReturnToken(TokenType.ATTRIBUTEFINISH);
                                     }
                                 case '*':
                                     {
-                                        Next();
-                                        return SetAndReturnToken(TokenType.MMLT);
+                                        NextChar();
+                                        return SetAndReturnToken(TokenType.MATMLT);
                                     }
                                 case '.':
                                     {
-                                        Next();
-                                        if (_currChar == '.')
+                                        NextChar();
+                                        if (CurrentChar == '.')
                                         {
-                                            Next();
+                                            NextChar();
                                             return SetAndReturnToken(TokenType.VARGS);
                                         }
                                         return SetAndReturnToken(TokenType.DEFAULT);
@@ -1301,10 +1089,10 @@ namespace ExMat.Lexer
                         }
                     case '&':
                         {
-                            Next();
-                            if (_currChar == '&')
+                            NextChar();
+                            if (CurrentChar == '&')
                             {
-                                Next();
+                                NextChar();
                                 return SetAndReturnToken(TokenType.AND);
                             }
                             else
@@ -1314,10 +1102,10 @@ namespace ExMat.Lexer
                         }
                     case '|':
                         {
-                            Next();
-                            if (_currChar == '|')
+                            NextChar();
+                            if (CurrentChar == '|')
                             {
-                                Next();
+                                NextChar();
                                 return SetAndReturnToken(TokenType.OR);
                             }
                             else
@@ -1327,24 +1115,16 @@ namespace ExMat.Lexer
                         }
                     case '^':
                         {
-                            Next();
-                            if (_currChar == '^')
-                            {
-                                Next();
-                                return SetAndReturnToken(TokenType.XOR);
-                            }
-                            else
-                            {
-                                return SetAndReturnToken(TokenType.BXOR);
-                            }
+                            NextChar();
+                            return SetAndReturnToken(TokenType.BXOR);
                         }
                     case ':':
                         {
-                            Next();
-                            if (_currChar == ':')
+                            NextChar();
+                            if (CurrentChar == ':')
                             {
-                                Next();
-                                return SetAndReturnToken(TokenType.GLB);
+                                NextChar();
+                                return SetAndReturnToken(TokenType.GLOBAL);
                             }
                             else
                             {
@@ -1353,17 +1133,17 @@ namespace ExMat.Lexer
                         }
                     case '+':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '=':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.ADDEQ);
                                     }
                                 case '+':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.INC);
                                     }
                                 default:
@@ -1374,17 +1154,17 @@ namespace ExMat.Lexer
                         }
                     case '-':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '=':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.SUBEQ);
                                     }
                                 case '-':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.DEC);
                                     }
                                 default:
@@ -1395,27 +1175,27 @@ namespace ExMat.Lexer
                         }
                     case '*':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '.':
                                     {
-                                        Next();
-                                        if (_currChar != '*')
+                                        NextChar();
+                                        if (CurrentChar != '*')
                                         {
                                             return TokenType.UNKNOWN;
                                         }
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.CARTESIAN);
                                     }
                                 case '*':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.EXP);
                                     }
                                 case '=':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.MLTEQ);
                                     }
                                 default:
@@ -1426,12 +1206,12 @@ namespace ExMat.Lexer
                         }
                     case '/':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '=':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.DIVEQ);
                                     }
                                 case '/':
@@ -1441,7 +1221,7 @@ namespace ExMat.Lexer
                                     }
                                 case '*':
                                     {
-                                        Next();
+                                        NextChar();
                                         if (!SkipBlockComment())
                                         {
                                             return TokenType.UNKNOWN;
@@ -1450,8 +1230,8 @@ namespace ExMat.Lexer
                                     }
                                 case '.':
                                     {
-                                        Next();
-                                        return SetAndReturnToken(TokenType.A_START);
+                                        NextChar();
+                                        return SetAndReturnToken(TokenType.ATTRIBUTEBEGIN);
                                     }
                                 default:
                                     {
@@ -1461,12 +1241,12 @@ namespace ExMat.Lexer
                         }
                     case '%':
                         {
-                            Next();
-                            switch (_currChar)
+                            NextChar();
+                            switch (CurrentChar)
                             {
                                 case '=':
                                     {
-                                        Next();
+                                        NextChar();
                                         return SetAndReturnToken(TokenType.MODEQ);
                                     }
                                 default:
@@ -1475,30 +1255,34 @@ namespace ExMat.Lexer
                                     }
                             }
                         }
-                    case ExMat._END:
+                    case ExMat.EndChar:
                         return TokenType.ENDLINE;
+                    #endregion
+
+                    #region Number, Identifier, Other Special character or Unknown
                     default:
                         {
-                            if (char.IsDigit(_currChar) || _currChar == '∞')
+                            if (char.IsDigit(CurrentChar) || IsDotNetNumberChar(CurrentChar))
                             {
-                                return SetAndReturnToken(ReadNumber());
+                                return SetAndReturnToken(ReadNumber(CurrentChar));  // Sayı
                             }
-                            else if (char.IsLetter(_currChar) || _currChar == '_')
+                            else if (char.IsLetter(CurrentChar) || CurrentChar == '_')
                             {
-                                return SetAndReturnToken(ReadId());
+                                return SetAndReturnToken(ReadId());     // Tanımlayıcı
                             }
-                            else
+                            else  // Bilinmeyen
                             {
-                                char tmp = _currChar;
+                                char tmp = CurrentChar;
                                 if (char.IsControl(tmp))
                                 {
                                     throw new Exception("Unexpected control character");
                                 }
 
-                                Next();
+                                NextChar();
                                 return SetAndReturnToken(GetTokenTypeForChar(tmp));
                             }
                         }
+                        #endregion
                 }
             }
             return TokenType.ENDLINE;

@@ -1,8 +1,7 @@
 // 1 dimensional
 var R = @R@     // Real numbers
 var Z = @Z@     // Integers
-var N = @N@     // Natural numbers
-var A = @A@     // Any usage of: integer, float, complex, list
+var A = @E@     // Any usage of: integer, float, complex, list
 var C = @C@     // Complex number
 
 printl("5.2 in R ? " + (5.2 in R))
@@ -51,9 +50,9 @@ var R2m = @R'2*m@
 
 printl("[[1.1, [9, 8]]] in R2x2 ? " + ([[1.1, [9, 8]]] in R22))
 printl("[[1.1, PI], [9, 8]] in R2x2 ? " + ([[1.1, PI], [9, 8]] in R22))
-printl("[[6, PI], [9, 8]] in R2xm ? " + ([[1.1, [9, 8]]] in R2m))
-printl("[[6, PI, TAU, GOLDEN], [9, 8]] in R2xm ? " + ([[1.1, PI, TAU, GOLDEN], [9, 8]] in R2m))
-printl("[[6, PI], [9, 8]] in R2xm(m = 2) ? " + ([[1.1, PI], [9, 8]] in R2m(2)))
+printl("[1.1, [9, 8]] in R2xm ? " + ([1.1, [9, 8]] in R2m))
+printl("[[6, PI, TAU, GOLDEN], [9, 8]] in R2xm ? " + ([[6, PI, TAU, GOLDEN], [9, 8]] in R2m))
+printl("[[6, PI], [9, 8]] in R2xm(m = 2) ? " + ([[6, PI], [9, 8]] in R2m(2)))
 
 printl("-".repeat(20));
 // m1 x m2 x m3 x ... x mk dimensional

@@ -67,7 +67,7 @@ namespace ExMat.BaseLib
             return e;
         }
 
-        public static int IO_writefile(ExVM vm, int nargs)
+        public static int IoWritefile(ExVM vm, int nargs)
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
             ExObject c = null;
@@ -86,7 +86,7 @@ namespace ExMat.BaseLib
             File.WriteAllText(i, code, e);
             return 0;
         }
-        public static int IO_writefilelines(ExVM vm, int nargs)
+        public static int IoWritefilelines(ExVM vm, int nargs)
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
             ExObject lis = ExAPI.GetFromStack(vm, 3);
@@ -99,14 +99,14 @@ namespace ExMat.BaseLib
 
             Encoding e = DecideEncodingFromString(enc);
 
-            int n = lis._val.l_List.Count;
+            int n = lis.Value.l_List.Count;
 
             string[] lines = new string[n];
 
             for (int l = 0; l < n; l++)
             {
                 ExObject line = new();
-                vm.ToString(lis._val.l_List[l], ref line);
+                vm.ToString(lis.Value.l_List[l], ref line);
                 lines[l] = line.GetString();
             }
 
@@ -114,18 +114,18 @@ namespace ExMat.BaseLib
             File.WriteAllLines(i, lines, e);
             return 0;
         }
-        public static int IO_writefilebytes(ExVM vm, int nargs)
+        public static int IoWritefilebytes(ExVM vm, int nargs)
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
             ExObject lis = ExAPI.GetFromStack(vm, 3);
-            int n = lis._val.l_List.Count;
+            int n = lis.Value.l_List.Count;
 
             byte[] bytes = new byte[n];
 
             for (int l = 0; l < n; l++)
             {
                 ExObject b = new();
-                vm.ToInteger(lis._val.l_List[l], ref b);
+                vm.ToInteger(lis.Value.l_List[l], ref b);
                 bytes[l] = Convert.ToByte(b.GetInt());
             }
 
@@ -134,7 +134,7 @@ namespace ExMat.BaseLib
             return 0;
         }
 
-        public static int IO_appendfile(ExVM vm, int nargs)
+        public static int IoAppendfile(ExVM vm, int nargs)
         {
             string i = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -154,7 +154,7 @@ namespace ExMat.BaseLib
             File.AppendAllText(i, code, e);
             return 0;
         }
-        public static int IO_appendfilelines(ExVM vm, int nargs)
+        public static int IoAppendfilelines(ExVM vm, int nargs)
         {
             string f = ExAPI.GetFromStack(vm, 2).GetString();
             ExObject lis = ExAPI.GetFromStack(vm, 3);
@@ -167,14 +167,14 @@ namespace ExMat.BaseLib
 
             Encoding e = DecideEncodingFromString(enc);
 
-            int n = lis._val.l_List.Count;
+            int n = lis.Value.l_List.Count;
 
             string[] lines = new string[n];
 
             for (int l = 0; l < n; l++)
             {
                 ExObject line = new();
-                vm.ToString(lis._val.l_List[l], ref line);
+                vm.ToString(lis.Value.l_List[l], ref line);
                 lines[l] = line.GetString();
             }
 
@@ -183,7 +183,7 @@ namespace ExMat.BaseLib
             return 0;
         }
 
-        public static int IO_readfile(ExVM vm, int nargs)
+        public static int IoReadfile(ExVM vm, int nargs)
         {
             string f = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -208,7 +208,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_readfilelines(ExVM vm, int nargs)
+        public static int IoReadfilelines(ExVM vm, int nargs)
         {
             string f = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -235,7 +235,7 @@ namespace ExMat.BaseLib
                 l_list.Add(new(lines[b]));
             }
             ExObject res = new ExList();
-            res._val.l_List = l_list;
+            res.Value.l_List = l_list;
 
             vm.Pop(nargs + 2);
             vm.Push(res);
@@ -243,7 +243,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_readfilebytes(ExVM vm, int nargs)
+        public static int IoReadfilebytes(ExVM vm, int nargs)
         {
             string f = ExAPI.GetFromStack(vm, 2).GetString();
             if (!File.Exists(f))
@@ -261,7 +261,7 @@ namespace ExMat.BaseLib
                 blist.Add(new(bytes[b]));
             }
             ExObject res = new ExList();
-            res._val.l_List = blist;
+            res.Value.l_List = blist;
 
             vm.Pop(nargs + 2);
             vm.Push(res);
@@ -269,7 +269,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_fileexists(ExVM vm, int nargs)
+        public static int IoFileexists(ExVM vm, int nargs)
         {
             string f = ExAPI.GetFromStack(vm, 2).GetString();
             vm.Pop(nargs + 2);
@@ -278,7 +278,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_currentdir(ExVM vm, int nargs)
+        public static int IoCurrentdir(ExVM vm, int nargs)
         {
             vm.Pop(nargs + 2);
             vm.Push(Directory.GetCurrentDirectory());
@@ -286,7 +286,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_changedir(ExVM vm, int nargs)
+        public static int IoChangedir(ExVM vm, int nargs)
         {
             string dir = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -311,7 +311,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_mkdir(ExVM vm, int nargs)
+        public static int IoMkdir(ExVM vm, int nargs)
         {
             string dir = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -328,7 +328,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_opendir(ExVM vm, int nargs)
+        public static int IoOpendir(ExVM vm, int nargs)
         {
             string dir = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -366,7 +366,7 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static int IO_showdir(ExVM vm, int nargs)
+        public static int IoShowdir(ExVM vm, int nargs)
         {
             string cd;
             if (nargs != 0)
@@ -393,7 +393,7 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int IO_includefile(ExVM vm, int nargs)
+        public static int IoIncludefile(ExVM vm, int nargs)
         {
             string fname = ExAPI.GetFromStack(vm, 2).GetString();
             if (fname == "*")
@@ -419,6 +419,12 @@ namespace ExMat.BaseLib
                             break;
                         }
 
+                    }
+                    else
+                    {
+                        ExAPI.WriteErrorMessages(vm, "COMPILE");
+                        failed = true;
+                        break;
                     }
                 }
 
@@ -447,22 +453,25 @@ namespace ExMat.BaseLib
                         ExAPI.WriteErrorMessages(vm, "EXECUTE");
                         vm.Pop(nargs + 3);
                         vm.Push(false);
+                        return 1;
                     }
                     else
                     {
                         vm.Pop(nargs + 3);
                         vm.Push(true);
+                        return 1;
                     }
-
+                }
+                else
+                {
+                    ExAPI.WriteErrorMessages(vm, "COMPILE");
+                    vm.Pop(nargs + 3);
+                    vm.Push(false);
                     return 1;
                 }
             }
-
-            vm.Pop(nargs + 3);
-            vm.Push(false);
-            return -1;
         }
-        public static int IO_reloadlib(ExVM vm, int nargs)
+        public static int IoReloadlib(ExVM vm, int nargs)
         {
             string lname = ExAPI.GetFromStack(vm, 2).GetString();
             string fname = null;
@@ -526,7 +535,7 @@ namespace ExMat.BaseLib
             return 0;
         }
 
-        public static int IO_reloadlibfunc(ExVM vm, int nargs)
+        public static int IoReloadlibfunc(ExVM vm, int nargs)
         {
             string fname = ExAPI.GetFromStack(vm, 2).GetString();
 
@@ -557,29 +566,29 @@ namespace ExMat.BaseLib
         {
             new()
             {
-                name = "read_bytes",
-                func = new(GetStdIOMethod("IO_readfilebytes")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = "read_bytes",
+                Function = new(GetStdIOMethod("IoReadfilebytes")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
             new()
             {
-                name = "read_text",
-                func = new(GetStdIOMethod("IO_readfile")),
-                n_pchecks = -2,
-                mask = ".ss",
-                d_defaults = new()
+                Name = "read_text",
+                Function = new(GetStdIOMethod("IoReadfile")),
+                nParameterChecks = -2,
+                ParameterMask = ".ss",
+                DefaultValues = new()
                 {
                     { 2, new("") }
                 }
             },
             new()
             {
-                name = "read_lines",
-                func = new(GetStdIOMethod("IO_readfilelines")),
-                n_pchecks = -2,
-                mask = ".ss",
-                d_defaults = new()
+                Name = "read_lines",
+                Function = new(GetStdIOMethod("IoReadfilelines")),
+                nParameterChecks = -2,
+                ParameterMask = ".ss",
+                DefaultValues = new()
                 {
                     { 2, new("") }
                 }
@@ -587,52 +596,29 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "write_bytes",
-                func = new(GetStdIOMethod("IO_writefilebytes")),
-                n_pchecks = 3,
-                mask = ".sa"
+                Name = "write_bytes",
+                Function = new(GetStdIOMethod("IoWritefilebytes")),
+                nParameterChecks = 3,
+                ParameterMask = ".sa"
             },
             new()
             {
-                name = "write_text",
-                func = new(GetStdIOMethod("IO_writefile")),
-                n_pchecks = -3,
-                mask = ".sss",
-                d_defaults = new()
+                Name = "write_text",
+                Function = new(GetStdIOMethod("IoWritefile")),
+                nParameterChecks = -3,
+                ParameterMask = ".sss",
+                DefaultValues = new()
                 {
                     { 3, new("") }
                 }
             },
             new()
             {
-                name = "write_lines",
-                func = new(GetStdIOMethod("IO_writefilelines")),
-                n_pchecks = -3,
-                mask = ".sas",
-                d_defaults = new()
-                {
-                    { 3, new("") }
-                }
-            },
-
-            new()
-            {
-                name = "append_text",
-                func = new(GetStdIOMethod("IO_appendfile")),
-                n_pchecks = -3,
-                mask = ".sss",
-                d_defaults = new()
-                {
-                    { 3, new("") }
-                }
-            },
-            new()
-            {
-                name = "append_lines",
-                func = new(GetStdIOMethod("IO_appendfilelines")),
-                n_pchecks = -3,
-                mask = ".sas",
-                d_defaults = new()
+                Name = "write_lines",
+                Function = new(GetStdIOMethod("IoWritefilelines")),
+                nParameterChecks = -3,
+                ParameterMask = ".sas",
+                DefaultValues = new()
                 {
                     { 3, new("") }
                 }
@@ -640,47 +626,70 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "current_dir",
-                func = new(GetStdIOMethod("IO_currentdir")),
-                n_pchecks = 1,
-                mask = "."
+                Name = "append_text",
+                Function = new(GetStdIOMethod("IoAppendfile")),
+                nParameterChecks = -3,
+                ParameterMask = ".sss",
+                DefaultValues = new()
+                {
+                    { 3, new("") }
+                }
             },
             new()
             {
-                name = "dir_content",
-                func = new(GetStdIOMethod("IO_showdir")),
-                n_pchecks = -1,
-                mask = ".s",
-                d_defaults = new()
+                Name = "append_lines",
+                Function = new(GetStdIOMethod("IoAppendfilelines")),
+                nParameterChecks = -3,
+                ParameterMask = ".sas",
+                DefaultValues = new()
+                {
+                    { 3, new("") }
+                }
+            },
+
+            new()
+            {
+                Name = "current_dir",
+                Function = new(GetStdIOMethod("IoCurrentdir")),
+                nParameterChecks = 1,
+                ParameterMask = "."
+            },
+            new()
+            {
+                Name = "dir_content",
+                Function = new(GetStdIOMethod("IoShowdir")),
+                nParameterChecks = -1,
+                ParameterMask = ".s",
+                DefaultValues = new()
                 {
                     { 1, new("") }
                 }
             },
             new()
             {
-                name = "change_dir",
-                func = new(GetStdIOMethod("IO_changedir")),
-                n_pchecks = -2,
-                mask = ".sb",
-                d_defaults = new()
+                Name = "change_dir",
+                Function = new(GetStdIOMethod("IoChangedir")),
+                nParameterChecks = -2,
+                ParameterMask = ".sb",
+                DefaultValues = new()
                 {
                     { 2, new(false) }
                 }
             },
             new()
             {
-                name = "make_dir",
-                func = new(GetStdIOMethod("IO_mkdir")),
-                n_pchecks = -2,
-                mask = ".s"
+                Name = "make_dir",
+                Function = new(GetStdIOMethod("IoMkdir")),
+                nParameterChecks = -2,
+                ParameterMask = ".s"
             },
             new()
             {
-                name = "open_dir",
-                func = new(GetStdIOMethod("IO_opendir")),
-                n_pchecks = -2,
-                mask = ".sb",
-                d_defaults = new()
+                Name = "open_dir",
+                Function = new(GetStdIOMethod("IoOpendir")),
+                nParameterChecks = -2,
+                ParameterMask = ".sb",
+                DefaultValues = new()
                 {
                     { 2, new(false) }
                 }
@@ -688,11 +697,11 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "raw_input",
-                func = new(GetStdIOMethod("IO_rawinput")),
-                n_pchecks = -1,
-                mask = ".s",
-                d_defaults = new()
+                Name = "raw_input",
+                Function = new(GetStdIOMethod("IoRawinput")),
+                nParameterChecks = -1,
+                ParameterMask = ".s",
+                DefaultValues = new()
                 {
                     { 1, new("") }
                 }
@@ -700,36 +709,36 @@ namespace ExMat.BaseLib
 
             new()
             {
-                name = "file_exists",
-                func = new(GetStdIOMethod("IO_fileexists")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = "file_exists",
+                Function = new(GetStdIOMethod("IoFileexists")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
             new()
             {
-                name = "include_file",
-                func = new(GetStdIOMethod("IO_includefile")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = "include_file",
+                Function = new(GetStdIOMethod("IoIncludefile")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
             new()
             {
-                name = ReloadLib,
-                func = new(GetStdIOMethod("IO_reloadlib")),
-                n_pchecks = -2,
-                mask = ".ss"
+                Name = ReloadLib,
+                Function = new(GetStdIOMethod("IoReloadlib")),
+                nParameterChecks = -2,
+                ParameterMask = ".ss"
             },
             new()
             {
-                name = ReloadLibFunc,
-                func = new(GetStdIOMethod("IO_reloadlibfunc")),
-                n_pchecks = 2,
-                mask = ".s"
+                Name = ReloadLibFunc,
+                Function = new(GetStdIOMethod("IoReloadlibfunc")),
+                nParameterChecks = 2,
+                ParameterMask = ".s"
             },
 
             new()
             {
-                name = string.Empty
+                Name = string.Empty
             }
         };
 
@@ -739,7 +748,7 @@ namespace ExMat.BaseLib
         private const string _reloadlibfunc = "reload_func";
         public static string ReloadLibFunc => _reloadlibfunc;
 
-        public static int IO_rawinput(ExVM vm, int nargs)
+        public static int IoRawinput(ExVM vm, int nargs)
         {
             if (nargs == 1)
             {
@@ -754,7 +763,7 @@ namespace ExMat.BaseLib
                 input += ch;
             }
 
-            if (vm._got_input)
+            if (vm.GotUserInput)
             {
                 input = string.Empty;
                 while (!char.IsControl(ch = (char)Console.Read()))
@@ -766,7 +775,7 @@ namespace ExMat.BaseLib
             vm.Pop(nargs + 2);
             vm.Push(new ExObject(input));
 
-            vm._got_input = true;
+            vm.GotUserInput = true;
             return 1;
         }
 

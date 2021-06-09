@@ -2,122 +2,132 @@
 {
     public enum TokenType
     {
-        UNKNOWN = -2,
-        ENDLINE = 0,
+        // Okuma süreci kontrolü
+        STARTERTOKEN = -2,  // Kod dizisi başı temsili
+        UNKNOWN,            // Bilinmeyen sembol, hata ifadesi
+        ENDLINE,            // Kod dizisi sonu
+                            ////
 
-        /// <summary>
-        /// Name
-        /// </summary>
-        IDENTIFIER = 985,
+        IDENTIFIER = 985,   // Değişken ismi
+        ASG,                // Değer atama operatörü    '='
 
-        /// <summary>
-        /// No token
-        /// </summary>
-        NONE,
+        // Temel veri tipleri
+        INTEGER,    // Tamsayı
+        FLOAT,      // Ondalıklı
+        SCIENTIFIC, // Ondalıklı, bilimsel gösterim
+        COMPLEX,    // Kompleks
+        LITERAL,    // Yazı dizisi
+        SPACE,      // Uzay
+        ////
 
-        /// <summary>
-        /// local
-        /// </summary>
-        VAR,
-        BASE,
-        CONSTRUCTOR,
+        // Aritmetik
+        ADD,        // +
+        SUB,        // -
+        MLT,        // *
+        DIV,        // /
+        MOD,        // %
+        EXP,        // **
+        INC,        // ++
+        DEC,        // --
+        LSHF,       // <<
+        RSHF,       // >>
+        ////
 
-        LITERAL,
-        NEWLINE,
+        // Matris işlemleri
+        MATTRANSPOSE,   // '
+        MATMLT,         // .*
+        CARTESIAN,      // *.*
+                        ////
 
-        INTEGER,
-        FLOAT,
-        SCI,
-        COMPLEX,
+        // Mantıksal
+        BNOT,       // ~
+        BAND,       // &
+        BOR,        // |
+        BXOR,       // ^
+        AND,        // &&
+        OR,         // ||
+        IN,         // in
+        NOTIN,      // not in
+        ////
 
-        // #
-        COMMENT,
-
-        NULL,
-        IF,
-        ELSE,
-        RULE,
-        FOR,
-        FOREACH,
-        WHILE,
-        CONTINUE,
-        BREAK,
-        FUNCTION,
-        RETURN,
-        SUM,
-        MUL,
-
-        THIS,
-        CLASS,
-        DELETE,
-
-        A_START,
-        A_END,
-
-        TRUE,
-        FALSE,
-
-        LSHF,   // <<
-        RSHF,   // >>
-
-        R_OPEN, // (
-        R_CLOSE,// )
-        ADD,    // +
-        SUB,    // -
-        MLT,    // *
-        DIV,    // /
-        EXP,    // '
-        MOD,    // %
-        ASG,    // =
-        COL,    // :
+        // Karşılaştırma
         EXC,    // !
         QMARK,  // ?
-        BNOT,    // ~
-        BAND,    // &
-        BOR,     // |
-        BXOR,    // ^
-        AND,    // &&
-        OR,     // ||
-        XOR,    // ^^
-
-        INC,    // ++
-        DEC,    // --
-
-        ADDEQ,  // +=
-        SUBEQ,  // -=
-        MLTEQ,  // *=
-        DIVEQ,  // /=
-        MODEQ,  // %=
-
-        GLB,    // ::
         LST,    // <
         GRT,    // >
         LET,    // <=
         GET,    // >=
         EQU,    // ==
         NEQ,    // !=
+        ////
+
+        // Bileşik aritmetik
+        ADDEQ,  // +=
+        SUBEQ,  // -=
+        MLTEQ,  // *=
+        DIVEQ,  // /=
+        MODEQ,  // %=
+                ////
+
+        // Sabit değerler
+        NULL,       // Boş değer                'null'
+        TRUE,       // Doğru boolean değeri     'true'
+        FALSE,      // Yanlış boolean değeri    'false'
+        ////
+
+        // Koşullu veya döngüsel
+        IF,         // Koşullu ifade:                               'if'
+        ELSE,       // Koşullu ifade:                               'else'
+        FOR,        // Döngüsel ifade:                              'for'
+        CONTINUE,   // Döngüsel ifadede iterasyonu atlama ifadesi   'continue'
+        BREAK,      // Döngüsel ifadede iterasyonu durdurma ifadesi 'break'
+                    ////
+
+        // Tanım ifadeleri
+        VAR,        // Değişken tanımı                      'var'
+        FUNCTION,   // Fonksiyon tanımı                     'function'
+        CLUSTER,    // Küme ifadesi                         'cluster'
+        RULE,       // Kural fonksiyonu                     'rule'
+        CLASS,      // Sınıf ifadesi                        'class'
+        SEQUENCE,   // Dizi ifadesi                         'seq'
+        ////
+
+        // Değer dönen ifadeler
+        RETURN,     // Değer dönme ifadesi                          'return'
+        DELETE,     // Obje içindeki bir değeri silip dönme ifadesi 'delete'
+        TYPEOF,     // Objenin türünü dönme ifadesi                 'typeof'
+        INSTANCEOF, // Objenin sınıfa aitliğini inceleme ifadesi    'instanceof'
+                    ////
+
+
+        // Sınıflara ait
+        CONSTRUCTOR,    // Sınıf inşa edici metot
+        THIS,           // İçinde bulunulan objeye erişim
+        BASE,           // Metotun bulunduğu sınıfa erişim
+        ////
+
+        // Diğer
+        LAMBDA,     // Lambda ifadesi, isimsiz fonksiyon    '$'
+        VARGS,      // Belirsiz sayıda parametre            '...'
+        DEFAULT,    // Varsayılan parameter değeri          '..'
+        NEWSLOT,    // Sınıfa değer ekleme operatörü        '<>'
+        GLOBAL,     // Global bir değişkene erişim          '::'
+        NEWLINE,    // \n
         DOT,    // .
-        MMUL,   // .*
-        MCRS,   // .'
+        COL,    // :
         SEP,    // ,
-        SMC,  // ;
-        CLS_OPEN,   // {
-        CLS_CLOSE,  // }
-        ARR_OPEN,   // [
-        ARR_CLOSE,   // ]
+        SMC,    // ;
 
-        TYPEOF, // typeof
-        INSTANCEOF, // instanceof
-        IN,     // in
-        NOTIN,  // not in
+        ROUNDOPEN,      // (
+        ROUNDCLOSE,     // )
+        CURLYOPEN,      // {
+        CURLYCLOSE,     // }
+        SQUAREOPEN,     // [
+        SQUARECLOSE,    // ]
 
-        NEWSLOT,    // <>
+        COMMENT,    // Yorum        '//' ya da '/**/'
 
-        CLUSTER,    // cluster
-        ELEMENT_DEF,    // =>
-        SPACE,  // @
-
-        LAMBDA, // $
+        ELEMENTDEF,    // =>
 
         MACROSTART,
         MACROEND,
@@ -125,21 +135,13 @@
         MACROBLOCK,
         MACROPARAM,
 
-        MACROPARAM_NUM,
-        MACROPARAM_STR,
+        MACROPARAMNUM,
+        MACROPARAMSTR,
 
-        MMLT,    // .*
-        MTRS,    // '
+        ATTRIBUTEBEGIN,     // Özellik tanımı başlangıcı      '/.'
+        ATTRIBUTEFINISH,    // Özellik tanımı bitimi          './'
 
-        DEFAULT, // ..
-        CARTESIAN, // *.*
-
-        SEQUENCE,   // seq
-        VARGS,  // vargs
-
-        FORMULA,    // formula
-        SYMBOL,     // sym
-        SYMBOLID    // _\w+_
+        ////
 
     }
 }

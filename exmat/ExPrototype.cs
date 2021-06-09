@@ -13,79 +13,73 @@ namespace ExMat.FuncPrototype
     {
         FUNCTION,
         RULE,
-        FORMULA,
         CLUSTER,
-        MACRO,
         SEQUENCE
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExPrototype : ExObject
+    public class ExPrototype : ExRefC
     {
-        public int n_instr;
-        public int n_lits;
-        public int n_params;
-        public int n_funcs;
-        public int n_outers;
-        public int n_lineinfos;
-        public int n_localinfos;
-        public int n_defparams;
-        public int _stacksize;
+        public int nInstr;
+        public int nLits;
+        public int nParams;
+        public int nFuncs;
+        public int nOuters;
+        public int nLineInfos;
+        public int nLocalInfos;
+        public int nDefaultParameters;
+        public int StackSize;
+        public bool HasVargs;
 
-        public bool _pvars;
+        public ExClosureType ClosureType = ExClosureType.FUNCTION;
 
-        public int i_optstart;
-
-        public ExClosureType type = ExClosureType.FUNCTION;
-
-        public ExObject _name;
-        public ExObject _source;
-        public ExSState _sState;
-
-        public List<ExInstr> _instr;
-        public List<ExObject> _lits;
-        public List<ExObject> _params;
-        public List<int> _defparams;
-        public List<ExPrototype> _funcs;
-        public List<ExLocalInfo> _localinfos;
-        public List<ExLineInfo> _lineinfos;
-        public List<ExOuterInfo> _outers;
+        public ExObject Name;
+        public ExObject Source;
+        public ExSState SharedState;
+        public List<ExInstr> Instructions;
+        public List<ExObject> Literals;
+        public List<ExObject> Parameters;
+        public List<int> DefaultParameters;
+        public List<ExPrototype> Functions;
+        public List<ExLocalInfo> LocalInfos;
+        public List<ExLineInfo> LineInfos;
+        public List<ExOuterInfo> Outers;
 
         public static ExPrototype Create(ExSState sState,
-                                       int n_instr,
-                                       int n_lits,
-                                       int n_params,
-                                       int n_funcs,
-                                       int n_outers,
-                                       int n_lineinfos,
-                                       int n_localinfos,
-                                       int n_defparams)
+                                       int nInstr,
+                                       int nLits,
+                                       int nParams,
+                                       int nFuncs,
+                                       int nOuters,
+                                       int nLineinfos,
+                                       int nLocalinfos,
+                                       int nDefparams)
         {
             ExPrototype funcPro = new(sState);
 
-            funcPro.n_instr = n_instr;
-            funcPro._instr = new();
+            funcPro.nInstr = nInstr;
+            funcPro.Instructions = new();
 
-            funcPro.n_lits = n_lits;
-            funcPro._lits = new();
+            funcPro.nLits = nLits;
+            funcPro.Literals = new();
 
-            funcPro.n_funcs = n_funcs;
-            funcPro._funcs = new();
+            funcPro.nFuncs = nFuncs;
+            funcPro.Functions = new();
 
-            funcPro.n_params = n_params;
-            funcPro._params = new();
+            funcPro.nParams = nParams;
+            funcPro.Parameters = new();
 
-            funcPro.n_outers = n_outers;
-            funcPro._outers = new();
+            funcPro.nOuters = nOuters;
+            funcPro.Outers = new();
 
-            funcPro.n_lineinfos = n_lineinfos;
-            funcPro._lineinfos = new();
+            funcPro.nLineInfos = nLineinfos;
+            funcPro.LineInfos = new();
 
-            funcPro.n_localinfos = n_localinfos;
-            funcPro._localinfos = new();
+            funcPro.nLocalInfos = nLocalinfos;
+            funcPro.LocalInfos = new();
 
-            funcPro.n_defparams = n_defparams;
-            funcPro._defparams = new();
+            funcPro.nDefaultParameters = nDefparams;
+            funcPro.DefaultParameters = new();
             //ExUtils.InitList(ref funcPro._defparams, n_defparams);
 
             return funcPro;
@@ -93,78 +87,101 @@ namespace ExMat.FuncPrototype
 
         public ExPrototype()
         {
-            _type = ExObjType.FUNCPRO;
         }
 
         public ExPrototype(ExSState ss)
         {
-            _type = ExObjType.FUNCPRO;
-            _stacksize = 0;
-            _sState = ss;
+            StackSize = 0;
+            SharedState = ss;
         }
 
         public new string GetDebuggerDisplay()
         {
-            return "FPRO(" + _name.GetString() + ", n_func: " + n_funcs + ", n_lits: " + n_lits + ", n_instr: " + n_instr + ")";
+            return "FPRO(" + Name.GetString() + ", n_func: " + nFuncs + ", n_lits: " + nLits + ", n_instr: " + nInstr + ")";
+        }
+
+        public ExLineInfo FindLineInfo(int idx)
+        {
+            int line = LineInfos[0].Line;
+            int low = 0, mid = 0, high = nLineInfos - 1;
+
+            while (low <= high)
+            {
+                mid = low + ((high - low) >> 1);
+                int cop = LineInfos[mid].Position;
+                if (cop > idx)
+                {
+                    high = mid - 1;
+                }
+                else if (cop < idx)
+                {
+                    if (mid < (nLineInfos - 1) && LineInfos[mid + 1].Position >= idx)
+                    {
+                        break;
+                    }
+                    low = mid + 1;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return LineInfos[mid];
         }
 
         public bool IsFunction()
         {
-            return type == ExClosureType.FUNCTION;
+            return ClosureType == ExClosureType.FUNCTION;
         }
         public bool IsCluster()
         {
-            return type == ExClosureType.CLUSTER;
-        }
-        public bool IsFormula()
-        {
-            return type == ExClosureType.FORMULA;
+            return ClosureType == ExClosureType.CLUSTER;
         }
         public bool IsRule()
         {
-            return type == ExClosureType.RULE;
+            return ClosureType == ExClosureType.RULE;
         }
-        public bool IsMacro()
+        /*public bool IsMacro()
         {
-            return type == ExClosureType.MACRO;
-        }
+            return ClosureType == ExClosureType.MACRO;
+        }*/
         public bool IsSequence()
         {
-            return type == ExClosureType.SEQUENCE;
+            return ClosureType == ExClosureType.SEQUENCE;
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(_source, _name);
+            Disposer.DisposeObjects(Source, Name);
 
-            _lineinfos = null;
-            _defparams = null;
+            LineInfos = null;
+            DefaultParameters = null;
 
-            Disposer.DisposeList(ref _outers);
-            Disposer.DisposeList(ref _localinfos);
-            Disposer.DisposeList(ref _funcs);
-            Disposer.DisposeList(ref _params);
-            Disposer.DisposeList(ref _lits);
-            Disposer.DisposeList(ref _instr);
+            Disposer.DisposeList(ref Outers);
+            Disposer.DisposeList(ref LocalInfos);
+            Disposer.DisposeList(ref Functions);
+            Disposer.DisposeList(ref Parameters);
+            Disposer.DisposeList(ref Literals);
+            Disposer.DisposeList(ref Instructions);
         }
     }
 
-    public class ExFunc : ExObject
+    public class ExFunc
     {
+        public MethodInfo Method;
         public ExFunc()
         {
-            _type = ExObjType.CLOSURE;
         }
         public ExFunc(MethodInfo m)
         {
-            _type = ExObjType.CLOSURE;
-            _val._Method = m;
+            Method = m;
         }
         public int Invoke(ExVM vm, int nargs)
         {
-            return (int)_val._Method.Invoke(this, new object[] { vm, nargs });
+            return (int)Method.Invoke(null, new object[] { vm, nargs });
         }
     }
 }

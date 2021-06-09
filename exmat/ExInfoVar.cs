@@ -15,22 +15,23 @@ namespace ExMat.InfoVar
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExLocalInfo : IDisposable
     {
-        public ExObject name = new();
-        public int _sopc = 0;
-        public int _eopc = 0;
-        public int _pos = 0;
+        public ExObject Name = new();   // Değişken ismi
+        public int StartOPC;            // Değişkenin tanımlandığı komut indeksi
+        public int EndOPC;              // Değişkenin silineceği komut indeksi
+        public int Position;            // Değişken listesi içindeki sıra indeksi
+
         private bool disposedValue;
 
         public ExLocalInfo() { }
         public ExLocalInfo(ExLocalInfo lcl)
         {
-            _sopc = lcl._sopc;
-            _eopc = lcl._eopc;
-            _pos = lcl._pos;
+            StartOPC = lcl.StartOPC;
+            EndOPC = lcl.EndOPC;
+            Position = lcl.Position;
         }
         private string GetDebuggerDisplay()
         {
-            return "(" + _sopc + ", " + _eopc + ", " + _pos + ") " + name.GetDebuggerDisplay();
+            return "(" + StartOPC + ", " + EndOPC + ", " + Position + ") " + Name.GetDebuggerDisplay();
         }
 
         protected virtual void Dispose(bool disposing)
@@ -39,7 +40,7 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    name.Dispose();
+                    Name.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -66,28 +67,28 @@ namespace ExMat.InfoVar
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExOuterInfo : IDisposable
     {
-        public ExObject name = new();
-        public ExObject _src = new();
-        public ExOuterType _type;
+        public ExObject Name = new();   // Değişken ismi
+        public ExObject Index = new();  // Sanal bellekteki indeks
+        public ExOuterType Type;        // 
         private bool disposedValue;
 
         public ExOuterInfo() { }
-        public ExOuterInfo(ExObject _name, ExObject src, ExOuterType typ)
+        public ExOuterInfo(ExObject n, ExObject src, ExOuterType typ)
         {
-            name.Assign(_name);
-            _src.Assign(src);
-            _type = typ;
+            Name.Assign(n);
+            Index.Assign(src);
+            Type = typ;
         }
         public ExOuterInfo(ExOuterInfo o)
         {
-            name.Assign(o.name);
-            _src.Assign(o._src);
-            _type = o._type;
+            Name.Assign(o.Name);
+            Index.Assign(o.Index);
+            Type = o.Type;
         }
 
         private string GetDebuggerDisplay()
         {
-            return "::(" + _type.ToString() + ")" + name.GetDebuggerDisplay();
+            return "::(" + Type.ToString() + ")" + Name.GetDebuggerDisplay();
         }
 
         protected virtual void Dispose(bool disposing)
@@ -96,7 +97,7 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    Disposer.DisposeObjects(name, _src);
+                    Disposer.DisposeObjects(Name, Index);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -123,42 +124,44 @@ namespace ExMat.InfoVar
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExLineInfo
     {
-        public OPC op;
-        public int line = 0;
+        public int Position;
+        public int Line;
 
         public ExLineInfo() { }
 
         private string GetDebuggerDisplay()
         {
-            return ">>> LINE " + line + "(" + op.ToString() + ")";
+            return ">>> LINE " + Line + "(" + Position + ")";
         }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExCallInfo : IDisposable
     {
-        public ExInstr _instr;
-        public List<ExObject> _lits;
-        public ExObject _closure;
-        public int _prevbase;
-        public int _prevtop;
-        public int _target;
-        public int n_calls;
-        public int _traps;
-        public bool _root;
-        public List<ExInstr> _instrs;
-        public int _idx_instrs;
+        public List<ExObject> Literals; // Değişken isimleri, yazı dizileri vs.
+        public ExObject Closure;        // İçinde bulunulan fonksiyon/kod bloğu
+
+        public int PrevBase;            // Çağrı öncesi taban bellek indeksi
+        public int PrevTop;             // Çağrı öncesi tavan bellek indeksi
+        public int Target;              // Çağrının döneceği değerin hedef indeksi
+
+        public int nCalls;              // Çağrı sayısı
+
+        public bool IsRootCall;             // Kök çağrı(main) mı ?
+        public List<ExInstr> Instructions;  // Komutlar listesi
+        public int InstructionsIndex;       // Komut indeksi
+
         private bool disposedValue;
 
         public ExCallInfo() { }
         public ExCallInfo ShallowCopy()
         {
-            return new() { _instr = _instr, n_calls = n_calls, _closure = _closure, _lits = _lits, _prevbase = _prevbase, _prevtop = _prevtop, _root = _root, _target = _target };
+            return new() { nCalls = nCalls, Closure = Closure, Literals = Literals, PrevBase = PrevBase, PrevTop = PrevTop, IsRootCall = IsRootCall, Target = Target };
         }
         private string GetDebuggerDisplay()
         {
-            string i = _instrs == null ? " null" : " " + _instrs.Count;
-            return ">>CALLINFO (n_instr:" + i + ", n_idx" + _idx_instrs + ")";
+            string i = Instructions == null ? " null" : " " + Instructions.Count;
+            return ">>CALLINFO (n_instr:" + i + ", n_idx" + InstructionsIndex + ")";
         }
 
         protected virtual void Dispose(bool disposing)
@@ -167,10 +170,9 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    Disposer.DisposeList(ref _lits);
-                    Disposer.DisposeList(ref _instrs);
-                    Disposer.DisposeObjects(_closure);
-                    Disposer.DisposeObjects(_instr);
+                    Disposer.DisposeList(ref Literals);
+                    Disposer.DisposeList(ref Instructions);
+                    Disposer.DisposeObjects(Closure);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -197,25 +199,25 @@ namespace ExMat.InfoVar
     public class Node<T> : IDisposable
         where T : class, IDisposable, new()
     {
-        public Node<T> _prev;
-        public Node<T> _next;
-        public T _val;
+        public Node<T> Prev;
+        public Node<T> Next;
+        public T Value;
         private bool disposedValue;
 
         public static Node<T> BuildNodesFromList(List<T> l, int start = 0)
         {
-            Node<T> first = new() { _val = l[0] };
+            Node<T> first = new() { Value = l[0] };
             int c = l.Count;
             for (int i = 1; i < c; i++)
             {
-                first._next = new() { _val = l[i], _prev = first };
-                first = first._next;
+                first.Next = new() { Value = l[i], Prev = first };
+                first = first.Next;
             }
 
-            while (c > start + 1 && first._prev != null)
+            while (c > start + 1 && first.Prev != null)
             {
                 c--;
-                first = first._prev;
+                first = first.Prev;
             }
 
             return first;
@@ -226,22 +228,22 @@ namespace ExMat.InfoVar
             get
             {
                 Node<T> curr = this;
-                while (i > 0 && curr._next != null)
+                while (i > 0 && curr.Next != null)
                 {
-                    curr = curr._next;
+                    curr = curr.Next;
                     i--;
                 }
-                return curr._val;
+                return curr.Value;
             }
             set
             {
                 Node<T> curr = this;
-                while (i > 0 && curr._next != null)
+                while (i > 0 && curr.Next != null)
                 {
-                    curr = curr._next;
+                    curr = curr.Next;
                     i--;
                 }
-                curr._val = value;
+                curr.Value = value;
             }
         }
 
@@ -252,43 +254,43 @@ namespace ExMat.InfoVar
                 if (disposing)
                 {
                     Node<T> curr = this;
-                    while (curr._prev != null)
+                    while (curr.Prev != null)
                     {
-                        curr = curr._prev;
+                        curr = curr.Prev;
                     }
 
-                    if (curr._val != null)
+                    if (curr.Value != null)
                     {
-                        curr._val.Dispose();
-                        curr._val = null;
+                        curr.Value.Dispose();
+                        curr.Value = null;
                     }
 
-                    while (curr._next != null)
+                    while (curr.Next != null)
                     {
-                        if (curr._prev != null)
+                        if (curr.Prev != null)
                         {
-                            curr._prev._next = null;
-                            curr._prev = null;
+                            curr.Prev.Next = null;
+                            curr.Prev = null;
                         }
 
-                        if (curr._val != null)
+                        if (curr.Value != null)
                         {
-                            curr._val.Dispose();
-                            curr._val = null;
+                            curr.Value.Dispose();
+                            curr.Value = null;
                         }
-                        curr = curr._next;
+                        curr = curr.Next;
                     }
 
-                    if (curr._prev != null)
+                    if (curr.Prev != null)
                     {
-                        curr._prev._next = null;
-                        curr._prev = null;
+                        curr.Prev.Next = null;
+                        curr.Prev = null;
                     }
 
-                    if (curr._val != null)
+                    if (curr.Value != null)
                     {
-                        curr._val.Dispose();
-                        curr._val = null;
+                        curr.Value.Dispose();
+                        curr.Value = null;
                     }
                 }
 

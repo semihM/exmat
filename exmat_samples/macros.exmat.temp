@@ -1,3 +1,7 @@
+// Macros are temporarily disabled
+return 1;
+
+
 #define PRINTSTUFF  printl("\nhello");printl("this is printed by macro gang");printl("peace..") #end
 #define PRINT_MACRO_INFOS
     printl("--------------------------")

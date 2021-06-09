@@ -11,26 +11,26 @@ namespace ExMat.Class
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClassMem : IDisposable
     {
-        public ExObject val = new();
-        public ExObject attrs = new();
+        public ExObject Value = new();
+        public ExObject Attributes = new();
         private bool disposedValue;
 
         public ExClassMem() { }
         public ExClassMem(ExClassMem mem)
         {
-            val = new(mem.val);
-            attrs = new(mem.attrs);
+            Value = new(mem.Value);
+            Attributes = new(mem.Attributes);
         }
 
         public void Nullify()
         {
-            val.Nullify();
-            attrs.Nullify();
+            Value.Nullify();
+            Attributes.Nullify();
         }
 
         public string GetDebuggerDisplay()
         {
-            return "CMEM(" + val.GetDebuggerDisplay() + ")";
+            return "CMEM(" + Value.GetDebuggerDisplay() + ")";
         }
 
         protected virtual void Dispose(bool disposing)
@@ -39,7 +39,7 @@ namespace ExMat.Class
             {
                 if (disposing)
                 {
-                    Disposer.DisposeObjects(val, attrs);
+                    Disposer.DisposeObjects(Value, Attributes);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -64,51 +64,48 @@ namespace ExMat.Class
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClass : ExObject
+    public class ExClass : ExRefC
     {
-        public ExClass _base;
-        public Dictionary<string, ExObject> _members = new();
-        public List<ExObject> _metas = new();
-        public List<ExClassMem> _defvals = new();
-        public List<ExClassMem> _methods = new();
-        public ExObject _attrs = new();
-        public ExObject _hook = new(0);
-        public bool _islocked;
-        public int _constridx;
-        public int _udsize;
-        public ExSState _sState;
+        public ExClass Base;    // TO-DO
+        public Dictionary<string, ExObject> Members = new();
+        public List<ExObject> MetaFuncs = new();
+        public List<ExClassMem> DefaultValues = new();
+        public List<ExClassMem> Methods = new();
+        public ExObject Attributes = new();
+
+        public bool GotInstanced;
+        public int ConstructorID;
+        public ExSState SharedState;
+
+        public readonly int LengthReprestation;
 
         public ExClass()
         {
-            _type = ExObjType.CLASS;
-            _val._RefC = new();
-            ExUtils.InitList(ref _metas, (int)ExMetaM._LAST);
+            ExUtils.InitList(ref MetaFuncs, (int)ExMetaM.LAST);
         }
         public ExClass(ExSState exS, ExClass b)
         {
-            _sState = exS;
-            _type = ExObjType.CLASS;
-            _val._RefC = new();
-            _base = b;
-            _hook = new();
-            _islocked = false;
-            _constridx = -1;
-            _udsize = 0;
-            ExUtils.InitList(ref _metas, (int)ExMetaM._LAST);
+            SharedState = exS;
+            Base = b;
+
+            GotInstanced = false;
+            ConstructorID = -1;
+            LengthReprestation = 0;
+            ExUtils.InitList(ref MetaFuncs, (int)ExMetaM.LAST);
 
             if (b != null)
             {
-                _constridx = b._constridx;
-                _udsize = b._udsize;
-                _defvals = new(b._defvals.Count);
-                for (int i = 0; i < b._defvals.Count; i++)
+                ConstructorID = b.ConstructorID;
+                LengthReprestation = b.LengthReprestation;
+                DefaultValues = new(b.DefaultValues.Count);
+                for (int i = 0; i < b.DefaultValues.Count; i++)
                 {
-                    _defvals.Add(new(b._defvals[i]));
+                    DefaultValues.Add(new(b.DefaultValues[i]));
                 }
-                _methods = new(b._methods.Count);
-                for (int i = 0; i < b._methods.Count; i++)
+                Methods = new(b.Methods.Count);
+                for (int i = 0; i < b.Methods.Count; i++)
                 {
-                    _methods.Add(new(b._methods[i]));
+                    Methods.Add(new(b.Methods[i]));
                 }
             }
         }
@@ -122,44 +119,44 @@ namespace ExMat.Class
         {
             return ExObjType.CLASS;
         }
-        public override void Release()
+        public virtual void Release()
         {
-            if ((--_val._RefC._refc) == 0)
+            if ((--ReferenceCount) == 0)
             {
-                _attrs.Release();
-                _defvals.RemoveAll((ExClassMem e) => true); _defvals = null;
-                _methods.RemoveAll((ExClassMem e) => true); _methods = null;
-                _metas.RemoveAll((ExObject e) => true); _metas = null;
-                _members = null;
-                if (_base != null)
+                Attributes.Release();
+                DefaultValues.RemoveAll((ExClassMem e) => true); DefaultValues = null;
+                Methods.RemoveAll((ExClassMem e) => true); Methods = null;
+                MetaFuncs.RemoveAll((ExObject e) => true); MetaFuncs = null;
+                Members = null;
+                if (Base != null)
                 {
-                    _base.Release();
+                    Base.Release();
                 }
             }
         }
 
         public void LockCls()
         {
-            _islocked = true;
-            if (_base != null && _base._type != ExObjType.NULL)
+            GotInstanced = true;
+            if (Base != null)
             {
-                _base.LockCls();
+                Base.LockCls();
             }
         }
         public ExInstance CreateInstance()
         {
-            if (!_islocked)
+            if (!GotInstanced)
             {
                 LockCls();
             }
-            return ExInstance.Create(_sState, this);
+            return ExInstance.Create(SharedState, this);
         }
 
         public bool GetConstructor(ref ExObject o)
         {
-            if (_constridx != -1)
+            if (ConstructorID != -1)
             {
-                o.Assign(_methods[_constridx].val);
+                o.Assign(Methods[ConstructorID].Value);
                 return true;
             }
             return false;
@@ -167,16 +164,16 @@ namespace ExMat.Class
 
         public bool SetAttrs(ExObject key, ExObject val)
         {
-            if (_members.ContainsKey(key.GetString()))
+            if (Members.ContainsKey(key.GetString()))
             {
-                ExObject v = _members[key.GetString()];
+                ExObject v = Members[key.GetString()];
                 if (v.IsField())
                 {
-                    _defvals[v.GetMemberID()].attrs.Assign(val);
+                    DefaultValues[v.GetMemberID()].Attributes.Assign(val);
                 }
                 else
                 {
-                    _methods[v.GetMemberID()].attrs.Assign(val);
+                    Methods[v.GetMemberID()].Attributes.Assign(val);
                 }
                 return true;
             }
@@ -185,107 +182,105 @@ namespace ExMat.Class
 
         public bool NewSlot(ExSState exs, ExObject key, ExObject val, bool bstat)
         {
-            bool bdict = val._type == ExObjType.CLOSURE || val._type == ExObjType.NATIVECLOSURE || bstat;
-            if (_islocked && !bdict)
+            bool bdict = val.Type == ExObjType.CLOSURE || val.Type == ExObjType.NATIVECLOSURE || bstat;
+            if (GotInstanced && !bdict)
             {
                 return false;
             }
 
             ExObject tmp = new();
-            if (_members.ContainsKey(key.GetString()) && (tmp = _members[key.GetString()]).IsField())
+            if (Members.ContainsKey(key.GetString()) && (tmp = Members[key.GetString()]).IsField())
             {
-                _defvals[_members[key.GetString()].GetMemberID()].val.Assign(val);
+                DefaultValues[Members[key.GetString()].GetMemberID()].Value.Assign(val);
                 return true;
             }
 
             if (bdict)
             {
                 int metaid;
-                if ((val._type == ExObjType.CLOSURE || val._type == ExObjType.NATIVECLOSURE)
+                if ((val.Type == ExObjType.CLOSURE || val.Type == ExObjType.NATIVECLOSURE)
                     && (metaid = exs.GetMetaIdx(key.GetString())) != -1)
                 {
-                    _metas[metaid].Assign(val);
+                    MetaFuncs[metaid].Assign(val);
                 }
                 else
                 {
                     ExObject tmpv = val;
-                    if (_base != null && val._type == ExObjType.CLOSURE)
+                    if (Base != null && val.Type == ExObjType.CLOSURE)
                     {
-                        tmpv.Assign(val._val._Closure);
-                        tmpv.GetClosure()._base = _base;
-                        _base._val._RefC._refc++;
+                        tmpv.Assign(val.Value._Closure);
+                        tmpv.GetClosure().Base = Base;
+                        Base.ReferenceCount++;
                     }
                     else
                     {
-                        tmpv.GetClosure()._base = this;
-                        _val._RefC._refc++;
+                        tmpv.GetClosure().Base = this;
+                        ReferenceCount++;
                     }
 
-                    if (tmp._type == ExObjType.NULL)
+                    if (tmp.Type == ExObjType.NULL)
                     {
-                        bool bconstr = exs._constructid.GetString() == key.GetString();
+                        bool bconstr = exs.ConstructorID.GetString() == key.GetString();
 
                         if (bconstr)
                         {
-                            _constridx = _methods.Count;
+                            ConstructorID = Methods.Count;
                         }
 
                         ExClassMem cm = new();
-                        cm.val.Assign(tmpv);
-                        _members.Add(key.GetString(), new((int)ExMemberFlag.METHOD | _methods.Count));
-                        _methods.Add(cm);
+                        cm.Value.Assign(tmpv);
+                        Members.Add(key.GetString(), new((int)ExMemberFlag.METHOD | Methods.Count));
+                        Methods.Add(cm);
                     }
                     else
                     {
-                        _methods[tmp.GetMemberID()].val.Assign(tmpv);
+                        Methods[tmp.GetMemberID()].Value.Assign(tmpv);
                     }
                 }
                 return true;
             }
 
             ExClassMem cmem = new();
-            cmem.val.Assign(val);
-            _members.Add(key.GetString(), new((int)ExMemberFlag.FIELD | _defvals.Count));
-            _defvals.Add(cmem);
+            cmem.Value.Assign(val);
+            Members.Add(key.GetString(), new((int)ExMemberFlag.FIELD | DefaultValues.Count));
+            DefaultValues.Add(cmem);
 
             return true;
         }
 
         public new string GetDebuggerDisplay()
         {
-            if (_base != null)
+            if (Base != null)
             {
-                return "[" + _base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + _constridx + ", n_mem: " + _members.Count + ")";
+                return "[" + Base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
             }
-            return "CLASS(c_idx: " + _constridx + ", n_mem: " + _members.Count + ")";
+            return "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(_base, _attrs, _hook);
+            Disposer.DisposeObjects(Base);
+            Disposer.DisposeObjects(Attributes);
 
-            Disposer.DisposeList(ref _methods);
-            Disposer.DisposeList(ref _defvals);
-            Disposer.DisposeList(ref _metas);
+            Disposer.DisposeList(ref Methods);
+            Disposer.DisposeList(ref DefaultValues);
+            Disposer.DisposeList(ref MetaFuncs);
         }
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExInstance : ExObject
+    public class ExInstance : ExRefC
     {
-        public ExObject _delegate;
-        public ExSState _sState;
-        public ExClass _class;
-        public ExObject _hook;
-        public List<ExObject> _values;
+        public ExObject Delegate;
+        public ExSState SharedState;
+        public ExClass Class;
+        public List<ExObject> MemberValues;
 
         public ExInstance()
         {
-            _type = ExObjType.INSTANCE;
-            _val._RefC = new();
-            _values = new();
+            MemberValues = new();
         }
 
         public static new ExObjType GetType()
@@ -295,23 +290,23 @@ namespace ExMat.Class
 
         public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObject res)
         {
-            if (_delegate != null)
+            if (Delegate != null)
             {
-                if (_delegate._type == ExObjType.DICT)
+                if (Delegate.Type == ExObjType.DICT)
                 {
-                    string k = vm._sState._metaMethods[(int)m].GetString();
-                    if (_delegate.GetDict().ContainsKey(k))
+                    string k = vm.SharedState.MetaMethods[(int)m].GetString();
+                    if (Delegate.GetDict().ContainsKey(k))
                     {
-                        res.Assign(_delegate.GetDict()[k]);
+                        res.Assign(Delegate.GetDict()[k]);
                         return true;
                     }
                 }
-                else if (_delegate._type == ExObjType.ARRAY)
+                else if (Delegate.Type == ExObjType.ARRAY)
                 {
-                    int k = vm._sState.GetMetaIdx(vm._sState._metaMethods[(int)m].GetString());
-                    if (_delegate.GetList()[k]._type != ExObjType.NULL)
+                    int k = vm.SharedState.GetMetaIdx(vm.SharedState.MetaMethods[(int)m].GetString());
+                    if (Delegate.GetList()[k].Type != ExObjType.NULL)
                     {
-                        res.Assign(_delegate.GetList()[k]);
+                        res.Assign(Delegate.GetList()[k]);
                         return true;
                     }
                 }
@@ -322,17 +317,16 @@ namespace ExMat.Class
 
         public void Init(ExSState exs)
         {
-            _hook = new();
-            _delegate = new ExObject(_class._metas); // TO-DO keep both metas and members
-            _class._val._RefC._refc++;
+            Delegate = new ExObject(Class.MetaFuncs); // TO-DO keep both metas and members
+            Class.ReferenceCount++;
         }
 
         public static ExInstance Create(ExSState exS, ExInstance inst)
         {
-            ExInstance ins = new() { _sState = exS, _class = inst._class };
-            for (int i = 0; i < inst._class._defvals.Count; i++)
+            ExInstance ins = new() { SharedState = exS, Class = inst.Class };
+            for (int i = 0; i < inst.Class.DefaultValues.Count; i++)
             {
-                ins._values.Add(new ExObject(inst._class._defvals[i].val));
+                ins.MemberValues.Add(new ExObject(inst.Class.DefaultValues[i].Value));
             }
             ins.Init(exS);
             return ins;
@@ -340,10 +334,10 @@ namespace ExMat.Class
 
         public static ExInstance Create(ExSState exS, ExClass cls)
         {
-            ExInstance ins = new() { _sState = exS, _class = cls };
-            for (int i = 0; i < cls._defvals.Count; i++)
+            ExInstance ins = new() { SharedState = exS, Class = cls };
+            for (int i = 0; i < cls.DefaultValues.Count; i++)
             {
-                ins._values.Add(new ExObject(cls._defvals[i].val));
+                ins.MemberValues.Add(new ExObject(cls.DefaultValues[i].Value));
             }
             ins.Init(exS);
             return ins;
@@ -351,9 +345,9 @@ namespace ExMat.Class
 
         public bool GetMeta(int midx, ref ExObject res)
         {
-            if (_class._metas[midx]._type != ExObjType.NULL)
+            if (Class.MetaFuncs[midx].Type != ExObjType.NULL)
             {
-                res = _class._metas[midx];
+                res = Class.MetaFuncs[midx];
                 return true;
             }
             return false;
@@ -361,41 +355,41 @@ namespace ExMat.Class
 
         public bool IsInstanceOf(ExClass cls)
         {
-            ExClass p = _class;
+            ExClass p = Class;
             while (p != null)
             {
                 if (p == cls)
                 {
                     return true;
                 }
-                p = p._base;
+                p = p.Base;
             }
             return false;
         }
 
-        public override void Release()
+        public virtual void Release()
         {
-            if ((--_val._RefC._refc) == 0)
+            if ((--ReferenceCount) == 0)
             {
-                if (_class != null)
+                if (Class != null)
                 {
-                    _class.Release();
+                    Class.Release();
                 }
-                _values.RemoveAll((ExObject e) => true); _values = null;
+                MemberValues.RemoveAll((ExObject e) => true); MemberValues = null;
             }
         }
 
         public new string GetDebuggerDisplay()
         {
-            return "INSTANCE(n_vals: " + _values.Count + ")";
+            return "INSTANCE(n_vals: " + MemberValues.Count + ")";
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(_class, _hook);
-            Disposer.DisposeList(ref _values);
+            Disposer.DisposeObjects(Class);
+            Disposer.DisposeList(ref MemberValues);
         }
     }
 }

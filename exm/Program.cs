@@ -17,7 +17,7 @@ namespace ExMat
 
         private static int CompileString(ExVM vm, string code)
         {
-            int tp = vm._top - vm._stackbase;
+            int tp = vm.StackTop - vm.StackBase;
             int ret = 0;
 
             if (ExAPI.CompileFile(vm, code))
@@ -25,7 +25,7 @@ namespace ExMat
                 ExAPI.PushRootTable(vm);
                 if (ExAPI.Call(vm, 1, true, true))
                 {
-                    if (!vm._printed && vm.GetAbove(-1)._type != ExObjType.NULL)
+                    if (!vm.PrintedToConsole && vm.GetAbove(-1).Type != ExObjType.NULL)
                     {
                         if (ExAPI.ToString(vm, -1, 2))
                         {
@@ -35,9 +35,9 @@ namespace ExMat
                 }
                 else
                 {
-                    if (vm._exited)
+                    if (vm.ExitCalled)
                     {
-                        ret = vm._exitcode;
+                        ret = vm.ExitCode;
                     }
                     else
                     {
@@ -53,13 +53,13 @@ namespace ExMat
             }
 
             FixStackTopAfterCalls(vm, tp);
-            vm._printed = false;
+            vm.PrintedToConsole = false;
             return ret;
         }
 
         private static void FixStackTopAfterCalls(ExVM vm, int t)
         {
-            int curr = vm._top - vm._stackbase;
+            int curr = vm.StackTop - vm.StackBase;
             if (curr > t)
             {
                 vm.Pop(curr - t);
@@ -68,14 +68,14 @@ namespace ExMat
             {
                 while (curr++ < t)
                 {
-                    vm._stack[vm._top++].Nullify();
+                    vm.Stack[vm.StackTop++].Nullify();
                 }
             }
         }
 
         private static void WriteVersion(ExVM vm)
         {
-            string version = vm._rootdict.GetDict()["_version_"].GetString();
+            string version = vm.RootDictionary.GetDict()["_version_"].GetString();
             string date = DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString();
             int width = 60;
             int vlen = version.Length;
@@ -124,7 +124,6 @@ namespace ExMat
             Console.Write("]: ");
             Console.ResetColor();
         }
-
 
         private static int Main(string[] args)
         {
@@ -189,9 +188,9 @@ namespace ExMat
 
                     code = Console.ReadLine().TrimEnd(' ', '\t');
 
-                    if (vm._got_input && string.IsNullOrWhiteSpace(code))
+                    if (vm.GotUserInput && string.IsNullOrWhiteSpace(code))
                     {
-                        vm._got_input = false;
+                        vm.GotUserInput = false;
                         code = Console.ReadLine().TrimEnd(' ', '\t');
                     }
 
@@ -218,7 +217,7 @@ namespace ExMat
 
                 ExAPI.CollectGarbage();
 
-                if (vm._exited)
+                if (vm.ExitCalled)
                 {
                     return ret;
                 }

@@ -14,9 +14,9 @@ namespace ExMat.API
         public static bool GetSafeObject(ExVM vm, int idx, ExObjType typ, ref ExObject res)
         {
             res.Assign(GetFromStack(vm, idx));
-            if (res._type != typ)
+            if (res.Type != typ)
             {
-                vm.AddToErrorMessage("wrong argument type, expected " + typ.ToString() + " got " + res._type.ToString());
+                vm.AddToErrorMessage("wrong argument type, expected " + typ.ToString() + " got " + res.Type.ToString());
                 return false;
             }
             return true;
@@ -88,7 +88,7 @@ namespace ExMat.API
         {
             foreach (ExRegFunc f in fs)
             {
-                if (f.name == name && f.name != string.Empty)
+                if (f.Name == name && f.Name != string.Empty)
                 {
                     return f;
                 }
@@ -109,11 +109,11 @@ namespace ExMat.API
 
         public static void RegisterNativeFunction(ExVM vm, ExRegFunc func, bool force = false)
         {
-            PushString(vm, func.name, -1);
-            CreateClosure(vm, func.func, 0, force);
-            SetNativeClosureName(vm, -1, func.name);
-            SetParamCheck(vm, func.n_pchecks, func.mask);
-            SetDefaultValues(vm, func.d_defaults);
+            PushString(vm, func.Name, -1);
+            CreateClosure(vm, func.Function, 0, force);
+            SetNativeClosureName(vm, -1, func.Name);
+            SetParamCheck(vm, func.nParameterChecks, func.ParameterMask);
+            SetDefaultValues(vm, func.DefaultValues);
             CreateNewSlot(vm, -3, false);
         }
 
@@ -121,7 +121,7 @@ namespace ExMat.API
         {
             int i = 0;
 
-            while (funcs[i].name != string.Empty)
+            while (funcs[i].Name != string.Empty)
             {
                 RegisterNativeFunction(vm, funcs[i], force);
                 i++;
@@ -176,38 +176,38 @@ namespace ExMat.API
                 {
                     str = str[new Range(0, len)];
                 }
-                if (!vm._sState._strings.ContainsKey(str))
+                if (!vm.SharedState.Strings.ContainsKey(str))
                 {
-                    vm._sState._strings.Add(str, new(str));
+                    vm.SharedState.Strings.Add(str, new(str));
                 }
                 else
                 {
-                    vm._sState._strings[str] = new(str);
+                    vm.SharedState.Strings[str] = new(str);
                 }
                 vm.Push(str);
             }
         }
         public static void CreateClosure(ExVM vm, ExFunc f, int fvars, bool force = false)
         {
-            ExNativeClosure nc = ExNativeClosure.Create(vm._sState, f, fvars);
-            nc.n_paramscheck = 0;
+            ExNativeClosure nc = ExNativeClosure.Create(vm.SharedState, f, fvars);
+            nc.nParameterChecks = 0;
             for (int i = 0; i < fvars; i++)
             {
                 if (force)
                 {
                     int idx;
-                    if ((idx = nc._outervals.FindIndex((ExObject o) => o.GetNClosure()._name.GetString() == vm.Top().GetNClosure()._name.GetString())) != -1)
+                    if ((idx = nc.OutersList.FindIndex((ExObject o) => o.GetNClosure().Name.GetString() == vm.Top().GetNClosure().Name.GetString())) != -1)
                     {
-                        nc._outervals[idx].Assign(vm.Top());
+                        nc.OutersList[idx].Assign(vm.Top());
                     }
                     else
                     {
-                        nc._outervals.Add(new(vm.Top()));
+                        nc.OutersList.Add(new(vm.Top()));
                     }
                 }
                 else
                 {
-                    nc._outervals.Add(new(vm.Top()));
+                    nc.OutersList.Add(new(vm.Top()));
                 }
                 vm.Pop();
             }
@@ -216,9 +216,9 @@ namespace ExMat.API
         public static void SetNativeClosureName(ExVM vm, int id, string name)
         {
             ExObject o = GetFromStack(vm, id);
-            if (o._type == ExObjType.NATIVECLOSURE)
+            if (o.Type == ExObjType.NATIVECLOSURE)
             {
-                o.GetNClosure()._name = new(name);
+                o.GetNClosure().Name = new(name);
             }
             else
             {
@@ -242,14 +242,12 @@ namespace ExMat.API
 
         public static bool CompileTypeMask(List<int> r, string mask)
         {
-            int i;
-            int m = 0;
-            int l = mask.Length;
-            for (i = 0; i < l;)
+            int i = 0, m = 0, l = mask.Length;
+
+            while (i < l)
             {
                 switch (mask[i])
                 {
-                    case ' ': i++; continue;
                     case '.': m = -1; r.Add(m); i++; m = 0; continue;
                     case 'e': m |= (int)ExBaseType.NULL; break;
                     case 'i': m |= (int)ExBaseType.INTEGER; break;
@@ -261,8 +259,6 @@ namespace ExMat.API
                     case 'd': m |= (int)ExBaseType.DICT; break;
                     case 'a': m |= (int)ExBaseType.ARRAY; break;
                     case 'c': m |= (int)ExBaseType.CLOSURE | (int)ExBaseType.NATIVECLOSURE; break;
-                    case 'u': m |= (int)ExBaseType.USERDATA; break;
-                    case 'p': m |= (int)ExBaseType.USERPTR; break;
                     case 'x': m |= (int)ExBaseType.INSTANCE; break;
                     case 'y': m |= (int)ExBaseType.CLASS; break;
                     case 'w': m |= (int)ExBaseType.WEAKREF; break;
@@ -289,12 +285,12 @@ namespace ExMat.API
         {
             ExObject o = GetFromStack(vm, -1);
 
-            if (o._type != ExObjType.NATIVECLOSURE)
+            if (o.Type != ExObjType.NATIVECLOSURE)
             {
                 throw new Exception("native closure expected");
             }
             ExNativeClosure nc = o.GetNClosure();
-            nc.n_paramscheck = n;
+            nc.nParameterChecks = n;
 
             if (!string.IsNullOrEmpty(mask))
             {
@@ -303,22 +299,22 @@ namespace ExMat.API
                 {
                     throw new Exception("failed to compile type mask");
                 }
-                nc._typecheck = r;
+                nc.TypeMasks = r;
             }
             else
             {
-                nc._typecheck = new();
+                nc.TypeMasks = new();
             }
         }
         public static void SetDefaultValues(ExVM vm, Dictionary<int, ExObject> d)
         {
             ExObject o = GetFromStack(vm, -1);
 
-            if (o._type != ExObjType.NATIVECLOSURE)
+            if (o.Type != ExObjType.NATIVECLOSURE)
             {
                 throw new Exception("native closure expected");
             }
-            o.GetNClosure().d_defaults = d;
+            o.GetNClosure().DefaultValues = d;
         }
         public static void DoParamChecks(ExVM vm, int n)
         {
@@ -331,11 +327,11 @@ namespace ExMat.API
         {
             DoParamChecks(vm, 3);
             ExObject self = GetFromStack(vm, n);
-            if (self._type == ExObjType.DICT || self._type == ExObjType.CLASS)
+            if (self.Type == ExObjType.DICT || self.Type == ExObjType.CLASS)
             {
                 ExObject k = new();
                 k.Assign(vm.GetAbove(-2));
-                if (k._type == ExObjType.NULL)
+                if (k.Type == ExObjType.NULL)
                 {
                     throw new Exception("'null' is not a valid key");
                 }
@@ -375,48 +371,40 @@ namespace ExMat.API
             return -1;
         }
 
-        public static bool CompileFile(ExVM vm, string _source)
+        public static bool CompileFile(ExVM vm, string source)
         {
-            ExCompiler c = new();
+            ExCompiler c = new(true);
             ExObject o = new();
 
-            if (c.Compile(vm, _source, ref o))
+            if (c.Compile(vm, source, ref o))
             {
-                ExClosure cls = ExClosure.Create(vm._sState, o._val._FuncPro);
+                ExClosure cls = ExClosure.Create(vm.SharedState, o.Value._FuncPro);
                 vm.Push(cls);
                 return true;
             }
-            vm._error = c._error;
+            vm.ErrorString = c.ErrorString;
             return false;
         }
 
         public static void PushRootTable(ExVM vm)
         {
-            vm.Push(vm._rootdict);
-        }
-        public static void PushConstTable(ExVM vm)
-        {
-            vm.Push(vm._sState._constdict);
-        }
-        public static void PushRegTable(ExVM vm)
-        {
-            vm.Push(vm._sState._reg);
+            vm.Push(vm.RootDictionary);
         }
 
         public static ExObject GetFromStack(ExVM vm, int i)
         {
-            return i >= 0 ? vm.GetAt(i + vm._stackbase - 1) : vm.GetAbove(i);
+            return i >= 0 ? vm.GetAt(i + vm.StackBase - 1) : vm.GetAbove(i);
         }
         public static int GetTopOfStack(ExVM vm)
         {
-            return vm._top - vm._stackbase;
+            return vm.StackTop - vm.StackBase;
         }
 
         public static bool Call(ExVM vm, int pcount, bool ret, bool force = false)
         {
             ExObject res = new();
             ExObject tmp = vm.GetAbove(-(pcount + 1));
-            if (vm.Call(ref tmp, pcount, vm._top - pcount, ref res, force))
+            if (vm.Call(ref tmp, pcount, vm.StackTop - pcount, ref res, force))
             {
                 vm.Pop(pcount);
                 if (ret)
@@ -428,27 +416,27 @@ namespace ExMat.API
             return false;
         }
 
-        public static bool Call(ExVM vm, int pcount, bool ret, bool b_p = false, bool cls = false, int nargs = 2)
+        public static bool Call(ExVM vm, int pcount, bool ret, bool bP = false, bool cls = false, int nargs = 2)
         {
             ExObject res = new();
             ExObject tmp = vm.GetAbove(-(nargs) + (cls ? -1 : 0));
             if (cls)
             {
-                int top = vm._top;
-                vm._top = vm._stackbase + tmp.GetClosure()._func._stacksize + 2;
+                int top = vm.StackTop;
+                vm.StackTop = vm.StackBase + tmp.GetClosure().Function.StackSize + 2;
                 if (vm.Call(ref tmp,
-                        nargs - (b_p
+                        nargs - (bP
                                     ? (cls
                                             ? 0
-                                            : (tmp.GetNClosure().n_paramscheck == 1
+                                            : (tmp.GetNClosure().nParameterChecks == 1
                                                 ? 1
                                                 : 0))
                                     : 0),
-                        vm._stackbase + 2, // vm._top - nargs + (cls ? (parsing ? -2 : 0)  : 0 ), //+ ,
+                        vm.StackBase + 2,
                         ref res,
                         cls))
                 {
-                    while (vm._top >= top)
+                    while (vm.StackTop >= top)
                     {
                         vm.Pop();
                     }
@@ -456,19 +444,19 @@ namespace ExMat.API
                     {
                         vm.Push(res);
                     }
-                    vm._top = top;
+                    vm.StackTop = top;
                     return true;
                 }
             }
             else
             {
                 if (vm.Call(ref tmp,
-                        nargs - (b_p
-                                    ? ((tmp.GetNClosure().n_paramscheck == 1
+                        nargs - (bP
+                                    ? ((tmp.GetNClosure().nParameterChecks == 1
                                                 ? 1
                                                 : 0))
                                     : 0),
-                        vm._stackbase + 1, // vm._top - nargs + (cls ? (parsing ? -2 : 0)  : 0 ), //+ ,
+                        vm.StackBase + 1, // vm._top - nargs + (cls ? (parsing ? -2 : 0)  : 0 ), //+ ,
                         ref res,
                         cls))
                 {
@@ -491,7 +479,7 @@ namespace ExMat.API
                 lis.Add(new ExObject(new List<ExObject>(rows)));
                 for (int j = 0; j < rows; j++)
                 {
-                    lis[i]._val.l_List.Add(vals[j]._val.l_List[i]);
+                    lis[i].Value.l_List.Add(vals[j].Value.l_List[i]);
                 }
             }
             return lis;
@@ -501,7 +489,7 @@ namespace ExMat.API
         {
             foreach (ExObject row in vals)
             {
-                if (row._type != ExObjType.ARRAY)
+                if (row.Type != ExObjType.ARRAY)
                 {
                     vm.AddToErrorMessage("given list have to contain lists");
                     return false;
@@ -549,13 +537,21 @@ namespace ExMat.API
         {
             ExSState exS = new();
             exS.Initialize();
-            ExVM vm = new() { _sState = exS };
+            ExVM vm = new() { SharedState = exS };
 
-            exS._rootVM = vm;
+            exS.Root = vm;
 
             vm.Initialize(stacksize);
-            vm.isInteractive = interacive;
+            vm.IsInteractive = interacive;
             return vm;
+        }
+
+        public static void WriteErrorLine(ExVM vm)
+        {
+            foreach (List<int> pair in vm.ErrorTrace)
+            {
+                Console.WriteLine("[TRACE] [LINE: " + pair[0] + ", INSTRUCTION ID: " + pair[1] + "] ");
+            }
         }
 
         public static void WriteErrorMessages(ExVM vm, string typ)
@@ -569,7 +565,7 @@ namespace ExMat.API
                         Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine("FAILED TO COMPILE");
                         Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine(vm._error);
+                        Console.WriteLine(vm.ErrorString);
                         break;
                     }
                 case "EXECUTE":
@@ -577,7 +573,8 @@ namespace ExMat.API
                         Console.ForegroundColor = ConsoleColor.Blue;
                         Console.WriteLine("FAILED TO EXECUTE");
                         Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine(vm._error);
+                        WriteErrorLine(vm);
+                        Console.WriteLine(vm.ErrorString);
                         break;
                     }
             }
@@ -586,7 +583,7 @@ namespace ExMat.API
             Console.WriteLine("*******************************");
             Console.ResetColor();
 
-            vm._error = string.Empty;
+            vm.ErrorString = string.Empty;
         }
     }
 }

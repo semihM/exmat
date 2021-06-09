@@ -11,3 +11,9 @@ dotnet_code_quality_unused_parameters = non_public
 
 # CA1069: Enums values should not be duplicated
 dotnet_diagnostic.CA1069.severity = silent
+
+# CA1051: Do not declare visible instance fields
+dotnet_diagnostic.CA1051.severity = none
+
+# CA1707: Identifiers should not contain underscores
+dotnet_diagnostic.CA1707.severity = suggestion
