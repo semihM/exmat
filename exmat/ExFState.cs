@@ -126,10 +126,10 @@ namespace ExMat.States
 
         public void SetInstrParams(int pos, int p1, int p2, int p3, dynamic p4)
         {
-            Instructions[pos].arg0.Value.i_Int = p1;
+            Instructions[pos].arg0 = p1;
             Instructions[pos].arg1 = p2;
-            Instructions[pos].arg2.Value.i_Int = p3;
-            Instructions[pos].arg3.Value.i_Int = p4;
+            Instructions[pos].arg2 = p3;
+            Instructions[pos].arg3 = p4;
         }
         public void SetInstrParam(int pos, int pno, int val)
         {
@@ -137,7 +137,7 @@ namespace ExMat.States
             {
                 case 0:
                     {
-                        Instructions[pos].arg0.Value.i_Int = val;
+                        Instructions[pos].arg0 = val;
                         break;
                     }
                 case 1:
@@ -148,12 +148,12 @@ namespace ExMat.States
                     }
                 case 2:
                     {
-                        Instructions[pos].arg2.Value.i_Int = val;
+                        Instructions[pos].arg2 = val;
                         break;
                     }
                 case 3:
                     {
-                        Instructions[pos].arg3.Value.i_Int = val;
+                        Instructions[pos].arg3 = val;
                         break;
                     }
             }
@@ -315,9 +315,9 @@ namespace ExMat.States
                     case OPC.SETOUTER:
                     case OPC.CALL:
                         {
-                            if (instr.arg0.Value.i_Int == dissed)
+                            if (instr.arg0 == dissed)
                             {
-                                instr.arg0.Value.i_Int = 985;
+                                instr.arg0 = 985;
                             }
                             break;
                         }
@@ -475,7 +475,7 @@ namespace ExMat.States
                             if (prev.op == OPC.CMP && prev.arg1 < 985)
                             {
                                 prev.op = OPC.JCMP;
-                                prev.arg0 = new(prev.arg1);
+                                prev.arg0 = prev.arg1;
                                 prev.arg1 = curr.arg1;
                                 Instructions[size - 1] = prev;
                                 return;
@@ -484,23 +484,23 @@ namespace ExMat.States
                         }
                     case OPC.SET:
                         {
-                            if (curr.arg0.Value.i_Int == curr.arg3.Value.i_Int)
+                            if (curr.arg0 == curr.arg3)
                             {
-                                curr.arg0.Value.i_Int = 985;
+                                curr.arg0 = 985;
                             }
                             break;
                         }
                     case OPC.SETOUTER:
                         {
-                            if (curr.arg0.Value.i_Int == curr.arg2.Value.i_Int)
+                            if (curr.arg0 == curr.arg2)
                             {
-                                curr.arg0.Value.i_Int = 985;
+                                curr.arg0 = 985;
                             }
                             break;
                         }
                     case OPC.RETURN:
                         {
-                            if (ParentFState != null && curr.arg0.Value.i_Int != 985 && prev.op == OPC.CALL && ReturnExpressionTarget < size - 1)
+                            if (ParentFState != null && curr.arg0 != 985 && prev.op == OPC.CALL && ReturnExpressionTarget < size - 1)
                             {
                                 prev.op = OPC.CALLTAIL;
                                 Instructions[size - 1] = prev;
@@ -514,11 +514,11 @@ namespace ExMat.States
                         }
                     case OPC.GET:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0.Value.i_Int == curr.arg2.Value.i_Int && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0 == curr.arg2 && (!IsLocalArg((int)prev.arg0)))
                             {
-                                prev.arg2 = new(curr.arg1);
+                                prev.arg2 = curr.arg1;
                                 prev.op = OPC.GETK;
-                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
+                                prev.arg0 = curr.arg0;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -526,12 +526,12 @@ namespace ExMat.States
                         }
                     case OPC.PREPCALL:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0.Value.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
                             {
                                 prev.op = OPC.PREPCALLK;
-                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
-                                prev.arg2.Value.i_Int = curr.arg2.Value.i_Int;
-                                prev.arg3.Value.i_Int = curr.arg3.Value.i_Int;
+                                prev.arg0 = curr.arg0;
+                                prev.arg2 = curr.arg2;
+                                prev.arg3 = curr.arg3;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -566,12 +566,12 @@ namespace ExMat.States
                                     break;
                             }
 
-                            if (idx != ArrayAType.INVALID && prev.arg0.Value.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
+                            if (idx != ArrayAType.INVALID && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
                             {
                                 prev.op = OPC.APPENDTOARRAY;
-                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
-                                prev.arg2.Value.i_Int = (int)idx;
-                                prev.arg3.Value.i_Int = 985;
+                                prev.arg0 = curr.arg0;
+                                prev.arg2 = (int)idx;
+                                prev.arg3 = 985;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -599,9 +599,9 @@ namespace ExMat.States
                                 case OPC.LOADCOMPLEX:
                                 case OPC.LOADSPACE:
                                     {
-                                        if (prev.arg0.Value.i_Int == curr.arg1)
+                                        if (prev.arg0 == curr.arg1)
                                         {
-                                            prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
+                                            prev.arg0 = curr.arg0;
                                             NotSnoozed = false;
                                             Instructions[size - 1] = prev;
                                             return;
@@ -613,8 +613,8 @@ namespace ExMat.States
                             if (prev.op == OPC.MOVE)
                             {
                                 prev.op = OPC.DMOVE;
-                                prev.arg2.Value.i_Int = curr.arg0.Value.i_Int;
-                                prev.arg3.Value.i_Int = curr.arg1;
+                                prev.arg2 = curr.arg0;
+                                prev.arg3 = curr.arg1;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -626,8 +626,8 @@ namespace ExMat.States
                             if (prev.op == OPC.LOAD && curr.arg1 <= 985)
                             {
                                 prev.op = OPC.DLOAD;
-                                prev.arg2.Value.i_Int = curr.arg0.Value.i_Int;
-                                prev.arg3.Value.i_Int = curr.arg1;
+                                prev.arg2 = curr.arg0;
+                                prev.arg3 = curr.arg1;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -636,12 +636,12 @@ namespace ExMat.States
                     case OPC.EQ:
                     case OPC.NEQ:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0.Value.i_Int == curr.arg1 && (!IsLocalArg((int)prev.arg0.Value.i_Int)))
+                            if (prev.op == OPC.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
                             {
                                 prev.op = curr.op;
-                                prev.arg0.Value.i_Int = curr.arg0.Value.i_Int;
-                                prev.arg2.Value.i_Int = curr.arg2.Value.i_Int;
-                                prev.arg3.Value.i_Int = 985;
+                                prev.arg0 = curr.arg0;
+                                prev.arg2 = curr.arg2;
+                                prev.arg3 = 985;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -649,7 +649,7 @@ namespace ExMat.States
                         }
                     case OPC.LOADNULL:
                         {
-                            if (prev.op == OPC.LOADNULL && (prev.arg0.Value.i_Int + prev.arg1 == curr.arg0.Value.i_Int))
+                            if (prev.op == OPC.LOADNULL && (prev.arg0 + prev.arg1 == curr.arg0))
                             {
                                 prev.arg1++;
                                 prev.op = OPC.LOADNULL;
@@ -676,7 +676,7 @@ namespace ExMat.States
 
         public void AddInstr(OPC op, int arg0, long arg1, int arg2, int arg3)
         {
-            ExInstr instr = new() { op = op, arg0 = new(arg0), arg1 = arg1, arg2 = new(arg2), arg3 = new(arg3) };
+            ExInstr instr = new() { op = op, arg0 = arg0, arg1 = arg1, arg2 = arg2, arg3 = arg3 };
             AddInstr(instr);
         }
 

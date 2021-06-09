@@ -140,10 +140,10 @@ namespace ExMat.OPs
     public class ExInstr : IDisposable
     {
         public OPC op;
-        public ExObject arg0;
+        public long arg0;
         public long arg1;
-        public ExObject arg2;
-        public ExObject arg3;
+        public long arg2;
+        public long arg3;
         private bool disposedValue;
 
         public ExInstr() { }
@@ -154,7 +154,7 @@ namespace ExMat.OPs
                 return "LINE";
             }
 
-            return op.ToString() + ": " + arg0.GetInt() + ", " + arg1 + ", " + arg2.GetInt() + ", " + arg3.GetInt();
+            return op.ToString() + ": " + arg0 + ", " + arg1 + ", " + arg2 + ", " + arg3;
         }
 
         protected virtual void Dispose(bool disposing)
@@ -163,9 +163,6 @@ namespace ExMat.OPs
             {
                 if (disposing)
                 {
-                    arg0.Dispose();
-                    arg2.Dispose();
-                    arg3.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

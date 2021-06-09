@@ -1673,7 +1673,7 @@ namespace ExMat.VM
                     case OPC.DLOAD:
                         {
                             GetTargetInStack(i).Assign(CallInfo.Value.Literals[(int)i.arg1]);
-                            GetTargetInStack(i.arg2.GetInt()).Assign(CallInfo.Value.Literals[(int)i.arg3.GetInt()]);
+                            GetTargetInStack(i.arg2).Assign(CallInfo.Value.Literals[(int)i.arg3]);
                             continue;
                         }
                     case OPC.LOADINTEGER:
@@ -1688,7 +1688,7 @@ namespace ExMat.VM
                         }
                     case OPC.LOADCOMPLEX:
                         {
-                            if (i.arg2.GetInt() == 1)
+                            if (i.arg2 == 1)
                             {
                                 GetTargetInStack(i).Assign(new Complex(0.0, new FloatInt() { i = i.arg1 }.f));
                             }
@@ -1718,11 +1718,11 @@ namespace ExMat.VM
                                 {
                                     CloseOuters(StackBase);
                                 }
-                                for (int j = 0; j < i.arg3.GetInt(); j++)
+                                for (int j = 0; j < i.arg3; j++)
                                 {
-                                    GetTargetInStack(j).Assign(GetTargetInStack(i.arg2.GetInt() + j));
+                                    GetTargetInStack(j).Assign(GetTargetInStack(i.arg2 + j));
                                 }
-                                if (!StartCall(c.Value._Closure, CallInfo.Value.Target, i.arg3.GetInt(), StackBase, true))
+                                if (!StartCall(c.Value._Closure, CallInfo.Value.Target, i.arg3, StackBase, true))
                                 {
                                     //AddToErrorMessage("guarded failed call");
                                     return FixStackAfterError();
@@ -1738,7 +1738,7 @@ namespace ExMat.VM
                             {
                                 case ExObjType.CLOSURE:
                                     {
-                                        if (!StartCall(tmp2.Value._Closure, i.arg0.GetInt(), i.arg3.GetInt(), StackBase + i.arg2.GetInt(), false))
+                                        if (!StartCall(tmp2.Value._Closure, i.arg0, i.arg3, StackBase + i.arg2, false))
                                         {
                                             //AddToErrorMessage("guarded failed call");
                                             return FixStackAfterError();
@@ -1747,13 +1747,13 @@ namespace ExMat.VM
                                     }
                                 case ExObjType.NATIVECLOSURE:
                                     {
-                                        if (!CallNative(tmp2.Value._NativeClosure, i.arg3.GetInt(), StackBase + i.arg2.GetInt(), ref tmp2))
+                                        if (!CallNative(tmp2.Value._NativeClosure, i.arg3, StackBase + i.arg2, ref tmp2))
                                         {
                                             //AddToErrorMessage("guarded failed call");
                                             return FixStackAfterError();
                                         }
 
-                                        if (i.arg0.GetInt() != 985)
+                                        if (i.arg0 != 985)
                                         {
                                             GetTargetInStack(i.arg0).Assign(tmp2);
                                         }
@@ -1767,7 +1767,7 @@ namespace ExMat.VM
                                             //AddToErrorMessage("guarded failed call");
                                             return FixStackAfterError();
                                         }
-                                        if (i.arg0.GetInt() != -1)
+                                        if (i.arg0 != -1)
                                         {
                                             GetTargetInStack(i.arg0).Assign(instance);
                                         }
@@ -1777,9 +1777,9 @@ namespace ExMat.VM
                                         {
                                             case ExObjType.CLOSURE:
                                                 {
-                                                    sbase = StackBase + (int)i.arg2.GetInt();
+                                                    sbase = StackBase + (int)i.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!StartCall(tmp2.Value._Closure, -1, i.arg3.GetInt(), sbase, false))
+                                                    if (!StartCall(tmp2.Value._Closure, -1, i.arg3, sbase, false))
                                                     {
                                                         //AddToErrorMessage("guarded failed call");
                                                         return FixStackAfterError();
@@ -1788,9 +1788,9 @@ namespace ExMat.VM
                                                 }
                                             case ExObjType.NATIVECLOSURE:
                                                 {
-                                                    sbase = StackBase + (int)i.arg2.GetInt();
+                                                    sbase = StackBase + (int)i.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!CallNative(tmp2.Value._NativeClosure, i.arg3.GetInt(), sbase, ref tmp2))
+                                                    if (!CallNative(tmp2.Value._NativeClosure, i.arg3, sbase, ref tmp2))
                                                     {
                                                         //AddToErrorMessage("guarded failed call");
                                                         return FixStackAfterError();
@@ -1810,18 +1810,18 @@ namespace ExMat.VM
                                         if (tmp2.GetInstance().GetMetaM(this, ExMetaM.CALL, ref cls2))
                                         {
                                             Push(tmp2);
-                                            for (int j = 0; j < i.arg3.GetInt(); j++)
+                                            for (int j = 0; j < i.arg3; j++)
                                             {
-                                                Push(GetTargetInStack(j + i.arg2.GetInt()));
+                                                Push(GetTargetInStack(j + i.arg2));
                                             }
 
-                                            if (!CallMeta(ref cls2, ExMetaM.CALL, i.arg3.GetInt() + 1, ref tmp2))
+                                            if (!CallMeta(ref cls2, ExMetaM.CALL, i.arg3 + 1, ref tmp2))
                                             {
                                                 AddToErrorMessage("meta method failed call");
                                                 return FixStackAfterError();
                                             }
 
-                                            if (i.arg0.GetInt() != -1)
+                                            if (i.arg0 != -1)
                                             {
                                                 GetTargetInStack(i.arg0).Assign(tmp2);
                                             }
@@ -1835,7 +1835,7 @@ namespace ExMat.VM
                                         ExSpace sp = sp_org.DeepCopy();
                                         int nparams = sp.Depth();
                                         int varcount = sp.VarCount();
-                                        int argcount = (int)i.arg3.GetInt() - 1;
+                                        int argcount = (int)i.arg3 - 1;
                                         if (argcount > varcount)
                                         {
                                             AddToErrorMessage("expected maximum " + varcount + " arguments for space");
@@ -1843,7 +1843,7 @@ namespace ExMat.VM
                                         }
 
                                         ExSpace child = sp;
-                                        int sb = (int)i.arg2.GetInt();
+                                        int sb = (int)i.arg2;
                                         int argid = 1;
                                         while (child != null && argcount > 0)
                                         {
@@ -1867,7 +1867,7 @@ namespace ExMat.VM
                                             child = child.Child;
                                         }
 
-                                        GetTargetInStack(i.arg0.GetInt()).Assign(sp);
+                                        GetTargetInStack(i.arg0).Assign(sp);
                                         break;
                                     }
                                 default:
@@ -1884,7 +1884,7 @@ namespace ExMat.VM
                             ExObject k = i.op == OPC.PREPCALLK ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
                             ExObject obj = GetTargetInStack(i.arg2);
 
-                            if (!Getter(ref obj, ref k, ref TempRegistery, false, (ExFallback)i.arg2.GetInt()))
+                            if (!Getter(ref obj, ref k, ref TempRegistery, false, (ExFallback)i.arg2))
                             {
                                 AddToErrorMessage("unknown method or field '" + k.GetString() + "'");
                                 return FixStackAfterError();
@@ -1912,7 +1912,7 @@ namespace ExMat.VM
                                 //AddToErrorMessage("guarded failed newslot");
                                 return FixStackAfterError();
                             }
-                            if (i.arg0.GetInt() != 985)
+                            if (i.arg0 != 985)
                             {
                                 GetTargetInStack(i).Assign(GetTargetInStack(i.arg3));
                             }
@@ -1936,7 +1936,7 @@ namespace ExMat.VM
                                 //AddToErrorMessage("failed setter for '" + GetTargetInStack(i.arg2).GetString() + "' key");
                                 return FixStackAfterError();
                             }
-                            if (i.arg0.GetInt() != 985)
+                            if (i.arg0 != 985)
                             {
                                 GetTargetInStack(i).Assign(GetTargetInStack(i.arg3));
                             }
@@ -1959,7 +1959,7 @@ namespace ExMat.VM
                             ExObject tmp = GetTargetInStack(i.arg2);
                             ExObject lit = CallInfo.Value.Literals[(int)i.arg1];
 
-                            if (!Getter(ref tmp, ref lit, ref TempRegistery, false, (ExFallback)i.arg2.GetInt()))
+                            if (!Getter(ref tmp, ref lit, ref TempRegistery, false, (ExFallback)i.arg2))
                             {
                                 AddToErrorMessage("unknown variable '" + lit.GetString() + "'"); // access to local var decl before
                                 return FixStackAfterError();
@@ -2016,7 +2016,7 @@ namespace ExMat.VM
                         }
                     case OPC.BITWISE:
                         {
-                            if (!DoBitwiseOP(i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
+                            if (!DoBitwiseOP(i.arg3, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
                             {
                                 return FixStackAfterError();
                             }
@@ -2026,7 +2026,7 @@ namespace ExMat.VM
                     case OPC.RETURNBOOL:
                     case OPC.RETURN:
                         {
-                            if (ReturnValue((int)i.arg0.GetInt(), (int)i.arg1, ref TempRegistery, i.op == OPC.RETURNBOOL))
+                            if (ReturnValue((int)i.arg0, (int)i.arg1, ref TempRegistery, i.op == OPC.RETURNBOOL))
                             {
                                 SwapObjects(o, ref TempRegistery);
                                 return true;
@@ -2035,19 +2035,19 @@ namespace ExMat.VM
                         }
                     case OPC.LOADNULL:
                         {
-                            if (i.arg2.GetInt() == 1)
+                            if (i.arg2 == 1)
                             {
                                 for (int n = 0; n < i.arg1; n++)
                                 {
-                                    GetTargetInStack(i.arg0.GetInt() + n).Nullify();
-                                    GetTargetInStack(i.arg0.GetInt() + n).Assign(new ExObject() { Type = ExObjType.DEFAULT });
+                                    GetTargetInStack(i.arg0 + n).Nullify();
+                                    GetTargetInStack(i.arg0 + n).Assign(new ExObject() { Type = ExObjType.DEFAULT });
                                 }
                             }
                             else
                             {
                                 for (int n = 0; n < i.arg1; n++)
                                 {
-                                    GetTargetInStack(i.arg0.GetInt() + n).Nullify();
+                                    GetTargetInStack(i.arg0 + n).Nullify();
                                 }
                             }
                             continue;
@@ -2072,7 +2072,7 @@ namespace ExMat.VM
                         }
                     case OPC.JCMP:
                         {
-                            if (!DoCompareOP((CmpOP)i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg0), TempRegistery))
+                            if (!DoCompareOP((CmpOP)i.arg3, GetTargetInStack(i.arg2), GetTargetInStack(i.arg0), TempRegistery))
                             {
                                 return FixStackAfterError();
                             }
@@ -2102,7 +2102,7 @@ namespace ExMat.VM
                             ExClosure currcls = CallInfo.Value.Closure.GetClosure();
                             ExOuter outr = currcls.OutersList[(int)i.arg1].Value._Outer;
                             outr.ValueRef.Assign(GetTargetInStack(i.arg2));
-                            if (i.arg0.GetInt() != 985)
+                            if (i.arg0 != 985)
                             {
                                 GetTargetInStack(i).Assign(GetTargetInStack(i.arg2));
                             }
@@ -2110,7 +2110,7 @@ namespace ExMat.VM
                         }
                     case OPC.NEWOBJECT:
                         {
-                            switch (i.arg3.GetInt())
+                            switch (i.arg3)
                             {
                                 case (int)ExNOT.DICT:
                                     {
@@ -2124,7 +2124,7 @@ namespace ExMat.VM
                                     }
                                 case (int)ExNOT.CLASS:
                                     {
-                                        if (!DoClassOP(GetTargetInStack(i), (int)i.arg1, (int)i.arg2.GetInt()))
+                                        if (!DoClassOP(GetTargetInStack(i), (int)i.arg1, (int)i.arg2))
                                         {
                                             AddToErrorMessage("failed to create class");
                                             return FixStackAfterError();
@@ -2133,7 +2133,7 @@ namespace ExMat.VM
                                     }
                                 default:
                                     {
-                                        AddToErrorMessage("unknown object type " + i.arg3.GetInt());
+                                        AddToErrorMessage("unknown object type " + i.arg3);
                                         return FixStackAfterError();
                                     }
                             }
@@ -2141,7 +2141,7 @@ namespace ExMat.VM
                     case OPC.APPENDTOARRAY:
                         {
                             ExObject val = new();
-                            switch (i.arg2.GetInt())
+                            switch (i.arg2)
                             {
                                 case (int)ArrayAType.STACK:
                                     val.Assign(GetTargetInStack(i.arg1)); break;
@@ -2190,7 +2190,7 @@ namespace ExMat.VM
                             if (ob.Type == ExObjType.INTEGER)
                             {
                                 GetTargetInStack(i).Assign(ob);
-                                ob.Value.i_Int += i.arg3.GetInt();
+                                ob.Value.i_Int += i.arg3;
                             }
                             else
                             {
@@ -2222,13 +2222,13 @@ namespace ExMat.VM
                             ExObject s2 = new(GetTargetInStack(i.arg2));
                             bool b = Getter(ref s1, ref s2, ref TempRegistery, true, ExFallback.DONT, true);
 
-                            GetTargetInStack(i).Assign(i.arg3.GetInt() == 0 ? b : !b);
+                            GetTargetInStack(i).Assign(i.arg3 == 0 ? b : !b);
 
                             continue;
                         }
                     case OPC.CMP:
                         {
-                            if (!DoCompareOP((CmpOP)i.arg3.GetInt(), GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
+                            if (!DoCompareOP((CmpOP)i.arg3, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
                             {
                                 return FixStackAfterError();
                             }
@@ -2289,8 +2289,8 @@ namespace ExMat.VM
                             if (!NewSlotA(GetTargetInStack(i.arg1),
                                          GetTargetInStack(i.arg2),
                                          GetTargetInStack(i.arg3),
-                                         (i.arg0.GetInt() & (int)ExNewSlotFlag.ATTR) > 0 ? GetTargetInStack(i.arg2.GetInt() - 1) : new(),
-                                         (i.arg0.GetInt() & (int)ExNewSlotFlag.STATIC) > 0,
+                                         (i.arg0 & (int)ExNewSlotFlag.ATTR) > 0 ? GetTargetInStack(i.arg2 - 1) : new(),
+                                         (i.arg0 & (int)ExNewSlotFlag.STATIC) > 0,
                                          false))
                             {
                                 return FixStackAfterError();
@@ -2306,7 +2306,7 @@ namespace ExMat.VM
                             ExObject s2 = GetTargetInStack(i.arg2);
                             ExObject s1v = GetTargetInStack(i.arg1 & 0x0000FFFF);
 
-                            if (!DoDerefInc((OPC)i.arg3.GetInt(), GetTargetInStack(i), ref si, ref s2, ref s1v, false, (ExFallback)idx))
+                            if (!DoDerefInc((OPC)i.arg3, GetTargetInStack(i), ref si, ref s2, ref s1v, false, (ExFallback)idx))
                             {
                                 return FixStackAfterError();
                             }
@@ -2331,7 +2331,7 @@ namespace ExMat.VM
                         }
                     case OPC.RETURNMACRO:   // TO-DO
                         {
-                            if (ReturnValue((int)i.arg0.GetInt(), (int)i.arg1, ref TempRegistery, false, true))
+                            if (ReturnValue((int)i.arg0, (int)i.arg1, ref TempRegistery, false, true))
                             {
                                 SwapObjects(o, ref TempRegistery);
                                 return true;
@@ -3481,7 +3481,7 @@ namespace ExMat.VM
 
         public ExObject GetConditionFromInstr(ExInstr i)
         {
-            return i.arg3.GetInt() != 0 ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
+            return i.arg3 != 0 ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
         }
 
         public enum ExFallback
@@ -4081,7 +4081,7 @@ namespace ExMat.VM
 
         public ExObject GetTargetInStack(ExInstr i)
         {
-            return Stack[StackBase + (int)i.arg0.GetInt()];
+            return Stack[StackBase + (int)i.arg0];
         }
         public ExObject GetTargetInStack(int i)
         {
@@ -4090,11 +4090,6 @@ namespace ExMat.VM
         public ExObject GetTargetInStack(long i)
         {
             return Stack[StackBase + (int)i];
-        }
-
-        public ExObject GetTargetInStack(ExObject i)
-        {
-            return Stack[StackBase + (int)i.GetInt()];
         }
 
         public static void SwapObjects(ExObject x, ref ExObject y)
