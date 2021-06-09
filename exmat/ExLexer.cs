@@ -129,8 +129,7 @@ namespace ExMat.Lexer
                 if (disposing)
                 {
                     Disposer.DisposeList(ref MacroParams);
-
-                    ValSpace.Dispose();
+                    Disposer.DisposeObjects(ValSpace);
 
                     ErrorString = null;
                     ValTempString = null;

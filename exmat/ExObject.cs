@@ -789,12 +789,13 @@ namespace ExMat.Objects
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExStack : IDisposable //<T> where T : class, new()
+    public class ExStack : IDisposable
     {
-        public List<ExObject> Values;
+        public List<ExObject> Values;   // Yığındaki objeler
 
-        public int Size;
-        public int Allocated;
+        public int Size;        // Obje sayısı
+        public int Allocated;   // Yığının sahip olabileceği maksimum obje sayısı
+
         private bool disposedValue;
 
         public string GetDebuggerDisplay()
@@ -907,6 +908,7 @@ namespace ExMat.Objects
 
         public ExObject Back()
         {
+            // Son eklenen objeyi döner
             return Values[Size - 1];
         }
 
@@ -914,16 +916,17 @@ namespace ExMat.Objects
         {
             if (Allocated <= Size)
             {
-                ReAlloc(Size * 2);
+                // Yeni boş değerli objeler ekler
+                ReAlloc(Size * 2);  
             }
             return Values[Size++] = new(o);
         }
 
         public void Pop()
         {
-            Size--;
-            Values[Size].Release();
-            Values[Size] = new(); // = null
+            // Objenin referansını azaltır ve yerine boş obje atar
+            Values[--Size].Release();   
+            Values[Size] = new();
         }
 
         public void Insert(int i, ExObject o)
@@ -945,11 +948,6 @@ namespace ExMat.Objects
         }
 
 
-        public ExObject this[int n]
-        {
-            get => Values[n];
-            set => Values[n].Assign(value);
-        }
 
         protected virtual void Dispose(bool disposing)
         {

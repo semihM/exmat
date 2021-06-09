@@ -499,7 +499,7 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.FLOAT:
                                 {
-                                    b = new FloatInt() { f = v.GetFloat() }.i;
+                                    b = new DoubleLong() { f = v.GetFloat() }.i;
                                     goto default;
                                 }
                             default:
@@ -564,7 +564,7 @@ namespace ExMat.BaseLib
                                 }
                             case ExObjType.FLOAT:
                                 {
-                                    b = new FloatInt() { f = v.GetFloat() }.i;
+                                    b = new DoubleLong() { f = v.GetFloat() }.i;
                                     goto default;
                                 }
                             default:

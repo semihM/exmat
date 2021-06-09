@@ -171,8 +171,10 @@ namespace ExMat.InfoVar
                 if (disposing)
                 {
                     Disposer.DisposeList(ref Literals);
-                    Disposer.DisposeList(ref Instructions);
                     Disposer.DisposeObjects(Closure);
+
+                    Instructions.RemoveAll((ExInstr i) => true);
+                    Instructions = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

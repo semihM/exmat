@@ -13,7 +13,6 @@ namespace ExMat.Closure
     {
         public int Index;
         public ExObject ValueRef;
-        public ExObject ValueReal;
 
         public ExOuter _prev;
         public ExOuter _next;
@@ -38,6 +37,11 @@ namespace ExMat.Closure
         {
             if (--ReferenceCount == 0)
             {
+                Index = -1;
+                if(ValueRef != null)
+                {
+                    ValueRef.Release();
+                }
                 SharedState = null;
                 if (_prev != null)
                 {
@@ -54,14 +58,14 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            return "OUTER(" + Index + ", *(" + (ValueRef == null ? "null" : ValueRef.GetInt()) + "), " + (ValueReal == null ? "null" : ValueReal.Type.ToString()) + ")";
+            return "OUTER(" + Index + ", " + (ValueRef == null ? "null" : ValueRef.GetInt()) + ")";
         }
 
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(ValueRef, ValueReal);
+            Disposer.DisposeObjects(ValueRef);
 
             if (_prev != null)
             {

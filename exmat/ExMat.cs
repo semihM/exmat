@@ -91,7 +91,7 @@ namespace ExMat
 
 
     [StructLayout(LayoutKind.Explicit, Size = 8)]
-    public struct FloatInt
+    public struct DoubleLong
     {
         [FieldOffset(0)] public double f;
         [FieldOffset(0)] public long i;

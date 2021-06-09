@@ -57,7 +57,7 @@ namespace ExMat.States
         public List<int> ContinueTargetList = new();
 
         // Bir önceki komuta bağımlı ?
-        public bool NotSnoozed;
+        public bool NotSnoozed = true;
         // Belirsiz sayıda parametreli ?
         public bool HasVargs;
 
@@ -90,8 +90,10 @@ namespace ExMat.States
                     Source.Dispose();
                     Name.Dispose();
 
+                    Instructions.RemoveAll((ExInstr i) => true);
+                    Instructions = null;
+                    
                     Disposer.DisposeList(ref ChildrenFStates);
-                    Disposer.DisposeList(ref Instructions);
                     Disposer.DisposeList(ref LocalVariables);
                     Disposer.DisposeList(ref LocalVariableInfos);
                     Disposer.DisposeList(ref OuterInfos);
@@ -114,7 +116,6 @@ namespace ExMat.States
 
             SharedState = sState;
 
-            NotSnoozed = true;
             ParentFState = parent;
 
             StackSize = 0;
@@ -124,7 +125,7 @@ namespace ExMat.States
             HasVargs = false;
         }
 
-        public void SetInstrParams(int pos, int p1, int p2, int p3, dynamic p4)
+        public void SetInstrParams(int pos, int p1, int p2, int p3, int p4)
         {
             Instructions[pos].arg0 = p1;
             Instructions[pos].arg1 = p2;
@@ -243,14 +244,14 @@ namespace ExMat.States
             return Instructions.Count - 1;
         }
 
-        public int GetLocalStackSize()
+        public int GetLocalVariablesCount()
         {
             return LocalVariables.Count;
         }
 
         public void SetLocalStackSize(int s)
         {
-            int c_s = LocalVariables.Count;
+            int c_s = GetLocalVariablesCount();
 
             while (c_s > s)
             {
@@ -265,15 +266,15 @@ namespace ExMat.States
                     li.EndOPC = GetCurrPos();
                     LocalVariableInfos.Add(li);
                 }
-                LocalVariables.RemoveAt(LocalVariables.Count - 1);
+                LocalVariables.RemoveAt(GetLocalVariablesCount() - 1);
             }
         }
 
-        public int GetOuterSize(int size)
+        public int GetOuterSize(int start)
         {
             int c = 0;
-            int ls = LocalVariables.Count - 1;
-            while (ls >= size)
+            int ls = GetLocalVariablesCount() - 1;
+            while (ls >= start)
             {
                 if (LocalVariables[ls--].EndOPC == int.MaxValue)
                 {
@@ -292,7 +293,7 @@ namespace ExMat.States
                 li.Position = GetCurrPos() + 1;
                 if (op)
                 {
-                    AddInstr(OPC.LINE, 0, line, 0, 0);
+                    //AddInstr(OPC.LINE, 0, line, 0, 0);
                 }
                 if (LastLine != line)
                 {
@@ -325,84 +326,65 @@ namespace ExMat.States
             }
         }
 
-        public int TopTarget()
+        public int TopTarget() // Üstteki değeri dön
         {
             return (int)Stack.Back().GetInt();
         }
 
-        public int PopTarget()
+        public int PopTarget() // Üstteki objeyi çıkart ve dön
         {
             int n = (int)Stack.Back().GetInt();
-
-            ExLocalInfo l = LocalVariables[n];
-            if (l.Name.Type == ExObjType.NULL)
+            if (LocalVariables[n].Name.Type == ExObjType.NULL)
             {
-                LocalVariables.RemoveAt(LocalVariables.Count - 1);
+                LocalVariables.RemoveAt(GetLocalVariablesCount() - 1);
             }
             Stack.Pop();
-
             return n;
         }
 
-        public int PushTarget(int n = -1)
+        public int PushTarget(int n = -1) // Üste obje ekle
         {
             if (n != -1)
             {
                 Stack.Push(new(n));
                 return n;
             }
-
-            n = FindAStackPos();
+            n = FindAStackPos(); // Boş değişken oluştur, pozisyonu dön
             Stack.Push(new(n));
-
             return n;
         }
 
-        public int FindAStackPos()
+        public int FindAStackPos() 
         {
-            int size = LocalVariables.Count;
-            LocalVariables.Add(new ExLocalInfo());
-            if (LocalVariables.Count > StackSize)
+            int size = GetLocalVariablesCount();
+            LocalVariables.Add(new());
+            if (size > StackSize)
             {
-                if (StackSize > MAX_STACK_SIZE)
+                if (StackSize > MAX_STACK_SIZE) // Çok fazla değişken tanımı
                 {
                     throw new Exception("Too many locals!");
                 }
-                StackSize = LocalVariables.Count;
+                StackSize = size;
             }
             return size;
         }
 
         public bool IsLocalArg(long pos)
         {
-            return pos < LocalVariables.Count && LocalVariables[(int)pos].Name.Type != ExObjType.NULL;
+            return pos < GetLocalVariablesCount() && LocalVariables[(int)pos].Name.Type != ExObjType.NULL;
         }
         public bool IsLocalArg(int pos)
         {
-            return pos < LocalVariables.Count && LocalVariables[pos].Name.Type != ExObjType.NULL;
-        }
-
-        public int PushVar(ExObject v)
-        {
-            int n = LocalVariables.Count;
-            ExLocalInfo l = new();
-            l.Name.Assign(v.GetString());
-            l.StartOPC = GetCurrPos() + 1;
-            l.Position = LocalVariables.Count;
-            LocalVariables.Add(l);
-            if (LocalVariables.Count > StackSize)
-            {
-                StackSize = LocalVariables.Count;
-            }
-            return n;
+            return pos < GetLocalVariablesCount() && LocalVariables[pos].Name.Type != ExObjType.NULL;
         }
 
         public int GetLocal(ExObject local)
         {
-            int c = LocalVariables.Count;
+            int c = GetLocalVariablesCount();
+            string varname = local.GetString();
             while (c > 0)
             {
-                if (LocalVariables[--c].Name.Value.s_String == local.Value.s_String)
+                if (LocalVariables[--c].Name.GetString() == varname)
                 {
                     return c;
                 }
@@ -449,17 +431,18 @@ namespace ExMat.States
             nOuters++;
         }
 
-        public ExObject CreateString(string s, int len = -1)
+        public ExObject CreateString(string s)
         {
             if (!SharedState.Strings.ContainsKey(s))
             {
-                ExObject str = new() { Type = ExObjType.STRING };
-                str.Value.s_String = s;
+                ExObject str = new(s);
                 SharedState.Strings.Add(s, str);
                 return str;
             }
             return SharedState.Strings[s];
         }
+
+        // Bir önceki komut ile bağlantıları inceler, gerekli değerleri değiştirir
         public void AddInstr(ExInstr curr)
         {
             int size = Instructions.Count;
@@ -658,6 +641,8 @@ namespace ExMat.States
                             }
                             break;
                         }
+                        #region _
+                        /*
                     case OPC.LINE:
                         {
                             if (prev.op == OPC.LINE)
@@ -667,6 +652,8 @@ namespace ExMat.States
                             }
                             break;
                         }
+                        */
+                        #endregion
                 }
             }
 
@@ -674,6 +661,7 @@ namespace ExMat.States
             Instructions.Add(curr);
         }
 
+        // Komut listesinin sonuna yeni bir komut ekler
         public void AddInstr(OPC op, int arg0, long arg1, int arg2, int arg3)
         {
             ExInstr instr = new() { op = op, arg0 = arg0, arg1 = arg1, arg2 = arg2, arg3 = arg3 };
@@ -695,6 +683,17 @@ namespace ExMat.States
                 ch.PopChildState();
             }
             ChildrenFStates.RemoveAt(ChildrenFStates.Count - 1);
+        }
+
+        public int PushVar(ExObject v)
+        {
+            int n = GetLocalVariablesCount();
+            LocalVariables.Add(new(){ Name = new(v.GetString()), StartOPC = GetCurrPos() + 1, Position = n });
+            if (n >= StackSize)
+            {
+                StackSize = n + 1;
+            }
+            return n;
         }
 
         public void AddParam(ExObject p)

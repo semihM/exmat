@@ -376,7 +376,7 @@ namespace ExMat.API
             ExCompiler c = new(true);
             ExObject o = new();
 
-            if (c.Compile(vm, source, ref o))
+            if (c.InitializeCompiler(vm, source, ref o))
             {
                 ExClosure cls = ExClosure.Create(vm.SharedState, o.Value._FuncPro);
                 vm.Push(cls);

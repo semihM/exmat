@@ -165,7 +165,9 @@ namespace ExMat.FuncPrototype
             Disposer.DisposeList(ref Functions);
             Disposer.DisposeList(ref Parameters);
             Disposer.DisposeList(ref Literals);
-            Disposer.DisposeList(ref Instructions);
+
+            Instructions.RemoveAll((ExInstr i) => true);
+            Instructions = null;
         }
     }
 

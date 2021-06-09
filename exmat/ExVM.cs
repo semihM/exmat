@@ -1663,8 +1663,6 @@ namespace ExMat.VM
                 ExInstr i = CallInfo.Value.Instructions[CallInfo.Value.InstructionsIndex++];
                 switch (i.op)
                 {
-                    case OPC.LINE:
-                        continue;
                     case OPC.LOAD:
                         {
                             GetTargetInStack(i).Assign(CallInfo.Value.Literals[(int)i.arg1]);
@@ -1683,14 +1681,14 @@ namespace ExMat.VM
                         }
                     case OPC.LOADFLOAT:
                         {
-                            GetTargetInStack(i).Assign(new FloatInt() { i = i.arg1 }.f);
+                            GetTargetInStack(i).Assign( new DoubleLong() { i = i.arg1 }.f );
                             continue;
                         }
                     case OPC.LOADCOMPLEX:
                         {
                             if (i.arg2 == 1)
                             {
-                                GetTargetInStack(i).Assign(new Complex(0.0, new FloatInt() { i = i.arg1 }.f));
+                                GetTargetInStack(i).Assign(new Complex(0.0, new DoubleLong() { i = i.arg1 }.f));
                             }
                             else
                             {
@@ -2026,7 +2024,7 @@ namespace ExMat.VM
                     case OPC.RETURNBOOL:
                     case OPC.RETURN:
                         {
-                            if (ReturnValue((int)i.arg0, (int)i.arg1, ref TempRegistery, i.op == OPC.RETURNBOOL))
+                            if (ReturnValue((int)i.arg0, (int)i.arg1, ref TempRegistery, i.op == OPC.RETURNBOOL, i.arg2 == 1))
                             {
                                 SwapObjects(o, ref TempRegistery);
                                 return true;
@@ -2150,7 +2148,7 @@ namespace ExMat.VM
                                 case (int)ArrayAType.INTEGER:
                                     val.Assign(i.arg1); break;
                                 case (int)ArrayAType.FLOAT:
-                                    val.Assign(new FloatInt() { i = i.arg1 }.f); break;
+                                    val.Assign(new DoubleLong() { i = i.arg1 }.f); break;
                                 case (int)ArrayAType.BOOL:
                                     val.Assign(i.arg1 == 1); break;
                                 default:
@@ -2747,7 +2745,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool ReturnValue(int a0, int a1, ref ExObject res, bool mkbool = false, bool mac = false)
+        public bool ReturnValue(int a0, int a1, ref ExObject res, bool mkbool = false, bool interactive = false)                            //  bool mac = false)
         {
             bool r = CallInfo.Value.IsRootCall;
             int cbase = StackBase - CallInfo.Value.PrevBase;
@@ -2768,22 +2766,22 @@ namespace ExMat.VM
 
             if (p.Type != ExObjType.NULL || _forcereturn)
             {
-                if (a0 != 985)
+                if (a0 != 985 || interactive)
                 {
+                    #region _
+                    /*
                     if (mac)
                     {
                         p.Assign(Stack[StackBase - a0]);
-                    }
-                    else
-                    {
-                        p.Assign(mkbool ? new(Stack[StackBase + a1].GetBool()) : Stack[StackBase + a1]);
-                    }
+                    }else*/
+                    #endregion
+                    p.Assign(mkbool ? new(Stack[StackBase + a1].GetBool()) : Stack[StackBase + a1]);
 
                     bool seq = CallInfo.Value.Closure.Value._Closure.Function.IsSequence();
                     if (seq)
                     {
-                        CallInfo.Value.Closure.Value._Closure.DefaultParams.Add(new(p));
-                        CallInfo.Value.Closure.Value._Closure.Function.Parameters.Add(new(Stack[StackBase + 1].GetInt().ToString()));
+                        CallInfo.Value.Closure.GetClosure().DefaultParams.Add(new(p));
+                        CallInfo.Value.Closure.GetClosure().Function.Parameters.Add(new(Stack[StackBase + 1].GetInt().ToString()));
                     }
 
                     if (!LeaveFrame(seq))
@@ -4110,13 +4108,14 @@ namespace ExMat.VM
         public void CloseOuters(int idx)
         {
             ExOuter o;
-            while ((o = Outers) != null && idx > 0)
+            while ((o = Outers) != null && idx-- > 0)
             {
-                o.ValueReal = o.ValueRef;
-                o.ValueRef = o.ValueReal;
                 Outers = o._next;
-                idx--;
                 o.Release();
+                if(o.Index == -1)
+                {
+                    Outers = null;
+                }
             }
         }
 
