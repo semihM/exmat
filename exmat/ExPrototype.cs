@@ -1,11 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
 using ExMat.InfoVar;
 using ExMat.Objects;
 using ExMat.OPs;
 using ExMat.States;
-using ExMat.VM;
 
 namespace ExMat.FuncPrototype
 {
@@ -102,6 +100,11 @@ namespace ExMat.FuncPrototype
 
         public ExLineInfo FindLineInfo(int idx)
         {
+            if (LineInfos.Count < 1)
+            {
+                return new() { Line = 1, Position = 0 };
+            }
+
             int line = LineInfos[0].Line;
             int low = 0, mid = 0, high = nLineInfos - 1;
 
@@ -168,22 +171,6 @@ namespace ExMat.FuncPrototype
 
             Instructions.RemoveAll((ExInstr i) => true);
             Instructions = null;
-        }
-    }
-
-    public class ExFunc
-    {
-        public MethodInfo Method;
-        public ExFunc()
-        {
-        }
-        public ExFunc(MethodInfo m)
-        {
-            Method = m;
-        }
-        public int Invoke(ExVM vm, int nargs)
-        {
-            return (int)Method.Invoke(null, new object[] { vm, nargs });
         }
     }
 }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using ExMat.Closure;
 using ExMat.Compiler;
-using ExMat.FuncPrototype;
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.VM;
@@ -187,7 +186,7 @@ namespace ExMat.API
                 vm.Push(str);
             }
         }
-        public static void CreateClosure(ExVM vm, ExFunc f, int fvars, bool force = false)
+        public static void CreateClosure(ExVM vm, ExRegFunc.FunctionRef f, int fvars, bool force = false)
         {
             ExNativeClosure nc = ExNativeClosure.Create(vm.SharedState, f, fvars);
             nc.nParameterChecks = 0;

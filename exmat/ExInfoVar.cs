@@ -6,12 +6,6 @@ using ExMat.OPs;
 
 namespace ExMat.InfoVar
 {
-    public enum ExOuterType
-    {
-        LOCAL = 0,
-        OUTER
-    }
-
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExLocalInfo : IDisposable
     {
@@ -64,6 +58,11 @@ namespace ExMat.InfoVar
         }
     }
 
+    public enum ExOuterType
+    {
+        LOCAL,
+        OUTER
+    }
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExOuterInfo : IDisposable
     {

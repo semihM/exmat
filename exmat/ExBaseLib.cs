@@ -3151,7 +3151,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "print",
-                Function = new(GetBaseLibMethod("StdPrint")),
+                Function = StdPrint,
                 nParameterChecks = -2,
                 ParameterMask = "..n",
                 DefaultValues = new()
@@ -3163,7 +3163,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "printl",
-                Function = new(GetBaseLibMethod("StdPrintl")),
+                Function = StdPrintl,
                 nParameterChecks = -2,
                 ParameterMask = "..n",
                 DefaultValues = new()
@@ -3175,14 +3175,14 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "time",
-                Function = new(GetBaseLibMethod("StdTime")),
+                Function = StdTime,
                 nParameterChecks = -1,
                 ParameterMask = null
             },
             new()
             {
                 Name = "date",
-                Function = new(GetBaseLibMethod("StdDate")),
+                Function = StdDate,
                 nParameterChecks = -1,
                 ParameterMask = ".s.",
                 DefaultValues = new()
@@ -3195,14 +3195,14 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "type",
-                Function = new(GetBaseLibMethod("StdType")),
+                Function = StdType,
                 nParameterChecks = 2,
                 ParameterMask = null
             },
             new()
             {
                 Name = "assert",
-                Function = new(GetBaseLibMethod("StdAssert")),
+                Function = StdAssert,
                 nParameterChecks = -2,
                 ParameterMask = "..s",
                 DefaultValues = new()
@@ -3215,7 +3215,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "string",
-                Function = new(GetBaseLibMethod("StdString")),
+                Function = StdString,
                 nParameterChecks = -1,
                 ParameterMask = "...i",
                 DefaultValues = new()
@@ -3228,7 +3228,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "complex",
-                Function = new(GetBaseLibMethod("StdComplex")),
+                Function = StdComplex,
                 nParameterChecks = -1,
                 ParameterMask = ".n|Cn",
                 DefaultValues = new()
@@ -3240,7 +3240,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "complex2",
-                Function = new(GetBaseLibMethod("StdComplex2")),
+                Function = StdComplex2,
                 nParameterChecks = -1,
                 ParameterMask = ".i|fi|f",
                 DefaultValues = new()
@@ -3252,7 +3252,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "float",
-                Function = new(GetBaseLibMethod("StdFloat")),
+                Function = StdFloat,
                 nParameterChecks = -1,
                 ParameterMask = "..",
                 DefaultValues = new()
@@ -3263,7 +3263,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "integer",
-                Function = new(GetBaseLibMethod("StdInteger")),
+                Function = StdInteger,
                 nParameterChecks = -1,
                 ParameterMask = "..",
                 DefaultValues = new()
@@ -3274,7 +3274,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "bool",
-                Function = new(GetBaseLibMethod("StdBool")),
+                Function = StdBool,
                 nParameterChecks = -1,
                 ParameterMask = "..",
                 DefaultValues = new()
@@ -3285,7 +3285,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "bits",
-                Function = new(GetBaseLibMethod("StdBits")),
+                Function = StdBits,
                 nParameterChecks = -1,
                 ParameterMask = ".i|f.",
                 DefaultValues = new()
@@ -3297,7 +3297,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "bits32",
-                Function = new(GetBaseLibMethod("StdBits32")),
+                Function = StdBits32,
                 nParameterChecks = -1,
                 ParameterMask = ".i|f.",
                 DefaultValues = new()
@@ -3309,7 +3309,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "bytes",
-                Function = new(GetBaseLibMethod("StdBytes")),
+                Function = StdBytes,
                 nParameterChecks = -1,
                 ParameterMask = ".i|f|s.",
                 DefaultValues = new()
@@ -3322,7 +3322,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "list",
-                Function = new(GetBaseLibMethod("StdList")),
+                Function = StdList,
                 nParameterChecks = -1,
                 ParameterMask = ".n|s.",
                 DefaultValues = new()
@@ -3334,7 +3334,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "range",
-                Function = new(GetBaseLibMethod("StdRange")),
+                Function = StdRange,
                 nParameterChecks = -2,
                 ParameterMask = ".nnn",
                 DefaultValues = new()
@@ -3347,7 +3347,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "rangei",
-                Function = new(GetBaseLibMethod("StdRangei")),
+                Function = StdRangei,
                 nParameterChecks = -2,
                 ParameterMask = ".nnn",
                 DefaultValues = new()
@@ -3360,7 +3360,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "matrix",
-                Function = new(GetBaseLibMethod("StdMatrix")),
+                Function = StdMatrix,
                 nParameterChecks = -3,
                 ParameterMask = ".ii.",
                 DefaultValues = new()
@@ -3374,56 +3374,56 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "map",
-                Function = new(GetBaseLibMethod("StdMap")),
+                Function = StdMap,
                 nParameterChecks = -3,
                 ParameterMask = ".c|yaa"
             },
             new()
             {
                 Name = "filter",
-                Function = new(GetBaseLibMethod("StdFilter")),
+                Function = StdFilter,
                 nParameterChecks = 3,
                 ParameterMask = ".ca"
             },
             new()
             {
                 Name = "call",
-                Function = new(GetBaseLibMethod("StdCall")),
+                Function = StdCall,
                 nParameterChecks = -2,
                 ParameterMask = null
             },
             new()
             {
                 Name = "parse",
-                Function = new(GetBaseLibMethod("StdParse")),
+                Function = StdParse,
                 nParameterChecks = 3,
                 ParameterMask = ".c|ya"
             },
             new()
             {
                 Name = "iter",
-                Function = new(GetBaseLibMethod("StdIter")),
+                Function = StdIter,
                 nParameterChecks = 4,
                 ParameterMask = ".c|ya."
             },
             new()
             {
                 Name = "first",
-                Function = new(GetBaseLibMethod("StdFirst")),
+                Function = StdFirst,
                 nParameterChecks = 3,
                 ParameterMask = ".ca"
             },
             new()
             {
                 Name = "any",
-                Function = new(GetBaseLibMethod("StdAny")),
+                Function = StdAny,
                 nParameterChecks = 3,
                 ParameterMask = ".ca"
             },
             new()
             {
                 Name = "all",
-                Function = new(GetBaseLibMethod("StdAll")),
+                Function = StdAll,
                 nParameterChecks = 3,
                 ParameterMask = ".ca"
             },
@@ -3431,21 +3431,21 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "exit",
-                Function = new(GetBaseLibMethod("StdExit")),
+                Function = StdExit,
                 nParameterChecks = -1,
                 ParameterMask = ".i|f"
             },
             new()
             {
                 Name = "is_interactive",
-                Function = new(GetBaseLibMethod("StdInteractive")),
+                Function = StdInteractive,
                 nParameterChecks = 1,
                 ParameterMask = "."
             },
             new()
             {
                 Name = "collect_garbage",
-                Function = new(GetBaseLibMethod("StdGCCollect")),
+                Function = StdGCCollect,
                 nParameterChecks = 1,
                 ParameterMask = "."
             },
@@ -3453,7 +3453,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = ReloadBaseFunc,
-                Function = new(GetBaseLibMethod("StdReloadbase")),
+                Function = StdReloadBase,
                 nParameterChecks = -1,
                 ParameterMask = ".s"
             },

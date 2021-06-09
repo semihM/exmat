@@ -5,6 +5,7 @@ using System.Numerics;
 using ExMat.Class;
 using ExMat.Closure;
 using ExMat.FuncPrototype;
+using ExMat.VM;
 
 namespace ExMat.Objects
 {
@@ -744,11 +745,14 @@ namespace ExMat.Objects
     public class ExRegFunc : IDisposable
     {
         public string Name;             // Fonksiyon ismi
-        public ExFunc Function;         // Fonksiyon referansı
-        public bool IsDelegateFunction; // Temsili fonksiyon ?
+
+        public delegate int FunctionRef(ExVM vm, int nargs);
+        public FunctionRef Function;    // Fonksiyon referansı
 
         public string ParameterMask;    // Parameter tipleri maskesi
         public int nParameterChecks;    // Argüman sayısı kontrolü
+
+        public bool IsDelegateFunction; // Temsili(delegate) fonksiyon ?
 
         public Dictionary<int, ExObject> DefaultValues = new(); // Varsayılan değerler
 
@@ -917,7 +921,7 @@ namespace ExMat.Objects
             if (Allocated <= Size)
             {
                 // Yeni boş değerli objeler ekler
-                ReAlloc(Size * 2);  
+                ReAlloc(Size * 2);
             }
             return Values[Size++] = new(o);
         }
@@ -925,7 +929,7 @@ namespace ExMat.Objects
         public void Pop()
         {
             // Objenin referansını azaltır ve yerine boş obje atar
-            Values[--Size].Release();   
+            Values[--Size].Release();
             Values[Size] = new();
         }
 

@@ -38,7 +38,7 @@ namespace ExMat.Closure
             if (--ReferenceCount == 0)
             {
                 Index = -1;
-                if(ValueRef != null)
+                if (ValueRef != null)
                 {
                     ValueRef.Release();
                 }
@@ -176,7 +176,7 @@ namespace ExMat.Closure
     {
         public ExSState SharedState;
         public ExObject Name;
-        public ExFunc Function;    // Bir C# metotuna işaret eder
+        public ExRegFunc.FunctionRef Function;    // Bir C# metotuna işaret eder
         public bool IsDelegateFunction;
 
         public int nOuters;
@@ -206,7 +206,7 @@ namespace ExMat.Closure
             ReferenceCount = 1;
         }
 
-        public static ExNativeClosure Create(ExSState exS, ExFunc f, int nout)
+        public static ExNativeClosure Create(ExSState exS, ExRegFunc.FunctionRef f, int nout)
         {
             ExNativeClosure cls = new() { SharedState = exS, Function = f };
             ExUtils.InitList(ref cls.OutersList, nout);

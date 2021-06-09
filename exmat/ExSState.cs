@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
+using ExMat.BaseLib;
 using ExMat.Closure;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -39,26 +39,26 @@ namespace ExMat.States
                 Name = "has_attr",
                 nParameterChecks = 3,
                 ParameterMask = "yss",
-                Function = new(GetDelegMethod("StdClassHasAttr"))
+                Function = ExBaseLib.StdClassHasAttr
             },
             new()
             {
                 Name = "get_attr",
                 nParameterChecks = 3,
                 ParameterMask = "yss",
-                Function = new(GetDelegMethod("StdClassGetAttr"))
+                Function = ExBaseLib.StdClassGetAttr
             },
             new()
             {
                 Name = "set_attr",
                 nParameterChecks = 4,
                 ParameterMask = "yss.",
-                Function = new(GetDelegMethod("StdClassSetAttr"))
+                Function = ExBaseLib.StdClassSetAttr
             },
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "y"
             },
@@ -75,33 +75,33 @@ namespace ExMat.States
                 Name = "len",
                 nParameterChecks = 1,
                 ParameterMask = "d",
-                Function = new(GetDelegMethod("StdDefaultLength"))
+                Function = ExBaseLib.StdDefaultLength
             },
             new()
             {
                 Name = "has_key",
                 nParameterChecks = 2,
                 ParameterMask = "ds",
-                Function = new(GetDelegMethod("StdDictHasKey"))
+                Function = ExBaseLib.StdDictHasKey
             },
             new()
             {
                 Name = "get_keys",
                 nParameterChecks = 1,
                 ParameterMask = "d",
-                Function = new(GetDelegMethod("StdDictKeys"))
+                Function = ExBaseLib.StdDictKeys
             },
             new()
             {
                 Name = "get_values",
                 nParameterChecks = 1,
                 ParameterMask = "d",
-                Function = new(GetDelegMethod("StdDictValues"))
+                Function = ExBaseLib.StdDictValues
             },
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "d"
             },
@@ -117,89 +117,89 @@ namespace ExMat.States
                 Name = "len",
                 nParameterChecks = 1,
                 ParameterMask = "a",
-                Function = new(GetDelegMethod("StdDefaultLength"))
+                Function = ExBaseLib.StdDefaultLength
             },
             new()
             {
                 Name = "append",
                 nParameterChecks = 2,
                 ParameterMask = "a.",
-                Function = new(GetDelegMethod("StdArrayAppend"))
+                Function = ExBaseLib.StdArrayAppend
             },
             new()
             {
                 Name = "extend",
                 nParameterChecks = 2,
                 ParameterMask = "aa",
-                Function = new(GetDelegMethod("StdArrayExtend"))
+                Function = ExBaseLib.StdArrayExtend
             },
             new()
             {
                 Name = "push",
                 nParameterChecks = 2,
                 ParameterMask = "a.",
-                Function = new(GetDelegMethod("StdArrayAppend"))
+                Function = ExBaseLib.StdArrayAppend
             },
             new()
             {
                 Name = "pop",
                 nParameterChecks = 1,
                 ParameterMask = "a",
-                Function = new(GetDelegMethod("StdArrayPop"))
+                Function = ExBaseLib.StdArrayPop
             },
             new()
             {
                 Name = "resize",
                 nParameterChecks = 2,
                 ParameterMask = "ai",
-                Function = new(GetDelegMethod("StdArrayResize"))
+                Function = ExBaseLib.StdArrayResize
             },
             new()
             {
                 Name = "index_of",
                 nParameterChecks = 2,
                 ParameterMask = "a.",
-                Function = new(GetDelegMethod("StdArrayIndexOf"))
+                Function = ExBaseLib.StdArrayIndexOf
             },
             new()
             {
                 Name = "count",
                 nParameterChecks = 2,
                 ParameterMask = "a.",
-                Function = new(GetDelegMethod("StdArrayCount"))
+                Function = ExBaseLib.StdArrayCount
             },
             new()
             {
                 Name = "reverse",
                 nParameterChecks = 1,
                 ParameterMask = "a",
-                Function = new(GetDelegMethod("StdArrayReverse"))
+                Function = ExBaseLib.StdArrayReverse
             },
             new()
             {
                 Name = "slice",
                 nParameterChecks = -2,
                 ParameterMask = "aii",
-                Function = new(GetDelegMethod("StdArraySlice"))
+                Function = ExBaseLib.StdArraySlice
             },
             new()
             {
                 Name = "copy",
                 nParameterChecks = 1,
                 ParameterMask = "a",
-                Function = new(GetDelegMethod("StdArrayCopy"))
+                Function = ExBaseLib.StdArrayCopy
             },
             new()
             {
                 Name = "transpose",
                 nParameterChecks = 1,
                 ParameterMask = "a",
-                Function = new(GetDelegMethod("StdArrayTranspose"))
+                Function = ExBaseLib.StdArrayTranspose
             },
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "a"
             },
@@ -216,40 +216,40 @@ namespace ExMat.States
                 Name = "abs",
                 nParameterChecks = 1,
                 ParameterMask = "C",
-                Function = new(GetDelegMethod("StdComplexMagnitude"))
+                Function = ExBaseLib.StdComplexMagnitude
             },
             new()
             {
                 Name = "phase",
                 nParameterChecks = 1,
                 ParameterMask = "C",
-                Function = new(GetDelegMethod("StdComplexPhase"))
+                Function = ExBaseLib.StdComplexPhase
             },
             new()
             {
                 Name = "img",
                 nParameterChecks = 1,
                 ParameterMask = "C",
-                Function = new(GetDelegMethod("StdComplexImg"))
+                Function = ExBaseLib.StdComplexImg
             },
             new()
             {
                 Name = "real",
                 nParameterChecks = 1,
                 ParameterMask = "C",
-                Function = new(GetDelegMethod("StdComplexReal"))
+                Function = ExBaseLib.StdComplexReal
             },
             new()
             {
                 Name = "conj",
                 nParameterChecks = 1,
                 ParameterMask = "C",
-                Function = new(GetDelegMethod("StdComplexConjugate"))
+                Function = ExBaseLib.StdComplexConjugate
             },
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "C"
             },
@@ -264,7 +264,7 @@ namespace ExMat.States
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "n"
             },
@@ -280,49 +280,49 @@ namespace ExMat.States
                 Name = "len",
                 nParameterChecks = 1,
                 ParameterMask = "s",
-                Function = new(GetDelegMethod("StdDefaultLength"))
+                Function = ExBaseLib.StdDefaultLength
             },
             new()
             {
                 Name = "index_of",
                 nParameterChecks = 2,
                 ParameterMask = "ss",
-                Function = new(GetDelegMethod("StdStringIndexOf"))
+                Function = ExBaseLib.StdStringIndexOf
             },
             new()
             {
                 Name = "to_upper",
                 nParameterChecks = 1,
                 ParameterMask = "s",
-                Function = new(GetDelegMethod("StdStringToupper"))
+                Function = ExBaseLib.StdStringToUpper
             },
             new()
             {
                 Name = "to_lower",
                 nParameterChecks = 1,
                 ParameterMask = "s",
-                Function = new(GetDelegMethod("StdStringToLower"))
+                Function = ExBaseLib.StdStringToLower
             },
             new()
             {
                 Name = "reverse",
                 nParameterChecks = 1,
                 ParameterMask = "s",
-                Function = new(GetDelegMethod("StdStringReverse"))
+                Function = ExBaseLib.StdStringReverse
             },
             new()
             {
                 Name = "replace",
                 nParameterChecks = 3,
                 ParameterMask = "sss",
-                Function = new(GetDelegMethod("StdStringReplace"))
+                Function = ExBaseLib.StdStringReplace
             },
             new()
             {
                 Name = "repeat",
                 nParameterChecks = 2,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringRepeat"))
+                Function = ExBaseLib.StdStringRepeat
             },
 
             new()
@@ -330,61 +330,61 @@ namespace ExMat.States
                 Name = "isAlphabetic",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringAlphabetic"))
+                Function = ExBaseLib.StdStringAlphabetic
             },
             new()
             {
                 Name = "isNumeric",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringNumeric"))
+                Function = ExBaseLib.StdStringNumeric
             },
             new()
             {
                 Name = "isAlphaNumeric",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringAlphaNumeric"))
+                Function = ExBaseLib.StdStringAlphaNumeric
             },
             new()
             {
                 Name = "isLower",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringLower"))
+                Function = ExBaseLib.StdStringLower
             },
             new()
             {
                 Name = "isUpper",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringUpper"))
+                Function = ExBaseLib.StdStringUpper
             },
             new()
             {
                 Name = "isWhitespace",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringWhitespace"))
+                Function = ExBaseLib.StdStringWhitespace
             },
             new()
             {
                 Name = "isSymbol",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = new(GetDelegMethod("StdStringSymbol"))
+                Function = ExBaseLib.StdStringSymbol
             },
             new()
             {
                 Name = "slice",
                 nParameterChecks = -2,
                 ParameterMask = "sii",
-                Function = new(GetDelegMethod("StdStringSlice"))
+                Function = ExBaseLib.StdStringSlice
             },
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "s"
             },
@@ -399,7 +399,7 @@ namespace ExMat.States
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "c"
             },
@@ -415,26 +415,26 @@ namespace ExMat.States
                 Name = "has_attr",
                 nParameterChecks = 3,
                 ParameterMask = "xss",
-                Function = new(GetDelegMethod("StdInstanceHasAttr"))
+                Function = ExBaseLib.StdInstanceHasAttr
             },
             new()
             {
                 Name = "get_attr",
                 nParameterChecks = 3,
                 ParameterMask = "xss",
-                Function = new(GetDelegMethod("StdInstanceGetAttr"))
+                Function = ExBaseLib.StdInstanceGetAttr
             },
             new()
             {
                 Name = "set_attr",
                 nParameterChecks = 4,
                 ParameterMask = "xss.",
-                Function = new(GetDelegMethod("StdInstanceSetAttr"))
+                Function = ExBaseLib.StdInstanceSetAttr
             },
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "x"
             },
@@ -449,14 +449,14 @@ namespace ExMat.States
             new()
             {
                 Name = "ref",
-                Function = new(GetDelegMethod("StdWeakRefValue")),
+                Function = ExBaseLib.StdWeakRefValue,
                 nParameterChecks = 1,
                 ParameterMask = "w"
             },
             new()
             {
                 Name = "weakref",
-                Function = new(GetDelegMethod("StdWeakRef")),
+                Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,
                 ParameterMask = "w"
             },
@@ -464,11 +464,6 @@ namespace ExMat.States
         };
 
         private bool disposedValue;
-
-        public static MethodInfo GetDelegMethod(string name)
-        {
-            return Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod(name);
-        }
 
         public void Initialize()
         {

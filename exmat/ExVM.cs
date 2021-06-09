@@ -1645,7 +1645,7 @@ namespace ExMat.VM
             }
             CallInfo.Value.IsRootCall = true;
 
-            for (; ; )
+            while (true)
             {
                 if (CallInfo.Value == null
                     || CallInfo.Value.Instructions == null)
@@ -1681,7 +1681,7 @@ namespace ExMat.VM
                         }
                     case OPC.LOADFLOAT:
                         {
-                            GetTargetInStack(i).Assign( new DoubleLong() { i = i.arg1 }.f );
+                            GetTargetInStack(i).Assign(new DoubleLong() { i = i.arg1 }.f);
                             continue;
                         }
                     case OPC.LOADCOMPLEX:
@@ -4112,7 +4112,7 @@ namespace ExMat.VM
             {
                 Outers = o._next;
                 o.Release();
-                if(o.Index == -1)
+                if (o.Index == -1)
                 {
                     Outers = null;
                 }

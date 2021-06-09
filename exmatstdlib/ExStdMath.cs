@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Reflection;
 using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
@@ -2727,24 +2726,19 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static MethodInfo GetStdMathMethod(string name)
-        {
-            return Type.GetType("ExMat.BaseLib.ExStdMath").GetMethod(name);
-        }
-
         private static readonly List<ExRegFunc> _stdmathfuncs = new()
         {
             new()
             {
                 Name = "srand",
-                Function = new(GetStdMathMethod("MathSrand")),
+                Function = MathSrand,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "rand",
-                Function = new(GetStdMathMethod("MathRand")),
+                Function = MathRand,
                 nParameterChecks = -1,
                 ParameterMask = ".nn",
                 DefaultValues = new()
@@ -2756,7 +2750,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "randf",
-                Function = new(GetStdMathMethod("MathRandf")),
+                Function = MathRandf,
                 nParameterChecks = -1,
                 ParameterMask = ".nn",
                 DefaultValues = new()
@@ -2769,112 +2763,112 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "isDivisible",
-                Function = new(GetStdMathMethod("MathIsdivisible")),
+                Function = MathIsDivisible,
                 nParameterChecks = 3,
                 ParameterMask = ".ii"
             },
             new()
             {
                 Name = "divRem",
-                Function = new(GetStdMathMethod("Math_divrem")),
+                Function = MathDivRem,
                 nParameterChecks = 3,
                 ParameterMask = ".ii"
             },
             new()
             {
                 Name = "divQuot",
-                Function = new(GetStdMathMethod("Math_divquot")),
+                Function = MathDivQuot,
                 nParameterChecks = 3,
                 ParameterMask = ".ii"
             },
             new()
             {
                 Name = "divRemQuot",
-                Function = new(GetStdMathMethod("Math_divremquot")),
+                Function = MathDivRemQuot,
                 nParameterChecks = 3,
                 ParameterMask = ".ii"
             },
             new()
             {
                 Name = "recip",
-                Function = new(GetStdMathMethod("MathRecip")),
+                Function = MathRecip,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "GCD",
-                Function = new(GetStdMathMethod("Math_gcd")),
+                Function = MathGcd,
                 nParameterChecks = 3,
                 ParameterMask = ".i|fi|f"
             },
             new()
             {
                 Name = "LCD",
-                Function = new(GetStdMathMethod("MathLcd")),
+                Function = MathLcd,
                 nParameterChecks = 3,
                 ParameterMask = ".i|fi|f"
             },
             new()
             {
                 Name = "factorize",
-                Function = new(GetStdMathMethod("MathPrimeFactors")),
+                Function = MathPrimeFactors,
                 nParameterChecks = 2,
                 ParameterMask = ".i|f"
             },
             new()
             {
                 Name = "next_prime",
-                Function = new(GetStdMathMethod("MathNextPrime")),
+                Function = MathNextPrime,
                 nParameterChecks = 2,
                 ParameterMask = ".i"
             },
             new()
             {
                 Name = "prime",
-                Function = new(GetStdMathMethod("MathPrime")),
+                Function = MathPrime,
                 nParameterChecks = 2,
                 ParameterMask = ".i"
             },
             new()
             {
                 Name = "isPrime",
-                Function = new(GetStdMathMethod("MathIsPrime")),
+                Function = MathIsPrime,
                 nParameterChecks = 2,
                 ParameterMask = ".i"
             },
             new()
             {
                 Name = "areCoPrime",
-                Function = new(GetStdMathMethod("MathAreCoprime")),
+                Function = MathAreCoprime,
                 nParameterChecks = 3,
                 ParameterMask = ".ii"
             },
             new()
             {
                 Name = "digits",
-                Function = new(GetStdMathMethod("Math_digits")),
+                Function = MathDigits,
                 nParameterChecks = 2,
                 ParameterMask = ".i"
             },
             new()
             {
                 Name = "abs",
-                Function = new(GetStdMathMethod("MathAbs")),
+                Function = MathAbs,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "sqrt",
-                Function = new(GetStdMathMethod("MathSqrt")),
+                Function = MathSqrt,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "cbrt",
-                Function = new(GetStdMathMethod("MathCbrt")),
+                Function = MathCbrt,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
@@ -2882,42 +2876,42 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "sin",
-                Function = new(GetStdMathMethod("MathSin")),
+                Function = MathSin,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "cos",
-                Function = new(GetStdMathMethod("MathCos")),
+                Function = MathCos,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "tan",
-                Function = new(GetStdMathMethod("MathTan")),
+                Function = MathTan,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "sinh",
-                Function = new(GetStdMathMethod("MathSinh")),
+                Function = MathSinh,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "cosh",
-                Function = new(GetStdMathMethod("MathCosh")),
+                Function = MathCosh,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "tanh",
-                Function = new(GetStdMathMethod("MathTanh")),
+                Function = MathTanh,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
@@ -2925,49 +2919,49 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "asin",
-                Function = new(GetStdMathMethod("MathAsin")),
+                Function = MathAsin,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "acos",
-                Function = new(GetStdMathMethod("MathAcos")),
+                Function = MathAcos,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "atan",
-                Function = new(GetStdMathMethod("MathAtan")),
+                Function = MathAtan,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "atan2",
-                Function = new(GetStdMathMethod("MathAtan2")),
+                Function = MathAtan2,
                 nParameterChecks = 3,
                 ParameterMask = ".nn"
             },
             new()
             {
                 Name = "asinh",
-                Function = new(GetStdMathMethod("MathAsinh")),
+                Function = MathAsinh,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "acosh",
-                Function = new(GetStdMathMethod("MathAcosh")),
+                Function = MathAcosh,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "atanh",
-                Function = new(GetStdMathMethod("MathAtanh")),
+                Function = MathAtanh,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
@@ -2975,35 +2969,35 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "loge",
-                Function = new(GetStdMathMethod("MathLoge")),
+                Function = MathLoge,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "log2",
-                Function = new(GetStdMathMethod("MathLog2")),
+                Function = MathLog2,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "log10",
-                Function = new(GetStdMathMethod("MathLog10")),
+                Function = MathLog10,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "exp",
-                Function = new(GetStdMathMethod("MathExp")),
+                Function = MathExp,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "round",
-                Function = new(GetStdMathMethod("MathRound")),
+                Function = MathRound,
                 nParameterChecks = -2,
                 ParameterMask = ".nn",
                 DefaultValues = new()
@@ -3014,21 +3008,21 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "floor",
-                Function = new(GetStdMathMethod("MathFloor")),
+                Function = MathFloor,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "ceil",
-                Function = new(GetStdMathMethod("MathCeil")),
+                Function = MathCeil,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "pow",
-                Function = new(GetStdMathMethod("MathPow")),
+                Function = MathPow,
                 nParameterChecks = 3,
                 ParameterMask = ".nn"
             },
@@ -3036,14 +3030,14 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "sum",
-                Function = new(GetStdMathMethod("MathSum")),
+                Function = MathSum,
                 nParameterChecks = -1,
                 ParameterMask = null
             },
             new()
             {
                 Name = "mul",
-                Function = new(GetStdMathMethod("MathMul")),
+                Function = MathMul,
                 nParameterChecks = -1,
                 ParameterMask = null
             },
@@ -3051,21 +3045,21 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "min",
-                Function = new(GetStdMathMethod("MathMin")),
+                Function = MathMin,
                 nParameterChecks = 3,
                 ParameterMask = ".nn"
             },
             new()
             {
                 Name = "max",
-                Function = new(GetStdMathMethod("MathMax")),
+                Function = MathMax,
                 nParameterChecks = 3,
                 ParameterMask = ".nn"
             },
             new()
             {
                 Name = "sign",
-                Function = new(GetStdMathMethod("MathSign")),
+                Function = MathSign,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
@@ -3073,35 +3067,35 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "isFIN",
-                Function = new(GetStdMathMethod("MathIsFIN")),
+                Function = MathIsFIN,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "isINF",
-                Function = new(GetStdMathMethod("MathIsINF")),
+                Function = MathIsINF,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "isNINF",
-                Function = new(GetStdMathMethod("MathIsNINF")),
+                Function = MathIsNINF,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "isNAN",
-                Function = new(GetStdMathMethod("MathIsNAN")),
+                Function = MathIsNAN,
                 nParameterChecks = 2,
                 ParameterMask = ".n"
             },
             new()
             {
                 Name = "save_scatter",
-                Function = new(GetStdMathMethod("MathPlotSaveScatter")),
+                Function = MathPlotSaveScatter,
                 nParameterChecks = -4,
                 ParameterMask = ".saannss",
                 DefaultValues = new()
@@ -3115,7 +3109,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_scatters",
-                Function = new(GetStdMathMethod("MathPlotSaveScatters")),
+                Function = MathPlotSaveScatters,
                 nParameterChecks = -3,
                 ParameterMask = ".sann",
                 DefaultValues = new()
@@ -3127,7 +3121,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_scatter_step",
-                Function = new(GetStdMathMethod("MathPlotSaveScatterStep")),
+                Function = MathPlotSaveScatterStep,
                 nParameterChecks = -4,
                 ParameterMask = ".saannss",
                 DefaultValues = new()
@@ -3141,7 +3135,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_scatter_steps",
-                Function = new(GetStdMathMethod("MathPlotSaveScatterSteps")),
+                Function = MathPlotSaveScatterSteps,
                 nParameterChecks = -3,
                 ParameterMask = ".sann",
                 DefaultValues = new()
@@ -3153,7 +3147,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_scatter_point",
-                Function = new(GetStdMathMethod("MathPlotSaveScatterPoint")),
+                Function = MathPlotSaveScatterPoint,
                 nParameterChecks = -4,
                 ParameterMask = ".saannss",
                 DefaultValues = new()
@@ -3167,7 +3161,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_scatter_points",
-                Function = new(GetStdMathMethod("MathPlotSaveScatterPoints")),
+                Function = MathPlotSaveScatterPoints,
                 nParameterChecks = -3,
                 ParameterMask = ".sann",
                 DefaultValues = new()
@@ -3179,7 +3173,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_scatter_line",
-                Function = new(GetStdMathMethod("MathPlotSaveScatterLine")),
+                Function = MathPlotSaveScatterLine,
                 nParameterChecks = -4,
                 ParameterMask = ".saannss",
                 DefaultValues = new()
@@ -3193,7 +3187,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_scatter_lines",
-                Function = new(GetStdMathMethod("MathPlotSaveScatterLines")),
+                Function = MathPlotSaveScatterLines,
                 nParameterChecks = -3,
                 ParameterMask = ".sann",
                 DefaultValues = new()
@@ -3205,7 +3199,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "save_complex",
-                Function = new(GetStdMathMethod("MathPlotSaveScatterComplex")),
+                Function = MathPlotSaveScatterComplex,
                 nParameterChecks = -3,
                 ParameterMask = ".sannss",
                 DefaultValues = new()

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Text;
 using ExMat.API;
 using ExMat.Objects;
@@ -558,23 +557,19 @@ namespace ExMat.BaseLib
             return -1;
         }
 
-        public static MethodInfo GetStdIOMethod(string name)
-        {
-            return Type.GetType("ExMat.BaseLib.ExStdIO").GetMethod(name);
-        }
         private static readonly List<ExRegFunc> _stdiofuncs = new()
         {
             new()
             {
                 Name = "read_bytes",
-                Function = new(GetStdIOMethod("IoReadfilebytes")),
+                Function = IoReadfilebytes,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "read_text",
-                Function = new(GetStdIOMethod("IoReadfile")),
+                Function = IoReadfile,
                 nParameterChecks = -2,
                 ParameterMask = ".ss",
                 DefaultValues = new()
@@ -585,7 +580,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "read_lines",
-                Function = new(GetStdIOMethod("IoReadfilelines")),
+                Function = IoReadfilelines,
                 nParameterChecks = -2,
                 ParameterMask = ".ss",
                 DefaultValues = new()
@@ -597,14 +592,14 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "write_bytes",
-                Function = new(GetStdIOMethod("IoWritefilebytes")),
+                Function = IoWritefilebytes,
                 nParameterChecks = 3,
                 ParameterMask = ".sa"
             },
             new()
             {
                 Name = "write_text",
-                Function = new(GetStdIOMethod("IoWritefile")),
+                Function = IoWritefile,
                 nParameterChecks = -3,
                 ParameterMask = ".sss",
                 DefaultValues = new()
@@ -615,7 +610,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "write_lines",
-                Function = new(GetStdIOMethod("IoWritefilelines")),
+                Function = IoWritefilelines,
                 nParameterChecks = -3,
                 ParameterMask = ".sas",
                 DefaultValues = new()
@@ -627,7 +622,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "append_text",
-                Function = new(GetStdIOMethod("IoAppendfile")),
+                Function = IoAppendfile,
                 nParameterChecks = -3,
                 ParameterMask = ".sss",
                 DefaultValues = new()
@@ -638,7 +633,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "append_lines",
-                Function = new(GetStdIOMethod("IoAppendfilelines")),
+                Function = IoAppendfilelines,
                 nParameterChecks = -3,
                 ParameterMask = ".sas",
                 DefaultValues = new()
@@ -650,14 +645,14 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "current_dir",
-                Function = new(GetStdIOMethod("IoCurrentdir")),
+                Function = IoCurrentdir,
                 nParameterChecks = 1,
                 ParameterMask = "."
             },
             new()
             {
                 Name = "dir_content",
-                Function = new(GetStdIOMethod("IoShowdir")),
+                Function = IoShowdir,
                 nParameterChecks = -1,
                 ParameterMask = ".s",
                 DefaultValues = new()
@@ -668,7 +663,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "change_dir",
-                Function = new(GetStdIOMethod("IoChangedir")),
+                Function = IoChangedir,
                 nParameterChecks = -2,
                 ParameterMask = ".sb",
                 DefaultValues = new()
@@ -679,14 +674,14 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "make_dir",
-                Function = new(GetStdIOMethod("IoMkdir")),
+                Function = IoMkdir,
                 nParameterChecks = -2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "open_dir",
-                Function = new(GetStdIOMethod("IoOpendir")),
+                Function = IoOpendir,
                 nParameterChecks = -2,
                 ParameterMask = ".sb",
                 DefaultValues = new()
@@ -698,7 +693,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "raw_input",
-                Function = new(GetStdIOMethod("IoRawinput")),
+                Function = IoRawinput,
                 nParameterChecks = -1,
                 ParameterMask = ".s",
                 DefaultValues = new()
@@ -710,28 +705,28 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "file_exists",
-                Function = new(GetStdIOMethod("IoFileexists")),
+                Function = IoFileexists,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "include_file",
-                Function = new(GetStdIOMethod("IoIncludefile")),
+                Function = IoIncludefile,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = ReloadLib,
-                Function = new(GetStdIOMethod("IoReloadlib")),
+                Function = IoReloadlib,
                 nParameterChecks = -2,
                 ParameterMask = ".ss"
             },
             new()
             {
                 Name = ReloadLibFunc,
-                Function = new(GetStdIOMethod("IoReloadlibfunc")),
+                Function = IoReloadlibfunc,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },

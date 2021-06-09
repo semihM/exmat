@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using ExMat.API;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -156,16 +155,12 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static MethodInfo GetStdStringMethod(string name)
-        {
-            return Type.GetType("ExMat.BaseLib.ExStdString").GetMethod(name);
-        }
         private static readonly List<ExRegFunc> _stdstrfuncs = new()
         {
             new()
             {
                 Name = "compile",
-                Function = new(GetStdStringMethod("Compile")),
+                Function = Compile,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
@@ -173,28 +168,28 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "strip",
-                Function = new(GetStdStringMethod("Strip")),
+                Function = Strip,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "lstrip",
-                Function = new(GetStdStringMethod("Lstrip")),
+                Function = Lstrip,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "rstrip",
-                Function = new(GetStdStringMethod("Rstrip")),
+                Function = Rstrip,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "split",
-                Function = new(GetStdStringMethod("Split")),
+                Function = Split,
                 nParameterChecks = -3,
                 ParameterMask = ".ssb",
                 DefaultValues = new()
@@ -205,7 +200,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "join",
-                Function = new(GetStdStringMethod("Join")),
+                Function = Join,
                 nParameterChecks = -3,
                 ParameterMask = ".sai",
                 DefaultValues = new()
@@ -216,7 +211,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "format",
-                Function = new(GetStdStringMethod("Format")),
+                Function = Format,
                 nParameterChecks = -2,
                 ParameterMask = null
             },

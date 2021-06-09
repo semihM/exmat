@@ -465,7 +465,7 @@ namespace ExMat.Lexer
         private TokenType ReadMacroBlock()
         {
             MacroBlock = string.Empty;
-            for (; ; )
+            while (true)
             {
                 while (CurrentChar != ExMat.EndChar && CurrentChar != '#')
                 {
