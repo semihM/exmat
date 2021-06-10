@@ -168,7 +168,10 @@ namespace ExMat.Compiler
             FunctionState.SetLocalStackSize(0);
             FunctionState.AddLineInfo(Lexer.CurrentLine, StoreLineInfos, true);
             // Sanal makine yığınında kalan son değeri dön
-            FunctionState.AddInstr(OPC.RETURN, 985, 2, VM.IsInteractive ? 1 : 0, 0);
+            //      -> İlk argüman(ExMat.InvalidArgument): Bir önceki komutun referans azaltma işlemini iptal eder
+            //      -> İkinci argüman: Sanal bellek taban indeksinin üzerine eklenerek en son değeri bulur
+            //      -> Üçüncü argüman: Yalnızca interaktif konsolda değer dönülmesini sağlar
+            FunctionState.AddInstr(OPC.RETURN, ExMat.InvalidArgument, 2, VM.IsInteractive ? 1 : 0, 0);
 
             // "main"'i çağırabilir bir fonkisyon haline getir 
             main = new(FunctionState.CreatePrototype());
@@ -306,6 +309,7 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
+
                 case TokenType.CURLYOPEN:   // {
                     {
                         ExScope scp = CreateScope();
@@ -320,36 +324,12 @@ namespace ExMat.Compiler
                         ReleaseScope(scp, closeScope);
                         break;
                     }
+
                 // Diğer ifadeler
                 #region Other Statements: IF, FOR, VAR, FUNCTION, CLASS, RETURN, BREAK, CONTINUE
-                case TokenType.IF:
-                    {
-                        if (!ProcessIfStatement())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-
-                case TokenType.FOR:
-                    {
-                        if (!ProcessForStatement())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.VAR:
+                case TokenType.VAR:     // var
                     {
                         if (!ProcessVarAsgStatement())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.RULE:
-                    {
-                        if (!ProcessRuleAsgStatement())
                         {
                             return false;
                         }
@@ -358,6 +338,31 @@ namespace ExMat.Compiler
                 case TokenType.FUNCTION:
                     {
                         if (!ProcessFunctionStatement())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
+                case TokenType.IF:      // if
+                    {
+                        if (!ProcessIfStatement())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
+
+                case TokenType.FOR:     // for
+                    {
+                        if (!ProcessForStatement())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
+                case TokenType.RULE:
+                    {
+                        if (!ProcessRuleAsgStatement())
                         {
                             return false;
                         }
@@ -408,20 +413,21 @@ namespace ExMat.Compiler
                         else
                         {
                             FunctionState.ReturnExpressionTarget = -1;
-                            FunctionState.AddInstr(op, 985, 0, FunctionState.GetLocalVariablesCount(), 0);
+                            FunctionState.AddInstr(op, ExMat.InvalidArgument, 0, FunctionState.GetLocalVariablesCount(), 0);
                         }
                         break;
                     }
                 case TokenType.BREAK:
                     {
-                        if (FunctionState.BreakTargetsList.Count <= 0)
+                        if (FunctionState.BreakTargetsList.Count <= 0)      // iterasyon bloğu kontrolü
                         {
                             AddToErrorMessage("'break' has to be in a breakable block");
                             return false;
                         }
 
-                        DoOuterControl();
-                        FunctionState.AddInstr(OPC.JMP, 0, -1234, 0, 0);
+                        DoOuterControl();   // Dış değişken referansları varsa referansları azalt
+                        FunctionState.AddInstr(OPC.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+                        // Komut indeksini listeye ekle
                         FunctionState.BreakList.Add(FunctionState.GetCurrPos());
 
                         if (!ReadAndSetToken())
@@ -432,14 +438,14 @@ namespace ExMat.Compiler
                     }
                 case TokenType.CONTINUE:
                     {
-                        if (FunctionState.ContinueTargetList.Count <= 0)
+                        if (FunctionState.ContinueTargetList.Count <= 0)    // iterasyon bloğu kontrolü
                         {
                             AddToErrorMessage("'continue' has to be in a breakable block");
                             return false;
                         }
-
-                        DoOuterControl();
-                        FunctionState.AddInstr(OPC.JMP, 0, -1234, 0, 0);
+                        DoOuterControl();   // Dış değişken referansları varsa referansları azalt
+                        FunctionState.AddInstr(OPC.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+                        // Komut indeksini listeye ekle
                         FunctionState.ContinueList.Add(FunctionState.GetCurrPos());
 
                         if (!ReadAndSetToken())
@@ -504,33 +510,31 @@ namespace ExMat.Compiler
                 }
             }
         }
+
         public List<int> CreateBreakableBlock()
         {
+            // Geçici hedef indeksi oluştur. 'break' ve 'continue' izin verir
             FunctionState.BreakTargetsList.Add(0);
             FunctionState.ContinueTargetList.Add(0);
             return new(2) { FunctionState.BreakList.Count, FunctionState.ContinueList.Count };
         }
 
-        public void ReleaseBreakableBlock(List<int> bc, int t)
+        public void ReleaseBreakableBlock(List<int> bc, int index)
         {
-            bc[0] = FunctionState.BreakList.Count - bc[0];
-            bc[1] = FunctionState.ContinueList.Count - bc[1];
-
-            if (bc[0] > 0)
+            if ((bc[0] = FunctionState.BreakList.Count - bc[0]) > 0)
             {
-                DoBreakControl(FunctionState, bc[0]);
+                DoBreakControl(FunctionState, bc[0]);   // İterasyonu durdur
+            }
+            if ((bc[1] = FunctionState.ContinueList.Count - bc[1]) > 0)
+            {
+                DoContinueControl(FunctionState, bc[1], index); // İterasyonu atla
             }
 
-            if (bc[1] > 0)
-            {
-                DoContinueControl(FunctionState, bc[1], t);
-            }
-
-            if (FunctionState.BreakList.Count > 0)
+            if (FunctionState.BreakList.Count > 0)  // Varsa son durdurma listesini sil
             {
                 FunctionState.BreakList.RemoveAt(FunctionState.BreakList.Count - 1);
             }
-            if (FunctionState.ContinueList.Count > 0)
+            if (FunctionState.ContinueList.Count > 0)  // Varsa son atlama listesini sil
             {
                 FunctionState.ContinueList.RemoveAt(FunctionState.ContinueList.Count - 1);
             }
@@ -538,81 +542,78 @@ namespace ExMat.Compiler
 
         public static void DoBreakControl(ExFState fs, int count)
         {
-            while (count > 0)
+            while (count-- > 0) // Gerekli atlama işlemleri(JMP vb.) argümanlarını güncelle
             {
-                int p = fs.BreakList[^1];
-                fs.BreakList.RemoveAt(fs.BreakList.Count - 1);
+                int p = fs.BreakList[^1]; fs.BreakList.RemoveAt(fs.BreakList.Count - 1);
                 fs.SetInstrParams(p, 0, fs.GetCurrPos() - p, 0, 0);
-                count--;
             }
         }
 
-        public static void DoContinueControl(ExFState fs, int count, int t)
+        public static void DoContinueControl(ExFState fs, int count, int index)
         {
-            while (count > 0)
+            while (count-- > 0) // Gerekli atlama işlemleri(JMP vb.) argümanlarını güncelle
             {
-                int p = fs.ContinueList[^1];
-                fs.ContinueList.RemoveAt(fs.ContinueList.Count - 1);
-                fs.SetInstrParams(p, 0, t - p, 0, 0);
-                count--;
+                int p = fs.ContinueList[^1]; fs.ContinueList.RemoveAt(fs.ContinueList.Count - 1);
+                fs.SetInstrParams(p, 0, index - p, 0, 0);
             }
         }
 
         public bool ProcessIfStatement()
         {
             int jpos;
-            bool b_else = false;
-            if (!ReadAndSetToken()
-                || Expect(TokenType.ROUNDOPEN) == null
-                || !ExSepExp()
-                || Expect(TokenType.ROUNDCLOSE) == null)
+            bool has_else = false;
+
+            // '(' bekle, sıralı ifadeleri derle , ')' bekle
+            if (!ReadAndSetToken() || Expect(TokenType.ROUNDOPEN) == null || !ExSepExp() || Expect(TokenType.ROUNDCLOSE) == null)
             {
                 return false;
             }
-
+            // Son ifadenin doğru/yanlış kontrolünü yap, yanlışsa komutları atla
             FunctionState.AddInstr(OPC.JZ, FunctionState.PopTarget(), 0, 0, 0);
-            int jnpos = FunctionState.GetCurrPos();
+            int jnpos = FunctionState.GetCurrPos();     // Son komutun listedeki indeksini sakla
 
-            ExScope old = CreateScope();
-            if (!ProcessStatement())
+            ExScope old = CreateScope();    // Yeni bir çerçeve başlat
+            if (!ProcessStatement())        // İçerdeki ifadeleri derle
             {
                 return false;
             }
-            if (CurrentToken != TokenType.CURLYCLOSE && CurrentToken != TokenType.ELSE)
+            if (CurrentToken != TokenType.CURLYCLOSE && CurrentToken != TokenType.ELSE) // Tek satırlık koşullu ifade kontrolü yap
             {
-                if (!CheckSMC())
+                if (!CheckSMC())    // Tek satırlık ifade ise ifadenin sonlandırıldığını kontrol et
                 {
                     return false;
                 }
             }
+            ReleaseScope(old);      // Eski çerçeveye dön
 
-            ReleaseScope(old);
-            int epos = FunctionState.GetCurrPos();
+            int epos = FunctionState.GetCurrPos();  // 'else' komutu olmasına karşın son komut indeksini sakla
             if (CurrentToken == TokenType.ELSE)
             {
-                b_else = true;
-
-                old = CreateScope();
+                has_else = true;          // 'else' bulundu
+                old = CreateScope();    // Yeni bir çerçeve başlat
+                // Komutları atla, metot sonunda atlanacak sayı UpdateInstructionArgument ile hesaplanır
                 FunctionState.AddInstr(OPC.JMP, 0, 0, 0, 0);
-                jpos = FunctionState.GetCurrPos();
+                jpos = FunctionState.GetCurrPos();      // Atlama komutu liste indeksini sakla
 
-                if (!ReadAndSetToken() || !ProcessStatement())
+                if (!ReadAndSetToken() || !ProcessStatement())  // İçerdeki ifadeleri derle
                 {
                     return false;
                 }
 
-                if (Lexer.TokenPrev != TokenType.CURLYCLOSE)
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE)    // Tek satırlık ifade ise sonlandırıldığından emin ol
                 {
                     if (!CheckSMC())
                     {
                         return false;
                     }
                 }
-                ReleaseScope(old);
-
+                ReleaseScope(old);  // Eski çerçeveye dön
+                // OPC.JMP komutunun 1. argümanı =  atlanacak komut sayısı
                 FunctionState.UpdateInstructionArgument(jpos, 1, FunctionState.GetCurrPos() - jpos);
             }
-            FunctionState.UpdateInstructionArgument(jnpos, 1, epos - jnpos + (b_else ? 1 : 0));
+            // 'if' bloğunun koşul sağlanmadığın atlanması için:
+            //           OPC.JZ komutunun 1. argümanı = içerdeki komut sayısı + (else varsa 1 yoksa 0)
+            FunctionState.UpdateInstructionArgument(jnpos, 1, epos - jnpos + (has_else ? 1 : 0));
             return true;
         }
 
@@ -623,20 +624,20 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            ExScope scp = CreateScope();
-            if (Expect(TokenType.ROUNDOPEN) == null)
+            ExScope scp = CreateScope();                // Yeni çerçeve oluştur
+            if (Expect(TokenType.ROUNDOPEN) == null)    // '(' bekle
             {
                 return false;
             }
 
-            if (CurrentToken == TokenType.VAR)
+            if (CurrentToken == TokenType.VAR)          // Varsa değişken ataması yap
             {
                 if (!ProcessVarAsgStatement())
                 {
                     return false;
                 }
             }
-            else if (CurrentToken != TokenType.SMC)
+            else if (CurrentToken != TokenType.SMC)     // ';' değilse atama ifadelerini derle
             {
                 if (!ExSepExp())
                 {
@@ -645,34 +646,38 @@ namespace ExMat.Compiler
                 FunctionState.PopTarget();
             }
 
+            // ilk ';' bulunduğunu kontrol et
             if (Expect(TokenType.SMC) == null)
             {
                 return false;
             }
 
+            // ilk kısımdaki atamaları bağımsız yap
             FunctionState.NotSnoozed = false;
-
+            // koşullar doğru olduğunda atlanılacak indeksi sakla
             int jpos = FunctionState.GetCurrPos();
             int jzpos = -1;
 
-            if (CurrentToken != TokenType.SMC)
+            if (CurrentToken != TokenType.SMC)  // ';' yoksa koşul ifadesi verilmiştir
             {
-                if (!ExSepExp())
+                if (!ExSepExp())    // Koşulları derle
                 {
                     return false;
                 }
+                // Koşul yanlış ise komutları atla
                 FunctionState.AddInstr(OPC.JZ, FunctionState.PopTarget(), 0, 0, 0);
+                // Atlanacak komut sayısını sakla
                 jzpos = FunctionState.GetCurrPos();
             }
 
-            if (Expect(TokenType.SMC) == null)
+            if (Expect(TokenType.SMC) == null)  // 2. ';' kontrolü yap
             {
                 return false;
             }
-            FunctionState.NotSnoozed = false;
+            FunctionState.NotSnoozed = false;   // ikinci kısımdaki koşulları bağımsız yap
 
-            int estart = FunctionState.GetCurrPos() + 1;
-            if (CurrentToken != TokenType.ROUNDCLOSE)
+            int exp_start = FunctionState.GetCurrPos() + 1; // son kısmın başlangıç indeksi
+            if (CurrentToken != TokenType.ROUNDCLOSE) // son kısımda varsa ifadeleri derle
             {
                 if (!ExSepExp())
                 {
@@ -681,57 +686,58 @@ namespace ExMat.Compiler
                 FunctionState.PopTarget();
             }
 
-            if (Expect(TokenType.ROUNDCLOSE) == null)
+            if (Expect(TokenType.ROUNDCLOSE) == null)   // ')' kontrolü yap
             {
                 return false;
             }
 
-            FunctionState.NotSnoozed = false;
-
-            int eend = FunctionState.GetCurrPos();
-            int esize = eend - estart + 1;
+            FunctionState.NotSnoozed = false;   // son komutu bağımsız yap
+            // son kısımda kaç komut oluşturulduğunu hesapla
+            int exp_end = FunctionState.GetCurrPos();
+            int exp_size = exp_end - exp_start + 1;
+            // her bir iterasyondan sonra işlenecek komutların listesini oluştur
             List<ExInstr> instrs = null;
 
-            if (esize > 0)
+            if (exp_size > 0)
             {
-                instrs = new(esize);
+                instrs = new(exp_size);
                 int n_instr = FunctionState.Instructions.Count;
-                for (int i = 0; i < esize; i++)
+                for (int i = 0; i < exp_size; i++)
                 {
-                    instrs.Add(FunctionState.Instructions[estart + i]);
+                    instrs.Add(FunctionState.Instructions[exp_start + i]);
                 }
-                for (int i = 0; i < esize; i++)
+                for (int i = 0; i < exp_size; i++)
                 {
                     FunctionState.Instructions.RemoveAt(FunctionState.Instructions.Count - 1);
                 }
             }
-
+            // Durdurulabilen ve atlanabilen blok oluştur
             List<int> bc = CreateBreakableBlock();
 
-            if (!ProcessStatement())
+            if (!ProcessStatement())    // Her iterasyonda işlenecek komutları oluştur
             {
                 return false;
             }
-            int ctarg = FunctionState.GetCurrPos();
-
-            if (esize > 0)
+            // iterasyon durdurulmasında atlanacak komut sayısı
+            int exit_target = FunctionState.GetCurrPos();
+            // Varsa '(' ve  ')' arasında 2. ';' sonrası ifadelerin komutlarını sona ekle 
+            if (exp_size > 0)
             {
-                for (int i = 0; i < esize; i++)
+                for (int i = 0; i < exp_size; i++)
                 {
                     FunctionState.AddInstr(instrs[i]);
                 }
             }
-
+            // İterasyon bitiminde komutların atlanmasını sağla
             FunctionState.AddInstr(OPC.JMP, 0, jpos - FunctionState.GetCurrPos() - 1, 0, 0);
 
-            if (jzpos > 0)
+            if (jzpos > 0)  // Koşul verişmiş ise atlanacak komut sayısını güncelle
             {
                 FunctionState.UpdateInstructionArgument(jzpos, 1, FunctionState.GetCurrPos() - jzpos);
             }
 
-            ReleaseScope(scp);
-            ReleaseBreakableBlock(bc, ctarg);
-
+            ReleaseScope(scp);                      // Eski çerçeveye dön
+            ReleaseBreakableBlock(bc, exit_target); // İterasyon bloğundan çık
             return true;
         }
 
@@ -899,7 +905,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
 
             f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
-            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
+            f_state.AddInstr(OPC.RETURN, ExMat.InvalidArgument, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
@@ -1108,7 +1114,7 @@ namespace ExMat.Compiler
 
             f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
             f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
-            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
+            f_state.AddInstr(OPC.RETURN, ExMat.InvalidArgument, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
@@ -1175,7 +1181,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURN, 1, FunctionState.PopTarget(), 0, 0);
 
             f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
-            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
+            f_state.AddInstr(OPC.RETURN, ExMat.InvalidArgument, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
@@ -1264,7 +1270,7 @@ namespace ExMat.Compiler
             f_state.AddInstr(OPC.RETURNBOOL, 1, FunctionState.PopTarget(), 0, 0);
 
             f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
-            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
+            f_state.AddInstr(OPC.RETURN, ExMat.InvalidArgument, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
@@ -1305,14 +1311,14 @@ namespace ExMat.Compiler
             return false;
         }
 
-        public bool ProcessVarAsgStatement(bool sym = false)
+        public bool ProcessVarAsgStatement()
         {
             ExObject v;
-            if (!ReadAndSetToken())
+            if (!ReadAndSetToken()) // okunan 'var' sembolünden sonraki sembolü oku
             {
                 return false;
             }
-
+            #region _
             if (CurrentToken == TokenType.FUNCTION)
             {
                 if (!ReadAndSetToken()
@@ -1358,43 +1364,44 @@ namespace ExMat.Compiler
                 FunctionState.PushVar(v);
                 return true;
             }
-
+            #endregion
             while (true)
             {
-                if ((v = Expect(TokenType.IDENTIFIER)) == null)
+                if ((v = Expect(TokenType.IDENTIFIER)) == null) // Tanımlayıcı bekle
                 {
                     return false;
                 }
 
-                if (CurrentToken == TokenType.ASG)
+                if (CurrentToken == TokenType.ASG)      // '=' bekle
                 {
-                    if (!ReadAndSetToken() || !ExExp())
+                    if (!ReadAndSetToken() || !ExExp())     // Sağ tarafı derle
                     {
                         return false;
                     }
 
-                    int s = FunctionState.PopTarget();
-                    int d = FunctionState.PushTarget();
+                    int source = FunctionState.PopTarget();
+                    int destination = FunctionState.PushTarget();
 
-                    if (d != s)
+                    // kaynak != hedef ise başka bir değişkenin değeri bu değişkene atanıyordur
+                    if (destination != source)
                     {
-                        FunctionState.AddInstr(OPC.MOVE, d, s, 0, 0);
+                        FunctionState.AddInstr(OPC.MOVE, destination, source, 0, 0);
                     }
                 }
-                else
+                else // '=' yoksa 'null' ata
                 {
                     FunctionState.AddInstr(OPC.LOADNULL, FunctionState.PushTarget(), 1, 0, 0);
                 }
-                FunctionState.PopTarget();
-                FunctionState.PushVar(v);
-                if (CurrentToken == TokenType.SEP)
+                FunctionState.PopTarget();      // Yığını temizle
+                FunctionState.PushVar(v);       // Değişkeni ekle
+                if (CurrentToken == TokenType.SEP)  // ',' ile ayrılmış sıradaki değişkeni ara
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else
+                else // değişken oluşturmayı bitir
                 {
                     break;
                 }
@@ -1402,21 +1409,25 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ProcessFunctionStatement()
+        public bool ProcessFunctionStatement()  // Fonksiyonu global tabloda tanımlar
         {
             ExObject idx;
 
-            if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null)
+            if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null) // Tanımlayıcı bekle
             {
                 return false;
             }
-
+            // Global tabloya referans, meetot sonunda bulunan OPC.NEWSLOT komutunun
+            //      yeni bir slot oluşturmak için bu referensa ihtiyacı vardır
             FunctionState.PushTarget(0);
+            // Fonksiyon isminin sanal belleğe yüklenme
             FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(idx), 0, 0);
 
+            #region _
+            // Sınıfa ait metot olarak yazılıyor ise sınıfı bulma komutu ekle
             if (CurrentToken == TokenType.GLOBAL)
             {
-                AddBasicOpInstr(OPC.GET);
+                AddBasicOpInstr(OPC.GET);   // Okunan son 2 tanımlayıcı ile istenen metot ve sınıfın alınması sağlanır
             }
 
             while (CurrentToken == TokenType.GLOBAL)
@@ -1433,18 +1444,19 @@ namespace ExMat.Compiler
                     AddBasicOpInstr(OPC.GET);
                 }
             }
-
+            #endregion
+            // '(' sembolü bekle, bulunursa ExFuncCreate metotunu fonksiyonun ismi ile çağır
             if (Expect(TokenType.ROUNDOPEN) == null || !ExFuncCreate(idx))
             {
                 return false;
             }
 
+            // Hazırlanan fonksiyonu sanal belleğe yerleştir
             FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
-
+            // Global tabloda yeni slot oluşturma işlemi
             AddBasicDerefInstr(OPC.NEWSLOT);
-
+            // Yığından çıkart
             FunctionState.PopTarget();
-
             return true;
         }
 
@@ -2280,6 +2292,16 @@ namespace ExMat.Compiler
 
             switch (CurrentToken)
             {
+                #region Diğer Semboller
+                case TokenType.LAMBDA:
+                case TokenType.FUNCTION:
+                    {
+                        if (!ExFuncResolveExp(CurrentToken))
+                        {
+                            return false;
+                        }
+                        break;
+                    }
                 case TokenType.LITERAL:
                     {
                         FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(FunctionState.CreateString(Lexer.ValString)), 0, 0);
@@ -2418,9 +2440,10 @@ namespace ExMat.Compiler
                 }
                 */
                 #endregion
+                #endregion
                 case TokenType.INTEGER:
                     {
-                        AddIntConstLoadInstr(Lexer.ValInteger, -1);
+                        AddIntConstLoadInstr(Lexer.ValInteger, -1); // Sembol ayırıcıdaki tamsayı değerini al
                         if (!ReadAndSetToken())
                         {
                             return false;
@@ -2439,15 +2462,24 @@ namespace ExMat.Compiler
                     }
                 case TokenType.COMPLEX:
                     {
-                        if (Lexer.TokenComplex == TokenType.INTEGER)
+                        if (Lexer.TokenComplex == TokenType.INTEGER)    // Tamsayı katsayılı ?
                         {
                             AddComplexConstLoadInstr(Lexer.ValInteger, -1);
                         }
-                        else
+                        else // Ondalıklı sayı katsayılı
                         {
                             AddComplexConstLoadInstr(new DoubleLong() { f = Lexer.ValFloat }.i, -1, true);
                         }
 
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+                        break;
+                    }
+                case TokenType.SPACE:
+                    {
+                        AddSpaceConstLoadInstr(Lexer.ValSpace, -1);
                         if (!ReadAndSetToken())
                         {
                             return false;
@@ -2459,15 +2491,6 @@ namespace ExMat.Compiler
                     {
                         FunctionState.AddInstr(OPC.LOADBOOLEAN, FunctionState.PushTarget(), CurrentToken == TokenType.TRUE ? 1 : 0, 0, 0);
 
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.SPACE:
-                    {
-                        AddSpaceConstLoadInstr(Lexer.ValSpace, -1);
                         if (!ReadAndSetToken())
                         {
                             return false;
@@ -2514,47 +2537,6 @@ namespace ExMat.Compiler
                         FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
 
                         if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.CURLYCLOSE))
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.LAMBDA:
-                case TokenType.FUNCTION:
-                    {
-                        if (!ExFuncResolveExp(CurrentToken))
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.RULE:
-                    {
-                        if (!ExRuleResolveExp())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.CLUSTER:
-                    {
-                        if (!ExClusterResolveExp())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.SEQUENCE:
-                    {
-                        if (!ExSequenceResolveExp())
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case TokenType.CLASS:
-                    {
-                        if (!ReadAndSetToken() || !ExClassResolveExp())
                         {
                             return false;
                         }
@@ -2832,51 +2814,45 @@ namespace ExMat.Compiler
             }
         }
 
-        public void AddSpaceConstLoadInstr(ExSpace s, int p)
+        public void AddIntConstLoadInstr(long cval, int p)                  // Tamsayı yükle
         {
-            if (p < 0)
-            {
-                p = FunctionState.PushTarget();
-            }
-            ExObject tspc = new() { Type = ExObjType.SPACE };
-            tspc.Value.c_Space = Lexer.ValSpace;
-            FunctionState.AddInstr(OPC.LOADSPACE, p, (int)FunctionState.GetLiteral(tspc), 0, 0);
+            FunctionState.AddInstr(OPC.LOADINTEGER,                         // Tamsayı yükle komutu
+                                   p < 0 ? FunctionState.PushTarget() : p,  // Hedef
+                                   cval,                                    // Kaynak 64bit değer
+                                   0,
+                                   0);
         }
-
-        public void AddIntConstLoadInstr(long cval, int p)
+        public void AddFloatConstLoadInstr(long cval, int p)                // Ondalıklı sayı yükle
         {
-            if (p < 0)
-            {
-                p = FunctionState.PushTarget();
-            }
-            FunctionState.AddInstr(OPC.LOADINTEGER, p, cval, 0, 0);
+            FunctionState.AddInstr(OPC.LOADFLOAT,                           // Ondalıklı sayı yükle komutu
+                                   p < 0 ? FunctionState.PushTarget() : p,  // Hedef
+                                   cval,                                    // Kaynak 64bit değer
+                                   0,
+                                   0);
         }
-        public void AddFloatConstLoadInstr(long cval, int p)
+        public void AddComplexConstLoadInstr(long cval, int p, bool useFloat = false)    // Kompleks sayı yükle
         {
-            if (p < 0)
-            {
-                p = FunctionState.PushTarget();
-            }
-
-            FunctionState.AddInstr(OPC.LOADFLOAT, p, cval, 0, 0);
+            FunctionState.AddInstr(OPC.LOADCOMPLEX,                         // Kompleks sayı yükle komutu
+                                   p < 0 ? FunctionState.PushTarget() : p,  // Hedef
+                                   cval,                                    // Kaynak 64bit değer
+                                   useFloat ? 1 : 0,                        // Kaynak ondalıklı mı kullanılmalı ?
+                                   0);
         }
-
-        public void AddComplexConstLoadInstr(long cval, int p, bool isfloat = false)
+        public void AddSpaceConstLoadInstr(ExSpace s, int p)                            // Uzay değeri yükle
         {
-            if (p < 0)
-            {
-                p = FunctionState.PushTarget();
-            }
-
-            FunctionState.AddInstr(OPC.LOADCOMPLEX, p, cval, isfloat ? 1 : 0, 0);
+            FunctionState.AddInstr(OPC.LOADSPACE,                                       // Uzay yükle komutu
+                                   p < 0 ? FunctionState.PushTarget() : p,              // Hedef
+                                   (int)FunctionState.GetLiteral(new(Lexer.ValSpace)),  // Uzay temsilinin indeksi
+                                   0,
+                                   0);
         }
 
         public void AddBasicDerefInstr(OPC op)
         {
-            int v = FunctionState.PopTarget();
-            int k = FunctionState.PopTarget();
-            int s = FunctionState.PopTarget();
-            FunctionState.AddInstr(op, FunctionState.PushTarget(), s, k, v);
+            int value = FunctionState.PopTarget();
+            int key = FunctionState.PopTarget();
+            int source = FunctionState.PopTarget();
+            FunctionState.AddInstr(op, FunctionState.PushTarget(), source, key, value);
         }
 
         public void AddBasicOpInstr(OPC op, int last = 0)
@@ -3046,7 +3022,7 @@ namespace ExMat.Compiler
                 int t = FunctionState.TopTarget();
                 if (sep == TokenType.SEP)
                 {
-                    FunctionState.AddInstr(OPC.NEWSLOT, 985, t, k, v);
+                    FunctionState.AddInstr(OPC.NEWSLOT, ExMat.InvalidArgument, t, k, v);
                 }
                 else
                 {
@@ -3114,35 +3090,6 @@ namespace ExMat.Compiler
             }
         }
 
-        public bool ExSequenceResolveExp()
-        {
-            AddToErrorMessage("can't create sequences from expressions");
-            return false;
-        }
-
-        public bool ExClusterResolveExp()
-        {
-            AddToErrorMessage("can't create clusters from expressions");
-            return false;
-        }
-
-        public bool ExRuleResolveExp()
-        {
-            if (!ReadAndSetToken() || Expect(TokenType.ROUNDOPEN) == null)
-            {
-                return false;
-            }
-
-            ExObject d = new();
-            if (!ExRuleCreate(d))
-            {
-                return false;
-            }
-
-            FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 1, 0);
-
-            return true;
-        }
 
         public bool ExFuncResolveExp(TokenType typ)
         {
@@ -3164,7 +3111,7 @@ namespace ExMat.Compiler
         }
         public bool ExClassResolveExp()
         {
-            int at = 985;
+            int at = ExMat.InvalidArgument;
 
             if (CurrentToken == TokenType.ATTRIBUTEBEGIN)
             {
@@ -3187,7 +3134,7 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (at != 985)
+            if (at != ExMat.InvalidArgument)
             {
                 FunctionState.PopTarget();
             }
@@ -3281,7 +3228,7 @@ namespace ExMat.Compiler
                 f_state.AddInstr(OPC.RETURNMACRO, 1, FunctionState.PopTarget(), 0, 0);
             }
 
-            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
+            f_state.AddInstr(OPC.RETURN, ExMat.InvalidArgument, 0, 0, 0);
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
@@ -3396,93 +3343,98 @@ namespace ExMat.Compiler
             return true;
         }
 
+        // Fonksiyon takipçisine ait bir alt fonksiyon oluştur
         public bool ExFuncCreate(ExObject o, bool lambda = false)
         {
+            // Bir alt fonksiyon takipçisi oluştur ve istenen fonksiyon ismini ver
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
             f_state.Name = o;
 
             ExObject pname;
+            // Fonksiyonun kendi değişkenlerine referans edecek 'this' referansını ekle
             f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
             f_state.Source = new(Source);
 
-            int def_param_count = 0;
+            int def_param_count = 0;    // Varsayılan parametre değeri sayısı
 
-            while (CurrentToken != TokenType.ROUNDCLOSE)
+            while (CurrentToken != TokenType.ROUNDCLOSE) // Parametreleri oku
             {
-                if (CurrentToken == TokenType.VARGS)
+                if (CurrentToken == TokenType.VARGS)     // Belirsiz sayıda parametre sembolü "..."
                 {
-                    if (def_param_count > 0)
+                    if (def_param_count > 0)             // Varsayılan değerler ile "..." kullanılamaz
                     {
                         AddToErrorMessage("can't use vargs alongside default valued parameters");
                         return false;
                     }
+
+                    // "vargs" argüman listesini ekle
                     f_state.AddParam(FunctionState.CreateString(ExMat.VargsName));
                     f_state.HasVargs = true;
+
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
-                    if (CurrentToken != TokenType.ROUNDCLOSE)
+                    if (CurrentToken != TokenType.ROUNDCLOSE)   // "..." sonrası ')' bekle
                     {
                         AddToErrorMessage("expected ')' after vargs '...'");
                         return false;
                     }
-                    break;
+                    break;  // Parametre bölümünü bitir
                 }
-                if ((pname = Expect(TokenType.IDENTIFIER)) == null)
+                if ((pname = Expect(TokenType.IDENTIFIER)) == null) // Parametre ismi bekle
                 {
                     return false;
                 }
 
-                f_state.AddParam(pname);
+                f_state.AddParam(pname);    // Uygun parametre ismini ekle
 
-                if (CurrentToken == TokenType.ASG)
+                if (CurrentToken == TokenType.ASG)  // '=' bekle, bulunursa varsayılan değer vardır 
                 {
-                    if (!ReadAndSetToken() || !ExExp())
+                    if (!ReadAndSetToken() || !ExExp()) // Varsayılan değeri derle
                     {
                         return false;
                     }
 
-                    f_state.AddDefParam(FunctionState.TopTarget());
+                    f_state.AddDefParam(FunctionState.TopTarget()); // Varsayılan değeri ekle
                     def_param_count++;
                 }
                 else
                 {
-                    if (def_param_count > 0)
+                    if (def_param_count > 0)    // Varsayılan değerli parametreden sonraki parametrelerin kontrolü
                     {
                         AddToErrorMessage("expected = for a default value");
                         return false;
                     }
                 }
 
-                if (CurrentToken == TokenType.SEP)
+                if (CurrentToken == TokenType.SEP)  // ',' bekle, var ise başka parametre vardır
                 {
                     if (!ReadAndSetToken())
                     {
                         return false;
                     }
                 }
-                else if (CurrentToken != TokenType.ROUNDCLOSE)
+                else if (CurrentToken != TokenType.ROUNDCLOSE)  // ',' yoksa ')' beklenmek zorundadır
                 {
                     AddToErrorMessage("expected ')' or ',' for function declaration");
                     return false;
                 }
             }
 
-            if (Expect(TokenType.ROUNDCLOSE) == null)
+            if (Expect(TokenType.ROUNDCLOSE) == null)   // ')' bulunduğunu kontrol et
             {
                 return false;
             }
 
-            for (int i = 0; i < def_param_count; i++)
+            for (int i = 0; i < def_param_count; i++)   // Varsayılan parametre indekslerini çıkart
             {
                 FunctionState.PopTarget();
             }
 
-            ExFState tmp = FunctionState.Copy();
+            ExFState tmp = FunctionState.Copy();    // Fonksiyon takipçisinin kopyasını al
             FunctionState = f_state;
-
-            if (lambda)
+            if (lambda)     // Lambda ifadesi ise sıradaki ifadeyi derle ve OPC.RETURN ile sonucu döndür
             {
                 if (!ExExp())
                 {
@@ -3492,22 +3444,21 @@ namespace ExMat.Compiler
             }
             else
             {
-                if (!ProcessStatement(false))
+                if (!ProcessStatement(false))       // Normal fonksiyon ise bütün ifadeleri derle
                 {
                     return false;
                 }
             }
 
             f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
-            f_state.AddInstr(OPC.RETURN, 985, 0, 0, 0);
-            f_state.SetLocalStackSize(0);
 
-            ExPrototype fpro = f_state.CreatePrototype();
+            f_state.AddInstr(OPC.RETURN, ExMat.InvalidArgument, 0, 0, 0); // Fonksiyondan çıkıldığından emin olmak için OPC.RETURN komutu ekle
+            f_state.SetLocalStackSize(0);                   // Yığını temizle
+            ExPrototype fpro = f_state.CreatePrototype();  // Prototipi oluştur
 
-            FunctionState = tmp;
-            FunctionState.Functions.Add(fpro);
-            FunctionState.PopChildState();
-
+            FunctionState = tmp;                // Bir önceki takipçiye dön
+            FunctionState.Functions.Add(fpro);  // Prototipi ekle
+            FunctionState.PopChildState();      // Alt fonksiyonu çıkart
             return true;
         }
 

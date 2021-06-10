@@ -3209,9 +3209,7 @@ namespace ExMat.BaseLib
                     { 5, new("blue") },
                     { 6, new(s: null) }
                 }
-            },
-
-            new() { Name = string.Empty }
+            }
         };
         public static List<ExRegFunc> MathFuncs => _stdmathfuncs;
         public static Random Rand { get => rand; set => rand = value; }

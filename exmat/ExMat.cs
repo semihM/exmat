@@ -19,6 +19,9 @@ namespace ExMat
 
         public const string VargsName = "vargs";
 
+        public const int InvalidArgument = 985;
+
+
         public static ExBaseType GetRawType(ExObjType typ)
         {
             return (ExBaseType)((int)typ & 0x00FFFFFF);

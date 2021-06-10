@@ -108,22 +108,19 @@ namespace ExMat.API
 
         public static void RegisterNativeFunction(ExVM vm, ExRegFunc func, bool force = false)
         {
-            PushString(vm, func.Name, -1);
-            CreateClosure(vm, func.Function, 0, force);
-            SetNativeClosureName(vm, -1, func.Name);
-            SetParamCheck(vm, func.nParameterChecks, func.ParameterMask);
-            SetDefaultValues(vm, func.DefaultValues);
-            CreateNewSlot(vm, -3, false);
+            PushString(vm, func.Name, -1);              // Fonksiyon ismi
+            CreateClosure(vm, func.Function, 0, force); // Fonksiyonun temeli
+            SetNativeClosureName(vm, -1, func.Name);    // İsmi fonksiyon temeline ekle
+            SetParamCheck(vm, func.nParameterChecks, func.ParameterMask);   // Parametre kontrolü
+            SetDefaultValues(vm, func.DefaultValues);   // Varsayılan parametre değerleri
+            CreateNewSlot(vm, -3, false);               // Tabloya kaydet
         }
 
         public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs, bool force = false)
         {
-            int i = 0;
-
-            while (funcs[i].Name != string.Empty)
+            foreach (ExRegFunc func in funcs)
             {
-                RegisterNativeFunction(vm, funcs[i], force);
-                i++;
+                RegisterNativeFunction(vm, func, force);    // Yerli fonksiyonları oluştur ve kaydet
             }
         }
 
@@ -245,7 +242,7 @@ namespace ExMat.API
 
             while (i < l)
             {
-                switch (mask[i])
+                switch (mask[i])    // Her bir karakteri incele
                 {
                     case '.': m = -1; r.Add(m); i++; m = 0; continue;
                     case 'e': m |= (int)ExBaseType.NULL; break;
@@ -261,21 +258,21 @@ namespace ExMat.API
                     case 'x': m |= (int)ExBaseType.INSTANCE; break;
                     case 'y': m |= (int)ExBaseType.CLASS; break;
                     case 'w': m |= (int)ExBaseType.WEAKREF; break;
-                    default: return false;
+                    default: return false;  // bilinmeyen maske
                 }
 
                 i++;
-                if (i < l && mask[i] == '|')
+                if (i < l && mask[i] == '|')    // "|" var, okumaya devam et
                 {
                     i++;
-                    if (i == l)
+                    if (i == l) // "|" sonrası maske yok
                     {
                         return false;
                     }
                     continue;
                 }
-                r.Add(m);
-                m = 0;
+                r.Add(m);   // Maskeyi listeye ekle
+                m = 0;      // Maskeyi sıfırla
             }
             return true;
         }
@@ -370,15 +367,15 @@ namespace ExMat.API
             return -1;
         }
 
-        public static bool CompileFile(ExVM vm, string source)
+        public static bool CompileSource(ExVM vm, string source)
         {
-            ExCompiler c = new(true);
-            ExObject o = new();
+            ExCompiler c = new(true);   // derleyici
+            ExObject main = new();      // main fonksiyonu
 
-            if (c.InitializeCompiler(vm, source, ref o))
+            if (c.InitializeCompiler(vm, source, ref main))
             {
-                ExClosure cls = ExClosure.Create(vm.SharedState, o.Value._FuncPro);
-                vm.Push(cls);
+                // main'i belleğe yükle
+                vm.Push(ExClosure.Create(vm.SharedState, main.Value._FuncPro));
                 return true;
             }
             vm.ErrorString = c.ErrorString;
@@ -399,16 +396,16 @@ namespace ExMat.API
             return vm.StackTop - vm.StackBase;
         }
 
-        public static bool Call(ExVM vm, int pcount, bool ret, bool force = false)
+        public static bool Call(ExVM vm, int nArguments, bool returnVal, bool forceReturn = false)
         {
-            ExObject res = new();
-            ExObject tmp = vm.GetAbove(-(pcount + 1));
-            if (vm.Call(ref tmp, pcount, vm.StackTop - pcount, ref res, force))
+            ExObject result = new();
+            ExObject main = vm.GetAbove(-(nArguments + 1));
+            if (vm.Call(ref main, nArguments, vm.StackTop - nArguments, ref result, forceReturn))
             {
-                vm.Pop(pcount);
-                if (ret)
+                vm.Pop(nArguments);
+                if (returnVal)
                 {
-                    vm.Push(res);
+                    vm.Push(result);
                 }
                 return true;
             }

@@ -18,21 +18,24 @@ namespace ExMat.BaseLib
         // BASIC FUNCTIONS
         public static int StdPrint(ExVM vm, int nargs)
         {
-            int maxdepth = 2;
+            string output = string.Empty;   // Çıktı
+            int maxdepth = 2;               // Liste ve tablo derinliği
+
             if (nargs == 2)
             {
+                // argüman x için x + 1 indeksi verilir 
                 maxdepth = (int)ExAPI.GetFromStack(vm, 3).GetInt();
                 maxdepth = maxdepth < 1 ? 1 : maxdepth;
             }
-            string s = string.Empty;
-            ExAPI.ToString(vm, 2, maxdepth);
-            if (!ExAPI.GetString(vm, -1, ref s))
+
+            // 1. argümanı yazı dizisine çevir ve 'output' a ata
+            if (!ExAPI.ToString(vm, 2, maxdepth) || !ExAPI.GetString(vm, -1, ref output))
             {
-                return -1;
+                return -1;  // Hata oluştu
             }
 
-            vm.Print(s);
-            return 0;
+            vm.Print(output);   // Konsola çıktıyı yazdır
+            return 0;           // Dönülen değer yok ( boş değer )
         }
         public static int StdPrintl(ExVM vm, int nargs)
         {
@@ -65,7 +68,9 @@ namespace ExMat.BaseLib
 
         public static int StdTime(ExVM vm, int nargs)
         {
+            // Gereksiz değerleri çıkart
             vm.Pop(nargs + 2);
+            // Geçen süreyi milisaniye olarak dön
             vm.Push(new ExObject((double)(DateTime.Now - vm.StartingTime).TotalMilliseconds));
             return 1;
         }
@@ -2216,7 +2221,7 @@ namespace ExMat.BaseLib
         public static int StdDefaultLength(ExVM vm, int nargs)
         {
             int size = -1;
-            ExObject obj = ExAPI.GetFromStack(vm, 1);
+            ExObject obj = ExAPI.GetFromStack(vm, 1);   // Objeyi al
             switch (obj.Type)
             {
                 case ExObjType.ARRAY:
@@ -2231,26 +2236,12 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.STRING:
                     {
-                        size = obj.GetString().Length;
+                        size = obj.Value.s_String.Length;
                         break;
-                    }
-                case ExObjType.CLASS:
-                    {
-                        size = obj.Value._Class.LengthReprestation;
-                        break;
-                    }
-                case ExObjType.INSTANCE:
-                    {
-                        size = obj.Value._Instance.Class.LengthReprestation;
-                        break;
-                    }
-                default:
-                    {
-                        break; // TO-DO
                     }
             }
             vm.Pop(nargs + 2);
-            vm.Push(new ExObject(size));
+            vm.Push(new ExObject(size));    // Uzunluğu belleğe ata
             return 1;
         }
 
@@ -3099,7 +3090,7 @@ namespace ExMat.BaseLib
             long ret = ExAPI.GetFromStack(vm, 2).GetInt();
             vm.Pop(nargs + 2);
             vm.Push(ret);
-            return 985;
+            return ExMat.InvalidArgument;
         }
 
         public static int StdInteractive(ExVM vm, int nargs)
@@ -3146,7 +3137,7 @@ namespace ExMat.BaseLib
             return Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod(name);
         }
         //
-        private static readonly List<ExRegFunc> _exRegFuncs = new()
+        private static readonly List<ExRegFunc> _exStdFuncs = new()
         {
             new()
             {
@@ -3156,7 +3147,7 @@ namespace ExMat.BaseLib
                 ParameterMask = "..n",
                 DefaultValues = new()
                 {
-                    { 2, new() }
+                    { 2, new(2) }
                 }
             },
 
@@ -3168,7 +3159,7 @@ namespace ExMat.BaseLib
                 ParameterMask = "..n",
                 DefaultValues = new()
                 {
-                    { 2, new() }
+                    { 2, new(1) }
                 }
             },
 
@@ -3199,6 +3190,7 @@ namespace ExMat.BaseLib
                 nParameterChecks = 2,
                 ParameterMask = null
             },
+
             new()
             {
                 Name = "assert",
@@ -3456,25 +3448,25 @@ namespace ExMat.BaseLib
                 Function = StdReloadBase,
                 nParameterChecks = -1,
                 ParameterMask = ".s"
-            },
-            new()
-            {
-                Name = string.Empty
             }
         };
-        public static List<ExRegFunc> BaseFuncs => _exRegFuncs;
+        public static List<ExRegFunc> BaseFuncs => _exStdFuncs;
 
         private const string _reloadbase = "reload_base";
         public static string ReloadBaseFunc => _reloadbase;
 
         public static bool RegisterStdBase(ExVM vm, bool force = false)
         {
+            // Global tabloyu sanal belleğe ata
             ExAPI.PushRootTable(vm);
+            // Yerli fonksiyonları global tabloya kaydet
             ExAPI.RegisterNativeFunctions(vm, BaseFuncs, force);
 
+            // Sabit değerleri tabloya ekle
             ExAPI.CreateConstantInt(vm, "_versionnumber_", 1);
             ExAPI.CreateConstantString(vm, "_version_", "ExMat v0.0.1");
 
+            // Kayıtları yaptıktan sonra global tabloyu bellekten kaldır
             vm.Pop(1);
 
             return true;

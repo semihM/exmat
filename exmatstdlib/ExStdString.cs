@@ -113,7 +113,7 @@ namespace ExMat.BaseLib
         {
             string code = ExAPI.GetFromStack(vm, 2).GetString();
 
-            if (ExAPI.CompileFile(vm, code))
+            if (ExAPI.CompileSource(vm, code))
             {
                 ExObject m = new(vm.GetAbove(-1));
                 vm.Pop(nargs + 3);
@@ -214,9 +214,7 @@ namespace ExMat.BaseLib
                 Function = Format,
                 nParameterChecks = -2,
                 ParameterMask = null
-            },
-
-            new() { Name = string.Empty }
+            }
         };
         public static List<ExRegFunc> StringFuncs => _stdstrfuncs;
 

@@ -72,17 +72,14 @@ namespace ExMat.VM
 
         public void Initialize(int stacksize)
         {
+            // Sanal belleği oluştur
             ExUtils.InitList(ref Stack, stacksize);
-            AllocatedCallSize = 4;
-            ExUtils.InitList(ref CallStack, AllocatedCallSize);
-            CallStackSize = 0;
-
-            StackBase = 0;
-            StackTop = 0;
-            RootDictionary = new() { Type = ExObjType.DICT };
-            RootDictionary.Value.d_Dict = new();
+            // Çağrı yığınını oluştur
+            ExUtils.InitList(ref CallStack, AllocatedCallSize = 4);
+            // Global tabloyu oluştur
+            RootDictionary = new(new Dictionary<string, ExObject>());
+            // Standart kütüphaneyi kaydet
             ExBaseLib.RegisterStdBase(this);
-
         }
 
         public bool ToString(ExObject obj,
@@ -821,53 +818,52 @@ namespace ExMat.VM
             return StartCall(cls, (int)trg, (int)args, (int)sbase, tail);
         }
 
-        public bool StartCall(ExClosure cls, int trg, int args, int sbase, bool tail)
+        public bool StartCall(ExClosure closure, int targetIndex, int argumentCount, int stackBase, bool isTailCall)
         {
-            ExPrototype pro = cls.Function;
+            ExPrototype prototype = closure.Function;     // Fonksiyon bilgisi
 
-            int p = pro.nParams;
-            int newt = sbase + pro.StackSize;
-            int nargs = args;
+            int nParamters = prototype.nParams;           // Parametre sayısı kontrolü
+            int newTop = stackBase + prototype.StackSize; // Yeni tavan indeksi
+            int nArguments = argumentCount;               // Argüman sayısı
 
-            if (pro.HasVargs)
+            if (prototype.HasVargs)   // Belirsiz parametre sayısı
             {
-                p--;
-                if (nargs < p)
+                if (nArguments < --nParamters)    // Yetersiz argüman sayısı
                 {
-                    AddToErrorMessage("'" + pro.Name.GetString() + "' takes at least " + (p - 1) + " arguments");
+                    AddToErrorMessage("'" + prototype.Name.GetString() + "' takes at least " + (nParamters - 1) + " arguments");
                     return false;
                 }
 
-                int nvargs = nargs - p;
                 List<ExObject> varglis = new();
-                int pb = sbase + p;
-                for (int n = 0; n < nvargs; n++)
+
+                int nVargsArguments = nArguments - nParamters;   // vargs listesine eklenecek argüman sayısı
+                int vargsStartIndex = stackBase + nParamters;        // argümanların bellek indeksi başlangıcı
+                for (int n = 0; n < nVargsArguments; n++)
                 {
-                    varglis.Add(new(Stack[pb]));
-                    Stack[pb].Nullify();
-                    pb++;
+                    varglis.Add(new(Stack[vargsStartIndex]));    // Argümanları 'vargs' listesine kopyala
+                    Stack[vargsStartIndex].Nullify();            // Eski objeyi sıfırla
+                    vargsStartIndex++;
                 }
 
-                Stack[sbase + p].Assign(varglis);
+                Stack[stackBase + nParamters].Assign(varglis);       // vargs listesini belleğe yerleştir
             }
-            else if (!pro.IsCluster()
-                     && !pro.IsRule()
-                     && !pro.IsSequence())
+            else if (prototype.IsFunction())        // Parametre sayısı sınırlı fonksiyon
             {
-                if (p != nargs)
+                if (nParamters != nArguments)       // Argüman sayısı parametre sayısından farklı
                 {
-                    int n_def = pro.nDefaultParameters;
-                    int diff;
-                    int defstart = p - n_def;
-                    if (n_def > 0 && nargs < p && (diff = p - nargs) <= n_def)
+                    int difference, nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParamters - nDefaultParams;
+
+                    // Minimum sayıda argüman sağlandığını kontrol et
+                    if (nDefaultParams > 0 && nArguments < nParamters && (difference = nParamters - nArguments) <= nDefaultParams)
                     {
-                        for (int n = 1; n < p; n++)
+                        for (int n = 1; n < nParamters; n++)
                         {
-                            if (Stack[sbase + n].Type == ExObjType.DEFAULT)
+                            // ".." sembolü yerine ile varsayılan değeri(varsa) ata
+                            if (Stack[stackBase + n].Type == ExObjType.DEFAULT)
                             {
-                                if (n >= defstart)
+                                if (n >= defaultsIndex)
                                 {
-                                    Stack[sbase + n].Assign(cls.DefaultParams[n - defstart]);
+                                    Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
                                 }
                                 else
                                 {
@@ -875,37 +871,39 @@ namespace ExMat.VM
                                     return false;
                                 }
                             }
-                            else if (n >= defstart)
+
+                            // Argümansız ve varsayılan değerli parametrele değerleri ata
+                            else if (n >= defaultsIndex)
                             {
-                                Stack[sbase + n].Assign(cls.DefaultParams[n - defstart]);
-                                nargs++;
+                                Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
+                                nArguments++;
                             }
                         }
                     }
+                    // Beklenen sayıda argüman verilmedi, hata mesajı yaz
                     else
                     {
-                        if (n_def > 0 && !pro.IsCluster() && !pro.IsCluster())
+                        if (nDefaultParams > 0 && !prototype.IsCluster())
                         {
-                            AddToErrorMessage("'" + pro.Name.GetString() + "' takes min: " + (p - n_def - 1) + ", max:" + (p - 1) + " arguments");
+                            AddToErrorMessage("'" + prototype.Name.GetString() + "' takes min: " + (nParamters - nDefaultParams - 1) + ", max:" + (nParamters - 1) + " arguments");
                         }
-                        else
+                        else // 
                         {
-                            AddToErrorMessage("'" + pro.Name.GetString() + "' takes exactly " + (p - 1) + " arguments");
+                            AddToErrorMessage("'" + prototype.Name.GetString() + "' takes exactly " + (nParamters - 1) + " arguments");
                         }
                         return false;
                     }
                 }
-                else
+                else // Argüman sayısı == Parametre sayısı, ".." sembollerini kontrol et
                 {
-                    int n_def = pro.nDefaultParameters;
-                    int defstart = p - n_def;
-                    for (int n = 1; n < p; n++)
+                    int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParamters - nDefaultParams;
+                    for (int n = 1; n < nParamters; n++)
                     {
-                        if (Stack[sbase + n].Type == ExObjType.DEFAULT)
+                        if (Stack[stackBase + n].Type == ExObjType.DEFAULT) // ".." sembolü yerine ile varsayılan değeri(varsa) ata
                         {
-                            if (n >= defstart)
+                            if (n >= defaultsIndex)
                             {
-                                Stack[sbase + n].Assign(cls.DefaultParams[n - defstart]);
+                                Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
                             }
                             else
                             {
@@ -917,50 +915,51 @@ namespace ExMat.VM
                 }
             }
 
-            if (pro.IsRule())
+            #region Küme, dizi vs. için özel kontroller
+            if (prototype.IsRule())
             {
-                int t_n = pro.LocalInfos.Count;
-                if (t_n != nargs)
+                int t_n = prototype.LocalInfos.Count;
+                if (t_n != nArguments)
                 {
-                    AddToErrorMessage("'" + pro.Name.GetString() + "' takes " + (t_n - 1) + " arguments");
+                    AddToErrorMessage("'" + prototype.Name.GetString() + "' takes " + (t_n - 1) + " arguments");
                     return false;
                 }
             }
-            else if (pro.IsCluster())
+            else if (prototype.IsCluster())
             {
-                if (!DoClusterParamChecks(cls, nargs, sbase))
+                if (!DoClusterParamChecks(closure, nArguments, stackBase))
                 {
                     return false;
                 }
             }
-            else if (pro.IsSequence())
+            else if (prototype.IsSequence())
             {
-                if (nargs < 2)
+                if (nArguments < 2)
                 {
                     AddToErrorMessage("sequences require at least 1 argument to be called");
                     return false;
                 }
                 else // CONTINUE HERE, ALLOW PARAMETERS FOR SEQUENCES
                 {
-                    if (!Stack[sbase + 1].IsNumeric())
+                    if (!Stack[stackBase + 1].IsNumeric())
                     {
                         AddToErrorMessage("expected integer or float as sequence argument");
                         return false;
                     }
                     else
                     {
-                        if (Stack[sbase + 1].Type == ExObjType.INTEGER)
+                        if (Stack[stackBase + 1].Type == ExObjType.INTEGER)
                         {
-                            long ind = Stack[sbase + 1].GetInt();
+                            long ind = Stack[stackBase + 1].GetInt();
                             string idx = ind.ToString();
-                            for (int i = 2; i < cls.Function.Parameters.Count; i++)
+                            for (int i = 2; i < closure.Function.Parameters.Count; i++)
                             {
-                                ExObject c = cls.Function.Parameters[i];
+                                ExObject c = closure.Function.Parameters[i];
                                 if (c.GetString() == idx)
                                 {
                                     // TO-DO doesnt return to main, also refactor this
                                     // TO-DO optimize
-                                    Stack[sbase - 1].Assign(cls.DefaultParams[i - 2]);
+                                    Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
                                     return true;
                                 }
                             }
@@ -970,18 +969,18 @@ namespace ExMat.VM
                                 return false;
                             }
                         }
-                        else if (Stack[sbase + 1].Type == ExObjType.FLOAT)
+                        else if (Stack[stackBase + 1].Type == ExObjType.FLOAT)
                         {
-                            double ind = Stack[sbase + 1].GetFloat();
+                            double ind = Stack[stackBase + 1].GetFloat();
                             string idx = ind.ToString();
-                            for (int i = 2; i < cls.Function.Parameters.Count; i++)
+                            for (int i = 2; i < closure.Function.Parameters.Count; i++)
                             {
-                                ExObject c = cls.Function.Parameters[i];
+                                ExObject c = closure.Function.Parameters[i];
                                 if (c.GetString() == idx)
                                 {
                                     // TO-DO doesnt return to main, also refactor this
                                     // TO-DO optimize
-                                    Stack[sbase - 1].Assign(cls.DefaultParams[i - 2]);
+                                    Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
                                     return true;
                                 }
                             }
@@ -995,22 +994,25 @@ namespace ExMat.VM
                 }
             }
 
-            if (cls.WeakReference != null)
+            if (closure.WeakReference != null)
             {
-                Stack[sbase].Assign(cls.WeakReference.ReferencedObject);
+                Stack[stackBase].Assign(closure.WeakReference.ReferencedObject);
             }
+            #endregion
 
-            if (!EnterFrame(sbase, newt, tail))
+            // Çağrı için çerçeve aç
+            if (!EnterFrame(stackBase, newTop, isTailCall))
             {
                 AddToErrorMessage("failed to create a scope");
                 return false;
             }
 
-            CallInfo.Value.Closure = new(); CallInfo.Value.Closure.Assign(cls);
-            CallInfo.Value.Literals = pro.Literals;
-            CallInfo.Value.Instructions = pro.Instructions;
+            // Çağrı bilgisini verilen fonksiyon ile güncelle
+            CallInfo.Value.Closure = new(closure);
+            CallInfo.Value.Literals = prototype.Literals;
+            CallInfo.Value.Instructions = prototype.Instructions;
             CallInfo.Value.InstructionsIndex = 0;
-            CallInfo.Value.Target = trg;
+            CallInfo.Value.Target = targetIndex;
 
             return true;
         }
@@ -1623,28 +1625,29 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool Execute(ExObject cls, int narg, int stackbase, ref ExObject o)
+        public bool Execute(ExObject closure, int nArguments, int stackBase, ref ExObject resultObject)
         {
-            if (nNativeCalls++ > 100)
+            if (nNativeCalls++ > 100)   // Sonsuz döngüye girildi
             {
                 throw new Exception("Native stack overflow");
             }
-
-            Node<ExCallInfo> prevci = CallInfo;
-
-            TempRegistery = new(cls);
-            if (!StartCall(TempRegistery.Value._Closure, StackTop - narg, narg, stackbase, false))
+            // Fonksiyon kopyasını al
+            TempRegistery = new(closure);
+            Node<ExCallInfo> prevCallInfo = CallInfo;
+            // Fonksiyonu çağır
+            if (!StartCall(TempRegistery.Value._Closure, StackTop - nArguments, nArguments, stackBase, false))
             {
                 return false;
             }
-
-            if (CallInfo == prevci)
+            // Çağrı bilgisi güncellenmediyse işlenecek komut yoktur 
+            if (CallInfo == prevCallInfo)
             {
-                o.Assign(Stack[StackBase + StackTop - narg]);
+                resultObject.Assign(Stack[StackBase + StackTop - nArguments]);
                 return true;
             }
             CallInfo.Value.IsRootCall = true;
 
+            // Komutlar bitene kadar işlemeye başla
             while (true)
             {
                 if (CallInfo.Value == null
@@ -1659,56 +1662,58 @@ namespace ExMat.VM
                     return false;
                 }
 
+                // İşlenecek olan komut
+                ExInstr instruction = CallInfo.Value.Instructions[CallInfo.Value.InstructionsIndex++];
 
-                ExInstr i = CallInfo.Value.Instructions[CallInfo.Value.InstructionsIndex++];
-                switch (i.op)
+                switch (instruction.op)
                 {
-                    case OPC.LOAD:
+                    case OPC.LOADINTEGER:   // Tamsayı yükle
                         {
-                            GetTargetInStack(i).Assign(CallInfo.Value.Literals[(int)i.arg1]);
+                            GetTargetInStack(instruction).Assign(instruction.arg1);
+                            continue;
+                        }
+                    case OPC.LOADFLOAT:     // Ondalıklı sayı yükle
+                        {
+                            GetTargetInStack(instruction).Assign(new DoubleLong() { i = instruction.arg1 }.f);
+                            continue;
+                        }
+                    case OPC.LOADCOMPLEX:   // Kompleks sayı yükle
+                        {
+                            if (instruction.arg2 == 1)  // Argüman 2, argüman 1'in ondalıklı olup olmadığını belirtir
+                            {
+                                GetTargetInStack(instruction).Assign(new Complex(0.0, new DoubleLong() { i = instruction.arg1 }.f));
+                            }
+                            else
+                            {
+                                GetTargetInStack(instruction).Assign(new Complex(0.0, instruction.arg1));
+                            }
+                            continue;
+                        }
+                    case OPC.LOADBOOLEAN:   // Boolean yükle
+                        {
+                            // Derleyicide hazırlanırken 'true' isteniyorsa arg1 = 1, 'false' isteniyorsa arg1 = 0 kullanıldı
+                            GetTargetInStack(instruction).Assign(instruction.arg1 == 1);
+                            continue;
+                        }
+                    case OPC.LOADSPACE:     // Uzay yükle
+                        {
+                            GetTargetInStack(instruction).Assign(FindSpaceObject((int)instruction.arg1));
+                            continue;
+                        }
+                    case OPC.LOAD:          // Yazı dizisi, değişken ismi vb. değer yükle
+                        {
+                            GetTargetInStack(instruction).Assign(CallInfo.Value.Literals[(int)instruction.arg1]);
                             continue;
                         }
                     case OPC.DLOAD:
                         {
-                            GetTargetInStack(i).Assign(CallInfo.Value.Literals[(int)i.arg1]);
-                            GetTargetInStack(i.arg2).Assign(CallInfo.Value.Literals[(int)i.arg3]);
-                            continue;
-                        }
-                    case OPC.LOADINTEGER:
-                        {
-                            GetTargetInStack(i).Assign(i.arg1);
-                            continue;
-                        }
-                    case OPC.LOADFLOAT:
-                        {
-                            GetTargetInStack(i).Assign(new DoubleLong() { i = i.arg1 }.f);
-                            continue;
-                        }
-                    case OPC.LOADCOMPLEX:
-                        {
-                            if (i.arg2 == 1)
-                            {
-                                GetTargetInStack(i).Assign(new Complex(0.0, new DoubleLong() { i = i.arg1 }.f));
-                            }
-                            else
-                            {
-                                GetTargetInStack(i).Assign(new Complex(0.0, i.arg1));
-                            }
-                            continue;
-                        }
-                    case OPC.LOADBOOLEAN:
-                        {
-                            GetTargetInStack(i).Assign(i.arg1 == 1);
-                            continue;
-                        }
-                    case OPC.LOADSPACE:
-                        {
-                            GetTargetInStack(i).Assign(FindSpaceObject((int)i.arg1));
+                            GetTargetInStack(instruction).Assign(CallInfo.Value.Literals[(int)instruction.arg1]);
+                            GetTargetInStack(instruction.arg2).Assign(CallInfo.Value.Literals[(int)instruction.arg3]);
                             continue;
                         }
                     case OPC.CALLTAIL:
                         {
-                            ExObject tmp = GetTargetInStack(i.arg1);
+                            ExObject tmp = GetTargetInStack(instruction.arg1);
                             if (tmp.Type == ExObjType.CLOSURE)
                             {
                                 ExObject c = new(tmp);
@@ -1716,81 +1721,75 @@ namespace ExMat.VM
                                 {
                                     CloseOuters(StackBase);
                                 }
-                                for (int j = 0; j < i.arg3; j++)
+                                for (int j = 0; j < instruction.arg3; j++)
                                 {
-                                    GetTargetInStack(j).Assign(GetTargetInStack(i.arg2 + j));
+                                    GetTargetInStack(j).Assign(GetTargetInStack(instruction.arg2 + j));
                                 }
-                                if (!StartCall(c.Value._Closure, CallInfo.Value.Target, i.arg3, StackBase, true))
+                                if (!StartCall(c.Value._Closure, CallInfo.Value.Target, instruction.arg3, StackBase, true))
                                 {
-                                    //AddToErrorMessage("guarded failed call");
                                     return FixStackAfterError();
                                 }
                                 continue;
                             }
                             goto case OPC.CALL;
                         }
-                    case OPC.CALL:
+                    case OPC.CALL:  // Fonksiyon veya başka bir obje çağrısı
                         {
-                            ExObject tmp2 = new(GetTargetInStack(i.arg1));
-                            switch (tmp2.Type)
+                            ExObject obj = new(GetTargetInStack(instruction.arg1));
+                            switch (obj.Type)
                             {
-                                case ExObjType.CLOSURE:
+                                case ExObjType.CLOSURE: // Kullanıcı fonksiyonu
                                     {
-                                        if (!StartCall(tmp2.Value._Closure, i.arg0, i.arg3, StackBase + i.arg2, false))
+                                        if (!StartCall(obj.Value._Closure, instruction.arg0, instruction.arg3, StackBase + instruction.arg2, false))
                                         {
-                                            //AddToErrorMessage("guarded failed call");
                                             return FixStackAfterError();
                                         }
                                         continue;
                                     }
-                                case ExObjType.NATIVECLOSURE:
+                                case ExObjType.NATIVECLOSURE:   // Yerli fonksiyon
                                     {
-                                        if (!CallNative(tmp2.Value._NativeClosure, i.arg3, StackBase + i.arg2, ref tmp2))
+                                        if (!CallNative(obj.Value._NativeClosure, instruction.arg3, StackBase + instruction.arg2, ref obj))
                                         {
-                                            //AddToErrorMessage("guarded failed call");
                                             return FixStackAfterError();
                                         }
 
-                                        if (i.arg0 != 985)
+                                        if (instruction.arg0 != ExMat.InvalidArgument)
                                         {
-                                            GetTargetInStack(i.arg0).Assign(tmp2);
+                                            GetTargetInStack(instruction.arg0).Assign(obj);
                                         }
                                         continue;
                                     }
-                                case ExObjType.CLASS:
+                                case ExObjType.CLASS:   // Sınıf (yeni bir obje oluşturmaya yarar)
                                     {
                                         ExObject instance = new();
-                                        if (!CreateClassInst(tmp2.Value._Class, ref instance, tmp2))
+                                        if (!CreateClassInst(obj.Value._Class, ref instance, obj))
                                         {
-                                            //AddToErrorMessage("guarded failed call");
                                             return FixStackAfterError();
                                         }
-                                        if (i.arg0 != -1)
+                                        if (instruction.arg0 != -1)
                                         {
-                                            GetTargetInStack(i.arg0).Assign(instance);
+                                            GetTargetInStack(instruction.arg0).Assign(instance);
                                         }
 
                                         int sbase;
-                                        switch (tmp2.Type)
+                                        switch (obj.Type)
                                         {
                                             case ExObjType.CLOSURE:
                                                 {
-                                                    sbase = StackBase + (int)i.arg2;
+                                                    sbase = StackBase + (int)instruction.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!StartCall(tmp2.Value._Closure, -1, i.arg3, sbase, false))
+                                                    if (!StartCall(obj.Value._Closure, -1, instruction.arg3, sbase, false))
                                                     {
-                                                        //AddToErrorMessage("guarded failed call");
                                                         return FixStackAfterError();
                                                     }
                                                     break;
                                                 }
                                             case ExObjType.NATIVECLOSURE:
                                                 {
-                                                    sbase = StackBase + (int)i.arg2;
+                                                    sbase = StackBase + (int)instruction.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!CallNative(tmp2.Value._NativeClosure, i.arg3, sbase, ref tmp2))
+                                                    if (!CallNative(obj.Value._NativeClosure, instruction.arg3, sbase, ref obj))
                                                     {
-                                                        //AddToErrorMessage("guarded failed call");
                                                         return FixStackAfterError();
                                                     }
                                                     break;
@@ -1798,42 +1797,38 @@ namespace ExMat.VM
                                         }
                                         break;
                                     }
-                                case ExObjType.DICT:
-                                    {
-                                        goto default;
-                                    }
-                                case ExObjType.INSTANCE:
+                                case ExObjType.INSTANCE:    // Sınıfa ait obje(gerekli meta metota sahio olması beklenir)
                                     {
                                         ExObject cls2 = null;
-                                        if (tmp2.GetInstance().GetMetaM(this, ExMetaM.CALL, ref cls2))
+                                        if (obj.GetInstance().GetMetaM(this, ExMetaM.CALL, ref cls2))
                                         {
-                                            Push(tmp2);
-                                            for (int j = 0; j < i.arg3; j++)
+                                            Push(obj);
+                                            for (int j = 0; j < instruction.arg3; j++)
                                             {
-                                                Push(GetTargetInStack(j + i.arg2));
+                                                Push(GetTargetInStack(j + instruction.arg2));
                                             }
 
-                                            if (!CallMeta(ref cls2, ExMetaM.CALL, i.arg3 + 1, ref tmp2))
+                                            if (!CallMeta(ref cls2, ExMetaM.CALL, instruction.arg3 + 1, ref obj))
                                             {
                                                 AddToErrorMessage("meta method failed call");
                                                 return FixStackAfterError();
                                             }
 
-                                            if (i.arg0 != -1)
+                                            if (instruction.arg0 != -1)
                                             {
-                                                GetTargetInStack(i.arg0).Assign(tmp2);
+                                                GetTargetInStack(instruction.arg0).Assign(obj);
                                             }
                                             break;
                                         }
                                         goto default;
                                     }
-                                case ExObjType.SPACE:
+                                case ExObjType.SPACE:   // Uzay (değişken boyutlara değer atamak amaçlıdır)
                                     {
-                                        ExSpace sp_org = GetTargetInStack(i.arg1).Value.c_Space;
+                                        ExSpace sp_org = GetTargetInStack(instruction.arg1).Value.c_Space;
                                         ExSpace sp = sp_org.DeepCopy();
                                         int nparams = sp.Depth();
                                         int varcount = sp.VarCount();
-                                        int argcount = (int)i.arg3 - 1;
+                                        int argcount = (int)instruction.arg3 - 1;
                                         if (argcount > varcount)
                                         {
                                             AddToErrorMessage("expected maximum " + varcount + " arguments for space");
@@ -1841,7 +1836,7 @@ namespace ExMat.VM
                                         }
 
                                         ExSpace child = sp;
-                                        int sb = (int)i.arg2;
+                                        int sb = (int)instruction.arg2;
                                         int argid = 1;
                                         while (child != null && argcount > 0)
                                         {
@@ -1865,61 +1860,69 @@ namespace ExMat.VM
                                             child = child.Child;
                                         }
 
-                                        GetTargetInStack(i.arg0).Assign(sp);
+                                        GetTargetInStack(instruction.arg0).Assign(sp);
                                         break;
                                     }
-                                default:
+                                default:    // Bilinmeyen tip
                                     {
-                                        AddToErrorMessage("attempt to call " + tmp2.Type.ToString());
+                                        AddToErrorMessage("attempt to call " + obj.Type.ToString());
                                         return FixStackAfterError();
                                     }
                             }
                             continue;
                         }
                     case OPC.PREPCALL:
-                    case OPC.PREPCALLK:
+                    case OPC.PREPCALLK: // Fonksiyonun bir sonraki komutlar için bulunup hazırlanması
                         {
-                            ExObject k = i.op == OPC.PREPCALLK ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
-                            ExObject obj = GetTargetInStack(i.arg2);
-
-                            if (!Getter(ref obj, ref k, ref TempRegistery, false, (ExFallback)i.arg2))
+                            // Aranan metot/fonksiyon veya özellik ismi
+                            ExObject name = instruction.op == OPC.PREPCALLK ? CallInfo.Value.Literals[(int)instruction.arg1] : GetTargetInStack(instruction.arg1);
+                            // İçinde ismin aranacağı obje ( tablo veya sınıf gibi )
+                            ExObject lookUp = GetTargetInStack(instruction.arg2);
+                            // 'lookUp' objesi 'name' in taşıdığı isimli bir değere sahipse 'TempRegistery' içine yükler
+                            if (!Getter(ref lookUp, ref name, ref TempRegistery, false, (ExFallback)instruction.arg2))
                             {
-                                AddToErrorMessage("unknown method or field '" + k.GetString() + "'");
+                                AddToErrorMessage("unknown method or field '" + name.GetString() + "'");
                                 return FixStackAfterError();
                             }
-
-                            GetTargetInStack(i.arg3).Assign(obj);
-                            SwapObjects(GetTargetInStack(i), ref TempRegistery);
-                            continue;
-                        }
-                    case OPC.MOVE:
-                        {
-                            GetTargetInStack(i).Assign(GetTargetInStack(i.arg1));
+                            // Arama yapılan değeri, bulunan değerin kullanması için arg3 hedefine ata
+                            GetTargetInStack(instruction.arg3).Assign(lookUp);
+                            SwapObjects(GetTargetInStack(instruction), TempRegistery);  // Fonksiyon indeks hedefine ata
                             continue;
                         }
                     case OPC.DMOVE:
                         {
-                            GetTargetInStack(i.arg0).Assign(GetTargetInStack(i.arg1));
-                            GetTargetInStack(i.arg2).Assign(GetTargetInStack(i.arg3));
+                            GetTargetInStack(instruction.arg0).Assign(GetTargetInStack(instruction.arg1));
+                            GetTargetInStack(instruction.arg2).Assign(GetTargetInStack(instruction.arg3));
                             continue;
                         }
-                    case OPC.NEWSLOT:
+                    case OPC.MOVE:  // Bir objeyi/değişkeni başka bir objeye/değişkene atama işlemi
                         {
-                            if (!NewSlot(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), GetTargetInStack(i.arg3), false))
+                            // GetTargetInStack(instruction) çağrısı arg0'ı kullanır : Hedef indeks
+                            // arg1 : Kaynak indeks
+                            GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg1));
+                            continue;
+                        }
+                    case OPC.NEWSLOT:   // Yeni slot oluşturma işlemi
+                        {
+                            // Komut argümanları:
+                            //  arg0 = hedef indeks, ExMat.InvalidArgument ise slota atanan değeri dönmez
+                            //  arg1 = slot oluşturulacak objenin indeksi
+                            //  arg2 = oluşturulacak slotun isminin indeksi
+                            //  arg3 = slota atanacak değerin indeksi
+                            if (!NewSlot(GetTargetInStack(instruction.arg1), GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg3), false))
                             {
-                                //AddToErrorMessage("guarded failed newslot");
                                 return FixStackAfterError();
                             }
-                            if (i.arg0 != 985)
+                            if (instruction.arg0 != ExMat.InvalidArgument)
                             {
-                                GetTargetInStack(i).Assign(GetTargetInStack(i.arg3));
+                                GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg3));
                             }
                             continue;
                         }
                     case OPC.DELETE:
                         {
-                            ExObject r = new(GetTargetInStack(i));
-                            if (!RemoveObjectSlot(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), ref r))
+                            ExObject r = new(GetTargetInStack(instruction));
+                            if (!RemoveObjectSlot(GetTargetInStack(instruction.arg1), GetTargetInStack(instruction.arg2), ref r))
                             {
                                 AddToErrorMessage("failed to delete a slot");
                                 return FixStackAfterError();
@@ -1928,53 +1931,51 @@ namespace ExMat.VM
                         }
                     case OPC.SET:
                         {
-                            ExObject t = new(GetTargetInStack(i.arg3));
-                            if (!Setter(GetTargetInStack(i.arg1), GetTargetInStack(i.arg2), ref t, ExFallback.OK))
+                            ExObject t = new(GetTargetInStack(instruction.arg3));
+                            if (!Setter(GetTargetInStack(instruction.arg1), GetTargetInStack(instruction.arg2), ref t, ExFallback.OK))
                             {
-                                //AddToErrorMessage("failed setter for '" + GetTargetInStack(i.arg2).GetString() + "' key");
                                 return FixStackAfterError();
                             }
-                            if (i.arg0 != 985)
+                            if (instruction.arg0 != ExMat.InvalidArgument)
                             {
-                                GetTargetInStack(i).Assign(GetTargetInStack(i.arg3));
+                                GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg3));
                             }
                             continue;
                         }
                     case OPC.GET:
                         {
-                            ExObject s1 = new(GetTargetInStack(i.arg1));
-                            ExObject s2 = new(GetTargetInStack(i.arg2));
-                            if (!Getter(ref s1, ref s2, ref TempRegistery, false, (ExFallback)i.arg1))
+                            ExObject s1 = new(GetTargetInStack(instruction.arg1));
+                            ExObject s2 = new(GetTargetInStack(instruction.arg2));
+                            if (!Getter(ref s1, ref s2, ref TempRegistery, false, (ExFallback)instruction.arg1))
                             {
-                                //AddToErrorMessage("failed getter for '" + s2.GetString() + "' key");
                                 return FixStackAfterError();
                             }
-                            SwapObjects(GetTargetInStack(i), ref TempRegistery);
+                            SwapObjects(GetTargetInStack(instruction), TempRegistery);
                             continue;
                         }
                     case OPC.GETK:
                         {
-                            ExObject tmp = GetTargetInStack(i.arg2);
-                            ExObject lit = CallInfo.Value.Literals[(int)i.arg1];
+                            ExObject tmp = GetTargetInStack(instruction.arg2);
+                            ExObject lit = CallInfo.Value.Literals[(int)instruction.arg1];
 
-                            if (!Getter(ref tmp, ref lit, ref TempRegistery, false, (ExFallback)i.arg2))
+                            if (!Getter(ref tmp, ref lit, ref TempRegistery, false, (ExFallback)instruction.arg2))
                             {
                                 AddToErrorMessage("unknown variable '" + lit.GetString() + "'"); // access to local var decl before
                                 return FixStackAfterError();
                             }
-                            SwapObjects(GetTargetInStack(i), ref TempRegistery);
+                            SwapObjects(GetTargetInStack(instruction), TempRegistery);
                             continue;
                         }
                     case OPC.EQ:
                     case OPC.NEQ:
                         {
                             bool res = false;
-                            if (!CheckEqual(GetTargetInStack(i.arg2), GetConditionFromInstr(i), ref res))
+                            if (!CheckEqual(GetTargetInStack(instruction.arg2), GetConditionFromInstr(instruction), ref res))
                             {
                                 AddToErrorMessage("equal op failed");
                                 return FixStackAfterError();
                             }
-                            GetTargetInStack(i).Assign(i.op == OPC.EQ ? res : !res);
+                            GetTargetInStack(instruction).Assign(instruction.op == OPC.EQ ? res : !res);
                             continue;
                         }
                     case OPC.ADD:
@@ -1984,37 +1985,39 @@ namespace ExMat.VM
                     case OPC.DIV:
                     case OPC.MOD:
                         {
-                            ExObject res = new();
-                            if (!DoArithmeticOP(i.op, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
+                            // arg1 = sağ tarafın indeksi
+                            // arg2 = sol tarafın indeksi
+                            ExObject res = new();   // sonucun saklanacağı obje
+                            if (!DoArithmeticOP(instruction.op, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
                             {
                                 return FixStackAfterError();
                             }
-                            GetTargetInStack(i).Assign(res);
+                            GetTargetInStack(instruction).Assign(res);  // arg0 hedef indeksi
                             continue;
                         }
                     case OPC.MMLT:
                         {
                             ExObject res = new();
-                            if (!DoMatrixMltOP(OPC.MMLT, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
+                            if (!DoMatrixMltOP(OPC.MMLT, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
                             {
                                 return FixStackAfterError();
                             }
-                            GetTargetInStack(i).Assign(res);
+                            GetTargetInStack(instruction).Assign(res);
                             continue;
                         }
                     case OPC.CARTESIAN:
                         {
                             ExObject res = new();
-                            if (!DoCartesianProductOP(GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), ref res))
+                            if (!DoCartesianProductOP(GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
                             {
                                 return FixStackAfterError();
                             }
-                            GetTargetInStack(i).Assign(res);
+                            GetTargetInStack(instruction).Assign(res);
                             continue;
                         }
                     case OPC.BITWISE:
                         {
-                            if (!DoBitwiseOP(i.arg3, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
+                            if (!DoBitwiseOP(instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), GetTargetInStack(instruction)))
                             {
                                 return FixStackAfterError();
                             }
@@ -2024,105 +2027,105 @@ namespace ExMat.VM
                     case OPC.RETURNBOOL:
                     case OPC.RETURN:
                         {
-                            if (ReturnValue((int)i.arg0, (int)i.arg1, ref TempRegistery, i.op == OPC.RETURNBOOL, i.arg2 == 1))
+                            if (ReturnValue((int)instruction.arg0, (int)instruction.arg1, ref TempRegistery, instruction.op == OPC.RETURNBOOL, instruction.arg2 == 1))
                             {
-                                SwapObjects(o, ref TempRegistery);
+                                SwapObjects(resultObject, TempRegistery);
                                 return true;
                             }
                             continue;
                         }
                     case OPC.LOADNULL:
                         {
-                            if (i.arg2 == 1)
+                            if (instruction.arg2 == 1)
                             {
-                                for (int n = 0; n < i.arg1; n++)
+                                for (int n = 0; n < instruction.arg1; n++)
                                 {
-                                    GetTargetInStack(i.arg0 + n).Nullify();
-                                    GetTargetInStack(i.arg0 + n).Assign(new ExObject() { Type = ExObjType.DEFAULT });
+                                    GetTargetInStack(instruction.arg0 + n).Nullify();
+                                    GetTargetInStack(instruction.arg0 + n).Assign(new ExObject() { Type = ExObjType.DEFAULT });
                                 }
                             }
                             else
                             {
-                                for (int n = 0; n < i.arg1; n++)
+                                for (int n = 0; n < instruction.arg1; n++)
                                 {
-                                    GetTargetInStack(i.arg0 + n).Nullify();
+                                    GetTargetInStack(instruction.arg0 + n).Nullify();
                                 }
                             }
                             continue;
                         }
                     case OPC.LOADROOT:
                         {
-                            GetTargetInStack(i).Assign(RootDictionary);
+                            GetTargetInStack(instruction).Assign(RootDictionary);
                             continue;
                         }
                     case OPC.JZS:
                         {
-                            if (!GetTargetInStack(i.arg0).GetBool())
+                            if (!GetTargetInStack(instruction.arg0).GetBool())
                             {
-                                CallInfo.Value.InstructionsIndex += (int)i.arg1;
+                                CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
                             }
                             continue;
                         }
-                    case OPC.JMP:
+                    case OPC.JMP:   // arg1 adet komutu atla
                         {
-                            CallInfo.Value.InstructionsIndex += (int)i.arg1;
+                            CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
+                            continue;
+                        }
+                    case OPC.JZ:    // Hedef(arg0 indeksli) boolean olarak 'false' ise arg1 adet komutu atla
+                        {
+                            if (!GetTargetInStack(instruction.arg0).GetBool())
+                            {
+                                CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
+                            }
                             continue;
                         }
                     case OPC.JCMP:
                         {
-                            if (!DoCompareOP((CmpOP)i.arg3, GetTargetInStack(i.arg2), GetTargetInStack(i.arg0), TempRegistery))
+                            if (!DoCompareOP((CmpOP)instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg0), TempRegistery))
                             {
                                 return FixStackAfterError();
                             }
                             if (!TempRegistery.GetBool())
                             {
-                                CallInfo.Value.InstructionsIndex += (int)i.arg1;
-                            }
-                            continue;
-                        }
-                    case OPC.JZ:
-                        {
-                            if (!GetTargetInStack(i.arg0).GetBool())
-                            {
-                                CallInfo.Value.InstructionsIndex += (int)i.arg1;
+                                CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
                             }
                             continue;
                         }
                     case OPC.GETOUTER:
                         {
                             ExClosure currcls = CallInfo.Value.Closure.GetClosure();
-                            ExOuter outr = currcls.OutersList[(int)i.arg1].Value._Outer;
-                            GetTargetInStack(i).Assign(outr.ValueRef);
+                            ExOuter outr = currcls.OutersList[(int)instruction.arg1].Value._Outer;
+                            GetTargetInStack(instruction).Assign(outr.ValueRef);
                             continue;
                         }
                     case OPC.SETOUTER:
                         {
                             ExClosure currcls = CallInfo.Value.Closure.GetClosure();
-                            ExOuter outr = currcls.OutersList[(int)i.arg1].Value._Outer;
-                            outr.ValueRef.Assign(GetTargetInStack(i.arg2));
-                            if (i.arg0 != 985)
+                            ExOuter outr = currcls.OutersList[(int)instruction.arg1].Value._Outer;
+                            outr.ValueRef.Assign(GetTargetInStack(instruction.arg2));
+                            if (instruction.arg0 != ExMat.InvalidArgument)
                             {
-                                GetTargetInStack(i).Assign(GetTargetInStack(i.arg2));
+                                GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg2));
                             }
                             continue;
                         }
                     case OPC.NEWOBJECT:
                         {
-                            switch (i.arg3)
+                            switch (instruction.arg3)
                             {
                                 case (int)ExNOT.DICT:
                                     {
-                                        GetTargetInStack(i).Assign(new Dictionary<string, ExObject>());
+                                        GetTargetInStack(instruction).Assign(new Dictionary<string, ExObject>());
                                         continue;
                                     }
                                 case (int)ExNOT.ARRAY:
                                     {
-                                        GetTargetInStack(i).Assign(new List<ExObject>((int)i.arg1));
+                                        GetTargetInStack(instruction).Assign(new List<ExObject>((int)instruction.arg1));
                                         continue;
                                     }
                                 case (int)ExNOT.CLASS:
                                     {
-                                        if (!DoClassOP(GetTargetInStack(i), (int)i.arg1, (int)i.arg2))
+                                        if (!DoClassOP(GetTargetInStack(instruction), (int)instruction.arg1, (int)instruction.arg2))
                                         {
                                             AddToErrorMessage("failed to create class");
                                             return FixStackAfterError();
@@ -2131,7 +2134,7 @@ namespace ExMat.VM
                                     }
                                 default:
                                     {
-                                        AddToErrorMessage("unknown object type " + i.arg3);
+                                        AddToErrorMessage("unknown object type " + instruction.arg3);
                                         return FixStackAfterError();
                                     }
                             }
@@ -2139,30 +2142,30 @@ namespace ExMat.VM
                     case OPC.APPENDTOARRAY:
                         {
                             ExObject val = new();
-                            switch (i.arg2)
+                            switch (instruction.arg2)
                             {
                                 case (int)ArrayAType.STACK:
-                                    val.Assign(GetTargetInStack(i.arg1)); break;
+                                    val.Assign(GetTargetInStack(instruction.arg1)); break;
                                 case (int)ArrayAType.LITERAL:
-                                    val.Assign(CallInfo.Value.Literals[(int)i.arg1]); break;
+                                    val.Assign(CallInfo.Value.Literals[(int)instruction.arg1]); break;
                                 case (int)ArrayAType.INTEGER:
-                                    val.Assign(i.arg1); break;
+                                    val.Assign(instruction.arg1); break;
                                 case (int)ArrayAType.FLOAT:
-                                    val.Assign(new DoubleLong() { i = i.arg1 }.f); break;
+                                    val.Assign(new DoubleLong() { i = instruction.arg1 }.f); break;
                                 case (int)ArrayAType.BOOL:
-                                    val.Assign(i.arg1 == 1); break;
+                                    val.Assign(instruction.arg1 == 1); break;
                                 default:
                                     {
                                         throw new Exception("unknown array append method");
                                     }
                             }
-                            GetTargetInStack(i.arg0).Value.l_List.Add(val);
+                            GetTargetInStack(instruction.arg0).Value.l_List.Add(val);
                             continue;
                         }
                     case OPC.TRANSPOSE:
                         {
-                            ExObject s1 = new(GetTargetInStack(i.arg1));
-                            if (!DoMatrixTranspose(GetTargetInStack(i), ref s1, (ExFallback)i.arg1))
+                            ExObject s1 = new(GetTargetInStack(instruction.arg1));
+                            if (!DoMatrixTranspose(GetTargetInStack(instruction), ref s1, (ExFallback)instruction.arg1))
                             {
                                 return FixStackAfterError();
                             }
@@ -2171,11 +2174,11 @@ namespace ExMat.VM
                     case OPC.INC:
                     case OPC.PINC:
                         {
-                            ExObject ob = new(i.arg3);
+                            ExObject ob = new(instruction.arg3);
 
-                            ExObject s1 = new(GetTargetInStack(i.arg1));
-                            ExObject s2 = new(GetTargetInStack(i.arg2));
-                            if (!DoDerefInc(OPC.ADD, GetTargetInStack(i), ref s1, ref s2, ref ob, i.op == OPC.PINC, (ExFallback)i.arg1))
+                            ExObject s1 = new(GetTargetInStack(instruction.arg1));
+                            ExObject s2 = new(GetTargetInStack(instruction.arg2));
+                            if (!DoDerefInc(OPC.ADD, GetTargetInStack(instruction), ref s1, ref s2, ref ob, instruction.op == OPC.PINC, (ExFallback)instruction.arg1))
                             {
                                 return FixStackAfterError();
                             }
@@ -2184,19 +2187,19 @@ namespace ExMat.VM
                     case OPC.INCL:
                     case OPC.PINCL:
                         {
-                            ExObject ob = GetTargetInStack(i.arg1);
+                            ExObject ob = GetTargetInStack(instruction.arg1);
                             if (ob.Type == ExObjType.INTEGER)
                             {
-                                GetTargetInStack(i).Assign(ob);
-                                ob.Value.i_Int += i.arg3;
+                                GetTargetInStack(instruction).Assign(ob);
+                                ob.Value.i_Int += instruction.arg3;
                             }
                             else
                             {
-                                ob = new(i.arg3);
-                                if (i.op == OPC.INCL)
+                                ob = new(instruction.arg3);
+                                if (instruction.op == OPC.INCL)
                                 {
                                     ExObject res = new();
-                                    if (!DoArithmeticOP(OPC.ADD, ob, o, ref res))
+                                    if (!DoArithmeticOP(OPC.ADD, ob, resultObject, ref res))
                                     {
                                         return FixStackAfterError();
                                     }
@@ -2204,8 +2207,8 @@ namespace ExMat.VM
                                 }
                                 else
                                 {
-                                    ExObject targ = new(GetTargetInStack(i));
-                                    ExObject val = new(GetTargetInStack(i.arg1));
+                                    ExObject targ = new(GetTargetInStack(instruction));
+                                    ExObject val = new(GetTargetInStack(instruction.arg1));
                                     if (!DoVarInc(OPC.ADD, ref targ, ref val, ref ob))
                                     {
                                         return FixStackAfterError();
@@ -2216,17 +2219,17 @@ namespace ExMat.VM
                         }
                     case OPC.EXISTS:
                         {
-                            ExObject s1 = new(GetTargetInStack(i.arg1));
-                            ExObject s2 = new(GetTargetInStack(i.arg2));
+                            ExObject s1 = new(GetTargetInStack(instruction.arg1));
+                            ExObject s2 = new(GetTargetInStack(instruction.arg2));
                             bool b = Getter(ref s1, ref s2, ref TempRegistery, true, ExFallback.DONT, true);
 
-                            GetTargetInStack(i).Assign(i.arg3 == 0 ? b : !b);
+                            GetTargetInStack(instruction).Assign(instruction.arg3 == 0 ? b : !b);
 
                             continue;
                         }
                     case OPC.CMP:
                         {
-                            if (!DoCompareOP((CmpOP)i.arg3, GetTargetInStack(i.arg2), GetTargetInStack(i.arg1), GetTargetInStack(i)))
+                            if (!DoCompareOP((CmpOP)instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), GetTargetInStack(instruction)))
                             {
                                 return FixStackAfterError();
                             }
@@ -2236,38 +2239,38 @@ namespace ExMat.VM
                         {
                             if (Outers != null)
                             {
-                                CloseOuters((int)GetTargetInStack(i.arg1).GetInt());
+                                CloseOuters((int)GetTargetInStack(instruction.arg1).GetInt());
                             }
                             continue;
                         }
                     case OPC.AND:
                         {
-                            if (!GetTargetInStack(i.arg2).GetBool())
+                            if (!GetTargetInStack(instruction.arg2).GetBool())
                             {
-                                GetTargetInStack(i).Assign(GetTargetInStack(i.arg2));
-                                CallInfo.Value.InstructionsIndex += (int)i.arg1;
+                                GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg2));
+                                CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
                             }
                             continue;
                         }
                     case OPC.OR:
                         {
-                            if (GetTargetInStack(i.arg2).GetBool())
+                            if (GetTargetInStack(instruction.arg2).GetBool())
                             {
-                                GetTargetInStack(i).Assign(GetTargetInStack(i.arg2));
-                                CallInfo.Value.InstructionsIndex += (int)i.arg1;
+                                GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg2));
+                                CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
                             }
                             continue;
                         }
                     case OPC.NOT:
                         {
-                            GetTargetInStack(i).Assign(!GetTargetInStack(i.arg1).GetBool());
+                            GetTargetInStack(instruction).Assign(!GetTargetInStack(instruction.arg1).GetBool());
                             continue;
                         }
                     case OPC.NEGATE:
                         {
-                            if (!DoNegateOP(GetTargetInStack(i), GetTargetInStack(i.arg1)))
+                            if (!DoNegateOP(GetTargetInStack(instruction), GetTargetInStack(instruction.arg1)))
                             {
-                                AddToErrorMessage("attempted to negate '" + GetTargetInStack(i.arg1).Type.ToString() + "'");
+                                AddToErrorMessage("attempted to negate '" + GetTargetInStack(instruction.arg1).Type.ToString() + "'");
                                 return FixStackAfterError();
                             }
                             continue;
@@ -2276,7 +2279,7 @@ namespace ExMat.VM
                         {
                             ExClosure cl = CallInfo.Value.Closure.GetClosure();
                             ExPrototype fp = cl.Function;
-                            if (!DoClosureOP(GetTargetInStack(i), fp.Functions[(int)i.arg1]))
+                            if (!DoClosureOP(GetTargetInStack(instruction), fp.Functions[(int)instruction.arg1]))
                             {
                                 return FixStackAfterError();
                             }
@@ -2284,11 +2287,11 @@ namespace ExMat.VM
                         }
                     case OPC.NEWSLOTA:
                         {
-                            if (!NewSlotA(GetTargetInStack(i.arg1),
-                                         GetTargetInStack(i.arg2),
-                                         GetTargetInStack(i.arg3),
-                                         (i.arg0 & (int)ExNewSlotFlag.ATTR) > 0 ? GetTargetInStack(i.arg2 - 1) : new(),
-                                         (i.arg0 & (int)ExNewSlotFlag.STATIC) > 0,
+                            if (!NewSlotA(GetTargetInStack(instruction.arg1),
+                                         GetTargetInStack(instruction.arg2),
+                                         GetTargetInStack(instruction.arg3),
+                                         (instruction.arg0 & (int)ExNewSlotFlag.ATTR) > 0 ? GetTargetInStack(instruction.arg2 - 1) : new(),
+                                         (instruction.arg0 & (int)ExNewSlotFlag.STATIC) > 0,
                                          false))
                             {
                                 return FixStackAfterError();
@@ -2298,13 +2301,13 @@ namespace ExMat.VM
                     case OPC.COMPOUNDARITH:
                         {
                             // TO-DO somethings wrong here
-                            int idx = (int)((i.arg1 & 0xFFFF0000) >> 16);
+                            int idx = (int)((instruction.arg1 & 0xFFFF0000) >> 16);
 
                             ExObject si = GetTargetInStack(idx);
-                            ExObject s2 = GetTargetInStack(i.arg2);
-                            ExObject s1v = GetTargetInStack(i.arg1 & 0x0000FFFF);
+                            ExObject s2 = GetTargetInStack(instruction.arg2);
+                            ExObject s1v = GetTargetInStack(instruction.arg1 & 0x0000FFFF);
 
-                            if (!DoDerefInc((OPC)i.arg3, GetTargetInStack(i), ref si, ref s2, ref s1v, false, (ExFallback)idx))
+                            if (!DoDerefInc((OPC)instruction.arg3, GetTargetInStack(instruction), ref si, ref s2, ref s1v, false, (ExFallback)idx))
                             {
                                 return FixStackAfterError();
                             }
@@ -2312,26 +2315,26 @@ namespace ExMat.VM
                         }
                     case OPC.TYPEOF:
                         {
-                            GetTargetInStack(i).Assign(GetTargetInStack(i.arg1).Type.ToString());
+                            GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg1).Type.ToString());
                             continue;
                         }
                     case OPC.INSTANCEOF:
                         {
-                            if (GetTargetInStack(i.arg1).Type != ExObjType.CLASS)
+                            if (GetTargetInStack(instruction.arg1).Type != ExObjType.CLASS)
                             {
                                 AddToErrorMessage("instanceof operation can only be done with a 'class' type");
                                 return FixStackAfterError();
                             }
-                            GetTargetInStack(i).Assign(
-                                GetTargetInStack(i.arg2).Type == ExObjType.INSTANCE
-                                && GetTargetInStack(i.arg2).Value._Instance.IsInstanceOf(GetTargetInStack(i.arg1).Value._Class));
+                            GetTargetInStack(instruction).Assign(
+                                GetTargetInStack(instruction.arg2).Type == ExObjType.INSTANCE
+                                && GetTargetInStack(instruction.arg2).Value._Instance.IsInstanceOf(GetTargetInStack(instruction.arg1).Value._Class));
                             continue;
                         }
                     case OPC.RETURNMACRO:   // TO-DO
                         {
-                            if (ReturnValue((int)i.arg0, (int)i.arg1, ref TempRegistery, false, true))
+                            if (ReturnValue((int)instruction.arg0, (int)instruction.arg1, ref TempRegistery, false, true))
                             {
-                                SwapObjects(o, ref TempRegistery);
+                                SwapObjects(resultObject, TempRegistery);
                                 return true;
                             }
                             continue;
@@ -2341,17 +2344,17 @@ namespace ExMat.VM
                             ExClosure c = CallInfo.Value.Closure.Value._Closure;
                             if (c.Base != null)
                             {
-                                GetTargetInStack(i).Assign(c.Base);
+                                GetTargetInStack(instruction).Assign(c.Base);
                             }
                             else
                             {
-                                GetTargetInStack(i).Nullify();
+                                GetTargetInStack(instruction).Nullify();
                             }
                             continue;
                         }
                     default:
                         {
-                            throw new Exception("unknown operator " + i.op);
+                            throw new Exception("unknown operator " + instruction.op);
                         }
                 }
             }
@@ -2609,7 +2612,7 @@ namespace ExMat.VM
                 // TO-DO extern ??
             }
 
-            if (attr != 985)
+            if (attr != ExMat.InvalidArgument)
             {
                 atrs.Assign(Stack[StackBase + attr]);
             }
@@ -2745,28 +2748,29 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool ReturnValue(int a0, int a1, ref ExObject res, bool mkbool = false, bool interactive = false)                            //  bool mac = false)
+        public bool ReturnValue(int a0, int a1, ref ExObject res, bool makeBoolean = false, bool interactive = false)                            //  bool mac = false)
         {
-            bool r = CallInfo.Value.IsRootCall;
+            bool root = CallInfo.Value.IsRootCall;
             int cbase = StackBase - CallInfo.Value.PrevBase;
 
             ExObject p;
-            if (r)
+            if (root)  // kök çağrı
             {
                 p = res;
             }
-            else if (CallInfo.Value.Target == -1)
+            else if (CallInfo.Value.Target == -1)       // Hedef belirsiz
             {
                 p = new();
             }
-            else
+            else // Hedef belirli
             {
                 p = Stack[cbase + CallInfo.Value.Target];
             }
 
+            // Argüman 0'a göre değeri sıfırla ya da konsol için değeri dön
             if (p.Type != ExObjType.NULL || _forcereturn)
             {
-                if (a0 != 985 || interactive)
+                if (a0 != ExMat.InvalidArgument || interactive)
                 {
                     #region _
                     /*
@@ -2775,20 +2779,24 @@ namespace ExMat.VM
                         p.Assign(Stack[StackBase - a0]);
                     }else*/
                     #endregion
-                    p.Assign(mkbool ? new(Stack[StackBase + a1].GetBool()) : Stack[StackBase + a1]);
+                    // Kaynak değeri hedefe ata
+                    p.Assign(makeBoolean ? new(Stack[StackBase + a1].GetBool()) : Stack[StackBase + a1]);
 
-                    bool seq = CallInfo.Value.Closure.Value._Closure.Function.IsSequence();
-                    if (seq)
+                    // Dizi kontrolü ve optimizasyonu
+                    bool isSequence = CallInfo.Value.Closure.Value._Closure.Function.IsSequence();
+                    #region Dizi Optimizasyonu
+                    if (isSequence)
                     {
                         CallInfo.Value.Closure.GetClosure().DefaultParams.Add(new(p));
                         CallInfo.Value.Closure.GetClosure().Function.Parameters.Add(new(Stack[StackBase + 1].GetInt().ToString()));
                     }
+                    #endregion
 
-                    if (!LeaveFrame(seq))
+                    if (!LeaveFrame(isSequence))
                     {
                         throw new Exception("something went wrong with the stack!");
                     }
-                    return r;
+                    return root;
                 }
                 else
                 {
@@ -2800,7 +2808,7 @@ namespace ExMat.VM
             {
                 throw new Exception("something went wrong with the stack!");
             }
-            return r;
+            return root;
         }
 
         public bool DoBitwiseOP(long iop, ExObject a, ExObject b, ExObject res)
@@ -2833,25 +2841,22 @@ namespace ExMat.VM
             }
             return true;
         }
+
         private static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObject res)
         {
             switch (op)
             {
-                case OPC.ADD:
-                    res = new(a + b); break;
-                case OPC.SUB:
-                    res = new(a - b); break;
-                case OPC.MLT:
-                    res = new(a * b); break;
+                case OPC.ADD: res = new(a + b); break;
+                case OPC.SUB: res = new(a - b); break;
+                case OPC.MLT: res = new(a * b); break;
+                case OPC.EXP: res = new(Math.Pow(a, b)); break;
                 case OPC.DIV:
                     {
                         if (b == 0)
                         {
                             res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            //AddToErrorMessage("division by zero");
                             break;
                         }
-
                         res = new(a / b); break;
                     }
                 case OPC.MOD:
@@ -2859,130 +2864,11 @@ namespace ExMat.VM
                         if (b == 0)
                         {
                             res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            //AddToErrorMessage("modulo by zero");
                             break;
                         }
-
                         res = new(a % b); break;
                     }
-                case OPC.EXP:
-                    {
-                        res = new(Math.Pow(a, b)); break;
-                    }
-                default:
-                    {
-                        throw new Exception("unknown arithmetic operation");
-                    }
-            }
-            return true;
-        }
-
-        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
-        {
-            switch (op)
-            {
-                case OPC.ADD:
-                    res = new(a + b); break;
-                case OPC.SUB:
-                    res = new(a - b); break;
-                case OPC.MLT:
-                    res = new(a * b); break;
-                case OPC.DIV:
-                    {
-                        Complex c = Complex.Divide(a, b);
-                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
-                        res = new(c);
-                        break;
-                    }
-                case OPC.EXP:
-                    {
-                        Complex c = Complex.Pow(a, b);
-                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
-                        res = new(c);
-                        break;
-                    }
-                case OPC.MOD:
-                    {
-                        return false;
-                    }
-                default:
-                    {
-                        throw new Exception("unknown arithmetic operation");
-                    }
-            }
-            return true;
-        }
-
-        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, double b, ref ExObject res)
-        {
-            switch (op)
-            {
-                case OPC.ADD:
-                    res = new(a + b); break;
-                case OPC.SUB:
-                    res = new(a - b); break;
-                case OPC.MLT:
-                    res = new(a * b); break;
-                case OPC.DIV:
-                    {
-                        Complex c = Complex.Divide(a, b);
-                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
-                        res = new(c);
-                        break;
-                    }
-                case OPC.EXP:
-                    {
-                        Complex c = Complex.Pow(a, b);
-                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
-                        res = new(c);
-                        break;
-                    }
-                case OPC.MOD:
-                    {
-
-                        return false;
-                    }
-                default:
-                    {
-                        throw new Exception("unknown arithmetic operation");
-                    }
-            }
-            return true;
-        }
-
-        private static bool InnerDoArithmeticOPComplex(OPC op, double a, Complex b, ref ExObject res)
-        {
-            switch (op)
-            {
-                case OPC.ADD:
-                    res = new(a + b); break;
-                case OPC.SUB:
-                    res = new(a - b); break;
-                case OPC.MLT:
-                    res = new(a * b); break;
-                case OPC.DIV:
-                    {
-                        Complex c = Complex.Divide(a, b);
-                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
-                        res = new(c);
-                        break;
-                    }
-                case OPC.EXP:
-                    {
-                        Complex c = Complex.Pow(a, b);
-                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
-                        res = new(c);
-                        break;
-                    }
-                case OPC.MOD:
-                    {
-
-                        return false;
-                    }
-                default:
-                    {
-                        throw new Exception("unknown arithmetic operation");
-                    }
+                default: throw new Exception("unknown arithmetic operation");
             }
             return true;
         }
@@ -2991,21 +2877,17 @@ namespace ExMat.VM
         {
             switch (op)
             {
-                case OPC.ADD:
-                    res = new(a + b); break;
-                case OPC.SUB:
-                    res = new(a - b); break;
-                case OPC.MLT:
-                    res = new(a * b); break;
+                case OPC.ADD: res = new(a + b); break;
+                case OPC.SUB: res = new(a - b); break;
+                case OPC.MLT: res = new(a * b); break;
+                case OPC.EXP: res = new(Math.Pow(a, b)); break;
                 case OPC.DIV:
                     {
                         if (b == 0)
                         {
                             res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            //AddToErrorMessage("division by zero");
                             break;
                         }
-
                         res = new(a / b); break;
                     }
                 case OPC.MOD:
@@ -3013,20 +2895,92 @@ namespace ExMat.VM
                         if (b == 0)
                         {
                             res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            //AddToErrorMessage("modulo by zero");
                             break;
                         }
-
                         res = new(a % b); break;
+                    }
+                default: throw new Exception("unknown arithmetic operation");
+            }
+            return true;
+        }
+
+        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
+        {
+            switch (op)
+            {
+                case OPC.ADD: res = new(a + b); break;
+                case OPC.SUB: res = new(a - b); break;
+                case OPC.MLT: res = new(a * b); break;
+                case OPC.MOD: return false;
+                case OPC.DIV:
+                    {
+                        Complex c = Complex.Divide(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
                     }
                 case OPC.EXP:
                     {
-                        res = new((double)Math.Pow(a, b)); break;
+                        Complex c = Complex.Pow(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
                     }
-                default:
+                default: throw new Exception("unknown arithmetic operation");
+            }
+            return true;
+        }
+
+        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, double b, ref ExObject res)
+        {
+            switch (op)
+            {
+                case OPC.ADD: res = new(a + b); break;
+                case OPC.SUB: res = new(a - b); break;
+                case OPC.MLT: res = new(a * b); break;
+                case OPC.MOD: return false;
+                case OPC.DIV:
                     {
-                        throw new Exception("unknown arithmetic operation");
+                        Complex c = Complex.Divide(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
                     }
+                case OPC.EXP:
+                    {
+                        Complex c = Complex.Pow(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
+                    }
+                default: throw new Exception("unknown arithmetic operation");
+            }
+            return true;
+        }
+
+        private static bool InnerDoArithmeticOPComplex(OPC op, double a, Complex b, ref ExObject res)
+        {
+            switch (op)
+            {
+                case OPC.ADD: res = new(a + b); break;
+                case OPC.SUB: res = new(a - b); break;
+                case OPC.MLT: res = new(a * b); break;
+                case OPC.MOD: return false;
+                case OPC.DIV:
+                    {
+                        Complex c = Complex.Divide(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
+                    }
+                case OPC.EXP:
+                    {
+                        Complex c = Complex.Pow(a, b);
+                        c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
+                        res = new(c);
+                        break;
+                    }
+                default: throw new Exception("unknown arithmetic operation");
             }
             return true;
         }
@@ -3153,18 +3107,11 @@ namespace ExMat.VM
 
         public bool DoArithmeticOP(OPC op, ExObject a, ExObject b, ref ExObject res)
         {
-            if (a.Type == ExObjType.NULL && a.Value.s_String != null)
-            {
-                a.Type = ExObjType.STRING;
-            }
-            if (b.Type == ExObjType.NULL && b.Value.s_String != null)
-            {
-                b.Type = ExObjType.STRING;
-            }
+            // Veri tiplerini maskeleyerek işlemler basitleştirilir
             int a_mask = (int)a.Type | (int)b.Type;
             switch (a_mask)
             {
-                case (int)ArithmeticMask.INT:
+                case (int)ArithmeticMask.INT:       // Tamsayılar arası aritmetik işlem
                     {
                         if (!InnerDoArithmeticOPInt(op, a.GetInt(), b.GetInt(), ref res))
                         {
@@ -3172,7 +3119,7 @@ namespace ExMat.VM
                         }
                         break;
                     }
-                case (int)ArithmeticMask.INTCOMPLEX:
+                case (int)ArithmeticMask.INTCOMPLEX: // Tamsayı ve kompleks sayı arası aritmetik işlem
                     {
                         if (a.Type == ExObjType.INTEGER)
                         {
@@ -3190,9 +3137,10 @@ namespace ExMat.VM
                         }
                         break;
                     }
-                case (int)ArithmeticMask.FLOATINT:
+                case (int)ArithmeticMask.FLOATINT:      // Ondalıklı sayı ve ondalıklı sayı/tamsayı arası
                 case (int)ArithmeticMask.FLOAT:
                     {
+                        // GetFloat metotu, tamsayı veri tipi objelerde tamsayıyı ondalıklı olarak döner
                         if (!InnerDoArithmeticOPFloat(op, a.GetFloat(), b.GetFloat(), ref res))
                         {
                             return false;
@@ -4090,7 +4038,7 @@ namespace ExMat.VM
             return Stack[StackBase + (int)i];
         }
 
-        public static void SwapObjects(ExObject x, ref ExObject y)
+        public static void SwapObjects(ExObject x, ExObject y)
         {
             ExObjType t = x.Type;
             ExObjVal v = x.Value;
@@ -4110,62 +4058,64 @@ namespace ExMat.VM
             ExOuter o;
             while ((o = Outers) != null && idx-- > 0)
             {
-                Outers = o._next;
-                o.Release();
-                if (o.Index == -1)
+                Outers = o._next;   // Bir sonraki referans edileni ata
+                o.Release();        // Referansı azalt
+                if (o.Index == -1)  // Referanslar bitti, dön
                 {
                     Outers = null;
                 }
             }
         }
 
-        public bool EnterFrame(int newb, int newt, bool tail)
+        public bool EnterFrame(int newBase, int newTop, bool isTailCall)
         {
-            if (!tail)
+            if (!isTailCall)    // zincirleme çağrı değil
             {
+                // Çağrı zinciri yığını boyutunu, yığın dolduysa genişlet
                 if (CallStackSize == AllocatedCallSize)
                 {
                     AllocatedCallSize *= 2;
                     ExUtils.ExpandListTo(CallStack, AllocatedCallSize);
                 }
 
+                // Çağrı zinciri listesini sıralı liste halinde CallInfo içerisinde sakla
                 CallInfo = Node<ExCallInfo>.BuildNodesFromList(CallStack, CallStackSize++);
 
-                CallInfo.Value.PrevBase = newb - StackBase;
-                CallInfo.Value.PrevTop = StackTop - StackBase;
-                CallInfo.Value.nCalls = 1;
-                CallInfo.Value.IsRootCall = false;
+                CallInfo.Value.PrevBase = newBase - StackBase;  // tabanı kaydet
+                CallInfo.Value.PrevTop = StackTop - StackBase;  // tavanı kaydet
+                CallInfo.Value.nCalls = 1;                      // çağrı sayısını takip et
+                CallInfo.Value.IsRootCall = false;              // ana çağrı değil
             }
             else
             {
-                CallInfo.Value.nCalls++;
+                CallInfo.Value.nCalls++;        // zincirleme çağrı, çağrı sayısını arttır
             }
 
-            StackBase = newb;
-            StackTop = newt;
+            StackBase = newBase;        // yeni tabanı ata
+            StackTop = newTop;          // yeni tavanı ata
 
-            if (newt + 15 > Stack.Count)
+            if (newTop > Stack.Count)   // bellek yetersiz
             {
-                if (nMetaCalls > 0)
+                if (nMetaCalls > 0)     // meta metot içerisinde ise hata ver
                 {
                     throw new Exception("stack overflow, cant resize while in metamethod");
                 }
-                ExUtils.ExpandListTo(Stack, 15 << 2);
-                // TO-DO Check if reloacteouters is needed
+                ExUtils.ExpandListTo(Stack, 256);   // değilse belleği genişlet
             }
             return true;
         }
 
-        public bool LeaveFrame(bool reset = false)
+        public bool LeaveFrame(bool sequenceOptimize = false)
         {
-            int last_t = StackTop;
-            int last_b = StackBase;
-            int css = --CallStackSize;
+            int last_top = StackTop;        // Tavan
+            int last_base = StackBase;      // Taban
+            int css = --CallStackSize;      // Çağrı yığını sayısı
 
-            if (reset)
+            #region Dizi optimizasyonu
+            if (sequenceOptimize)
             {
                 if (IsMainCall && (css <= 0 || (css > 0 && CallStack[css - 1].IsRootCall)))
-                {   // TO-DO refactor
+                {
                     List<ExObject> dp = new();
                     List<ExObject> ps = new();
 
@@ -4181,52 +4131,32 @@ namespace ExMat.VM
                     CallInfo.Value.Closure.Value._Closure.Function.Parameters = new(ps);
                 }
             }
+            #endregion
 
-            CallInfo.Value.Closure.Nullify();
-            StackBase -= CallInfo.Value.PrevBase;
-            StackTop = StackBase + CallInfo.Value.PrevTop;
+            CallInfo.Value.Closure.Nullify();               // Fonksiyonu sıfırla
+            StackBase -= CallInfo.Value.PrevBase;           // Tabanı ayarla
+            StackTop = StackBase + CallInfo.Value.PrevTop;  // Tavanı ayarla
 
-            bool leaving_root = CallInfo.Value.IsRootCall;
-
-            if (css > 0)
+            if (css > 0)    // Varsa sıradaki çağrı yığınına geç
             {
                 CallInfo.Value = CallStack[css - 1];
             }
-            else
+            else // Yoksa bitir
             {
                 CallInfo.Value = null;
             }
 
-            if (Outers != null)
+            if (Outers != null)         // Dış değişken referanslarını azalt
             {
-                CloseOuters(last_b);
+                CloseOuters(last_base);
             }
 
-            if (last_t >= Stack.Count)
+            if (last_top >= Stack.Count)
             {
                 AddToErrorMessage("stack overflow! Allocate more stack room for these operations");
                 return false;
             }
-            // TO-DO this isnt really necessary, GC will still do its job
-            //     leave it as is until a proper way is found for returning values from main without "return" statement
-            while (leaving_root && last_t >= StackTop)
-            {
-                if (Stack[last_t].Type == ExObjType.CLOSURE)
-                {
-                    if (Stack[last_t].GetClosure().Function.Name.Type == ExObjType.NULL) // TO-DO fix this, lambda funcs get removed
-                    {
-                        last_t--;
-                    }
-                    else
-                    {
-                        Stack[last_t--].Nullify();
-                    }
-                }
-                else
-                {
-                    Stack[last_t--].Nullify();
-                }
-            }
+
             return true;
         }
 
@@ -4235,106 +4165,123 @@ namespace ExMat.VM
             return CallNative(cls, (int)narg, (int)newb, ref o);
         }
 
-        public bool CallNative(ExNativeClosure cls, int narg, int newb, ref ExObject o)
+        public bool CallNative(ExNativeClosure cls, int nArguments, int newBase, ref ExObject result)
         {
-            int nparamscheck = cls.nParameterChecks;
-            int new_top = newb + narg + cls.nOuters;
+            int nParameterChecks = cls.nParameterChecks;        // Parametre sayısı kontrolü
+            int newTop = newBase + nArguments + cls.nOuters;    // Yeni tavan indeksi
 
             if (nNativeCalls + 1 > 100)
             {
                 throw new Exception("Native stack overflow");
             }
 
-            if (((nparamscheck > 0) && (nparamscheck != narg)) ||
-            ((nparamscheck < 0) && (narg < (-nparamscheck))))
+            // nParameterChecks > 0 => tam nParameterChecks adet argüman gerekli
+            // nParameterChecks < 0 => minimum (-nParameterChecks) adet argüman gerekli
+            if (((nParameterChecks > 0) && (nParameterChecks != nArguments)) ||
+            ((nParameterChecks < 0) && (nArguments < (-nParameterChecks))))
             {
-                if (nparamscheck < 0)
+                if (nParameterChecks < 0)
                 {
-                    AddToErrorMessage("'" + cls.Name.GetString() + "' takes minimum " + (-nparamscheck - 1) + " arguments");
+                    AddToErrorMessage("'" + cls.Name.GetString() + "' takes minimum " + (-nParameterChecks - 1) + " arguments");
                     return false;
                 }
-                AddToErrorMessage("'" + cls.Name.GetString() + "' takes exactly " + (nparamscheck - 1) + " arguments");
+                AddToErrorMessage("'" + cls.Name.GetString() + "' takes exactly " + (nParameterChecks - 1) + " arguments");
                 return false;
             }
 
+            // CompileTypeMask ile derlenen maskeler listesi
             List<int> ts = cls.TypeMasks;
+            // Maske sayısı = maksimum parametre sayısı
             int t_n = ts.Count;
 
+            // Tanımlı maske varsa argümanları maskeler ile kontrol et
             if (t_n > 0)
             {
-                if (nparamscheck < 0 && t_n < narg)
+                if (nParameterChecks < 0 && t_n < nArguments)   // Maksimum argüman sayısı kontrolü yap
                 {
                     AddToErrorMessage("'" + cls.Name.GetString() + "' takes maximum " + (t_n - 1) + " arguments");
                     return false;
                 }
 
-                for (int i = 0; i < narg && i < t_n; i++)
+                for (int i = 0; i < nArguments && i < t_n; i++) // Argümanların tiplerini maskeler ile kontrol et
                 {
-                    ExObjType typ = Stack[newb + i].Type;
-                    if (typ == ExObjType.DEFAULT)
+                    ExObjType argumentType = Stack[newBase + i].Type;
+                    if (argumentType == ExObjType.DEFAULT)
                     {
                         if (cls.DefaultValues.ContainsKey(i))
                         {
-                            Stack[newb + i].Assign(cls.DefaultValues[i]);
+                            Stack[newBase + i].Assign(cls.DefaultValues[i]);
                         }
                         else
                         {
                             AddToErrorMessage("can't use non-existant default value for parameter " + (i));
                             return false;
                         }
-                    }
-                    else if (ts[i] != -1 && !IncludesType((int)typ, ts[i]))
+                    } // ".." sembollerini varsayılan değer kontrolü yaparak değiştir
+
+                    // argumentType tipi tamsayı olarak ts[i] ile maskelendiğinde 0 oluyorsa beklenmedik bir tiptir 
+                    else if (ts[i] != -1 && !IncludesType((int)argumentType, ts[i]))
                     {
-                        AddToErrorMessage("invalid parameter type, expected one of " + ExAPI.GetExpectedTypes(ts[i]) + ", got: " + Stack[newb + i].Type.ToString());
+                        AddToErrorMessage("invalid parameter type, expected one of "
+                                          + ExAPI.GetExpectedTypes(ts[i]) + ", got: " + Stack[newBase + i].Type.ToString());
                         return false;
                     }
                 }
             }
-            if (!EnterFrame(newb, new_top, false))
+
+            // Çerçeve başlat
+            if (!EnterFrame(newBase, newTop, false))
             {
                 return false;
             }
+            CallInfo.Value.Closure = new(cls);  // Fonksiyonu çağrı zincirinde yerine koy
 
-            CallInfo.Value.Closure = new(cls);
-
+            // Dış değişkenleri belleğe yükle
             int outers = cls.nOuters;
             for (int i = 0; i < outers; i++)
             {
-                Stack[newb + narg + i].Assign(cls.OutersList[i]);
+                Stack[newBase + nArguments + i].Assign(cls.OutersList[i]);
             }
 
+            // Zayıf referansa sahipse fonksiyonun bellekteki yerine referans edilen fonksiyonu koy
             if (cls.WeakReference != null)
             {
-                Stack[newb].Assign(cls.WeakReference.ReferencedObject);
+                Stack[newBase].Assign(cls.WeakReference.ReferencedObject);
             }
 
+            // Fonksiyonu çağır
             nNativeCalls++;
-            int ret = cls.Function.Invoke(this, narg - 1);
+            int returnValue = cls.Function(this, nArguments - 1);
             nNativeCalls--;
 
-            if (ret < 0)
+            // Negatif değer = hata bulundu
+            if (returnValue < 0)
             {
-                if (!LeaveFrame())
+                if (!LeaveFrame())  // Çerçeveyi kapat ve hata dönme sürecini başlat
                 {
                     throw new Exception("something went wrong with the stack!");
                 }
                 return false;
             }
-            else if (ret == 0)
+            // Sıfır değer = Dönülecek değer yok, sıfırla
+            else if (returnValue == 0)
             {
-                o.Nullify();
+                result.Nullify();
             }
-            else if (ret == 985)
+            // Özel durum = konsolu kapama fonksiyonu çağırıldı
+            else if (returnValue == ExMat.InvalidArgument)
             {
                 ExitCode = (int)Stack[StackTop - 1].GetInt();
                 ExitCalled = true;
                 return false;
             }
+            // Herhangi bir pozitif değer = belleğin üstteki değerini dön
             else
             {
-                o.Assign(Stack[StackTop - 1]);
+                result.Assign(Stack[StackTop - 1]);
             }
 
+            // Çerçeveden çık
             if (!LeaveFrame())
             {
                 throw new Exception("something went wrong with the stack!");
@@ -4349,46 +4296,48 @@ namespace ExMat.VM
             return Call(ref cls, (int)nparams, (int)stackbase, ref o, forcereturn);
         }
 
-        public bool Call(ref ExObject cls, int nparams, int stackbase, ref ExObject o, bool forcereturn = false)
+        public bool Call(ref ExObject cls, int nArguments, int stackBase, ref ExObject result, bool forcereturn = false)
         {
-            bool f = _forcereturn;
+            // İnteraktif konsola çıktı yardımcısı 
+            bool forceStatus = _forcereturn;
             _forcereturn = forcereturn;
+
             switch (cls.Type)
             {
-                case ExObjType.CLOSURE:
+                case ExObjType.CLOSURE:         // Kullanıcı fonksiyonu ya da main çağır
                     {
-                        bool state = Execute(cls, nparams, stackbase, ref o);
+                        bool state = Execute(cls, nArguments, stackBase, ref result);
                         if (state)
                         {
                             nNativeCalls--;
                         }
-                        _forcereturn = f;
+                        _forcereturn = forceStatus;
                         return state;
                     }
-                case ExObjType.NATIVECLOSURE:
+                case ExObjType.NATIVECLOSURE:   // Yerli fonksiyon çağır
                     {
-                        bool s = CallNative(cls.Value._NativeClosure, nparams, stackbase, ref o);
-                        _forcereturn = f;
-                        return s;
+                        bool state = CallNative(cls.Value._NativeClosure, nArguments, stackBase, ref result);
+                        _forcereturn = forceStatus;
+                        return state;
                     }
-                case ExObjType.CLASS:
+                case ExObjType.CLASS:           // Sınıfa ait obje oluştur
                     {
                         ExObject cn = new();
                         ExObject tmp = new();
 
-                        CreateClassInst(cls.Value._Class, ref o, cn);
+                        CreateClassInst(cls.Value._Class, ref result, cn);
                         if (cn.Type != ExObjType.NULL)
                         {
-                            Stack[stackbase].Assign(o);
-                            bool s = Call(ref cn, nparams, stackbase, ref tmp);
-                            _forcereturn = f;
+                            Stack[stackBase].Assign(result);
+                            bool s = Call(ref cn, nArguments, stackBase, ref tmp);
+                            _forcereturn = forceStatus;
                             return s;
                         }
-                        _forcereturn = f;
+                        _forcereturn = forceStatus;
                         return true;
                     }
                 default:
-                    return _forcereturn = f;
+                    return _forcereturn = forceStatus;
             }
 
         }

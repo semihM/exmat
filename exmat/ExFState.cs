@@ -318,7 +318,7 @@ namespace ExMat.States
                         {
                             if (instr.arg0 == dissed)
                             {
-                                instr.arg0 = 985;
+                                instr.arg0 = ExMat.InvalidArgument;
                             }
                             break;
                         }
@@ -500,7 +500,7 @@ namespace ExMat.States
                     #region Diğer işlem kodları
                     case OPC.LOAD:
                         {
-                            if (prev.op == OPC.LOAD && curr.arg1 <= 985)
+                            if (prev.op == OPC.LOAD && curr.arg1 <= ExMat.InvalidArgument)
                             {
                                 prev.op = OPC.DLOAD;
                                 prev.arg2 = curr.arg0;
@@ -512,7 +512,7 @@ namespace ExMat.States
                         }
                     case OPC.JZ:
                         {
-                            if (prev.op == OPC.CMP && prev.arg1 < 985)
+                            if (prev.op == OPC.CMP && prev.arg1 < ExMat.InvalidArgument)
                             {
                                 prev.op = OPC.JCMP;
                                 prev.arg0 = prev.arg1;
@@ -526,7 +526,7 @@ namespace ExMat.States
                         {
                             if (curr.arg0 == curr.arg3)
                             {
-                                curr.arg0 = 985;
+                                curr.arg0 = ExMat.InvalidArgument;
                             }
                             break;
                         }
@@ -534,13 +534,13 @@ namespace ExMat.States
                         {
                             if (curr.arg0 == curr.arg2)
                             {
-                                curr.arg0 = 985;
+                                curr.arg0 = ExMat.InvalidArgument;
                             }
                             break;
                         }
                     case OPC.RETURN:
                         {
-                            if (ParentFState != null && curr.arg0 != 985 && prev.op == OPC.CALL && ReturnExpressionTarget < size - 1)
+                            if (ParentFState != null && curr.arg0 != ExMat.InvalidArgument && prev.op == OPC.CALL && ReturnExpressionTarget < size - 1)
                             {
                                 prev.op = OPC.CALLTAIL;
                                 Instructions[size - 1] = prev;
@@ -611,7 +611,7 @@ namespace ExMat.States
                                 prev.op = OPC.APPENDTOARRAY;
                                 prev.arg0 = curr.arg0;
                                 prev.arg2 = (int)idx;
-                                prev.arg3 = 985;
+                                prev.arg3 = ExMat.InvalidArgument;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -625,7 +625,7 @@ namespace ExMat.States
                                 prev.op = curr.op;
                                 prev.arg0 = curr.arg0;
                                 prev.arg2 = curr.arg2;
-                                prev.arg3 = 985;
+                                prev.arg3 = ExMat.InvalidArgument;
                                 Instructions[size - 1] = prev;
                                 return;
                             }

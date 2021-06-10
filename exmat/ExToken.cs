@@ -6,7 +6,7 @@
         STARTERTOKEN = -2,  // Kod dizisi başı temsili
         UNKNOWN,            // Bilinmeyen sembol, hata ifadesi
         ENDLINE,            // Kod dizisi sonu
-                            ////
+        ////
 
         IDENTIFIER = 985,   // Değişken ismi
         ASG,                // Değer atama operatörü    '='
@@ -37,7 +37,7 @@
         MATTRANSPOSE,   // '
         MATMLT,         // .*
         CARTESIAN,      // *.*
-                        ////
+        ////
 
         // Mantıksal
         BNOT,       // ~
@@ -67,7 +67,7 @@
         MLTEQ,  // *=
         DIVEQ,  // /=
         MODEQ,  // %=
-                ////
+        ////
 
         // Sabit değerler
         NULL,       // Boş değer                'null'
@@ -81,7 +81,7 @@
         FOR,        // Döngüsel ifade:                              'for'
         CONTINUE,   // Döngüsel ifadede iterasyonu atlama ifadesi   'continue'
         BREAK,      // Döngüsel ifadede iterasyonu durdurma ifadesi 'break'
-                    ////
+        ////
 
         // Tanım ifadeleri
         VAR,        // Değişken tanımı                      'var'
@@ -97,7 +97,7 @@
         DELETE,     // Obje içindeki bir değeri silip dönme ifadesi 'delete'
         TYPEOF,     // Objenin türünü dönme ifadesi                 'typeof'
         INSTANCEOF, // Objenin sınıfa aitliğini inceleme ifadesi    'instanceof'
-                    ////
+        ////
 
 
         // Sınıflara ait

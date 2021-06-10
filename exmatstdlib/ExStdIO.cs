@@ -408,7 +408,7 @@ namespace ExMat.BaseLib
                         continue;
                     }
 
-                    if (ExAPI.CompileFile(vm, File.ReadAllText(f)))
+                    if (ExAPI.CompileSource(vm, File.ReadAllText(f)))
                     {
                         ExAPI.PushRootTable(vm);
                         if (!ExAPI.Call(vm, 1, false, false))
@@ -444,7 +444,7 @@ namespace ExMat.BaseLib
                     fname += ".exmat";
                 }
 
-                if (ExAPI.CompileFile(vm, File.ReadAllText(fname)))
+                if (ExAPI.CompileSource(vm, File.ReadAllText(fname)))
                 {
                     ExAPI.PushRootTable(vm);
                     if (!ExAPI.Call(vm, 1, false, false))
@@ -729,11 +729,6 @@ namespace ExMat.BaseLib
                 Function = IoReloadlibfunc,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
-            },
-
-            new()
-            {
-                Name = string.Empty
             }
         };
 

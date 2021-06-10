@@ -20,14 +20,16 @@ namespace ExMat
             int tp = vm.StackTop - vm.StackBase;
             int ret = 0;
 
-            if (ExAPI.CompileFile(vm, code))
+            if (ExAPI.CompileSource(vm, code))      // Derle
             {
-                ExAPI.PushRootTable(vm);
-                if (ExAPI.Call(vm, 1, true, true))
+                ExAPI.PushRootTable(vm);            // Global tabloyu belleğe yükle
+                if (ExAPI.Call(vm, 1, true, true))  // main 'i çağır
                 {
+                    // En üstteki değer boş değil ve konsola başka değer yazılmadıysa 
+                    //      değeri konsola yaz
                     if (!vm.PrintedToConsole && vm.GetAbove(-1).Type != ExObjType.NULL)
                     {
-                        if (ExAPI.ToString(vm, -1, 2))
+                        if (ExAPI.ToString(vm, -1, 2)) // Değeri yazı dizisine çevir
                         {
                             Console.Write(vm.GetAbove(-1).GetString());
                         }
@@ -35,24 +37,24 @@ namespace ExMat
                 }
                 else
                 {
-                    if (vm.ExitCalled)
+                    if (vm.ExitCalled)      // Konsoldan çıkış fonksiyonu çağırıldı
                     {
                         ret = vm.ExitCode;
                     }
                     else
                     {
-                        ExAPI.WriteErrorMessages(vm, "EXECUTE");
+                        ExAPI.WriteErrorMessages(vm, "EXECUTE");   // İşleme hatası
                         ret = -1;
                     }
                 }
             }
             else
             {
-                ExAPI.WriteErrorMessages(vm, "COMPILE");
+                ExAPI.WriteErrorMessages(vm, "COMPILE");            // Derleme hatası 
                 ret = -1;
             }
 
-            FixStackTopAfterCalls(vm, tp);
+            FixStackTopAfterCalls(vm, tp);  // Kullanılmayan değerleri temizle
             vm.PrintedToConsole = false;
             return ret;
         }
@@ -127,54 +129,58 @@ namespace ExMat
 
         private static int Main(string[] args)
         {
-            // From file
+            #region File
             if (args.Length >= 1)
             {
+                // Dosya kontrolü
                 string f = File.Exists(args[0]) ? File.ReadAllText(args[0]) : string.Empty;
-
                 if (string.IsNullOrWhiteSpace(f))
                 {
                     return -1;
                 }
 
+                // Sanal makineyi başlat
                 ExVM v = ExAPI.Start(VM_STACK_SIZE);
-                ExAPI.PushRootTable(v);
-
+                // Versiyon numarası
                 WriteVersion(v);
 
+                // Global tabloyu belleğe yükle
+                ExAPI.PushRootTable(v);
+                // Standart kütüphaneleri tabloya kaydet
                 ExStdMath.RegisterStdMath(v);
                 ExStdIO.RegisterStdIO(v);
                 ExStdString.RegisterStdString(v);
 
-                return CompileString(v, f);
+                return CompileString(v, f); // Derle ve işle, sonucu dön
             }
+            #endregion
 
             // Interactive
-            Console.Title = "[] ExMat Interactive";
-            Console.ResetColor();
+            #region Interactive
+            ExVM vm = ExAPI.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
+            ExAPI.PushRootTable(vm);                    // Global tabloyu ekle
 
-            ExVM vm = ExAPI.Start(VM_STACK_SIZE, true);
-            ExAPI.PushRootTable(vm);
+            ExStdMath.RegisterStdMath(vm);          // Matematik kütüphanesi
+            ExStdIO.RegisterStdIO(vm);              // Girdi/çıktı, dosya kütüphanesi
+            ExStdString.RegisterStdString(vm);      // Yazı dizisi işleme kütüphanesi
 
-            ExStdMath.RegisterStdMath(vm);
-            ExStdIO.RegisterStdIO(vm);
-            ExStdString.RegisterStdString(vm);
-
-            int count = 0;
-            bool carryover = false;
-            string code = string.Empty;
+            int count = 0;              // Gönderilen kod dizisi sayısı
+            bool carryover = false;     // \ ile çok satırlı kod başlatıldı ?
+            string code = string.Empty; // Kod yazı dizisi
 
             ///////////
+            Console.Title = "[] ExMat Interactive";
+            Console.ResetColor();
             WriteVersion(vm);
             ///////////
 
-            while (true)
+            while (true)    // Sürekli olarak girdi al
             {
-                if (carryover)
+                if (carryover)  // Çok satırlı kod oku
                 {
                     Console.Write("\t");
                     code += Console.ReadLine().TrimEnd(' ', '\t');
-                    if (CheckCarryOver(code))
+                    if (CheckCarryOver(code)) // Tekrardan \ verildiyse bitir
                     {
                         carryover = false;
                     }
@@ -182,46 +188,44 @@ namespace ExMat
                 }
                 else
                 {
-                    ///////////
+                    // Girdi numarası yaz
                     WriteIn(count);
-                    ///////////
-
+                    // Kod dizisini oku
                     code = Console.ReadLine().TrimEnd(' ', '\t');
-
+                    // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
                     if (vm.GotUserInput && string.IsNullOrWhiteSpace(code))
                     {
                         vm.GotUserInput = false;
                         code = Console.ReadLine().TrimEnd(' ', '\t');
                     }
 
-                    if (CheckCarryOver(code))
+                    if (CheckCarryOver(code))   // Çok satırlı mı ?
                     {
                         carryover = true;
                     }
                 }
 
-                if (carryover)
+                if (carryover)  // Çok satırlı ise okumaya devam et
                 {
                     code = code.TrimEnd('\\', ' ', '\t') + "\r\n";
                     continue;
                 }
 
                 ///////////
-                WriteOut(count);
+                WriteOut(count++);    // Çıktı numarası yaz
+                carryover = false;
                 ///////////
 
-                carryover = false;
-                count++;
+                int ret = CompileString(vm, code);  // Derle ve işle
 
-                int ret = CompileString(vm, code);
+                ExAPI.CollectGarbage(); // Çöp toplayıcıyı çağır
 
-                ExAPI.CollectGarbage();
-
-                if (vm.ExitCalled)
+                if (vm.ExitCalled)  // exit fonksiyonu çağırıldıysa bitir
                 {
                     return ret;
                 }
             }
+            #endregion
         }
     }
 }
