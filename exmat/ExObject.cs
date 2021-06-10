@@ -59,9 +59,8 @@ namespace ExMat.Objects
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExObject : IDisposable
     {
-        public ExObjType Type = ExObjType.NULL;
-
-        public ExObjVal Value;
+        public ExObjType Type = ExObjType.NULL; // Veri tipi
+        public ExObjVal Value;                  // Veri değeri
 
         private bool disposedValue;
 
@@ -609,8 +608,8 @@ namespace ExMat.Objects
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExRefC : IDisposable
     {
-        public int ReferenceCount;
-        public ExWeakRef WeakReference;
+        public int ReferenceCount;      // Referans sayısı
+        public ExWeakRef WeakReference; // Zayıf referans
         private bool disposedValue;
 
         public ExRefC() { }
@@ -665,7 +664,7 @@ namespace ExMat.Objects
 
     public class ExWeakRef : ExRefC
     {
-        public ExObject ReferencedObject;
+        public ExObject ReferencedObject;   // Zayıf referans edilen obje
         private bool disposedValue;
 
         public virtual void Release()

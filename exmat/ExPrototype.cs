@@ -9,15 +9,33 @@ namespace ExMat.FuncPrototype
 {
     public enum ExClosureType
     {
-        FUNCTION,
-        RULE,
-        CLUSTER,
-        SEQUENCE
+        FUNCTION,   // Varsayılan fonksiyon türü
+        RULE,       // Kural, her zaman boolean dönen tür
+        CLUSTER,    // Küme, tanım kümesindeki bir değerin görüntü kümesi karşılığını dönen tür 
+        SEQUENCE    // Dizi, optimize edilmiş tekrarlı fonksiyon türü
     }
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExPrototype : ExRefC
     {
+        public ExClosureType ClosureType;   // Fonksiyon türü 
+
+        public ExObject Name;               // Fonksiyon ismi
+        public ExObject Source;             // Kaynak kod dizisi
+        public ExSState SharedState;        // Ortak değerler
+        public List<ExInstr> Instructions;  // Komut listesi
+        public List<ExObject> Literals;     // Yazı dizileri ve isimler listesi
+        public List<ExObject> Parameters;   // Parametreler
+        public List<int> DefaultParameters; // Varsayılan değerler
+        public List<ExPrototype> Functions; // Fonksiyon(lar)
+        public List<ExLocalInfo> LocalInfos;// Fonksiyon içindeki değişken bilgileri
+        public List<ExOuterInfo> Outers;    // Dışarıdaki değişkenlere referanslar
+        public List<ExLineInfo> LineInfos;  // Komutların satır ve indeks bilgisi
+
+        public int StackSize;               // Fonksiyon komutlarının ihtiyacı olan yığın boyutu
+        public bool HasVargs;               // Belirsiz sayıda parametreye sahip ?
+
+        #region Fields for storing sizes of List<T> fields 
         public int nInstr;
         public int nLits;
         public int nParams;
@@ -26,22 +44,7 @@ namespace ExMat.FuncPrototype
         public int nLineInfos;
         public int nLocalInfos;
         public int nDefaultParameters;
-        public int StackSize;
-        public bool HasVargs;
-
-        public ExClosureType ClosureType = ExClosureType.FUNCTION;
-
-        public ExObject Name;
-        public ExObject Source;
-        public ExSState SharedState;
-        public List<ExInstr> Instructions;
-        public List<ExObject> Literals;
-        public List<ExObject> Parameters;
-        public List<int> DefaultParameters;
-        public List<ExPrototype> Functions;
-        public List<ExLocalInfo> LocalInfos;
-        public List<ExLineInfo> LineInfos;
-        public List<ExOuterInfo> Outers;
+        #endregion
 
         public static ExPrototype Create(ExSState sState,
                                        int nInstr,
@@ -85,10 +88,12 @@ namespace ExMat.FuncPrototype
 
         public ExPrototype()
         {
+            ClosureType = ExClosureType.FUNCTION;
         }
 
         public ExPrototype(ExSState ss)
         {
+            ClosureType = ExClosureType.FUNCTION;
             StackSize = 0;
             SharedState = ss;
         }

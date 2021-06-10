@@ -1487,14 +1487,17 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ExInvokeExp(string ex)
+        public delegate bool CompilingFunctionRef();
+
+        public bool ExInvokeExp(CompilingFunctionRef func)
         {
+            // İfade takipçisini kopyasını al ve resetle
             ExEState eState = ExpressionState.Copy();
             ExpressionState.Type = ExEType.EXPRESSION;
             ExpressionState.Position = -1;
             ExpressionState.ShouldStopDeref = false;
 
-            if (!(bool)Type.GetType("ExMat.Compiler.ExCompiler").GetMethod(ex).Invoke(this, null))
+            if (!func())    // Derleyici fonksiyonunu çağır
             {
                 return false;
             }
@@ -1503,24 +1506,24 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ExBinaryExp(OPC op, string func, int lastop = 0)
+        public bool ExBinaryExp(OPC op, CompilingFunctionRef func, int arg3 = 0) // 1 işleç, 2 değer ile işlemi
         {
-            if (!ReadAndSetToken() || !ExInvokeExp(func))
+            if (!ReadAndSetToken() || !ExInvokeExp(func))   // Verilen derleyici metotunu çağır
             {
                 return false;
             }
 
-            int arg1 = FunctionState.PopTarget();
-            int arg2 = FunctionState.PopTarget();
+            int arg1 = FunctionState.PopTarget();   // sağ taraf
+            int arg2 = FunctionState.PopTarget();   // sol taraf
 
-            FunctionState.AddInstr(op, FunctionState.PushTarget(), arg1, arg2, lastop);
+            FunctionState.AddInstr(op, FunctionState.PushTarget(), arg1, arg2, arg3);
             return true;
         }
 
         public bool ExExp()
         {
-            ExEState estate = ExpressionState.Copy();
             // İfade takipçisini kopyasını alıp sıfırla
+            ExEState estate = ExpressionState.Copy();
             ExpressionState.Type = ExEType.EXPRESSION;
             ExpressionState.Position = -1;
             ExpressionState.ShouldStopDeref = false;
@@ -1533,35 +1536,67 @@ namespace ExMat.Compiler
             switch (CurrentToken)
             {
                 case TokenType.ASG:     // =
+                #region Other tokens: += -= /= *= %= <>
                 case TokenType.ADDEQ:   // +=
                 case TokenType.SUBEQ:   // -=
                 case TokenType.DIVEQ:   // /=
                 case TokenType.MLTEQ:   // *=
                 case TokenType.MODEQ:   // %=
                 case TokenType.NEWSLOT: // <>
+                    #endregion
                     {
-                        TokenType op = CurrentToken;
-                        ExEType etyp = ExpressionState.Type;
-                        int pos = ExpressionState.Position;
+                        TokenType op = CurrentToken; ExEType etyp = ExpressionState.Type;
+                        int targetpos = ExpressionState.Position;
 
-                        if (etyp == ExEType.EXPRESSION)
+                        switch (etyp)    // İfade tipini kontrol et
                         {
-                            AddToErrorMessage("can't assing an expression");
-                            return false;
+                            case ExEType.EXPRESSION: AddToErrorMessage("can't assing an expression"); return false;
+                            case ExEType.BASE: AddToErrorMessage("can't modify 'base'"); return false;
                         }
-                        else if (etyp == ExEType.BASE)
-                        {
-                            AddToErrorMessage("can't modify 'base'");
-                            return false;
-                        }
-
-                        if (!ReadAndSetToken() || !ExExp())
+                        if (!ReadAndSetToken() || !ExExp()) // Sağ tarafı derle
                         {
                             return false;
                         }
 
                         switch (op)
                         {
+                            case TokenType.ASG:
+                                {
+                                    switch (etyp)
+                                    {
+                                        case ExEType.VAR:   // Değişkene değer ata
+                                            {
+                                                int source = FunctionState.PopTarget();
+                                                int destination = FunctionState.TopTarget();
+                                                FunctionState.AddInstr(OPC.MOVE, destination, source, 0, 0);
+                                                break;
+                                            }
+                                        case ExEType.OBJECT:    // Objenin sahip olduğu bir değeri değiştir
+                                        case ExEType.BASE:
+                                            {
+                                                AddBasicDerefInstr(OPC.SET);
+                                                break;
+                                            }
+                                        case ExEType.OUTER:     // Dışardaki bir değişkene değer ata
+                                            {
+                                                int source = FunctionState.PopTarget();
+                                                int destination = FunctionState.PushTarget();
+                                                FunctionState.AddInstr(OPC.SETOUTER, destination, targetpos, source, 0);
+                                                break;
+                                            }
+                                    }
+                                    break;
+                                }
+                            #region Rest of the tokens
+                            case TokenType.ADDEQ:
+                            case TokenType.SUBEQ:
+                            case TokenType.MLTEQ:
+                            case TokenType.DIVEQ:
+                            case TokenType.MODEQ:
+                                {
+                                    AddCompoundOpInstr(op, etyp, targetpos);
+                                    break;
+                                }
                             case TokenType.NEWSLOT:
                                 {
                                     if (etyp == ExEType.OBJECT || etyp == ExEType.BASE)
@@ -1575,42 +1610,7 @@ namespace ExMat.Compiler
                                     }
                                     break;
                                 }
-                            case TokenType.ASG:
-                                {
-                                    switch (etyp)
-                                    {
-                                        case ExEType.VAR:
-                                            {
-                                                int s = FunctionState.PopTarget();
-                                                int d = FunctionState.TopTarget();
-                                                FunctionState.AddInstr(OPC.MOVE, d, s, 0, 0);
-                                                break;
-                                            }
-                                        case ExEType.OBJECT:
-                                        case ExEType.BASE:
-                                            {
-                                                AddBasicDerefInstr(OPC.SET);
-                                                break;
-                                            }
-                                        case ExEType.OUTER:
-                                            {
-                                                int s = FunctionState.PopTarget();
-                                                int d = FunctionState.PushTarget();
-                                                FunctionState.AddInstr(OPC.SETOUTER, d, pos, s, 0);
-                                                break;
-                                            }
-                                    }
-                                    break;
-                                }
-                            case TokenType.ADDEQ:
-                            case TokenType.SUBEQ:
-                            case TokenType.MLTEQ:
-                            case TokenType.DIVEQ:
-                            case TokenType.MODEQ:
-                                {
-                                    AddCompoundOpInstr(op, etyp, pos);
-                                    break;
-                                }
+                                #endregion
                         }
                         break;
                     }
@@ -1693,7 +1693,7 @@ namespace ExMat.Compiler
                                 FunctionState.AddInstr(OPC.MOVE, t, f, 0, 0);
                             }
 
-                            if (!ReadAndSetToken() || !ExInvokeExp("ExLogicOr"))
+                            if (!ReadAndSetToken() || !ExInvokeExp(ExLogicOr))
                             {
                                 return false;
                             }
@@ -1739,7 +1739,7 @@ namespace ExMat.Compiler
                             {
                                 FunctionState.AddInstr(OPC.MOVE, t, f, 0, 0);
                             }
-                            if (!ReadAndSetToken() || !ExInvokeExp("ExLogicAnd"))
+                            if (!ReadAndSetToken() || !ExInvokeExp(ExLogicAnd))
                             {
                                 return false;
                             }
@@ -1774,7 +1774,7 @@ namespace ExMat.Compiler
                 {
                     case TokenType.BOR:
                         {
-                            if (!ExBinaryExp(OPC.BITWISE, "ExLogicBXOr", (int)BitOP.OR))
+                            if (!ExBinaryExp(OPC.BITWISE, ExLogicBXOr, (int)BitOP.OR))
                             {
                                 return false;
                             }
@@ -1797,7 +1797,7 @@ namespace ExMat.Compiler
                 {
                     case TokenType.BXOR:
                         {
-                            if (!ExBinaryExp(OPC.BITWISE, "ExLogicBAnd", (int)BitOP.XOR))
+                            if (!ExBinaryExp(OPC.BITWISE, ExLogicBAnd, (int)BitOP.XOR))
                             {
                                 return false;
                             }
@@ -1820,7 +1820,7 @@ namespace ExMat.Compiler
                 {
                     case TokenType.BAND:
                         {
-                            if (!ExBinaryExp(OPC.BITWISE, "ExLogicEq", (int)BitOP.AND))
+                            if (!ExBinaryExp(OPC.BITWISE, ExLogicEq, (int)BitOP.AND))
                             {
                                 return false;
                             }
@@ -1843,7 +1843,7 @@ namespace ExMat.Compiler
                 {
                     case TokenType.EQU:
                         {
-                            if (!ExBinaryExp(OPC.EQ, "ExLogicCmp"))
+                            if (!ExBinaryExp(OPC.EQ, ExLogicCmp))
                             {
                                 return false;
                             }
@@ -1851,7 +1851,7 @@ namespace ExMat.Compiler
                         }
                     case TokenType.NEQ:
                         {
-                            if (!ExBinaryExp(OPC.NEQ, "ExLogicCmp"))
+                            if (!ExBinaryExp(OPC.NEQ, ExLogicCmp))
                             {
                                 return false;
                             }
@@ -1874,7 +1874,7 @@ namespace ExMat.Compiler
                 {
                     case TokenType.GRT:
                         {
-                            if (!ExBinaryExp(OPC.CMP, "ExLogicShift", (int)CmpOP.GRT))
+                            if (!ExBinaryExp(OPC.CMP, ExLogicShift, (int)CmpOP.GRT))
                             {
                                 return false;
                             }
@@ -1882,7 +1882,7 @@ namespace ExMat.Compiler
                         }
                     case TokenType.LST:
                         {
-                            if (!ExBinaryExp(OPC.CMP, "ExLogicShift", (int)CmpOP.LST))
+                            if (!ExBinaryExp(OPC.CMP, ExLogicShift, (int)CmpOP.LST))
                             {
                                 return false;
                             }
@@ -1890,7 +1890,7 @@ namespace ExMat.Compiler
                         }
                     case TokenType.GET:
                         {
-                            if (!ExBinaryExp(OPC.CMP, "ExLogicShift", (int)CmpOP.GET))
+                            if (!ExBinaryExp(OPC.CMP, ExLogicShift, (int)CmpOP.GET))
                             {
                                 return false;
                             }
@@ -1898,7 +1898,7 @@ namespace ExMat.Compiler
                         }
                     case TokenType.LET:
                         {
-                            if (!ExBinaryExp(OPC.CMP, "ExLogicShift", (int)CmpOP.LET))
+                            if (!ExBinaryExp(OPC.CMP, ExLogicShift, (int)CmpOP.LET))
                             {
                                 return false;
                             }
@@ -1907,7 +1907,7 @@ namespace ExMat.Compiler
                     case TokenType.NOTIN:
                     case TokenType.IN:
                         {
-                            if (!ExBinaryExp(OPC.EXISTS, "ExLogicShift", CurrentToken == TokenType.NOTIN ? 1 : 0))
+                            if (!ExBinaryExp(OPC.EXISTS, ExLogicShift, CurrentToken == TokenType.NOTIN ? 1 : 0))
                             {
                                 return false;
                             }
@@ -1915,7 +1915,7 @@ namespace ExMat.Compiler
                         }
                     case TokenType.INSTANCEOF:
                         {
-                            if (!ExBinaryExp(OPC.INSTANCEOF, "ExLogicShift"))
+                            if (!ExBinaryExp(OPC.INSTANCEOF, ExLogicShift))
                             {
                                 return false;
                             }
@@ -1938,7 +1938,7 @@ namespace ExMat.Compiler
                 {
                     case TokenType.LSHF:
                         {
-                            if (!ExBinaryExp(OPC.BITWISE, "ExArithAdd", (int)BitOP.SHIFTL))
+                            if (!ExBinaryExp(OPC.BITWISE, ExArithAdd, (int)BitOP.SHIFTL))
                             {
                                 return false;
                             }
@@ -1946,7 +1946,7 @@ namespace ExMat.Compiler
                         }
                     case TokenType.RSHF:
                         {
-                            if (!ExBinaryExp(OPC.BITWISE, "ExArithAdd", (int)BitOP.SHIFTR))
+                            if (!ExBinaryExp(OPC.BITWISE, ExArithAdd, (int)BitOP.SHIFTR))
                             {
                                 return false;
                             }
@@ -1970,7 +1970,7 @@ namespace ExMat.Compiler
                     case TokenType.ADD:
                     case TokenType.SUB:
                         {
-                            if (!ExBinaryExp(ExOPDecideArithmetic(CurrentToken), "ExArithMlt"))
+                            if (!ExBinaryExp(CurrentToken == TokenType.ADD ? OPC.ADD : OPC.SUB, ExArithMlt))
                             {
                                 return false;
                             }
@@ -1999,7 +1999,7 @@ namespace ExMat.Compiler
                     case TokenType.DIV:
                     case TokenType.MOD:
                         {
-                            if (!ExBinaryExp(ExOPDecideArithmetic(CurrentToken), "ExPrefixed"))
+                            if (!ExBinaryExp(ExOPDecideArithmetic(CurrentToken), ExPrefixed))
                             {
                                 return false;
                             }

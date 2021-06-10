@@ -84,11 +84,11 @@ namespace ExMat.Closure
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClosure : ExRefC
     {
-        public ExClass Base;
-        public ExPrototype Function;
-        public List<ExObject> OutersList;
-        public List<ExObject> DefaultParams;
-        public ExSState SharedState;
+        public ExClass Base;                // Ait olunan sınıf(varsa)
+        public ExPrototype Function;        // Fonksiyon prototipi
+        public List<ExObject> OutersList;   // Dış değişken bilgisi
+        public List<ExObject> DefaultParams;// Varsayılan parametre değerleri
+        public ExSState SharedState;        // Ortak değerler
 
         protected override void Dispose(bool disposing)
         {
@@ -174,18 +174,18 @@ namespace ExMat.Closure
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExNativeClosure : ExRefC
     {
-        public ExSState SharedState;
-        public ExObject Name;
-        public ExRegFunc.FunctionRef Function;    // Bir C# metotuna işaret eder
-        public bool IsDelegateFunction;
+        public ExSState SharedState;            // Ortak değerler
+        public ExObject Name;                   // Fonksiyon ismi
+        public ExRegFunc.FunctionRef Function;  // C# metotu referansı
+        public bool IsDelegateFunction;         // Temsili(delegate) metot?
 
-        public int nOuters;
-        public int nParameterChecks;
+        public int nOuters;                     // Dışardaki değişkenlere referansı sayısı
+        public List<ExObject> OutersList;       // Dış değişkenlerin bellek indeks bilgisi
 
-        public List<ExObject> OutersList;
-        public List<int> TypeMasks = new();
+        public List<int> TypeMasks = new();     // Parametre maskeleri
+        public int nParameterChecks;            // Parametre sayısı
 
-        public Dictionary<int, ExObject> DefaultValues = new();
+        public Dictionary<int, ExObject> DefaultValues = new(); // Varsayılan değerler
 
         protected override void Dispose(bool disposing)
         {

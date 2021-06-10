@@ -446,13 +446,70 @@ namespace ExMat.States
         public void AddInstr(ExInstr curr)
         {
             int size = Instructions.Count;
-
             if (size > 0 && NotSnoozed)
             {
                 ExInstr prev = Instructions[size - 1];
-
                 switch (curr.op)
                 {
+                    case OPC.MOVE:
+                        {
+                            switch (prev.op)
+                            {
+                                case OPC.ADD:       // Toplama işlemi
+                                #region Diğer aritmetik komutlar
+                                case OPC.SUB:
+                                case OPC.MLT:
+                                case OPC.EXP:
+                                case OPC.DIV:
+                                case OPC.MOD:
+                                case OPC.MMLT:
+                                case OPC.TRANSPOSE:
+                                case OPC.CARTESIAN:
+                                case OPC.BITWISE:
+                                #endregion
+                                case OPC.LOAD:      // Yazı dizisi ata
+                                #region Diğer temel veri tipi yükleme komutları
+                                case OPC.LOADINTEGER:
+                                case OPC.LOADFLOAT:
+                                case OPC.LOADBOOLEAN:
+                                case OPC.LOADCOMPLEX:
+                                case OPC.LOADSPACE:
+                                #endregion
+                                case OPC.GET:       // Objeye ait özelliği ata
+                                    {
+                                        if (prev.arg0 == curr.arg1) // Önceki hedef == şimdiki kaynak
+                                        {
+                                            prev.arg0 = curr.arg0;  // Önceki hedef = şimdiki hedef
+                                            NotSnoozed = false;     // Bir sonraki komuttan bağımsız yap
+                                            Instructions[size - 1] = prev;
+                                            return;
+                                        }
+                                        break;
+                                    }
+                                case OPC.MOVE:
+                                    {
+                                        prev.op = OPC.DMOVE;
+                                        prev.arg2 = curr.arg0;
+                                        prev.arg3 = curr.arg1;
+                                        Instructions[size - 1] = prev;
+                                        return;
+                                    }
+                            }
+                            break;
+                        }
+                    #region Diğer işlem kodları
+                    case OPC.LOAD:
+                        {
+                            if (prev.op == OPC.LOAD && curr.arg1 <= 985)
+                            {
+                                prev.op = OPC.DLOAD;
+                                prev.arg2 = curr.arg0;
+                                prev.arg3 = curr.arg1;
+                                Instructions[size - 1] = prev;
+                                return;
+                            }
+                            break;
+                        }
                     case OPC.JZ:
                         {
                             if (prev.op == OPC.CMP && prev.arg1 < 985)
@@ -560,62 +617,6 @@ namespace ExMat.States
                             }
                             break;
                         }
-                    case OPC.MOVE:
-                        {
-                            switch (prev.op)
-                            {
-                                case OPC.GET:
-                                case OPC.ADD:
-                                case OPC.SUB:
-                                case OPC.MLT:
-                                case OPC.EXP:
-                                case OPC.DIV:
-                                case OPC.MOD:
-                                case OPC.MMLT:
-                                case OPC.TRANSPOSE:
-                                case OPC.CARTESIAN:
-                                case OPC.BITWISE:
-                                case OPC.LOAD:
-                                case OPC.LOADINTEGER:
-                                case OPC.LOADFLOAT:
-                                case OPC.LOADBOOLEAN:
-                                case OPC.LOADCOMPLEX:
-                                case OPC.LOADSPACE:
-                                    {
-                                        if (prev.arg0 == curr.arg1)
-                                        {
-                                            prev.arg0 = curr.arg0;
-                                            NotSnoozed = false;
-                                            Instructions[size - 1] = prev;
-                                            return;
-                                        }
-                                        break;
-                                    }
-                            }
-
-                            if (prev.op == OPC.MOVE)
-                            {
-                                prev.op = OPC.DMOVE;
-                                prev.arg2 = curr.arg0;
-                                prev.arg3 = curr.arg1;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
-
-                            break;
-                        }
-                    case OPC.LOAD:
-                        {
-                            if (prev.op == OPC.LOAD && curr.arg1 <= 985)
-                            {
-                                prev.op = OPC.DLOAD;
-                                prev.arg2 = curr.arg0;
-                                prev.arg3 = curr.arg1;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
-                            break;
-                        }
                     case OPC.EQ:
                     case OPC.NEQ:
                         {
@@ -641,6 +642,7 @@ namespace ExMat.States
                             }
                             break;
                         }
+                        #endregion
                         #region _
                         /*
                     case OPC.LINE:
@@ -656,9 +658,8 @@ namespace ExMat.States
                         #endregion
                 }
             }
-
-            NotSnoozed = true;
-            Instructions.Add(curr);
+            NotSnoozed = true;      // Tekrardan bağımlılığa izin ver
+            Instructions.Add(curr); // Komut listesine ekle
         }
 
         // Komut listesinin sonuna yeni bir komut ekler

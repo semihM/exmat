@@ -11,8 +11,8 @@ namespace ExMat.Class
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClassMem : IDisposable
     {
-        public ExObject Value = new();
-        public ExObject Attributes = new();
+        public ExObject Value = new();      // Özellik değeri
+        public ExObject Attributes = new(); // Alt özellikler tablosu
         private bool disposedValue;
 
         public ExClassMem() { }
@@ -66,16 +66,16 @@ namespace ExMat.Class
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClass : ExRefC
     {
-        public ExClass Base;    // TO-DO
-        public Dictionary<string, ExObject> Members = new();
-        public List<ExObject> MetaFuncs = new();
-        public List<ExClassMem> DefaultValues = new();
-        public List<ExClassMem> Methods = new();
-        public ExObject Attributes = new();
+        public ExClass Base;    // TO-DO Sınıf hiyerarşisi
+        public Dictionary<string, ExObject> Members = new();// Özellikler
+        public List<ExObject> MetaFuncs = new();            // Meta metotlar
+        public List<ExClassMem> DefaultValues = new();      // Özelliklerin varsayılan değerleri
+        public List<ExClassMem> Methods = new();            // Metotlar
+        public ExObject Attributes = new();                 // Özelliklerin alt-özellikleri
 
-        public bool GotInstanced;
-        public int ConstructorID;
-        public ExSState SharedState;
+        public bool GotInstanced;           // Örneklendi ?
+        public int ConstructorID;           // İnşa metotunun metotlar listesindeki indeksi 
+        public ExSState SharedState;        // Ortak değerler
 
         public readonly int LengthReprestation;
 
