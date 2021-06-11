@@ -1,0 +1,13 @@
+printl( 10 - 3 )        // 7
+printl( 22.0 / 7 )      // 3.14285714285714
+printl( 5 ** 2 )        // 25
+printl( 12345 % 12 )    // 9
+
+var int_var = 985                       
+var float_var = 0.12345678910111       
+var complex_var = 3 + 4i
+
+int_var = int_var + 15  // 1000
+float_var += 2          // 2.12345678910111
+complex_var -= 4 + 2i   // -1 + 2i
+

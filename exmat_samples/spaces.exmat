@@ -1,40 +1,53 @@
-// 1 dimensional
-var R = @R@     // Real numbers
-var Z = @Z@     // Integers
-var A = @E@     // Any usage of: integer, float, complex, list
-var C = @C@     // Complex number
+var R = @R@     // Reel sayılar
+var Z = @Z@     // Tamsayılar
+var A = @E@     // Evrensel
+var C = @C@     // Kompleks sayılar
 
-printl("5.2 in R ? " + (5.2 in R))
-printl("3+2i in R ? " + (3+2i in R))
-printl("-20 in C ? " + ((-20) in C))
-printl("12366 in A ? " + (12366 in A))
-printl("null in A ? " + (null in A))
+printl("5.2 in R ? " + (5.2 in R))      // true
+printl("3+2i in R ? " + (3+2i in R))    // false
+printl("-20 in C ? " + ((-20) in C))    // true
+printl("5i+4 in C ? " + (5i+4 in C))    // true
+printl("12366 in A ? " + (12366 in A))  // true
+printl("null in A ? " + (null in A))    // true
 
 printl("-".repeat(20));
 // R : All real numbers
 // r : All real numbers - {0}
 // Same applies to Z
-var Rpos = @R+@   // Real positive numbers, zero included
-var zneg = @z-@   // Negative integers, zero excluded
+
+var Rpos = @R+@   // Pozitif reel sayılar ve sıfır
+var zneg = @z-@   // Negatif tamsayılar, sıfır yok
 printl("999 in R+ ? " + (999 in Rpos))
 printl("-4.123 in R+ ? " + (-4.123 in Rpos))
 printl("0 in Z- - {0} ? " + (0 in zneg))
 
 printl("-".repeat(20));
-// 2 dimensional
-var R2 = @R'2@
-var C3 = @C'3@
-var Zp3 = @Z+'3@
-printl("[1, 3i+2, -1] in C3 ? " + ([1, 3i+2, -1] in C3))
-printl("[5, 5, 5] in R2 ? " + ([5, 5, 5] in R2))
+
+var C3 = @C'3@      // C^3
+var Zp3 = @Z+'3@    // Z+^3
+printl("[1, 3i+2, -1] in C^3 ? " + ([1, 3i+2, -1] in C3))   // true
+printl("[5, 5, 5] in Z+^3 ? " + ([5, 5, 5] in Zp3))         // true
 
 printl("-".repeat(20));
-// n dimensional
-var Rn = @R'n@
-var Zn = @Z'k@
-printl("-55.5 in Rn ? " + (-55.5 in Rn))
-printl("range(100) in Rn ? " + (range(100) in Rn))
-printl("[1,2,0.1234567] in Zn ? " + ([1,2,0.1234567] in Zn))
+
+var Rn = @R'n@  // R^n
+var Zn = @Z'k@  // Z^k
+printl("-55.5 in R^n ? " + (-55.5 in Rn))                    // true
+printl("[1,3,5] in Z^n ? " + ([1,3,5] in Zn))                // true
+printl("[1,3,5] in Z^4 ? " + ([1,3,5] in Zn(4)))             // false
+printl("[1,2,0.1234567] in Z^n ? " + ([1,2,0.1234567] in Zn))// false
+
+var Rp4x4 = @R+'4*4@    // R+^4x4
+printl(matrix(4,4, 0.123) in Rp4x4)  // true
+printl(matrix(3,3, 1.2) in Rp4x4)    // false
+
+var Zmn = @Z'i*j@    // Z^ixj
+printl(matrix(4,12, 5) in Zmn)       // true
+printl(matrix(4,12, 5) in Zmn(3))    // false
+printl(matrix(3,2, 5) in Zmn(3))     // true
+printl(matrix(3,2, 5) in Zmn(3,3))   // false
+printl(matrix(3,3, 5) in Zmn(3,3))   // true
+printl(matrix(3,2, 5) in Zmn(3,-1))  // true
 
 printl("-".repeat(20));
 // m x n dimensional

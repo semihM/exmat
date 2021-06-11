@@ -12,14 +12,19 @@ var A2 = @E'2@
 ///////////////////////////////////////////////////////////////////
 
 // Cluster with 1 parameter
-printl("----------------------")
-printl("A is in R^3 and defined as: { X = (x0, x1, x1 - x0) | x0 > x1 ; (x0, x1) in R^2 }")
-cluster A { x in R2 ; x[0] > x[1] => [x[0], x[1], x[1] - x[0]] }
-printl("A: "+ string(A))
+// A kümesi R^3'te tanımlı: { X = (x0, x1, x1 - x0) | x0 > x1 ; (x0, x1) in R^2 }
+// Takip edilen format:
+//      cluster küme { parametre_1 in uzay1, parametre_2 in uzay2 ... ; koşul => eleman }
+cluster A { x in @R'2@ ; x[0] > x[1] => [x[0], x[1], x[1] - x[0]] }
+
+printl("A: "+ string(A))    // A: CLUSTER(A, 1 params)
+printl(typeof A)            // CLOSURE
+printl( A( [3, 2] ) )   // [ 3, 2, -1]
+printl( [3, 2] in A )   // true
+printl( A( [1, 4] ) )   // false
+printl( [1, 4] in A )   // false
 
 printl("----------------------")
-printl("A([3,2]) : " + string(A( [3, 2] )))
-printl("A([1,4]) : " + string(A( [1, 4] )))
 
 printl("----------------------")
 printl(">>> Check if given values exist in the cluster, get their representation if they exist in the cluster")

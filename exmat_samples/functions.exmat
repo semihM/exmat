@@ -1,33 +1,42 @@
-// Available globally
-function Bar(x)
-{
-    if(x < 0)   
-        return -1
-    else
-    {
-        printl("Yay "+x+" is positive!")
-        return x
-    }
-}
-printl(typeof Bar)
-printl(Bar)
-printl(Bar(12))
-printl(Bar(-55))
-printl("Bar has "+Bar.n_params+" parameters")
-printl("/////////////////////////")
+function Foo(x)     // Fonksiyon tanımı
+{ 
+    if(x < 0)    
+        return -1 
+    else 
+    { 
+        printl(x + " pozitif!")
+        return x * 2
+    } 
+} 
+printl(typeof Foo)  // CLOSURE
+printl(Foo)         // CLOSURE(Foo, 1 parameters)
+printl(Foo(12))     // 24
+printl(Foo(-55))    // -1
+printl("Foo "+Foo.n_params+" parametreye sahip")
 
-// Only available in this file
-var function Foo(x,y,z=1)
+printl($(x,y=3) x * y + 2)         // LAMBDA(2 params (min:1))
+printl(typeof $(x,y=3) x * y + 2)  // CLOSURE
+printl(($(x,y=3) x * y + 2)(3))    // 11
+
+var Bar = function(x=3,y=2,z=1)
 {
-    return [x,y,z]
+    return x * y + z
 }
-printl(typeof Foo)
-printl(Foo)
-printl(Foo(22,44))
-printl(Foo(1,3,5))
-printl("Foo has "+Foo.n_params+" parameters")
-printl("Foo has "+Foo.n_defparams+" default valued parameters")
-printl("Foo requires at least "+Foo.n_minargs+" arguments")
+printl("Bar" in this)   // false
+
+function Bar(...)
+{
+    return vargs
+}
+printl("Bar" in this)   // true
+
+printl(Bar())       // 3 * 2 + 1 = 7
+printl(::Bar())     // []
+printl(this.Bar())  // []
+
+printl(Bar is this.Bar)     // false
+printl(Bar is ::Bar)        // false
+printl(this.Bar is ::Bar)   // true
 
 // Available globally
 function Ex(a,b=3)

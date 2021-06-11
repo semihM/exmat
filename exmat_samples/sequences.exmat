@@ -1,8 +1,13 @@
-// Infinite sequences
-// Recursive
-seq RecursiveSeq(0:1, 1:5) RecursiveSeq(n-2) + RecursiveSeq(n-1) + 5
-printl(RecursiveSeq)
-print(map(RecursiveSeq, range(10)));
+// Sequence(0) = 1, Sequence(1) = 5
+// Sequence(n) = Sequence(n-2) + Sequence(n-1) + 5
+//  ifadelerine denk olan dizi tanımı
+seq Sequence(0:1, 1:5) Sequence(n-2) + Sequence(n-1) + 5
+printl(Sequence)            // SEQUENCE(A, 1 parameters)
+printl(typeof Sequence)     // CLOSURE
+printl(Sequence(0))         // 1
+printl(Sequence(1))         // 5
+printl(Sequence(2))         // 1 + 5 + 5 = 11
+print(map(Sequence, range(10)));
 
 // Geometric
 printl("\n------------");
