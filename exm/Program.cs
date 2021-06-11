@@ -83,19 +83,16 @@ namespace ExMat
             int vlen = version.Length;
             int dlen = date.Length;
 
-            Console.BackgroundColor = ConsoleColor.DarkGreen;
+            Console.BackgroundColor = ConsoleColor.DarkBlue;
 
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(new string('/', width + 2));
             Console.Write("/");
 
-            Console.ForegroundColor = ConsoleColor.DarkBlue;
-            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', (width - vlen) / 2));
-            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', (width - vlen) / 2 + (vlen % 2 == 1 ? 1 : 0)));
             Console.WriteLine("/");
-            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', (width - dlen) / 2) + "/\n");
+            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', (width - dlen) / 2 + (dlen % 2 == 1 ? 1 : 0)) + "/\n");
 
-            Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(new string('/', width + 2));
 
             Console.ResetColor();
