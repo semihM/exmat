@@ -1602,6 +1602,10 @@ namespace ExMat.VM
 
         public bool FixStackAfterError()
         {
+            if(ExitCalled)
+            {
+                return false;
+            }
             ErrorTrace = new();
             while (CallInfo.Value != null)
             {
