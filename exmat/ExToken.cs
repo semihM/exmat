@@ -18,6 +18,8 @@
         COMPLEX,    // Kompleks
         LITERAL,    // Yazı dizisi
         SPACE,      // Uzay
+        HEX,        // Hexadecimal
+        BINARY,     // Binary bits
         ////
 
         // Aritmetik

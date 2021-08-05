@@ -619,7 +619,7 @@ namespace ExMat.Lexer
                                 case 'u':
                                 case 'x':
                                     {
-                                        if (ReadAsHex(16 * (CurrentChar == 'u' ? 256 : 1), out int res))
+                                        if (ReadAsHex(CurrentChar == 'u' ? 4096 : 16, out int res))
                                         {
                                             ValTempString += (char)res;
                                             break;
@@ -713,6 +713,20 @@ namespace ExMat.Lexer
         {
             switch (typ)
             {
+                case TokenType.BINARY:
+                    {
+                        ValInteger = Convert.ToInt64(ValTempString, 2);
+                        return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
+                    }
+                case TokenType.HEX:
+                    {
+                        if (!long.TryParse(ValTempString, System.Globalization.NumberStyles.HexNumber, null, out ValInteger))
+                        {
+                            ErrorString = "failed to parse as hexadecimal";
+                            return TokenType.UNKNOWN;
+                        }
+                        return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
+                    }
                 case TokenType.FLOAT:
                 case TokenType.SCIENTIFIC:
                     {
@@ -756,37 +770,100 @@ namespace ExMat.Lexer
                 return ParseNumberString(TokenType.FLOAT, false);
             }
 
-            while (CurrentChar == '.' || char.IsDigit(CurrentChar) || IsExponent(CurrentChar))
+            switch (CurrentChar)
             {
-                if (CurrentChar == '.')
-                {
-                    typ = TokenType.FLOAT;
-                }
-                else if (IsExponent(CurrentChar))
-                {
-                    if (ValTempString[^1] == '.')
+                case 'x':  // Hexadecimal
                     {
-                        ErrorString = "expected digits after '.' ";
-                        return TokenType.UNKNOWN;
+                        typ = TokenType.HEX;
+
+                        if (ValTempString != "0")
+                        {
+                            ErrorString = "hexadecimal numbers has to start with a zero -> 0x...";
+                            return TokenType.UNKNOWN;
+                        }
+
+                        NextChar();
+                        ValTempString = string.Empty;
+
+                        while (IsValidHexChar(ref CurrentChar))
+                        {
+                            ValTempString += CurrentChar; NextChar();
+                        }
+
+                        int length = ValTempString.Length;
+                        if (length > 16)
+                        {
+                            ErrorString = "hexadecimal number too long, max length is 16 for 64bit integer";
+                            return TokenType.UNKNOWN;
+                        }
+
+                        ValTempString = new string('0', 16 - length) + ValTempString;
+                        break;
                     }
-
-                    typ = TokenType.SCIENTIFIC;
-
-                    ValTempString += CurrentChar; NextChar();
-
-                    if (IsSign(CurrentChar))
+                case 'b':   // Binary
                     {
-                        ValTempString += CurrentChar; NextChar();
-                    }
+                        typ = TokenType.BINARY;
 
-                    if (!char.IsDigit(CurrentChar))
+                        if (ValTempString != "0")
+                        {
+                            ErrorString = "binary numbers has to start with a zero -> 0b...";
+                            return TokenType.UNKNOWN;
+                        }
+
+                        NextChar();
+                        ValTempString = string.Empty;
+
+                        while (CurrentChar == '0' || CurrentChar == '1')
+                        {
+                            ValTempString += CurrentChar; NextChar();
+                        }
+
+                        int length = ValTempString.Length;
+                        if (length > 64)
+                        {
+                            ErrorString = "binary number too long, max length is 64bits";
+                            return TokenType.UNKNOWN;
+                        }
+
+                        ValTempString = new string('0', 64 - length) + ValTempString;
+                        break;
+                    }
+                default:
                     {
-                        ErrorString = "Wrong exponent value format";
-                        return TokenType.UNKNOWN;
-                    }
-                }
+                        while (CurrentChar == '.' || char.IsDigit(CurrentChar) || IsExponent(CurrentChar))
+                        {
+                            if (CurrentChar == '.')
+                            {
+                                typ = TokenType.FLOAT;
+                            }
+                            else if (IsExponent(CurrentChar))
+                            {
+                                if (ValTempString[^1] == '.')
+                                {
+                                    ErrorString = "expected digits after '.' ";
+                                    return TokenType.UNKNOWN;
+                                }
 
-                ValTempString += CurrentChar; NextChar();
+                                typ = TokenType.SCIENTIFIC;
+
+                                ValTempString += CurrentChar; NextChar();
+
+                                if (IsSign(CurrentChar))
+                                {
+                                    ValTempString += CurrentChar; NextChar();
+                                }
+
+                                if (!char.IsDigit(CurrentChar))
+                                {
+                                    ErrorString = "Wrong exponent value format";
+                                    return TokenType.UNKNOWN;
+                                }
+                            }
+
+                            ValTempString += CurrentChar; NextChar();
+                        }
+                        break;
+                    }
             }
 
             if (ValTempString[^1] == '.')
@@ -796,7 +873,21 @@ namespace ExMat.Lexer
             }
             else if (CurrentChar == 'i')
             {
-                TokenComplex = typ == TokenType.INTEGER ? TokenType.INTEGER : TokenType.FLOAT;
+                switch (typ)
+                {
+                    case TokenType.INTEGER:
+                    case TokenType.HEX:
+                    case TokenType.BINARY:
+                        {
+                            TokenComplex = TokenType.INTEGER;
+                            break;
+                        }
+                    default:
+                        {
+                            TokenComplex = TokenType.FLOAT;
+                            break;
+                        }
+                }
                 NextChar();
                 return ParseNumberString(typ, true);
             }
