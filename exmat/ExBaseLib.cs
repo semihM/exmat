@@ -520,7 +520,7 @@ namespace ExMat.BaseLib
 
                                     for (int i = 0; i < 32; i++)
                                     {
-                                        l.Add(new((b >> i) % 2 == 0 ? 0 : 1));
+                                        l.Add(new((b >> i) % 2));
                                     }
 
                                     if (reverse)
@@ -578,7 +578,7 @@ namespace ExMat.BaseLib
 
                                     for (int i = 0; i < 64; i++)
                                     {
-                                        l.Add(new((b >> i) % 2 == 0 ? 0 : 1));
+                                        l.Add(new((b >> i) % 2));
                                     }
 
                                     if (reverse)
@@ -668,6 +668,57 @@ namespace ExMat.BaseLib
                     {
                         vm.Pop(2);
                         vm.Push(new ExList());
+                        break;
+                    }
+            }
+
+            return 1;
+        }
+
+        public static int StdHex(ExVM vm, int nargs)
+        {
+            switch (nargs)
+            {
+                case 1:
+                    {
+                        ExObject v = ExAPI.GetFromStack(vm, 2);
+                        long b = 0;
+                        switch (v.Type)
+                        {
+                            case ExObjType.INTEGER:
+                                {
+                                    b = v.GetInt();
+                                    goto default;
+                                }
+                            case ExObjType.FLOAT:
+                                {
+                                    b = new DoubleLong() { f = v.GetFloat() }.i;
+                                    goto default;
+                                }
+                            default:
+                                {
+                                    char[] chars = b.ToString("X16").ToCharArray();
+                                    List<ExObject> lis = new(chars.Length);
+                                    foreach (char i in chars)
+                                    {
+                                        lis.Add(new(i.ToString()));
+                                    }
+                                    vm.Pop(nargs + 2);
+                                    vm.Push(lis);
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case 0:
+                    {
+                        List<ExObject> lis = new(16);
+                        for (int i = 0; i < 16; i++)
+                        {
+                            lis.Add(new("0"));
+                        }
+                        vm.Pop(2);
+                        vm.Push(lis);
                         break;
                     }
             }
@@ -3308,6 +3359,17 @@ namespace ExMat.BaseLib
                 {
                     { 1, new(0) },
                     { 2, new(false) }
+                }
+            },
+            new()
+            {
+                Name = "hex",
+                Function = StdHex,
+                nParameterChecks = -1,
+                ParameterMask = ".i|f",
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
                 }
             },
 
