@@ -124,6 +124,19 @@ namespace ExMat
             Console.ResetColor();
         }
 
+        private static string GetInput()
+        {
+            string code = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return string.Empty;
+            }
+            else
+            {
+                return code.TrimEnd(' ', '\t');
+            }
+        }
+
         private static int Main(string[] args)
         {
             #region File
@@ -176,7 +189,7 @@ namespace ExMat
                 if (carryover)  // Çok satırlı kod oku
                 {
                     Console.Write("\t");
-                    code += Console.ReadLine().TrimEnd(' ', '\t');
+                    code += GetInput();
                     if (CheckCarryOver(code)) // Tekrardan \ verildiyse bitir
                     {
                         carryover = false;
@@ -188,12 +201,12 @@ namespace ExMat
                     // Girdi numarası yaz
                     WriteIn(count);
                     // Kod dizisini oku
-                    code = Console.ReadLine().TrimEnd(' ', '\t');
+                    code = GetInput();
                     // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
                     if (vm.GotUserInput && string.IsNullOrWhiteSpace(code))
                     {
                         vm.GotUserInput = false;
-                        code = Console.ReadLine().TrimEnd(' ', '\t');
+                        code = GetInput();
                     }
 
                     if (CheckCarryOver(code))   // Çok satırlı mı ?

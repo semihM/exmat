@@ -38,9 +38,7 @@ namespace ExMat.BaseLib
                     }
                 case 2:
                     {
-                        int i = (int)vm.GetArgument(1).GetInt();
-                        int j = (int)vm.GetArgument(2).GetInt();
-                        return vm.CleanReturn(4, Rand.Next(i, j));
+                        return vm.CleanReturn(4, Rand.Next((int)vm.GetArgument(1).GetInt(), (int)vm.GetArgument(2).GetInt()));
                     }
             }
         }
@@ -55,8 +53,7 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        double i = vm.GetArgument(1).GetFloat();
-                        return vm.CleanReturn(3, Rand.NextDouble() * i);
+                        return vm.CleanReturn(3, Rand.NextDouble() * vm.GetArgument(1).GetFloat());
                     }
                 case 2:
                     {
