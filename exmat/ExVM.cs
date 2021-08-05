@@ -412,16 +412,41 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        if (double.TryParse(obj.GetString(), out double r))
+                        string s = obj.GetString();
+                        if (double.TryParse(s, out double r))
                         {
                             res = new(r);
+                            break;
                         }
-                        else
+                        else if (s.StartsWith("0x"))
                         {
-                            AddToErrorMessage("failed to parse string as double");
-                            return false;
+                            if (s.Length < 18)
+                            {
+                                if (long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
+                                {
+                                    res = new(new DoubleLong() { i = hr }.f);
+                                    break;
+                                }
+                            }
                         }
-                        break;
+                        else if (s.StartsWith("0b"))
+                        {
+                            if (s.Length < 66)
+                            {
+                                try
+                                {
+                                    res = new(new DoubleLong() { i = Convert.ToInt64(s[2..], 2) }.f);
+                                    break;
+                                }
+                                catch (Exception err)
+                                {
+                                    AddToErrorMessage("Conversion Error: " + err.Message);
+                                }
+                            }
+                        }
+
+                        AddToErrorMessage("failed to parse string as double");
+                        return false;
                     }
                 case ExObjType.BOOL:
                     {
@@ -463,16 +488,41 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        if (long.TryParse(obj.GetString(), out long r))
+                        string s = obj.GetString();
+                        if (long.TryParse(s, out long r))
                         {
                             res = new(r);
+                            break;
                         }
-                        else
+                        else if (s.StartsWith("0x"))
                         {
-                            AddToErrorMessage("failed to parse string as integer");
-                            return false;
+                            if (s.Length < 18)
+                            {
+                                if (long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
+                                {
+                                    res = new(hr);
+                                    break;
+                                }
+                            }
                         }
-                        break;
+                        else if (s.StartsWith("0b"))
+                        {
+                            if (s.Length < 66)
+                            {
+                                try
+                                {
+                                    res = new(Convert.ToInt64(s[2..], 2));
+                                    break;
+                                }
+                                catch (Exception err)
+                                {
+                                    AddToErrorMessage("Conversion Error: " + err.Message);
+                                }
+                            }
+                        }
+
+                        AddToErrorMessage("failed to parse string as integer");
+                        return false;
                     }
                 case ExObjType.BOOL:
                     {
@@ -1602,7 +1652,7 @@ namespace ExMat.VM
 
         public bool FixStackAfterError()
         {
-            if(ExitCalled)
+            if (ExitCalled)
             {
                 return false;
             }
@@ -4026,6 +4076,10 @@ namespace ExMat.VM
                 }
             }
 
+            if (!bExists && k.Type == ExObjType.STRING)
+            {
+                AddToErrorMessage("index not found for type '" + self.Type.ToString() + "' named '" + k.GetString() + "'");
+            }
             return false;
         }
 
@@ -4226,7 +4280,7 @@ namespace ExMat.VM
                     // argumentType tipi tamsayı olarak ts[i] ile maskelendiğinde 0 oluyorsa beklenmedik bir tiptir 
                     else if (ts[i] != -1 && !IncludesType((int)argumentType, ts[i]))
                     {
-                        AddToErrorMessage("invalid parameter type, expected one of "
+                        AddToErrorMessage("invalid parameter type for parameter " + i + ", expected one of "
                                           + ExAPI.GetExpectedTypes(ts[i]) + ", got: " + Stack[newBase + i].Type.ToString());
                         return false;
                     }
