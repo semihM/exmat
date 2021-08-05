@@ -52,6 +52,24 @@ printl(typeof s)
 printl(s) 
 
 printl("----------")
+var hx = 0xff
+var hx2 = 0x00ff
+var hx3 = 0xABCDEF01234
+printl(typeof hx)
+printl(hx) 
+printl(hx2) 
+printl(hx3)  
+
+printl("----------")
+var bin = 0b0000101
+var bin2 = 0b101
+var bin3 = 0b1111111111111111111111111111111111111111111111111111111111111111
+printl(typeof bin)
+printl(bin) 
+printl(bin2) 
+printl(bin3)  
+
+printl("----------")
 var l = [1,3,5,7]
 printl(typeof l)
 printl(l) 
