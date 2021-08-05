@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using ExMat.API;
 using ExMat.BaseLib;
@@ -14,6 +15,7 @@ using ExMat.Utils;
 
 namespace ExMat.VM
 {
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExVM
     {
         public readonly DateTime StartingTime = DateTime.Now;
@@ -58,7 +60,7 @@ namespace ExMat.VM
             PrintedToConsole = true;
         }
 
-        public void AddToErrorMessage(string msg)
+        public ExFunctionStatus AddToErrorMessage(string msg)
         {
             if (string.IsNullOrEmpty(ErrorString))
             {
@@ -68,6 +70,7 @@ namespace ExMat.VM
             {
                 ErrorString += "\n[ERROR]" + msg;
             }
+            return ExFunctionStatus.ERROR;
         }
 
         public void Initialize(int stacksize)
@@ -650,6 +653,52 @@ namespace ExMat.VM
                 Stack[--StackTop].Nullify();
             }
         }
+        public void Pop()
+        {
+            Stack[--StackTop].Nullify();
+        }
+
+        public ExFunctionStatus CleanReturn(long n, Complex o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public ExFunctionStatus CleanReturn(long n, string o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public ExFunctionStatus CleanReturn(long n, double o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public ExFunctionStatus CleanReturn(long n, long o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public ExFunctionStatus CleanReturn(long n, bool o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public ExFunctionStatus CleanReturn(long n, List<ExObject> o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public ExFunctionStatus CleanReturn<T>(long n, T o) where T : ExObject
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
 
         public void Remove(int n)
         {
@@ -660,15 +709,6 @@ namespace ExMat.VM
             }
             Stack[StackTop].Nullify();
             StackTop--;
-        }
-
-        public void Pop()
-        {
-            Stack[--StackTop].Nullify();
-        }
-        public ExObject PopGet()
-        {
-            return Stack[--StackTop];
         }
 
         public void PushParse(List<ExObject> o)
@@ -775,6 +815,14 @@ namespace ExMat.VM
         public ExObject GetAt(int n)
         {
             return Stack[n];
+        }
+        public ExObject GetArgument(int idx)
+        {
+            return Stack[idx + StackBase];
+        }
+        public ExObject GetRootArgument()
+        {
+            return Stack[StackBase];
         }
 
         public ExObject CreateString(string s, int len = -1)
@@ -4076,7 +4124,7 @@ namespace ExMat.VM
                 }
             }
 
-            if (!bExists && k.Type == ExObjType.STRING)
+            if (!bExists && k.Type == ExObjType.STRING && self.Type != ExObjType.DICT)
             {
                 AddToErrorMessage("index not found for type '" + self.Type.ToString() + "' named '" + k.GetString() + "'");
             }
@@ -4309,34 +4357,36 @@ namespace ExMat.VM
 
             // Fonksiyonu çağır
             nNativeCalls++;
-            int returnValue = cls.Function(this, nArguments - 1);
+            ExFunctionStatus returnValue = cls.Function(this, nArguments - 1);
             nNativeCalls--;
 
             // Negatif değer = hata bulundu
-            if (returnValue < 0)
+            switch (returnValue)
             {
-                if (!LeaveFrame())  // Çerçeveyi kapat ve hata dönme sürecini başlat
-                {
-                    throw new Exception("something went wrong with the stack!");
-                }
-                return false;
-            }
-            // Sıfır değer = Dönülecek değer yok, sıfırla
-            else if (returnValue == 0)
-            {
-                result.Nullify();
-            }
-            // Özel durum = konsolu kapama fonksiyonu çağırıldı
-            else if (returnValue == ExMat.InvalidArgument)
-            {
-                ExitCode = (int)Stack[StackTop - 1].GetInt();
-                ExitCalled = true;
-                return false;
-            }
-            // Herhangi bir pozitif değer = belleğin üstteki değerini dön
-            else
-            {
-                result.Assign(Stack[StackTop - 1]);
+                case ExFunctionStatus.ERROR:
+                    {
+                        if (!LeaveFrame())  // Çerçeveyi kapat ve hata dönme sürecini başlat
+                        {
+                            throw new Exception("something went wrong with the stack!");
+                        }
+                        return false;
+                    }
+                case ExFunctionStatus.VOID:
+                    {
+                        result.Nullify();
+                        break;
+                    }
+                case ExFunctionStatus.EXIT:
+                    {
+                        ExitCode = (int)Stack[StackTop - 1].GetInt();
+                        ExitCalled = true;
+                        return false;
+                    }
+                case ExFunctionStatus.SUCCESS:
+                    {
+                        result.Assign(Stack[StackTop - 1]);
+                        break;
+                    }
             }
 
             // Çerçeveden çık
@@ -4400,5 +4450,9 @@ namespace ExMat.VM
 
         }
 
+        private object GetDebuggerDisplay()
+        {
+            return "VM" + (IsMainCall ? "<main>" : "<inner>") + "(Base: " + StackBase + ", Top: " + StackTop + ")";
+        }
     }
 }

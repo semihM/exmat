@@ -149,4 +149,17 @@ namespace ExMat
         LAST
     }
 
+    public enum ExFunctionStatus
+    {
+        ERROR,
+        VOID,
+        SUCCESS,
+        EXIT = 985
+    }
+
+    public enum ExErrorType
+    {
+        COMPILE,
+        EXECUTE
+    }
 }

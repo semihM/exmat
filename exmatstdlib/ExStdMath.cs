@@ -16,73 +16,54 @@ namespace ExMat.BaseLib
         private static int PrimeCount = 1358124;
         private static int PrimeMax = 21474829;
 
-        public static int MathSrand(ExVM vm, int nargs)
+        public static ExFunctionStatus MathSrand(ExVM vm, int nargs)
         {
-            int seed = (int)ExAPI.GetFromStack(vm, 2).GetInt();
-            vm.Pop(3);
-            vm.Push(true);
-            Rand = new(seed);
-            return 0;
+            Rand = new((int)vm.GetArgument(1).GetInt());
+            return ExFunctionStatus.VOID;
         }
 
-        public static int MathRand(ExVM vm, int nargs)
+        public static ExFunctionStatus MathRand(ExVM vm, int nargs)
         {
             switch (nargs)
             {
-                case 0:
+                default:
                     {
-                        vm.Pop(2);
-                        vm.Push(Rand.Next());
-                        break;
+                        return vm.CleanReturn(2, Rand.Next());
                     }
                 case 1:
                     {
-                        int i = (int)ExAPI.GetFromStack(vm, 2).GetInt();
+                        int i = (int)vm.GetArgument(1).GetInt();
                         i = i < 0 ? (i > int.MinValue ? Math.Abs(i) : 0) : i;
-
-                        vm.Pop(3);
-                        vm.Push(Rand.Next(i));
-                        break;
+                        return vm.CleanReturn(3, Rand.Next(i));
                     }
                 case 2:
                     {
-                        int i = (int)ExAPI.GetFromStack(vm, 2).GetInt();
-                        int j = (int)ExAPI.GetFromStack(vm, 3).GetInt();
-                        vm.Pop(4);
-                        vm.Push(Rand.Next(i, j));
-                        break;
+                        int i = (int)vm.GetArgument(1).GetInt();
+                        int j = (int)vm.GetArgument(2).GetInt();
+                        return vm.CleanReturn(4, Rand.Next(i, j));
                     }
             }
-            return 1;
         }
 
-        public static int MathRandf(ExVM vm, int nargs)
+        public static ExFunctionStatus MathRandf(ExVM vm, int nargs)
         {
             switch (nargs)
             {
-                case 0:
+                default:
                     {
-                        vm.Pop(2);
-                        vm.Push(Rand.NextDouble());
-                        break;
+                        return vm.CleanReturn(2, Rand.NextDouble());
                     }
                 case 1:
                     {
-                        double i = ExAPI.GetFromStack(vm, 2).GetFloat();
-                        vm.Pop(3);
-                        vm.Push(Rand.NextDouble() * i);
-                        break;
+                        double i = vm.GetArgument(1).GetFloat();
+                        return vm.CleanReturn(3, Rand.NextDouble() * i);
                     }
                 case 2:
                     {
-                        double min = ExAPI.GetFromStack(vm, 2).GetFloat();
-                        double max = ExAPI.GetFromStack(vm, 3).GetFloat();
-                        vm.Pop(4);
-                        vm.Push((Rand.NextDouble() * (max - min)) + min);
-                        break;
+                        double min = vm.GetArgument(1).GetFloat();
+                        return vm.CleanReturn(4, (Rand.NextDouble() * (vm.GetArgument(2).GetFloat() - min)) + min);
                     }
             }
-            return 1;
         }
 
         private static void FindPrimes()
@@ -185,54 +166,35 @@ namespace ExMat.BaseLib
             return last;
         }
 
-        public static int MathNextPrime(ExVM vm, int nargs)
+        public static ExFunctionStatus MathNextPrime(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long a = vm.GetArgument(1).GetInt();
 
             if (Primes == null)
             {
                 FindPrimes();
             }
 
-            vm.Pop(nargs + 2);
-
             int idx;
-            if (a > 0 && a <= PrimeMax && (idx = Primes.BinarySearch(item: (int)a)) >= 0 && idx < PrimeCount)
-            {
-                vm.Push(Primes[++idx]);
-            }
-            else
-            {
-                vm.Push(NextClosestPrime(a));
-            }
-
-            return 1;
+            return vm.CleanReturn(nargs + 2,
+                                  (a > 0 && a <= PrimeMax && (idx = Primes.BinarySearch(item: (int)a)) >= 0 && idx < PrimeCount) ? Primes[++idx] : NextClosestPrime(a));
         }
 
-        public static int MathIsPrime(ExVM vm, int nargs)
+        public static ExFunctionStatus MathIsPrime(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long a = vm.GetArgument(1).GetInt();
 
-            vm.Pop(nargs + 2);
-            vm.Push((Primes != null && a > 0 && a <= PrimeMax && Primes.BinarySearch(item: (int)a) >= 0) || IsPrime(a));
-
-            return 1;
+            return vm.CleanReturn(nargs + 2, (Primes != null && a > 0 && a <= PrimeMax && Primes.BinarySearch(item: (int)a) >= 0) || IsPrime(a));
         }
 
-        public static int MathAreCoprime(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAreCoprime(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
-            long b = ExAPI.GetFromStack(vm, 3).GetInt();
-
-            vm.Pop(nargs + 2);
-            vm.Push(GetGCD(a, b) == 1.0);
-
-            return 1;
+            return vm.CleanReturn(nargs + 2, GetGCD(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt()) == 1.0);
         }
 
-        public static int MathPrime(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPrime(ExVM vm, int nargs)
         {
-            int a = (int)ExAPI.GetFromStack(vm, 2).GetInt();
+            int a = (int)vm.GetArgument(1).GetInt();
 
             if (Primes == null)
             {
@@ -242,40 +204,29 @@ namespace ExMat.BaseLib
             int n = Primes.Count;
             if (a <= 0)
             {
-                vm.AddToErrorMessage("expected positive integer for 'n'th prime index");
-                return -1;
+                return vm.AddToErrorMessage("expected positive integer for 'n'th prime index");
             }
             if (a > n)
             {
-                vm.Pop(nargs + 2);
                 // TO-DO Find out why, for some reason doing this sometimes reduces memory use by half for the prime list
-                vm.Push(FindAndCacheNextPrimes(a - n));
-                return 1;
+                return vm.CleanReturn(nargs + 2, FindAndCacheNextPrimes(a - n));
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(Primes[--a]);
-
-            return 1;
+            return vm.CleanReturn(nargs + 2, Primes[--a]);
         }
 
-        public static int MathPrimeFactors(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPrimeFactors(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
+            long a = vm.GetArgument(1).GetInt();
 
             if (Primes != null && a > 0 && a <= PrimeMax && Primes.BinarySearch(item: (int)a) >= 0)
             {
-                vm.Pop(nargs + 2);
-                vm.Push(new List<ExObject>(1) { new(a) });
-
-                return 1;
+                return vm.CleanReturn(nargs + 2, new List<ExObject>(1) { new(a) });
             }
 
             if (a < 0)
             {
-                vm.Pop(nargs + 2);
-                vm.Push(new List<ExObject>());
-                return 1;
+                return vm.CleanReturn(nargs + 2, new List<ExObject>());
             }
 
             List<ExObject> lis = new();
@@ -295,10 +246,7 @@ namespace ExMat.BaseLib
 
             lis.Add(new(a));
 
-            vm.Pop(nargs + 2);
-            vm.Push(lis);
-
-            return 1;
+            return vm.CleanReturn(nargs + 2, lis);
         }
 
         private static double GetGCD(double a, double b)
@@ -312,107 +260,63 @@ namespace ExMat.BaseLib
             return a;
         }
 
-        public static int MathGcd(ExVM vm, int nargs)
+        public static ExFunctionStatus MathGcd(ExVM vm, int nargs)
         {
-            double a = ExAPI.GetFromStack(vm, 2).GetFloat();
-            double b = ExAPI.GetFromStack(vm, 3).GetFloat();
-
-            vm.Pop(nargs + 2);
-            vm.Push(GetGCD(a, b));
-
-            return 1;
+            return vm.CleanReturn(nargs + 2, GetGCD(vm.GetArgument(1).GetFloat(), vm.GetArgument(2).GetFloat()));
         }
 
-        public static int MathLcd(ExVM vm, int nargs)
+        public static ExFunctionStatus MathLcd(ExVM vm, int nargs)
         {
-            double a = ExAPI.GetFromStack(vm, 2).GetFloat();
-            double b = ExAPI.GetFromStack(vm, 3).GetFloat();
-            vm.Pop(nargs + 2);
-            vm.Push(Math.Abs(a * b) / GetGCD(a, b));
-
-            return 1;
+            double a = vm.GetArgument(1).GetFloat();
+            double b = vm.GetArgument(2).GetFloat();
+            return vm.CleanReturn(nargs + 2, Math.Abs(a * b) / GetGCD(a, b));
         }
 
-        public static int MathIsDivisible(ExVM vm, int nargs)
+        public static ExFunctionStatus MathIsDivisible(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
-            long b = ExAPI.GetFromStack(vm, 3).GetInt();
-            vm.Pop(nargs + 2);
-            _ = Math.DivRem(a, b, out long r);
-            vm.Push(r == 0);
-
-            return 1;
+            Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long r);
+            return vm.CleanReturn(nargs + 2, r == 0);
         }
 
-        public static int MathDivQuot(ExVM vm, int nargs)
+        public static ExFunctionStatus MathDivQuot(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
-            long b = ExAPI.GetFromStack(vm, 3).GetInt();
-
-            long quot = Math.DivRem(a, b, out long _);
-            vm.Pop(nargs + 2);
-            vm.Push(quot);
-
-            return 1;
+            return vm.CleanReturn(nargs + 2, Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long _));
         }
 
-        public static int MathDivRem(ExVM vm, int nargs)
+        public static ExFunctionStatus MathDivRem(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
-            long b = ExAPI.GetFromStack(vm, 3).GetInt();
-
-            Math.DivRem(a, b, out long rem);
-            vm.Pop(nargs + 2);
-            vm.Push(rem);
-
-            return 1;
+            Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long rem);
+            return vm.CleanReturn(nargs + 2, rem);
         }
 
-        public static int MathDivRemQuot(ExVM vm, int nargs)
+        public static ExFunctionStatus MathDivRemQuot(ExVM vm, int nargs)
         {
-            long a = ExAPI.GetFromStack(vm, 2).GetInt();
-            long b = ExAPI.GetFromStack(vm, 3).GetInt();
-
-            long quot = Math.DivRem(a, b, out long rem);
-            vm.Pop(nargs + 2);
-            vm.Push(new List<ExObject>(2) { new(rem), new(quot) });
-
-            return 1;
+            long quot = Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long rem);
+            return vm.CleanReturn(nargs + 2, new List<ExObject>(2) { new(rem), new(quot) });
         }
 
-        public static int MathRecip(ExVM vm, int nargs)
+        public static ExFunctionStatus MathRecip(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        double o = 1.0 / i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, 1.0 / i.GetInt());
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Reciprocal(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Reciprocal(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = 1.0 / i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, 1.0 / i.GetFloat());
                     }
             }
-
-            return 1;
         }
-        public static int MathDigits(ExVM vm, int nargs)
+        public static ExFunctionStatus MathDigits(ExVM vm, int nargs)
         {
-            long i = ExAPI.GetFromStack(vm, 2).GetInt();
+            long i = vm.GetArgument(1).GetInt();
             string s = i.ToString();
             List<ExObject> lis = new();
             if (i < 0)
@@ -442,498 +346,329 @@ namespace ExMat.BaseLib
                 }
                 lis.Reverse();
             }
-            vm.Pop(nargs + 2);
-            vm.Push(lis);
-            return 1;
+            return vm.CleanReturn(nargs + 2, lis);
         }
 
-        public static int MathAbs(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAbs(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
                         long o = i.GetInt();
                         o = o < 0 ? o > long.MinValue ? Math.Abs(o) : 0 : Math.Abs(o);
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, o);
                     }
                 case ExObjType.COMPLEX:
                     {
-                        double o = Complex.Abs(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Abs(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Abs(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Abs(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathSqrt(ExVM vm, int nargs)
+        public static ExFunctionStatus MathSqrt(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sqrt(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sqrt(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Sqrt(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Sqrt(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sqrt(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sqrt(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathCbrt(ExVM vm, int nargs)
+        public static ExFunctionStatus MathCbrt(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Cbrt(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Cbrt(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Pow(i.GetComplex(), 1.0 / 3.0);
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Pow(i.GetComplex(), 1.0 / 3.0));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Cbrt(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Cbrt(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
-        public static int MathSin(ExVM vm, int nargs)
+        public static ExFunctionStatus MathSin(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sin(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sin(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Sin(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Sin(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sin(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sin(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
-        public static int MathSinh(ExVM vm, int nargs)
+        public static ExFunctionStatus MathSinh(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sinh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sinh(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Sinh(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Sinh(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sinh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sinh(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathCos(ExVM vm, int nargs)
+        public static ExFunctionStatus MathCos(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Cos(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Cos(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Cos(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Cos(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Cos(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Cos(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
-        public static int MathCosh(ExVM vm, int nargs)
+        public static ExFunctionStatus MathCosh(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Cosh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Cosh(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Cosh(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Cosh(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Cosh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Cosh(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathTan(ExVM vm, int nargs)
+        public static ExFunctionStatus MathTan(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Tan(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Tan(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Tan(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Tan(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Tan(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Tan(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
-        public static int MathTanh(ExVM vm, int nargs)
+        public static ExFunctionStatus MathTanh(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Tanh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Tanh(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Tanh(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Tanh(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Tanh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Tanh(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathAcos(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAcos(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Acos(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Acos(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Acos(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Acos(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Acos(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Acos(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
-        public static int MathAcosh(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAcosh(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Acosh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Acosh(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
                         if (i.Value.c_Float == 0.0)
                         {
-                            double o = i.Value.f_Float;
-                            vm.Pop(nargs + 2);
-                            vm.Push(Math.Acosh(o));
-                            break;
+                            return vm.CleanReturn(nargs + 2, Math.Acosh(i.Value.f_Float));
                         }
                         else
                         {
-                            vm.AddToErrorMessage("can't use complex numbers with acosh");
-                            return -1;
+                            return vm.AddToErrorMessage("can't use complex numbers with acosh");
                         }
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Acosh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Acosh(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathAsin(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAsin(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Asin(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Asin(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Asin(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Asin(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Asin(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Asin(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
-        public static int MathAsinh(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAsinh(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Asinh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Asinh(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
                         if (i.Value.c_Float == 0.0)
                         {
-                            double o = i.Value.f_Float;
-                            vm.Pop(nargs + 2);
-                            vm.Push(Math.Asinh(o));
-                            break;
+                            return vm.CleanReturn(nargs + 2, Math.Asinh(i.Value.f_Float));
                         }
                         else
                         {
-                            vm.AddToErrorMessage("can't use complex numbers with asinh");
-                            return -1;
+                            return vm.AddToErrorMessage("can't use complex numbers with asinh");
                         }
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Asinh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Asinh(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathAtan(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAtan(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Atan(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Atan(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Atan(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Atan(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Atan(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Atan(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
-        public static int MathAtanh(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAtanh(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Atanh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Atanh(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
                         if (i.Value.c_Float == 0.0)
                         {
-                            double o = i.Value.f_Float;
-                            vm.Pop(nargs + 2);
-                            vm.Push(Math.Atanh(o));
-                            break;
+                            return vm.CleanReturn(nargs + 2, Math.Atanh(i.Value.f_Float));
                         }
                         else
                         {
-                            vm.AddToErrorMessage("can't use complex numbers with atanh");
-                            return -1;
+                            return vm.AddToErrorMessage("can't use complex numbers with atanh");
                         }
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Atanh(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Atanh(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathAtan2(ExVM vm, int nargs)
+        public static ExFunctionStatus MathAtan2(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            ExObject i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = vm.GetArgument(1);
+            ExObject i2 = vm.GetArgument(2);
             double b = 0.0;
             long l;
 
@@ -946,36 +681,24 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Atan2(l, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(l, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2.Value.f_Float;
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Atan2(l, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Atan2(l, i2.Value.f_Float));
                                     }
                                     else
                                     {
-                                        vm.AddToErrorMessage("can't use complex numbers with atan2");
-                                        return -1;
+                                        return vm.AddToErrorMessage("can't use complex numbers with atan2");
                                     }
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Atan2(l, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(l, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
                 case ExObjType.COMPLEX:
                     {
@@ -986,8 +709,7 @@ namespace ExMat.BaseLib
                         }
                         else
                         {
-                            vm.AddToErrorMessage("can't use complex numbers with atan2");
-                            return -1;
+                            return vm.AddToErrorMessage("can't use complex numbers with atan2");
                         }
                     }
                 case ExObjType.FLOAT:
@@ -1001,269 +723,181 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Atan2(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2.Value.f_Float;
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Atan2(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Atan2(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
-                                        vm.AddToErrorMessage("can't use complex numbers with atan2");
-                                        return -1;
+                                        return vm.AddToErrorMessage("can't use complex numbers with atan2");
                                     }
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Atan2(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(b, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
             }
-
-            return 1;
         }
 
-        public static int MathLoge(ExVM vm, int nargs)
+        public static ExFunctionStatus MathLoge(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Log(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Log(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Log(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Log(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Log(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Log(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathLog2(ExVM vm, int nargs)
+        public static ExFunctionStatus MathLog2(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Log2(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Log2(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Log(i.GetComplex()) / Math.Log(2.0);
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Log(i.GetComplex()) / Math.Log(2.0));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Log2(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Log2(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathLog10(ExVM vm, int nargs)
+        public static ExFunctionStatus MathLog10(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Log10(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Log10(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Log10(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Log10(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Log10(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Log10(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathExp(ExVM vm, int nargs)
+        public static ExFunctionStatus MathExp(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Exp(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Exp(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
-                        Complex o = Complex.Exp(i.GetComplex());
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, Complex.Exp(i.GetComplex()));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Exp(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Exp(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathRound(ExVM vm, int nargs)
+        public static ExFunctionStatus MathRound(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             int dec = 0;
             if (nargs == 2)
             {
-                dec = (int)ExAPI.GetFromStack(vm, 3).GetInt();
+                dec = (int)vm.GetArgument(2).GetInt();
             }
 
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push((double)Math.Round((double)o, dec));
-                        break;
+                        return vm.CleanReturn(nargs + 2, (double)Math.Round((double)i.GetInt(), dec));
                     }
                 case ExObjType.COMPLEX:
                     {
                         Complex o = i.GetComplex();
-                        vm.Pop(nargs + 2);
-                        vm.Push(new Complex(Math.Round(o.Real, dec), Math.Round(o.Imaginary, dec)));
-                        break;
+                        return vm.CleanReturn(nargs + 2, new Complex(Math.Round(o.Real, dec), Math.Round(o.Imaginary, dec)));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push((double)Math.Round(o, dec));
-                        break;
+                        return vm.CleanReturn(nargs + 2, (double)Math.Round(i.GetFloat(), dec));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathFloor(ExVM vm, int nargs)
+        public static ExFunctionStatus MathFloor(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, i.GetInt());
                     }
                 case ExObjType.COMPLEX:
                     {
                         Complex o = i.GetComplex();
-                        vm.Pop(nargs + 2);
-                        vm.Push(new Complex(Math.Floor(o.Real), Math.Floor(o.Imaginary)));
-                        break;
+                        return vm.CleanReturn(nargs + 2, new Complex(Math.Floor(o.Real), Math.Floor(o.Imaginary)));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push((int)Math.Floor(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, (int)Math.Floor(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathCeil(ExVM vm, int nargs)
+        public static ExFunctionStatus MathCeil(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(o);
-                        break;
+                        return vm.CleanReturn(nargs + 2, i.GetInt());
                     }
                 case ExObjType.COMPLEX:
                     {
                         Complex o = i.GetComplex();
-                        vm.Pop(nargs + 2);
-                        vm.Push(new Complex(Math.Ceiling(o.Real), Math.Ceiling(o.Imaginary)));
-                        break;
+                        return vm.CleanReturn(nargs + 2, new Complex(Math.Ceiling(o.Real), Math.Ceiling(o.Imaginary)));
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push((int)Math.Ceiling(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, (int)Math.Ceiling(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathPow(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPow(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            ExObject i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = vm.GetArgument(1);
+            ExObject i2 = vm.GetArgument(2);
 
             switch (i.Type)
             {
@@ -1274,28 +908,17 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((int)Math.Pow(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (int)Math.Pow(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    Complex o = Complex.Pow(b, i2.GetComplex());
-                                    vm.Pop(nargs + 2);
-                                    vm.Push(o);
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, Complex.Pow(b, i2.GetComplex()));
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Pow(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Pow(b, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
                 case ExObjType.COMPLEX:
                     {
@@ -1304,27 +927,17 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    Complex o = Complex.Pow(b, i2.GetInt());
-                                    vm.Pop(nargs + 2);
-                                    vm.Push(o);
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, Complex.Pow(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    Complex o = Complex.Pow(b, i2.GetComplex());
-                                    vm.Pop(nargs + 2);
-                                    vm.Push(o);
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, Complex.Pow(b, i2.GetComplex()));
                                 }
                             default:
                                 {
-                                    Complex o = Complex.Pow(b, i2.GetFloat());
-                                    vm.Pop(nargs + 2);
-                                    vm.Push(o);
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, Complex.Pow(b, i2.GetFloat()));
                                 }
                         }
-                        break;
                     }
                 default:
                     {
@@ -1333,38 +946,25 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Pow(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Pow(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    Complex o = Complex.Pow(b, i2.GetComplex());
-                                    vm.Pop(nargs + 2);
-                                    vm.Push(o);
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, Complex.Pow(b, i2.GetComplex()));
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Pow(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Pow(b, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
             }
-
-            return 1;
         }
 
-        public static int MathMin(ExVM vm, int nargs)
+        public static ExFunctionStatus MathMin(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            ExObject i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = vm.GetArgument(1);
+            ExObject i2 = vm.GetArgument(2);
 
             switch (i.Type)
             {
@@ -1375,36 +975,24 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push(Math.Min(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, Math.Min(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2.Value.f_Float;
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Min(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
-                                        vm.AddToErrorMessage("can't compare complex numbers");
-                                        return -1;
+                                        return vm.AddToErrorMessage("can't compare complex numbers");
                                     }
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Min(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
                 case ExObjType.COMPLEX:
                     {
@@ -1415,40 +1003,28 @@ namespace ExMat.BaseLib
                             {
                                 case ExObjType.INTEGER:
                                     {
-                                        long o = i2.GetInt();
-                                        vm.Pop(nargs + 2);
-                                        vm.Push(Math.Min(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, Math.Min(b, i2.GetInt()));
                                     }
                                 case ExObjType.COMPLEX:
                                     {
                                         if (i2.Value.c_Float == 0.0)
                                         {
-                                            double o = i2.Value.f_Float;
-                                            vm.Pop(nargs + 2);
-                                            vm.Push((double)Math.Min(b, o));
-                                            break;
+                                            return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.Value.f_Float));
                                         }
                                         else
                                         {
-                                            vm.AddToErrorMessage("can't compare complex numbers");
-                                            return -1;
+                                            return vm.AddToErrorMessage("can't compare complex numbers");
                                         }
                                     }
                                 default:
                                     {
-                                        double o = i2.GetFloat();
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Min(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetFloat()));
                                     }
                             }
-                            break;
                         }
                         else
                         {
-                            vm.AddToErrorMessage("can't compare complex numbers");
-                            return -1;
+                            return vm.AddToErrorMessage("can't compare complex numbers");
                         }
                     }
                 default:
@@ -1458,46 +1034,32 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Min(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2.Value.f_Float;
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Min(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
-                                        vm.AddToErrorMessage("can't compare complex numbers");
-                                        return -1;
+                                        return vm.AddToErrorMessage("can't compare complex numbers");
                                     }
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Min(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
             }
-
-            return 1;
         }
 
-        public static int MathMax(ExVM vm, int nargs)
+        public static ExFunctionStatus MathMax(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            ExObject i2 = ExAPI.GetFromStack(vm, 3);
+            ExObject i = vm.GetArgument(1);
+            ExObject i2 = vm.GetArgument(2);
 
             switch (i.Type)
             {
@@ -1508,36 +1070,24 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push(Math.Max(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, Math.Max(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2.Value.f_Float;
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Max(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
-                                        vm.AddToErrorMessage("can't compare complex numbers");
-                                        return -1;
+                                        return vm.AddToErrorMessage("can't compare complex numbers");
                                     }
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Max(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
                 case ExObjType.COMPLEX:
                     {
@@ -1548,40 +1098,28 @@ namespace ExMat.BaseLib
                             {
                                 case ExObjType.INTEGER:
                                     {
-                                        long o = i2.GetInt();
-                                        vm.Pop(nargs + 2);
-                                        vm.Push(Math.Max(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, Math.Max(b, i2.GetInt()));
                                     }
                                 case ExObjType.COMPLEX:
                                     {
                                         if (i2.Value.c_Float == 0.0)
                                         {
-                                            double o = i2.Value.f_Float;
-                                            vm.Pop(nargs + 2);
-                                            vm.Push((double)Math.Max(b, o));
-                                            break;
+                                            return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.Value.f_Float));
                                         }
                                         else
                                         {
-                                            vm.AddToErrorMessage("can't compare complex numbers");
-                                            return -1;
+                                            return vm.AddToErrorMessage("can't compare complex numbers");
                                         }
                                     }
                                 default:
                                     {
-                                        double o = i2.GetFloat();
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Max(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetFloat()));
                                     }
                             }
-                            break;
                         }
                         else
                         {
-                            vm.AddToErrorMessage("can't compare complex numbers");
-                            return -1;
+                            return vm.AddToErrorMessage("can't compare complex numbers");
                         }
                     }
                 default:
@@ -1591,50 +1129,36 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    long o = i2.GetInt();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Max(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        double o = i2.Value.f_Float;
-                                        vm.Pop(nargs + 2);
-                                        vm.Push((double)Math.Max(b, o));
-                                        break;
+                                        return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
-                                        vm.AddToErrorMessage("can't compare complex numbers");
-                                        return -1;
+                                        return vm.AddToErrorMessage("can't compare complex numbers");
                                     }
                                 }
                             default:
                                 {
-                                    double o = i2.GetFloat();
-                                    vm.Pop(nargs + 2);
-                                    vm.Push((double)Math.Max(b, o));
-                                    break;
+                                    return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetFloat()));
                                 }
                         }
-
-                        break;
                     }
             }
-
-            return 1;
         }
 
-        public static int MathSum(ExVM vm, int nargs)
+        public static ExFunctionStatus MathSum(ExVM vm, int nargs)
         {
             ExObject sum = new(new Complex());
             ExObject[] args;
-            if (nargs == 1 && ExAPI.GetFromStack(vm, 2).Type == ExObjType.ARRAY)
+            if (nargs == 1 && vm.GetArgument(1).Type == ExObjType.ARRAY)
             {
                 ExObject res = new();
-                args = ExAPI.GetFromStack(vm, 2).GetList().ToArray();
+                args = vm.GetArgument(1).GetList().ToArray();
                 for (int i = 0; i < args.Length; i++)
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
@@ -1644,10 +1168,9 @@ namespace ExMat.BaseLib
                     }
                     else
                     {
-                        return -1;
+                        return ExFunctionStatus.ERROR;
                     }
                 }
-                vm.Pop(3);
             }
             else
             {
@@ -1662,12 +1185,12 @@ namespace ExMat.BaseLib
                     }
                     else
                     {
-                        return -1;
+                        return ExFunctionStatus.ERROR;
                     }
                 }
-                vm.Pop(nargs + 2);
             }
 
+            vm.Pop(nargs + 2);
             if (sum.Value.c_Float == 0.0)
             {
                 vm.Push(sum.Value.f_Float);
@@ -1676,18 +1199,18 @@ namespace ExMat.BaseLib
             {
                 vm.Push(sum);
             }
-            return 1;
+            return ExFunctionStatus.SUCCESS;
         }
 
-        public static int MathMul(ExVM vm, int nargs)
+        public static ExFunctionStatus MathMul(ExVM vm, int nargs)
         {
             ExObject mul = new(1.0);
             ExObject[] args;
 
-            if (nargs == 1 && ExAPI.GetFromStack(vm, 2).Type == ExObjType.ARRAY)
+            if (nargs == 1 && vm.GetArgument(1).Type == ExObjType.ARRAY)
             {
                 ExObject res = new();
-                args = ExAPI.GetFromStack(vm, 2).GetList().ToArray();
+                args = vm.GetArgument(1).GetList().ToArray();
                 for (int i = 0; i < args.Length; i++)
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.MLT, args[i], mul, ref res))
@@ -1697,10 +1220,9 @@ namespace ExMat.BaseLib
                     }
                     else
                     {
-                        return -1;
+                        return ExFunctionStatus.ERROR;
                     }
                 }
-                vm.Pop(3);
             }
             else
             {
@@ -1715,12 +1237,12 @@ namespace ExMat.BaseLib
                     }
                     else
                     {
-                        return -1;
+                        return ExFunctionStatus.ERROR;
                     }
                 }
-                vm.Pop(nargs + 2);
             }
 
+            vm.Pop(nargs + 2);
             if (mul.Value.c_Float == 0.0)
             {
                 vm.Push(mul.Value.f_Float);
@@ -1729,87 +1251,59 @@ namespace ExMat.BaseLib
             {
                 vm.Push(mul);
             }
-            return 1;
+            return ExFunctionStatus.SUCCESS;
         }
 
-        public static int MathSign(ExVM vm, int nargs)
+        public static ExFunctionStatus MathSign(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
+            ExObject i = vm.GetArgument(1);
 
             switch (i.Type)
             {
                 case ExObjType.INTEGER:
                     {
-                        long o = i.GetInt();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sign(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sign(i.GetInt()));
                     }
                 case ExObjType.COMPLEX:
                     {
                         if (i.Value.c_Float == 0.0)
                         {
-                            double o = i.Value.f_Float;
-                            vm.Pop(nargs + 2);
-                            vm.Push(Math.Sign(o));
-                            break;
+                            return vm.CleanReturn(nargs + 2, Math.Sign(i.Value.f_Float));
                         }
                         else
                         {
-                            vm.AddToErrorMessage("can't get complex number's sign");
-                            return -1;
+                            return vm.AddToErrorMessage("can't get complex number's sign");
                         }
                     }
                 default:
                     {
-                        double o = i.GetFloat();
-                        vm.Pop(nargs + 2);
-                        vm.Push(Math.Sign(o));
-                        break;
+                        return vm.CleanReturn(nargs + 2, Math.Sign(i.GetFloat()));
                     }
             }
-
-            return 1;
         }
 
-        public static int MathIsFIN(ExVM vm, int nargs)
+        public static ExFunctionStatus MathIsFIN(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsFinite(i.GetComplex()) : double.IsFinite(i.GetFloat());
-
-            vm.Pop(nargs + 2);
-            vm.Push(b);
-            return 1;
+            ExObject i = vm.GetArgument(1);
+            return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsFinite(i.GetComplex()) : double.IsFinite(i.GetFloat()));
         }
 
-        public static int MathIsINF(ExVM vm, int nargs)
+        public static ExFunctionStatus MathIsINF(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsPositiveInfinity(i.GetFloat());
-
-            vm.Pop(nargs + 2);
-            vm.Push(b);
-            return 1;
+            ExObject i = vm.GetArgument(1);
+            return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsPositiveInfinity(i.GetFloat()));
         }
 
-        public static int MathIsNINF(ExVM vm, int nargs)
+        public static ExFunctionStatus MathIsNINF(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsNegativeInfinity(i.GetFloat());
-
-            vm.Pop(nargs + 2);
-            vm.Push(b);
-            return 1;
+            ExObject i = vm.GetArgument(1);
+            return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsNegativeInfinity(i.GetFloat()));
         }
 
-        public static int MathIsNAN(ExVM vm, int nargs)
+        public static ExFunctionStatus MathIsNAN(ExVM vm, int nargs)
         {
-            ExObject i = ExAPI.GetFromStack(vm, 2);
-            bool b = i.Type == ExObjType.COMPLEX ? Complex.IsNaN(i.GetComplex()) : double.IsNaN(i.GetFloat());
-
-            vm.Pop(nargs + 2);
-            vm.Push(b);
-            return 1;
+            ExObject i = vm.GetArgument(1);
+            return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsNaN(i.GetComplex()) : double.IsNaN(i.GetFloat()));
         }
 
         private static double[] CreateNumArr(ExVM vm, List<ExObject> l)
@@ -1862,16 +1356,16 @@ namespace ExMat.BaseLib
         }
 
         // TO-DO extremely redundant, refactor...
-        public static int MathPlotSaveScatters(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatters(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int width = (int)vm.GetArgument(3).GetInt();
+            int height = (int)vm.GetArgument(4).GetInt();
 
             if (width < 0)
             {
@@ -1883,15 +1377,14 @@ namespace ExMat.BaseLib
             }
 
             ScottPlot.Plot plt = new(width, height);
-            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> plots = vm.GetArgument(2).GetList();
             bool hadlabels = false;
 
             foreach (ExObject plot in plots)
             {
                 if (plot.Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list of lists containing plot data");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list of lists containing plot data");
                 }
 
                 List<ExObject> plotdata = plot.GetList();
@@ -1905,8 +1398,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for label");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for label");
                             }
                             label = plotdata[3].GetString();
                             hadlabels = true;
@@ -1916,8 +1408,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for color name");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for color name");
                             }
                             color = System.Drawing.Color.FromName(plotdata[2].GetString());
                             break;
@@ -1928,34 +1419,31 @@ namespace ExMat.BaseLib
                         }
                     default:
                         {
-                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
-                            return -1;
+                            return vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
                         }
                 }
 
                 if (plotdata[0].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for X axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for X axis");
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
                 if (plotdata[1].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for Y axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for Y axis");
                 }
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
                 if (X == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
                 if (Y == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
 
                 try
@@ -1964,8 +1452,7 @@ namespace ExMat.BaseLib
                 }
                 catch (Exception e)
                 {
-                    vm.AddToErrorMessage("plot error: " + e.Message);
-                    return -1;
+                    return vm.AddToErrorMessage("plot error: " + e.Message);
                 }
             }
 
@@ -1977,27 +1464,24 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatter(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatter(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
-            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
-            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+            List<ExObject> x = vm.GetArgument(2).GetList();
+            List<ExObject> y = vm.GetArgument(3).GetList();
+            int width = (int)vm.GetArgument(4).GetInt();
+            int height = (int)vm.GetArgument(5).GetInt();
 
             System.Drawing.Color color = System.Drawing.Color.Blue;
             string label = null;
@@ -2006,12 +1490,12 @@ namespace ExMat.BaseLib
             {
                 case 7:
                     {
-                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        label = vm.GetArgument(7).GetString();
                         goto case 6;
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
                         break;
                     }
             }
@@ -2028,12 +1512,12 @@ namespace ExMat.BaseLib
             double[] X = CreateNumArr(vm, x);
             if (X == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
             if (Y == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
             ScottPlot.Plot plot = new(width, height);
@@ -2048,25 +1532,22 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatterLines(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatterLines(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int width = (int)vm.GetArgument(3).GetInt();
+            int height = (int)vm.GetArgument(4).GetInt();
 
             if (width < 0)
             {
@@ -2078,15 +1559,14 @@ namespace ExMat.BaseLib
             }
 
             ScottPlot.Plot plt = new(width, height);
-            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> plots = vm.GetArgument(2).GetList();
             bool hadlabels = false;
 
             foreach (ExObject plot in plots)
             {
                 if (plot.Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list of lists containing plot data");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list of lists containing plot data");
                 }
 
                 List<ExObject> plotdata = plot.GetList();
@@ -2100,8 +1580,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for label");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for label");
                             }
                             label = plotdata[3].GetString();
                             hadlabels = true;
@@ -2111,8 +1590,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for color name");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for color name");
                             }
                             color = System.Drawing.Color.FromName(plotdata[2].GetString());
                             break;
@@ -2123,34 +1601,31 @@ namespace ExMat.BaseLib
                         }
                     default:
                         {
-                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
-                            return -1;
+                            return vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
                         }
                 }
 
                 if (plotdata[0].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for X axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for X axis");
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
                 if (plotdata[1].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for Y axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for Y axis");
                 }
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
                 if (X == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
                 if (Y == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
 
                 try
@@ -2159,8 +1634,7 @@ namespace ExMat.BaseLib
                 }
                 catch (Exception e)
                 {
-                    vm.AddToErrorMessage("plot error: " + e.Message);
-                    return -1;
+                    return vm.AddToErrorMessage("plot error: " + e.Message);
                 }
             }
 
@@ -2172,27 +1646,24 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatterLine(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatterLine(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
-            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
-            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+            List<ExObject> x = vm.GetArgument(2).GetList();
+            List<ExObject> y = vm.GetArgument(3).GetList();
+            int width = (int)vm.GetArgument(4).GetInt();
+            int height = (int)vm.GetArgument(5).GetInt();
 
             System.Drawing.Color color = System.Drawing.Color.Blue;
             string label = null;
@@ -2201,12 +1672,12 @@ namespace ExMat.BaseLib
             {
                 case 7:
                     {
-                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        label = vm.GetArgument(7).GetString();
                         goto case 6;
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
                         break;
                     }
             }
@@ -2223,12 +1694,12 @@ namespace ExMat.BaseLib
             double[] X = CreateNumArr(vm, x);
             if (X == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
             if (Y == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
             ScottPlot.Plot plot = new(width, height);
@@ -2243,25 +1714,22 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatterPoints(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatterPoints(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int width = (int)vm.GetArgument(3).GetInt();
+            int height = (int)vm.GetArgument(4).GetInt();
 
             if (width < 0)
             {
@@ -2273,15 +1741,14 @@ namespace ExMat.BaseLib
             }
 
             ScottPlot.Plot plt = new(width, height);
-            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> plots = vm.GetArgument(2).GetList();
             bool hadlabels = false;
 
             foreach (ExObject plot in plots)
             {
                 if (plot.Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list of lists containing plot data");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list of lists containing plot data");
                 }
 
                 List<ExObject> plotdata = plot.GetList();
@@ -2295,8 +1762,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for label");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for label");
                             }
                             label = plotdata[3].GetString();
                             hadlabels = true;
@@ -2306,8 +1772,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for color name");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for color name");
                             }
                             color = System.Drawing.Color.FromName(plotdata[2].GetString());
                             break;
@@ -2318,34 +1783,31 @@ namespace ExMat.BaseLib
                         }
                     default:
                         {
-                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
-                            return -1;
+                            return vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
                         }
                 }
 
                 if (plotdata[0].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for X axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for X axis");
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
                 if (plotdata[1].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for Y axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for Y axis");
                 }
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
                 if (X == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
                 if (Y == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
 
                 try
@@ -2354,8 +1816,7 @@ namespace ExMat.BaseLib
                 }
                 catch (Exception e)
                 {
-                    vm.AddToErrorMessage("plot error: " + e.Message);
-                    return -1;
+                    return vm.AddToErrorMessage("plot error: " + e.Message);
                 }
             }
 
@@ -2367,27 +1828,24 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatterPoint(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatterPoint(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
-            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
-            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+            List<ExObject> x = vm.GetArgument(2).GetList();
+            List<ExObject> y = vm.GetArgument(3).GetList();
+            int width = (int)vm.GetArgument(4).GetInt();
+            int height = (int)vm.GetArgument(5).GetInt();
 
             System.Drawing.Color color = System.Drawing.Color.Blue;
             string label = null;
@@ -2396,12 +1854,12 @@ namespace ExMat.BaseLib
             {
                 case 7:
                     {
-                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        label = vm.GetArgument(7).GetString();
                         goto case 6;
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
                         break;
                     }
             }
@@ -2418,12 +1876,12 @@ namespace ExMat.BaseLib
             double[] X = CreateNumArr(vm, x);
             if (X == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
             if (Y == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
             ScottPlot.Plot plot = new(width, height);
@@ -2438,25 +1896,22 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatterSteps(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatterSteps(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int width = (int)vm.GetArgument(3).GetInt();
+            int height = (int)vm.GetArgument(4).GetInt();
 
             if (width < 0)
             {
@@ -2468,15 +1923,14 @@ namespace ExMat.BaseLib
             }
 
             ScottPlot.Plot plt = new(width, height);
-            List<ExObject> plots = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> plots = vm.GetArgument(2).GetList();
             bool hadlabels = false;
 
             foreach (ExObject plot in plots)
             {
                 if (plot.Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list of lists containing plot data");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list of lists containing plot data");
                 }
 
                 List<ExObject> plotdata = plot.GetList();
@@ -2490,8 +1944,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for label");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for label");
                             }
                             label = plotdata[3].GetString();
                             hadlabels = true;
@@ -2501,8 +1954,7 @@ namespace ExMat.BaseLib
                         {
                             if (plotdata[2].Type != ExObjType.STRING)
                             {
-                                vm.AddToErrorMessage("expected string for color name");
-                                return -1;
+                                return vm.AddToErrorMessage("expected string for color name");
                             }
                             color = System.Drawing.Color.FromName(plotdata[2].GetString());
                             break;
@@ -2513,34 +1965,31 @@ namespace ExMat.BaseLib
                         }
                     default:
                         {
-                            vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
-                            return -1;
+                            return vm.AddToErrorMessage("not enough plot data given: [x,y,(color),(label)]");
                         }
                 }
 
                 if (plotdata[0].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for X axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for X axis");
                 }
                 List<ExObject> x = plotdata[0].GetList();
 
                 if (plotdata[1].Type != ExObjType.ARRAY)
                 {
-                    vm.AddToErrorMessage("expected list for Y axis");
-                    return -1;
+                    return vm.AddToErrorMessage("expected list for Y axis");
                 }
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
                 if (X == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
                 if (Y == null)
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
 
                 try
@@ -2549,8 +1998,7 @@ namespace ExMat.BaseLib
                 }
                 catch (Exception e)
                 {
-                    vm.AddToErrorMessage("plot error: " + e.Message);
-                    return -1;
+                    return vm.AddToErrorMessage("plot error: " + e.Message);
                 }
             }
 
@@ -2562,27 +2010,24 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatterStep(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatterStep(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
-            List<ExObject> y = ExAPI.GetFromStack(vm, 4).GetList();
-            int width = (int)ExAPI.GetFromStack(vm, 5).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 6).GetInt();
+            List<ExObject> x = vm.GetArgument(2).GetList();
+            List<ExObject> y = vm.GetArgument(3).GetList();
+            int width = (int)vm.GetArgument(4).GetInt();
+            int height = (int)vm.GetArgument(5).GetInt();
 
             System.Drawing.Color color = System.Drawing.Color.Blue;
             string label = null;
@@ -2591,12 +2036,12 @@ namespace ExMat.BaseLib
             {
                 case 7:
                     {
-                        label = ExAPI.GetFromStack(vm, 8).GetString();
+                        label = vm.GetArgument(7).GetString();
                         goto case 6;
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 7).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
                         break;
                     }
             }
@@ -2613,12 +2058,12 @@ namespace ExMat.BaseLib
             double[] X = CreateNumArr(vm, x);
             if (X == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
             if (Y == null)
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
             ScottPlot.Plot plot = new(width, height);
@@ -2633,24 +2078,21 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
-        public static int MathPlotSaveScatterComplex(ExVM vm, int nargs)
+        public static ExFunctionStatus MathPlotSaveScatterComplex(ExVM vm, int nargs)
         {
-            string name = ExAPI.GetFromStack(vm, 2).GetString();
+            string name = vm.GetArgument(1).GetString();
             if (!CheckFileName(vm, ref name))
             {
-                return -1;
+                return ExFunctionStatus.ERROR;
             }
 
-            List<ExObject> x = ExAPI.GetFromStack(vm, 3).GetList();
+            List<ExObject> x = vm.GetArgument(2).GetList();
             int count = x.Count;
 
             double[] X = new double[count];
@@ -2662,8 +2104,7 @@ namespace ExMat.BaseLib
                 {
                     if (!v.IsNumeric())
                     {
-                        vm.AddToErrorMessage("cant plot non-numeric in complex plane");
-                        return -1;
+                        return vm.AddToErrorMessage("cant plot non-numeric in complex plane");
                     }
                     X[i] = v.GetFloat();
                     Y[i] = 0.0;
@@ -2675,8 +2116,8 @@ namespace ExMat.BaseLib
                 }
             }
 
-            int width = (int)ExAPI.GetFromStack(vm, 4).GetInt();
-            int height = (int)ExAPI.GetFromStack(vm, 5).GetInt();
+            int width = (int)vm.GetArgument(3).GetInt();
+            int height = (int)vm.GetArgument(4).GetInt();
 
             System.Drawing.Color color = System.Drawing.Color.Blue;
             string label = null;
@@ -2685,12 +2126,12 @@ namespace ExMat.BaseLib
             {
                 case 6:
                     {
-                        label = ExAPI.GetFromStack(vm, 7).GetString();
+                        label = vm.GetArgument(6).GetString();
                         goto case 5;
                     }
                 case 5:
                     {
-                        color = System.Drawing.Color.FromName(ExAPI.GetFromStack(vm, 6).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(5).GetString().ToLower());
                         break;
                     }
             }
@@ -2717,13 +2158,10 @@ namespace ExMat.BaseLib
             }
             catch (Exception e)
             {
-                vm.AddToErrorMessage("plot error: " + e.Message);
-                return -1;
+                return vm.AddToErrorMessage("plot error: " + e.Message);
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(name);
-            return 1;
+            return vm.CleanReturn(nargs + 2, name);
         }
 
         private static readonly List<ExRegFunc> _stdmathfuncs = new()

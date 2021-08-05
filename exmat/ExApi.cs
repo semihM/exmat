@@ -10,6 +10,7 @@ namespace ExMat.API
 {
     public static class ExAPI
     {
+
         public static bool GetSafeObject(ExVM vm, int idx, ExObjType typ, ref ExObject res)
         {
             res.Assign(GetFromStack(vm, idx));
@@ -29,8 +30,7 @@ namespace ExMat.API
             {
                 return false;
             }
-            vm.Pop(pop);
-            vm.Push(res);
+            vm.CleanReturn(pop, res);
             return true;
         }
 
@@ -42,8 +42,7 @@ namespace ExMat.API
             {
                 return false;
             }
-            vm.Pop(pop);
-            vm.Push(res);
+            vm.CleanReturn(pop, res);
             return true;
         }
 
@@ -55,8 +54,7 @@ namespace ExMat.API
             {
                 return false;
             }
-            vm.Pop(pop);
-            vm.Push(res);
+            vm.CleanReturn(pop, res);
             return true;
         }
 
@@ -550,13 +548,13 @@ namespace ExMat.API
             }
         }
 
-        public static void WriteErrorMessages(ExVM vm, string typ)
+        public static void WriteErrorMessages(ExVM vm, ExErrorType typ)
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
             Console.WriteLine("\n\n*******************************");
             switch (typ)
             {
-                case "COMPILE":
+                case ExErrorType.COMPILE:
                     {
                         Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine("FAILED TO COMPILE");
@@ -564,7 +562,7 @@ namespace ExMat.API
                         Console.WriteLine(vm.ErrorString);
                         break;
                     }
-                case "EXECUTE":
+                case ExErrorType.EXECUTE:
                     {
                         Console.ForegroundColor = ConsoleColor.Blue;
                         Console.WriteLine("FAILED TO EXECUTE");

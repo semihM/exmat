@@ -745,7 +745,7 @@ namespace ExMat.Objects
     {
         public string Name;             // Fonksiyon ismi
 
-        public delegate int FunctionRef(ExVM vm, int nargs);
+        public delegate ExFunctionStatus FunctionRef(ExVM vm, int nargs);
         public FunctionRef Function;    // Fonksiyon referansı
 
         public string ParameterMask;    // Parameter tipleri maskesi

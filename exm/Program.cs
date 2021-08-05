@@ -43,14 +43,14 @@ namespace ExMat
                     }
                     else
                     {
-                        ExAPI.WriteErrorMessages(vm, "EXECUTE");   // İşleme hatası
+                        ExAPI.WriteErrorMessages(vm, ExErrorType.EXECUTE);   // İşleme hatası
                         ret = -1;
                     }
                 }
             }
             else
             {
-                ExAPI.WriteErrorMessages(vm, "COMPILE");            // Derleme hatası 
+                ExAPI.WriteErrorMessages(vm, ExErrorType.COMPILE);            // Derleme hatası 
                 ret = -1;
             }
 

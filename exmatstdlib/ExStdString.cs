@@ -9,35 +9,26 @@ namespace ExMat.BaseLib
 {
     public static class ExStdString
     {
-        public static int Strip(ExVM vm, int nargs)
+        public static ExFunctionStatus Strip(ExVM vm, int nargs)
         {
-            string s = ExAPI.GetFromStack(vm, 2).GetString();
-            vm.Pop(nargs + 2);
-            vm.Push(s.Trim());
-            return 1;
+            return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().Trim());
         }
-        public static int Lstrip(ExVM vm, int nargs)
+        public static ExFunctionStatus Lstrip(ExVM vm, int nargs)
         {
-            string s = ExAPI.GetFromStack(vm, 2).GetString();
-            vm.Pop(nargs + 2);
-            vm.Push(s.TrimStart());
-            return 1;
+            return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().TrimStart());
         }
 
-        public static int Rstrip(ExVM vm, int nargs)
+        public static ExFunctionStatus Rstrip(ExVM vm, int nargs)
         {
-            string s = ExAPI.GetFromStack(vm, 2).GetString();
-            vm.Pop(nargs + 2);
-            vm.Push(s.TrimEnd());
-            return 1;
+            return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().TrimEnd());
         }
 
-        public static int Split(ExVM vm, int nargs)
+        public static ExFunctionStatus Split(ExVM vm, int nargs)
         {
-            string s = ExAPI.GetFromStack(vm, 2).GetString();
-            string c = ExAPI.GetFromStack(vm, 3).GetString();
+            string s = vm.GetArgument(1).GetString();
+            string c = vm.GetArgument(2).GetString();
             StringSplitOptions remove_empty = nargs == 3
-                ? (ExAPI.GetFromStack(vm, 4).GetBool()
+                ? (vm.GetArgument(3).GetBool()
                     ? StringSplitOptions.RemoveEmptyEntries
                     : StringSplitOptions.None)
                 : StringSplitOptions.None;
@@ -50,20 +41,18 @@ namespace ExMat.BaseLib
                 lis.Add(new(arr[i]));
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(new ExObject(lis));
-            return 1;
+            return vm.CleanReturn(nargs + 2, new ExObject(lis));
         }
 
-        public static int Join(ExVM vm, int nargs)
+        public static ExFunctionStatus Join(ExVM vm, int nargs)
         {
-            string s = ExAPI.GetFromStack(vm, 2).GetString();
-            List<ExObject> lis = ExAPI.GetFromStack(vm, 3).GetList();
+            string s = vm.GetArgument(1).GetString();
+            List<ExObject> lis = vm.GetArgument(2).GetList();
 
             int depth = 2;
             if (nargs == 3)
             {
-                depth = (int)ExAPI.GetFromStack(vm, 4).GetInt();
+                depth = (int)vm.GetArgument(3).GetInt();
                 if (depth <= 0)
                 {
                     depth = 1;
@@ -82,7 +71,7 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
                 if (i != n - 1)
                 {
@@ -90,9 +79,7 @@ namespace ExMat.BaseLib
                 }
             }
 
-            vm.Pop(nargs + 2);
-            vm.Push(res);
-            return 1;
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         public static void ReplaceMacroParams(ExMacro m, List<ExObject> args)
@@ -109,24 +96,21 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static int Compile(ExVM vm, int nargs)
+        public static ExFunctionStatus Compile(ExVM vm, int nargs)
         {
-            string code = ExAPI.GetFromStack(vm, 2).GetString();
+            string code = vm.GetArgument(1).GetString();
 
             if (ExAPI.CompileSource(vm, code))
             {
-                ExObject m = new(vm.GetAbove(-1));
-                vm.Pop(nargs + 3);
-                vm.Push(m);
-                return 1;
+                return vm.CleanReturn(nargs + 3, new ExObject(vm.GetAbove(-1)));
             }
 
-            return -1;
+            return ExFunctionStatus.ERROR;
         }
 
-        public static int Format(ExVM vm, int nargs)
+        public static ExFunctionStatus Format(ExVM vm, int nargs)
         {
-            string format = ExAPI.GetFromStack(vm, 2).GetString();
+            string format = vm.GetArgument(1).GetString();
             object[] ps = new object[nargs - 1];
             ExObject[] args = ExAPI.GetNObjects(vm, nargs - 1, 3);
             for (int i = 0; i < nargs - 1; i++)
@@ -138,20 +122,17 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    return -1;
+                    return ExFunctionStatus.ERROR;
                 }
             }
 
             try
             {
-                vm.Pop(nargs + 2);
-                vm.Push(string.Format(format, ps));
-                return 1;
+                return vm.CleanReturn(nargs + 2, string.Format(format, ps));
             }
             catch
             {
-                vm.AddToErrorMessage("not enough arguments given for format string");
-                return -1;
+                return vm.AddToErrorMessage("not enough arguments given for format string"); ;
             }
         }
 
