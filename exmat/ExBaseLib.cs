@@ -773,7 +773,7 @@ namespace ExMat.BaseLib
                                 {
                                     char[] chars = b.ToString("X16").ToCharArray();
                                     List<ExObject> lis = new(chars.Length + (prefix ? 2 : 0));
-                                    if(prefix)
+                                    if (prefix)
                                     {
                                         lis.Add(new("0"));
                                         lis.Add(new("x"));
