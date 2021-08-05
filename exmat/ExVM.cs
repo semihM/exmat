@@ -420,7 +420,7 @@ namespace ExMat.VM
                         }
                         else if (s.StartsWith("0x"))
                         {
-                            if (s.Length < 18)
+                            if (s.Length <= 18)
                             {
                                 if (long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
                                 {
@@ -431,7 +431,7 @@ namespace ExMat.VM
                         }
                         else if (s.StartsWith("0b"))
                         {
-                            if (s.Length < 66)
+                            if (s.Length <= 66)
                             {
                                 try
                                 {
@@ -496,7 +496,7 @@ namespace ExMat.VM
                         }
                         else if (s.StartsWith("0x"))
                         {
-                            if (s.Length < 18)
+                            if (s.Length <= 18)
                             {
                                 if (long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
                                 {
@@ -507,7 +507,7 @@ namespace ExMat.VM
                         }
                         else if (s.StartsWith("0b"))
                         {
-                            if (s.Length < 66)
+                            if (s.Length <= 66)
                             {
                                 try
                                 {
