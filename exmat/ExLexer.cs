@@ -1365,7 +1365,8 @@ namespace ExMat.Lexer
                                 char tmp = CurrentChar;
                                 if (char.IsControl(tmp))
                                 {
-                                    throw new Exception("Unexpected control character");
+                                    ErrorString = "Unexpected control character " + tmp.ToString();
+                                    return TokenType.UNKNOWN;
                                 }
 
                                 NextChar();
