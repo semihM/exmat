@@ -675,10 +675,84 @@ namespace ExMat.BaseLib
             return 1;
         }
 
-        public static int StdHex(ExVM vm, int nargs)
+        public static int StdBinary(ExVM vm, int nargs)
         {
+            bool prefix = true;
             switch (nargs)
             {
+                case 2:
+                    {
+                        prefix = ExAPI.GetFromStack(vm, 3).GetBool();
+                        goto case 1;
+                    }
+                case 1:
+                    {
+                        ExObject v = ExAPI.GetFromStack(vm, 2);
+                        long b = 0;
+                        switch (v.Type)
+                        {
+                            case ExObjType.INTEGER:
+                                {
+                                    b = v.GetInt();
+                                    goto default;
+                                }
+                            case ExObjType.FLOAT:
+                                {
+                                    b = new DoubleLong() { f = v.GetFloat() }.i;
+                                    goto default;
+                                }
+                            default:
+                                {
+                                    char[] chars = Convert.ToString(b, 2).ToCharArray();
+                                    List<ExObject> lis = new(chars.Length + (prefix ? 2 : 0));
+                                    if (prefix)
+                                    {
+                                        lis.Add(new("0"));
+                                        lis.Add(new("b"));
+                                    }
+                                    foreach (char i in chars)
+                                    {
+                                        lis.Add(new(i.ToString()));
+                                    }
+                                    vm.Pop(nargs + 2);
+                                    vm.Push(lis);
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case 0:
+                    {
+                        List<ExObject> lis = new(prefix ? 18 : 16);
+                        if (prefix)
+                        {
+                            lis.Add(new("0"));
+                            lis.Add(new("b"));
+                        }
+
+                        for (int i = 0; i < 64; i++)
+                        {
+                            lis.Add(new("0"));
+                        }
+                        vm.Pop(2);
+                        vm.Push(lis);
+                        break;
+                    }
+            }
+
+            return 1;
+        }
+
+        public static int StdHex(ExVM vm, int nargs)
+        {
+            bool prefix = true;
+            switch (nargs)
+            {
+                case 2:
+                    {
+                        prefix = ExAPI.GetFromStack(vm, 3).GetBool();
+                        goto case 1;
+                    }
                 case 1:
                     {
                         ExObject v = ExAPI.GetFromStack(vm, 2);
@@ -698,7 +772,12 @@ namespace ExMat.BaseLib
                             default:
                                 {
                                     char[] chars = b.ToString("X16").ToCharArray();
-                                    List<ExObject> lis = new(chars.Length);
+                                    List<ExObject> lis = new(chars.Length + (prefix ? 2 : 0));
+                                    if(prefix)
+                                    {
+                                        lis.Add(new("0"));
+                                        lis.Add(new("x"));
+                                    }
                                     foreach (char i in chars)
                                     {
                                         lis.Add(new(i.ToString()));
@@ -712,7 +791,13 @@ namespace ExMat.BaseLib
                     }
                 case 0:
                     {
-                        List<ExObject> lis = new(16);
+                        List<ExObject> lis = new(prefix ? 18 : 16);
+                        if (prefix)
+                        {
+                            lis.Add(new("0"));
+                            lis.Add(new("x"));
+                        }
+
                         for (int i = 0; i < 16; i++)
                         {
                             lis.Add(new("0"));
@@ -3366,10 +3451,23 @@ namespace ExMat.BaseLib
                 Name = "hex",
                 Function = StdHex,
                 nParameterChecks = -1,
-                ParameterMask = ".i|f",
+                ParameterMask = ".i|f.",
                 DefaultValues = new()
                 {
-                    { 1, new(0) }
+                    { 1, new(0) },
+                    { 2, new(true) }
+                }
+            },
+            new()
+            {
+                Name = "binary",
+                Function = StdBinary,
+                nParameterChecks = -1,
+                ParameterMask = ".i|f.",
+                DefaultValues = new()
+                {
+                    { 1, new(0) },
+                    { 2, new(true) }
                 }
             },
 
