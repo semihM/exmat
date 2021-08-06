@@ -2930,12 +2930,12 @@ namespace ExMat.BaseLib
                 }
 
                 ExAPI.PushRootTable(vm);
-                ExAPI.ReloadNativeFunction(vm, BaseFuncs, name, true);
+                ExAPI.ReloadNativeFunction(vm, BaseFuncs, name);
 
             }
             else
             {
-                if (!RegisterStdBase(vm, true))
+                if (!RegisterStdBase(vm))
                 {
                     return vm.AddToErrorMessage("something went wrong...");
                 }
@@ -3332,12 +3332,12 @@ namespace ExMat.BaseLib
         private const string _reloadbase = "reload_base";
         public static string ReloadBaseFunc => _reloadbase;
 
-        public static bool RegisterStdBase(ExVM vm, bool force = false)
+        public static bool RegisterStdBase(ExVM vm)
         {
             // Global tabloyu sanal belleğe ata
             ExAPI.PushRootTable(vm);
             // Yerli fonksiyonları global tabloya kaydet
-            ExAPI.RegisterNativeFunctions(vm, BaseFuncs, force);
+            ExAPI.RegisterNativeFunctions(vm, BaseFuncs);
 
             // Sabit değerleri tabloya ekle
             ExAPI.CreateConstantInt(vm, "_versionnumber_", 1);

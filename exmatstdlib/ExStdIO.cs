@@ -375,7 +375,7 @@ namespace ExMat.BaseLib
                         ExAPI.PushRootTable(vm);
                         if (!ExAPI.Call(vm, 1, false, false))
                         {
-                            ExAPI.WriteErrorMessages(vm, ExErrorType.EXECUTE);
+                            ExAPI.WriteErrorMessages(vm, ExErrorType.RUNTIME);
                             failed = true;
                             break;
                         }
@@ -407,7 +407,7 @@ namespace ExMat.BaseLib
                     ExAPI.PushRootTable(vm);
                     if (!ExAPI.Call(vm, 1, false, false))
                     {
-                        ExAPI.WriteErrorMessages(vm, ExErrorType.EXECUTE);
+                        ExAPI.WriteErrorMessages(vm, ExErrorType.RUNTIME);
                         return vm.CleanReturn(nargs + 3, false);
                     }
                     else
@@ -443,10 +443,10 @@ namespace ExMat.BaseLib
                             if (fname != ReloadLibFunc)
                             {
                                 ExAPI.PushRootTable(vm);
-                                ExAPI.ReloadNativeFunction(vm, IOFuncs, fname, true);
+                                ExAPI.ReloadNativeFunction(vm, IOFuncs, fname);
                             }
                         }
-                        else if (!RegisterStdIO(vm, true))
+                        else if (!RegisterStdIO(vm))
                         {
                             return vm.AddToErrorMessage("something went wrong...");
                         }
@@ -457,9 +457,9 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExAPI.PushRootTable(vm);
-                            ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, true);
+                            ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname);
                         }
-                        else if (!ExStdMath.RegisterStdMath(vm, true))
+                        else if (!ExStdMath.RegisterStdMath(vm))
                         {
                             return vm.AddToErrorMessage("something went wrong...");
                         }
@@ -470,9 +470,9 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExAPI.PushRootTable(vm);
-                            ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, true);
+                            ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname);
                         }
-                        else if (!ExStdString.RegisterStdString(vm, true))
+                        else if (!ExStdString.RegisterStdString(vm))
                         {
                             return vm.AddToErrorMessage("something went wrong...");
                         }
@@ -488,15 +488,15 @@ namespace ExMat.BaseLib
 
             if (fname != ReloadLibFunc
                 && fname != ReloadLib
-                && ExAPI.ReloadNativeFunction(vm, IOFuncs, fname, true))
+                && ExAPI.ReloadNativeFunction(vm, IOFuncs, fname))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, true))
+            else if (ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, true))
+            else if (ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname))
             {
                 return ExFunctionStatus.VOID;
             }
@@ -715,9 +715,9 @@ namespace ExMat.BaseLib
 
         public static List<ExRegFunc> IOFuncs => _stdiofuncs;
 
-        public static bool RegisterStdIO(ExVM vm, bool force = false)
+        public static bool RegisterStdIO(ExVM vm)
         {
-            ExAPI.RegisterNativeFunctions(vm, IOFuncs, force);
+            ExAPI.RegisterNativeFunctions(vm, IOFuncs);
 
             return true;
         }

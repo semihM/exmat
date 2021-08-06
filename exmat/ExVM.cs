@@ -15,14 +15,32 @@ using ExMat.Utils;
 
 namespace ExMat.VM
 {
+    /// <summary>
+    /// A virtual machine model to execute instructions which use <see cref="OPC"/>
+    /// </summary>
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExVM
     {
+        /// <summary>
+        /// Time when the virtual machine was first initialized
+        /// </summary>
         public readonly DateTime StartingTime = DateTime.Now;
+        /// <summary>
+        /// Shared state model to access some of compilation time variables
+        /// </summary>
         public ExSState SharedState = new();
 
+        /// <summary>
+        /// Virtual memory stack to do push and pop operations with objects
+        /// </summary>
         public List<ExObject> Stack;            // Sanal bellek
+        /// <summary>
+        /// Virtual memory stack's base index used by the current scope
+        /// </summary>
         public int StackBase;                   // Anlık bellek taban indeksi
+        /// <summary>
+        /// Virtual memory stack's top index used by the current scope
+        /// </summary>
         public int StackTop;                    // Anlık bellek tavan indeksi
 
         public List<ExCallInfo> CallStack;      // Çağrı yığını

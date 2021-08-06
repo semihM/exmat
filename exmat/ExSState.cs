@@ -505,7 +505,7 @@ namespace ExMat.States
                 }
                 cls.Name = new(f[i].Name);
 
-                if (!string.IsNullOrEmpty(f[i].ParameterMask) && !API.ExAPI.CompileTypeMask(cls.TypeMasks, f[i].ParameterMask))
+                if (!string.IsNullOrEmpty(f[i].ParameterMask) && !API.ExAPI.CompileTypeMask(f[i].ParameterMask, cls.TypeMasks))
                 {
                     return new();
                 }
