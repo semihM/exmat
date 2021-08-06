@@ -514,17 +514,16 @@ namespace ExMat.API
         /// <returns>First index <paramref name="obj"/> appears in <paramref name="lis"/> or <c>-1</c> if object wasn't found in the list</returns>
         public static int GetValueIndexFromArray(List<ExObject> lis, ExObject obj)
         {
-            int i = -1;
-            for (; i < lis.Count; i++)
+            for (int i = 0; i < lis.Count; i++)
             {
                 bool f = false;
                 ExVM.CheckEqual(lis[i], obj, ref f);
                 if (f)
                 {
-                    break;
+                    return i;
                 }
             }
-            return i;
+            return -1;
         }
 
         /// <summary>
