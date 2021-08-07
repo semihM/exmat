@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using ExMat.API;
 using ExMat.Class;
@@ -16,6 +17,13 @@ namespace ExMat.BaseLib
     public static class ExBaseLib
     {
         // BASIC FUNCTIONS
+        public static ExFunctionStatus StdRoot(ExVM vm, int nargs)
+        {
+            vm.Pop(nargs + 2);
+            ExAPI.PushRootTable(vm);
+            return ExFunctionStatus.SUCCESS;
+        }
+
         public static ExFunctionStatus StdPrint(ExVM vm, int nargs)
         {
             string output = string.Empty;   // Çıktı
@@ -341,16 +349,16 @@ namespace ExMat.BaseLib
                         {
                             if (obj.Type == ExObjType.ARRAY)
                             {
-                                string str = string.Empty;
+                                StringBuilder str = new();
                                 foreach (ExObject o in obj.GetList())
                                 {
                                     if (o.Type == ExObjType.STRING) // && o.GetString().Length == 1)
                                     {
-                                        str += o.GetString();
+                                        str.Append(o.GetString());
                                     }
                                     else if (o.Type == ExObjType.INTEGER && o.GetInt() >= 0)
                                     {
-                                        str += (char)o.GetInt();
+                                        str.Append(o.GetInt());
                                     }
                                     else
                                     {
@@ -358,7 +366,7 @@ namespace ExMat.BaseLib
                                     }
                                 }
 
-                                return vm.CleanReturn(nargs + 2, str);
+                                return vm.CleanReturn(nargs + 2, str.ToString());
                             }
                             else if (obj.Type == ExObjType.INTEGER)
                             {
@@ -544,7 +552,7 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         ExObject v = vm.GetArgument(1);
-                        byte[] bytes = null;
+                        byte[] bytes = Array.Empty<byte>();
                         switch (v.Type)
                         {
                             case ExObjType.INTEGER:
@@ -726,15 +734,14 @@ namespace ExMat.BaseLib
 
             vm.Pop(nargs - 1);
 
-            ExObject res = new();
             ExObject tmp = new();
 
             int n = 2;
             int m = 0;
 
-            int argcount = obj.Value.l_List.Count;
+            int argcount = obj.GetList().Count;
 
-            List<ExObject> l = new(obj.Value.l_List.Count);
+            List<ExObject> l = new(obj.GetList().Count);
 
             switch (cls.Type)
             {
@@ -761,8 +768,8 @@ namespace ExMat.BaseLib
 
                                 for (int i = 0; i < argcount; i++)
                                 {
-                                    ExObject o = obj.Value.l_List[i];
-                                    ExObject o2 = obj2.Value.l_List[i];
+                                    ExObject o = obj.GetList()[i];
+                                    ExObject o2 = obj2.GetList()[i];
                                     vm.Push(cls);
                                     vm.Push(vm.RootDictionary);
 
@@ -790,7 +797,7 @@ namespace ExMat.BaseLib
                             {
                                 for (int i = 0; i < argcount; i++)
                                 {
-                                    ExObject o = obj.Value.l_List[i];
+                                    ExObject o = obj.GetList()[i];
                                     vm.Push(cls);
                                     vm.Push(vm.RootDictionary);
 
@@ -841,10 +848,10 @@ namespace ExMat.BaseLib
                 }
                 n++;
 
-                for (int i = 0; i < obj.Value.l_List.Count; i++)
+                for (int i = 0; i < obj.GetList().Count; i++)
                 {
-                    ExObject o = obj.Value.l_List[i];
-                    ExObject o2 = obj2.Value.l_List[i];
+                    ExObject o = obj.GetList()[i];
+                    ExObject o2 = obj2.GetList()[i];
                     vm.Push(cls);
                     vm.Push(vm.RootDictionary);
 
@@ -865,7 +872,7 @@ namespace ExMat.BaseLib
             }
             else
             {
-                foreach (ExObject o in obj.Value.l_List)
+                foreach (ExObject o in obj.GetList())
                 {
                     vm.Push(cls);
                     vm.Push(vm.RootDictionary);
@@ -893,11 +900,9 @@ namespace ExMat.BaseLib
         {
             ExObject cls = vm.GetArgument(1);
             ExObject obj = new(vm.GetArgument(2));
-            List<ExObject> l = new(obj.Value.l_List.Count);
+            List<ExObject> l = new(obj.GetList().Count);
 
             vm.Pop();
-
-            ExObject res = new();
 
             bool iscls = cls.Type == ExObjType.CLOSURE;
 
@@ -917,7 +922,7 @@ namespace ExMat.BaseLib
             }
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
-            foreach (ExObject o in obj.Value.l_List)
+            foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
                 vm.Push(vm.RootDictionary);
@@ -1073,7 +1078,7 @@ namespace ExMat.BaseLib
         public static ExFunctionStatus StdParse(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
-            List<ExObject> args = new ExObject(vm.GetArgument(2)).Value.l_List;
+            List<ExObject> args = new ExObject(vm.GetArgument(2)).GetList();
             if (args.Count > vm.Stack.Count - vm.StackTop - 3)
             {
                 vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm.Stack.Count);
@@ -1082,7 +1087,6 @@ namespace ExMat.BaseLib
 
             vm.Pop();
 
-            ExObject res = new();
             int n = args.Count + 1;
             int extra = 0;
             switch (cls.Type)
@@ -1170,7 +1174,7 @@ namespace ExMat.BaseLib
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
             int i = 0;
-            foreach (ExObject o in obj.Value.l_List) // TO-DO use for loop, remove need of 3rd arg in iter
+            foreach (ExObject o in obj.GetList()) // TO-DO use for loop, remove need of 3rd arg in iter
             {
                 vm.Push(cls);
                 vm.Push(vm.RootDictionary);
@@ -1221,7 +1225,7 @@ namespace ExMat.BaseLib
             }
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
-            foreach (ExObject o in obj.Value.l_List)
+            foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
                 vm.Push(vm.RootDictionary);
@@ -1272,12 +1276,12 @@ namespace ExMat.BaseLib
                 m++;
             }
 
-            bool found = obj.Value.l_List.Count > 0;
+            bool found = obj.GetList().Count > 0;
             ExObject res = new(found);
 
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
-            foreach (ExObject o in obj.Value.l_List)
+            foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
                 vm.Push(vm.RootDictionary);
@@ -1333,7 +1337,7 @@ namespace ExMat.BaseLib
 
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
-            foreach (ExObject o in obj.Value.l_List)
+            foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
                 vm.Push(vm.RootDictionary);
@@ -1540,7 +1544,7 @@ namespace ExMat.BaseLib
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
-                                                            long step = d.GetInt();
+                                                            double step = d.GetInt();
                                                             if (end > start)
                                                             {
                                                                 int count = (int)((end - start) / step);
@@ -1653,7 +1657,7 @@ namespace ExMat.BaseLib
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
-                                                            long step = d.GetInt();
+                                                            double step = d.GetInt();
                                                             for (int i = 0; i <= count; i++)
                                                             {
                                                                 l.Add(new(start + i * step));
@@ -1865,7 +1869,7 @@ namespace ExMat.BaseLib
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
-                                                            long step = d.GetInt();
+                                                            double step = d.GetInt();
                                                             if (end > start)
                                                             {
                                                                 int count = (int)((end - start) / step);
@@ -1978,7 +1982,7 @@ namespace ExMat.BaseLib
                                                 {
                                                     case ExObjType.INTEGER:
                                                         {
-                                                            long step = d.GetInt();
+                                                            double step = d.GetInt();
                                                             for (int i = 0; i < count; i++)
                                                             {
                                                                 l.Add(new(start + i * step));
@@ -2108,7 +2112,7 @@ namespace ExMat.BaseLib
 
                                             lis.Add(new(res));
                                         }
-                                        l.Value.l_List.Add(new ExObject(lis));
+                                        l.GetList().Add(new ExObject(lis));
                                     }
 
                                     vm.IsMainCall = bm;
@@ -2147,7 +2151,7 @@ namespace ExMat.BaseLib
 
                                             lis.Add(new(res));
                                         }
-                                        l.Value.l_List.Add(new ExObject(lis));
+                                        l.GetList().Add(new ExObject(lis));
                                     }
 
                                     vm.IsMainCall = bm;
@@ -2159,7 +2163,7 @@ namespace ExMat.BaseLib
                                     {
                                         List<ExObject> lis = null;
                                         ExUtils.InitList(ref lis, n, filler);
-                                        l.Value.l_List.Add(new ExObject(lis));
+                                        l.GetList().Add(new ExObject(lis));
                                     }
                                     break;
                                 }
@@ -2200,7 +2204,7 @@ namespace ExMat.BaseLib
             {
                 case ExObjType.ARRAY:
                     {
-                        size = obj.Value.l_List.Count;
+                        size = obj.GetList().Count;
                         break;
                     }
                 case ExObjType.DICT:
@@ -2249,12 +2253,12 @@ namespace ExMat.BaseLib
         {
             string obj = vm.GetRootArgument().GetString();
             int rep = (int)vm.GetArgument(1).GetInt();
-            string res = string.Empty;
+            StringBuilder res = new();
             while (rep-- > 0)
             {
-                res += obj;
+                res.Append(obj);
             }
-            return vm.CleanReturn(nargs + 2, res);
+            return vm.CleanReturn(nargs + 2, res.ToString());
         }
 
         public static ExFunctionStatus StdStringAlphabetic(ExVM vm, int nargs)
@@ -2466,24 +2470,24 @@ namespace ExMat.BaseLib
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
-            res.Value.l_List.Add(new(vm.GetAbove(-1)));
+            res.GetList().Add(new(vm.GetAbove(-1)));
             return vm.CleanReturn(nargs + 2, res);
         }
         public static ExFunctionStatus StdArrayExtend(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
-            res.Value.l_List.AddRange(vm.GetAbove(-1).Value.l_List);
+            res.GetList().AddRange(vm.GetAbove(-1).GetList());
             return vm.CleanReturn(nargs + 2, res);
         }
         public static ExFunctionStatus StdArrayPop(ExVM vm, int nargs)
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, 1, ExObjType.ARRAY, ref res);
-            if (res.Value.l_List.Count > 0)
+            if (res.GetList().Count > 0)
             {
-                ExObject p = new(res.Value.l_List[^1]);
-                res.Value.l_List.RemoveAt(res.Value.l_List.Count - 1);
+                ExObject p = new(res.GetList()[^1]);
+                res.GetList().RemoveAt(res.GetList().Count - 1);
                 return vm.CleanReturn(nargs + 2, p);
             }
             else
@@ -2502,22 +2506,22 @@ namespace ExMat.BaseLib
                 newsize = 0;
             }
 
-            int curr = res.Value.l_List.Count;
+            int curr = res.GetList().Count;
             if (curr > 0 && newsize > 0)
             {
                 if (newsize >= curr)
                 {
                     for (int i = curr; i < newsize; i++)
                     {
-                        res.Value.l_List.Add(new());
+                        res.GetList().Add(new());
                     }
                 }
                 else
                 {
                     while (curr != newsize)
                     {
-                        res.Value.l_List[curr - 1].Nullify();
-                        res.Value.l_List.RemoveAt(curr - 1);
+                        res.GetList()[curr - 1].Nullify();
+                        res.GetList().RemoveAt(curr - 1);
                         curr--;
                     }
                 }
@@ -2527,7 +2531,7 @@ namespace ExMat.BaseLib
                 res.Value.l_List = new(newsize);
                 for (int i = 0; i < newsize; i++)
                 {
-                    res.Value.l_List.Add(new());
+                    res.GetList().Add(new());
                 }
             }
             else
@@ -2543,7 +2547,7 @@ namespace ExMat.BaseLib
         {
             ExObject res = new();
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
-            return vm.CleanReturn(nargs + 2, ExAPI.GetValueIndexFromArray(res.Value.l_List, vm.GetArgument(1)));
+            return vm.CleanReturn(nargs + 2, ExAPI.GetValueIndexFromArray(res.GetList(), vm.GetArgument(1)));
         }
 
         public static ExFunctionStatus StdArrayCount(ExVM vm, int nargs)
@@ -2552,7 +2556,7 @@ namespace ExMat.BaseLib
             ExAPI.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res);
             using ExObject obj = new(vm.GetArgument(1));
 
-            int i = ExAPI.CountValueEqualsInArray(res.Value.l_List, obj);
+            int i = ExAPI.CountValueEqualsInArray(res.GetList(), obj);
             return vm.CleanReturn(nargs + 2, i);
         }
 
@@ -2992,6 +2996,13 @@ namespace ExMat.BaseLib
         //
         private static readonly List<ExRegFunc> _exStdFuncs = new()
         {
+            new()
+            {
+                Name = "root",
+                Function = StdRoot,
+                nParameterChecks = 1,
+                ParameterMask = null
+            },
             new()
             {
                 Name = "print",

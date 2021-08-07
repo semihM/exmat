@@ -675,7 +675,7 @@ namespace ExMat.API
                 lis.Add(new ExObject(new List<ExObject>(rows)));
                 for (int j = 0; j < rows; j++)
                 {
-                    lis[i].Value.l_List.Add(vals[j].Value.l_List[i]);
+                    lis[i].GetList().Add(vals[j].Value.l_List[i]);
                 }
             }
             return lis;
