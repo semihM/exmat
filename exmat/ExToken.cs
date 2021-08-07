@@ -105,7 +105,7 @@
         // Sınıflara ait
         CONSTRUCTOR,    // Sınıf inşa edici metot
         THIS,           // İçinde bulunulan objeye erişim
-        BASE,           // Metotun bulunduğu sınıfa erişim
+        BASE,           // Ait olunan sınıfa erişim
         ////
 
         // Diğer
