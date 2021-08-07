@@ -209,7 +209,7 @@ namespace ExMat.BaseLib
                 return vm.CleanReturn(nargs + 2, FindAndCacheNextPrimes(a - n));
             }
 
-            return vm.CleanReturn(nargs + 2, Primes[--a]);
+            return vm.CleanReturn(nargs + 2, Primes[a - 1]);
         }
 
         public static ExFunctionStatus MathPrimeFactors(ExVM vm, int nargs)
@@ -314,7 +314,6 @@ namespace ExMat.BaseLib
         public static ExFunctionStatus MathDigits(ExVM vm, int nargs)
         {
             long i = vm.GetArgument(1).GetInt();
-            string s = i.ToString();
             List<ExObject> lis = new();
             if (i < 0)
             {
@@ -1457,7 +1456,6 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
-                plt = null;
             }
             catch (Exception e)
             {
@@ -1525,7 +1523,6 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
-                plot = null;
             }
             catch (Exception e)
             {
@@ -1639,7 +1636,6 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
-                plt = null;
             }
             catch (Exception e)
             {
@@ -1707,7 +1703,6 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
-                plot = null;
             }
             catch (Exception e)
             {
@@ -1821,7 +1816,6 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
-                plt = null;
             }
             catch (Exception e)
             {
@@ -1889,7 +1883,6 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
-                plot = null;
             }
             catch (Exception e)
             {
@@ -2003,7 +1996,6 @@ namespace ExMat.BaseLib
             {
                 plt.Legend(hadlabels);
                 plt.SaveFig(name);
-                plt = null;
             }
             catch (Exception e)
             {
@@ -2071,7 +2063,6 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
-                plot = null;
             }
             catch (Exception e)
             {
@@ -2151,7 +2142,6 @@ namespace ExMat.BaseLib
                 plot.Legend(!string.IsNullOrWhiteSpace(label));
 
                 plot.SaveFig(name);
-                plot = null;
             }
             catch (Exception e)
             {
