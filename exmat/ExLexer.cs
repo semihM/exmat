@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using ExMat.Objects;
 using ExMat.Token;
 
@@ -108,11 +109,11 @@ namespace ExMat.Lexer
         public ExSpace ValSpace;
 
         // En son okunan karakter dizisi
-        public string ValTempString;
+        public StringBuilder ValTempString;
         // Karmaşık sayı katsayısının sembolü ( tamsayı / ondalıklı )
         public TokenType TokenComplex;
 
-        public string MacroBlock;
+        public StringBuilder MacroBlock;
         public string MacroParamName;
         public List<ExMacroParam> MacroParams = new();
 
@@ -211,7 +212,7 @@ namespace ExMat.Lexer
             CurrentCol = currentCol;
             TokenCurr = tokenCurr;
             PrevTokenLine = prevTokenLine;
-            ValTempString = valTempString;
+            ValTempString = new(valTempString);
         }
 
         public ExLexer GetCopy()
@@ -222,7 +223,7 @@ namespace ExMat.Lexer
                        CurrentCol,
                        TokenCurr,
                        PrevTokenLine,
-                       ValTempString);
+                       ValTempString.ToString());
         }
 
         private void SkipComment()
@@ -440,10 +441,10 @@ namespace ExMat.Lexer
 
         private string ReadMacroParam()
         {
-            string pname = string.Empty;
+            StringBuilder pname = new();
             do
             {
-                pname += CurrentChar;
+                pname.Append(CurrentChar);
                 NextChar();
 
             } while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_');
@@ -459,23 +460,23 @@ namespace ExMat.Lexer
             }
             NextChar();
 
-            return string.IsNullOrWhiteSpace(pname) ? null : pname;
+            return string.IsNullOrWhiteSpace(pname.ToString()) ? null : pname.ToString();
         }
 
         private TokenType ReadMacroBlock()
         {
-            MacroBlock = string.Empty;
+            MacroBlock = new();
             while (true)
             {
                 while (CurrentChar != ExMat.EndChar && CurrentChar != '#')
                 {
-                    MacroBlock += CurrentChar;
+                    MacroBlock.Append(CurrentChar);
                     NextChar();
                 }
 
                 if (CurrentChar == '#')
                 {
-                    string mtag = string.Empty;
+                    StringBuilder mtag = new();
                     NextChar();
 
                     string pname = string.Empty;
@@ -498,18 +499,18 @@ namespace ExMat.Lexer
                         {
                             MacroParams.Add(new() { Name = pname, Columns = new() { CurrentCol }, Lines = new() { CurrentLine } });
                         }
-                        MacroBlock += "##" + pname + "##";
+                        MacroBlock.Append("##" + pname + "##");
                     }
                     else // #end 
                     {
                         while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_')
                         {
-                            mtag += CurrentChar;
+                            mtag.Append(CurrentChar);
                             NextChar();
                         }
                     }
 
-                    switch (mtag)
+                    switch (mtag.ToString())
                     {
                         case "end":
                             {
@@ -567,7 +568,7 @@ namespace ExMat.Lexer
 
         private TokenType ReadString(char curr)
         {
-            ValTempString = string.Empty;
+            ValTempString = new();
             NextChar();
             if (CurrentChar == ExMat.EndChar)
             {
@@ -591,28 +592,28 @@ namespace ExMat.Lexer
                             switch (CurrentChar)
                             {
                                 case 't':
-                                    ValTempString += '\t'; NextChar(); break;
+                                    ValTempString.Append('\t'); NextChar(); break;
                                 #region Rest of the known escape characters \n \r \a \v \f \0 \\ \" \'
                                 case 'a':
-                                    ValTempString += '\a'; NextChar(); break;
+                                    ValTempString.Append('\a'); NextChar(); break;
                                 case 'b':
-                                    ValTempString += '\b'; NextChar(); break;
+                                    ValTempString.Append('\b'); NextChar(); break;
                                 case 'n':
-                                    ValTempString += '\n'; NextChar(); break;
+                                    ValTempString.Append('\n'); NextChar(); break;
                                 case 'r':
-                                    ValTempString += '\r'; NextChar(); break;
+                                    ValTempString.Append('\r'); NextChar(); break;
                                 case 'v':
-                                    ValTempString += '\v'; NextChar(); break;
+                                    ValTempString.Append('\v'); NextChar(); break;
                                 case 'f':
-                                    ValTempString += '\f'; NextChar(); break;
+                                    ValTempString.Append('\f'); NextChar(); break;
                                 case '0':
-                                    ValTempString += ExMat.EndChar; NextChar(); break;
+                                    ValTempString.Append(ExMat.EndChar); NextChar(); break;
                                 case '\\':
-                                    ValTempString += '\\'; NextChar(); break;
+                                    ValTempString.Append('\\'); NextChar(); break;
                                 case '"':
-                                    ValTempString += '\"'; NextChar(); break;
+                                    ValTempString.Append('\"'); NextChar(); break;
                                 case '\'':
-                                    ValTempString += '\''; NextChar(); break;
+                                    ValTempString.Append('\''); NextChar(); break;
                                 #endregion
 
                                 #region Hexadecimal \xnn \unnnn
@@ -621,7 +622,7 @@ namespace ExMat.Lexer
                                     {
                                         if (ReadAsHex(CurrentChar == 'u' ? 4096 : 16, out int res))
                                         {
-                                            ValTempString += (char)res;
+                                            ValTempString.Append(res);
                                             break;
                                         }
                                         else
@@ -640,19 +641,19 @@ namespace ExMat.Lexer
                         }
                     default:
                         {
-                            ValTempString += CurrentChar;
+                            ValTempString.Append(CurrentChar);
                             NextChar();
                             break;
                         }
                 }
             }
-            ValString = ValTempString; NextChar();
+            ValString = ValTempString.ToString(); NextChar();
             return TokenType.LITERAL;
         }
 
         private TokenType GetIdType()
         {
-            return KeyWords.ContainsKey(ValTempString) ? KeyWords[ValTempString] : TokenType.IDENTIFIER;
+            return KeyWords.ContainsKey(ValTempString.ToString()) ? KeyWords[ValTempString.ToString()] : TokenType.IDENTIFIER;
         }
 
         private void LookForNext(TokenType lookfor, string name, TokenType then, ref TokenType res)
@@ -660,7 +661,7 @@ namespace ExMat.Lexer
             using ExLexer ahead = GetCopy();
             ahead.Lex();
 
-            if (ahead.TokenCurr == lookfor && ahead.ValTempString == name)
+            if (ahead.TokenCurr == lookfor && ahead.ValTempString.ToString() == name)
             {
                 res = then;
                 Lex();
@@ -669,10 +670,10 @@ namespace ExMat.Lexer
 
         private TokenType ReadId()
         {
-            ValTempString = string.Empty;
+            ValTempString = new();
             do
             {
-                ValTempString += CurrentChar;
+                ValTempString.Append(CurrentChar);
                 NextChar();
 
             } while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_');
@@ -689,7 +690,7 @@ namespace ExMat.Lexer
 
             if (typ == TokenType.IDENTIFIER)
             {
-                ValString = ValTempString;
+                ValString = ValTempString.ToString();
             }
 
             return typ;
@@ -715,12 +716,12 @@ namespace ExMat.Lexer
             {
                 case TokenType.BINARY:
                     {
-                        ValInteger = Convert.ToInt64(ValTempString, 2);
+                        ValInteger = Convert.ToInt64(ValTempString.ToString(), 2);
                         return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
                     }
                 case TokenType.HEX:
                     {
-                        if (!long.TryParse(ValTempString, System.Globalization.NumberStyles.HexNumber, null, out ValInteger))
+                        if (!long.TryParse(ValTempString.ToString(), System.Globalization.NumberStyles.HexNumber, null, out ValInteger))
                         {
                             ErrorString = "failed to parse as hexadecimal";
                             return TokenType.UNKNOWN;
@@ -730,7 +731,7 @@ namespace ExMat.Lexer
                 case TokenType.FLOAT:
                 case TokenType.SCIENTIFIC:
                     {
-                        if (!double.TryParse(ValTempString, out ValFloat))
+                        if (!double.TryParse(ValTempString.ToString(), out ValFloat))
                         {
                             ErrorString = "failed to parse as float";
                             return TokenType.UNKNOWN;
@@ -739,9 +740,9 @@ namespace ExMat.Lexer
                     }
                 case TokenType.INTEGER:
                     {
-                        if (!long.TryParse(ValTempString, out ValInteger))
+                        if (!long.TryParse(ValTempString.ToString(), out ValInteger))
                         {
-                            if (!double.TryParse(ValTempString, out ValFloat))
+                            if (!double.TryParse(ValTempString.ToString(), out ValFloat))
                             {
                                 ErrorString = "failed to parse as integer";
                                 return TokenType.UNKNOWN;
@@ -762,7 +763,7 @@ namespace ExMat.Lexer
         private TokenType ReadNumber(char start)
         {
             TokenType typ = TokenType.INTEGER;
-            ValTempString = start.ToString();   // ilk karakter
+            ValTempString = new(start.ToString());   // ilk karakter
 
             NextChar();
             if (IsDotNetNumberChar(start)) // .NET nümerik karakteri
@@ -776,18 +777,18 @@ namespace ExMat.Lexer
                     {
                         typ = TokenType.HEX;
 
-                        if (ValTempString != "0")
+                        if (ValTempString[0] != '0')
                         {
                             ErrorString = "hexadecimal numbers has to start with a zero -> 0x...";
                             return TokenType.UNKNOWN;
                         }
 
                         NextChar();
-                        ValTempString = string.Empty;
+                        ValTempString = new();
 
                         while (IsValidHexChar(ref CurrentChar))
                         {
-                            ValTempString += CurrentChar; NextChar();
+                            ValTempString.Append(CurrentChar); NextChar();
                         }
 
                         int length = ValTempString.Length;
@@ -797,25 +798,25 @@ namespace ExMat.Lexer
                             return TokenType.UNKNOWN;
                         }
 
-                        ValTempString = new string('0', 16 - length) + ValTempString;
+                        ValTempString.Insert(0, new string('0', 16 - length));
                         break;
                     }
                 case 'b':   // Binary
                     {
                         typ = TokenType.BINARY;
 
-                        if (ValTempString != "0")
+                        if (ValTempString[0] != '0')
                         {
                             ErrorString = "binary numbers has to start with a zero -> 0b...";
                             return TokenType.UNKNOWN;
                         }
 
                         NextChar();
-                        ValTempString = string.Empty;
+                        ValTempString = new();
 
                         while (CurrentChar == '0' || CurrentChar == '1')
                         {
-                            ValTempString += CurrentChar; NextChar();
+                            ValTempString.Append(CurrentChar); NextChar();
                         }
 
                         int length = ValTempString.Length;
@@ -825,7 +826,7 @@ namespace ExMat.Lexer
                             return TokenType.UNKNOWN;
                         }
 
-                        ValTempString = new string('0', 64 - length) + ValTempString;
+                        ValTempString.Insert(0, new string('0', 64 - length));
                         break;
                     }
                 default:
@@ -846,11 +847,11 @@ namespace ExMat.Lexer
 
                                 typ = TokenType.SCIENTIFIC;
 
-                                ValTempString += CurrentChar; NextChar();
+                                ValTempString.Append(CurrentChar); NextChar();
 
                                 if (IsSign(CurrentChar))
                                 {
-                                    ValTempString += CurrentChar; NextChar();
+                                    ValTempString.Append(CurrentChar); NextChar();
                                 }
 
                                 if (!char.IsDigit(CurrentChar))
@@ -860,7 +861,7 @@ namespace ExMat.Lexer
                                 }
                             }
 
-                            ValTempString += CurrentChar; NextChar();
+                            ValTempString.Append(CurrentChar); NextChar();
                         }
                         break;
                     }
@@ -1119,8 +1120,7 @@ namespace ExMat.Lexer
                         }
                     case '@':
                         {
-                            TokenType res;
-                            if ((res = ReadSpace(CurrentChar)) != TokenType.UNKNOWN)
+                            if (ReadSpace(CurrentChar) != TokenType.UNKNOWN)
                             {
                                 NextChar();
                                 return SetAndReturnToken(TokenType.SPACE);
