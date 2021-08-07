@@ -65,7 +65,7 @@ namespace ExMat.States
         public int ReturnExpressionTarget;
 
         private const int MAX_STACK_SIZE = 255;
-        private const int MAX_LITERALS = int.MaxValue;
+        private const int MAX_LITERALS = ushort.MaxValue;
 
         public List<ExLineInfo> LineInfos = new();
         public int LastLine;
