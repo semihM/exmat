@@ -110,7 +110,6 @@ namespace ExMat.FuncPrototype
                 return new() { Line = 1, Position = 0 };
             }
 
-            int line = LineInfos[0].Line;
             int low = 0, mid = 0, high = nLineInfos - 1;
 
             while (low <= high)

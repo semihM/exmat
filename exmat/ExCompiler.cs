@@ -696,12 +696,11 @@ namespace ExMat.Compiler
             int exp_end = FunctionState.GetCurrPos();
             int exp_size = exp_end - exp_start + 1;
             // her bir iterasyondan sonra işlenecek komutların listesini oluştur
-            List<ExInstr> instrs = null;
+            List<ExInstr> instrs = new();
 
             if (exp_size > 0)
             {
                 instrs = new(exp_size);
-                int n_instr = FunctionState.Instructions.Count;
                 for (int i = 0; i < exp_size; i++)
                 {
                     instrs.Add(FunctionState.Instructions[exp_start + i]);
@@ -2330,7 +2329,6 @@ namespace ExMat.Compiler
                 case TokenType.THIS:
                     {
                         ExObject idx = new();
-                        ExObject c = new();
                         switch (CurrentToken)
                         {
                             case TokenType.IDENTIFIER:
@@ -3257,7 +3255,7 @@ namespace ExMat.Compiler
             TokenType old_currToken = CurrentToken;
             string old_src = Source;
 
-            Lexer = new(Lexer.MacroBlock) { MacroParams = Lexer.MacroParams, MacroBlock = Lexer.MacroBlock, IsReadingMacroBlock = true };
+            Lexer = new(Lexer.MacroBlock.ToString()) { MacroParams = Lexer.MacroParams, MacroBlock = Lexer.MacroBlock, IsReadingMacroBlock = true };
 
             if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null)
             {
@@ -3292,7 +3290,7 @@ namespace ExMat.Compiler
             }
             else
             {
-                FunctionState.AddBlockMacro(idx.GetString(), new() { Name = idx.GetString(), Source = Lexer.MacroBlock, Parameters = Lexer.MacroParams });
+                FunctionState.AddBlockMacro(idx.GetString(), new() { Name = idx.GetString(), Source = Lexer.MacroBlock.ToString(), Parameters = Lexer.MacroParams });
             }
 
             FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
