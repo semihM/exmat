@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.VM;
@@ -15,16 +16,6 @@ namespace ExMat
         /// Stack size of the virtual machines. Use higher values for potentially more recursive functions 
         /// </summary>
         private static readonly int VM_STACK_SIZE = 2 << 14;
-
-        /// <summary>
-        /// Checks if user started writing multi-line code
-        /// </summary>
-        /// <param name="code">User input</param>
-        /// <returns><see langword="true"/> if input had <c>'\'</c> character at end, otherwise <see langword="false"/></returns>
-        private static bool CheckCarryOver(string code)
-        {
-            return code.Length > 0 && code[^1] == '\\';
-        }
 
         /// <summary>
         /// Compile and execute given code in given virtual machine instance
@@ -77,24 +68,18 @@ namespace ExMat
         }
 
         /// <summary>
-        /// Nulls objects from top of the stack, skipping <paramref name="count"/> amount of them from stack base
+        /// Nulls stack, resets base and top to given index
         /// </summary>
         /// <param name="vm">Virtual machine to use stack of</param>
         /// <param name="count">Amount of objects to skip</param>
         private static void FixStackTopAfterCalls(ExVM vm, int count)
         {
-            int curr = vm.StackTop - vm.StackBase;
-            if (curr > count)
+            for (int idx = vm.Stack.Count - 1; idx >= count; idx--)
             {
-                vm.Pop(curr - count);
+                vm.Stack[idx].Nullify();
             }
-            else
-            {
-                while (curr++ < count)
-                {
-                    vm.Stack[vm.StackTop++].Nullify();
-                }
-            }
+            vm.StackBase = count - 1;
+            vm.StackTop = count;
         }
 
         /// <summary>
@@ -159,7 +144,7 @@ namespace ExMat
         }
 
         /// <summary>
-        /// Reads user input and cleans it up
+        /// Reads user input, cleans it up, sets CarryOverFlag and EmptyInputFlag flags
         /// </summary>
         /// <returns>Cleaned user input</returns>
         private static string GetInput()
@@ -167,13 +152,36 @@ namespace ExMat
             string code = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(code))
             {
+                EmptyInputFlag = true;
                 return string.Empty;
             }
             else
             {
-                return code.TrimEnd(' ', '\t');
+                code = code.TrimEnd(' ', '\t');
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    EmptyInputFlag = true;
+                }
+
+                if (code.EndsWith('\\'))
+                {
+                    CarryOverFlag = !CarryOverFlag;
+                }
+
+                return code.TrimEnd('\\', ' ', '\t');
             }
         }
+
+        /// <summary>
+        /// Flag to decide if there was '\' character at the end of user input
+        /// </summary>
+        private static bool CarryOverFlag = false;
+
+        /// <summary>
+        /// Flag to decide if user input was empty
+        /// </summary>
+        private static bool EmptyInputFlag = false;
 
         /// <summary>
         /// To compile and execute a script file use: <code>exmat.exe file_name.exmat</code>
@@ -221,8 +229,7 @@ namespace ExMat
             ExStdString.RegisterStdString(vm);      // Yazı dizisi işleme kütüphanesi
 
             int count = 0;              // Gönderilen kod dizisi sayısı
-            bool carryover = false;     // \ ile çok satırlı kod başlatıldı ?
-            string code = string.Empty; // Kod yazı dizisi
+            StringBuilder code = new(); // Kod yazı dizisi
 
             ///////////
             Console.Title = "[] ExMat Interactive";
@@ -232,47 +239,41 @@ namespace ExMat
 
             while (true)    // Sürekli olarak girdi al
             {
-                if (carryover)  // Çok satırlı kod oku
+                if (CarryOverFlag)  // Çok satırlı kod oku
                 {
                     Console.Write("\t");
-                    code += GetInput();
-                    if (CheckCarryOver(code)) // Tekrardan \ verildiyse bitir
-                    {
-                        carryover = false;
-                    }
-                    code = code.TrimEnd('\\', ' ', '\t');
+
+                    code.Append(GetInput());
                 }
                 else
                 {
-                    // Girdi numarası yaz
-                    WriteIn(count);
-                    // Kod dizisini oku
-                    code = GetInput();
+                    ///////////
+                    WriteIn(count); // Girdi numarası yaz
+                                    ///////////
+
+                    code = new(GetInput());     // Kod dizisini oku
+
                     // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
-                    if (vm.GotUserInput && string.IsNullOrWhiteSpace(code))
+                    if (vm.GotUserInput && EmptyInputFlag)
                     {
+                        EmptyInputFlag = false;
                         vm.GotUserInput = false;
-                        code = GetInput();
+                        code = new(GetInput());
                     }
 
-                    if (CheckCarryOver(code))   // Çok satırlı mı ?
-                    {
-                        carryover = true;
-                    }
                 }
 
-                if (carryover)  // Çok satırlı ise okumaya devam et
+                if (CarryOverFlag)  // Çok satırlı ise okumaya devam et
                 {
-                    code = code.TrimEnd('\\', ' ', '\t') + "\r\n";
+                    code.Append("\r\n");
                     continue;
                 }
 
                 ///////////
                 WriteOut(count++);    // Çıktı numarası yaz
-                carryover = false;
                 ///////////
 
-                int ret = CompileString(vm, code);  // Derle ve işle
+                int ret = CompileString(vm, code.ToString().TrimEnd('\\', ' ', '\t'));  // Derle ve işle
 
                 ExAPI.CollectGarbage(); // Çöp toplayıcıyı çağır
 
