@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
+using System.Text;
 using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.Class;
@@ -169,24 +170,24 @@ namespace ExMat.VM
                     {
                         if (maxdepth == 0)
                         {
-                            res = new("ARRAY(" + (obj.Value.l_List == null ? "empty" : obj.Value.l_List.Count) + ")");
+                            res = new("ARRAY(" + (obj.GetList() == null ? "empty" : obj.GetList().Count) + ")");
                             break;
                         }
                         ExObject temp = new(string.Empty);
-                        string s = "[";
+                        StringBuilder s = new("[");
                         int n = 0;
-                        int c = obj.Value.l_List.Count;
+                        int c = obj.GetList().Count;
                         maxdepth--;
 
                         if (beauty && !dval && c > 0)
                         {
                             if (prefix != string.Empty)
                             {
-                                s = "\n" + prefix + s;
+                                s = new("\n" + prefix + s);
                             }
                         }
 
-                        foreach (ExObject o in obj.Value.l_List)
+                        foreach (ExObject o in obj.GetList())
                         {
                             ToString(o, ref temp, maxdepth, !beauty, beauty, prefix + " ");
 
@@ -197,17 +198,17 @@ namespace ExMat.VM
                                 {
                                     ts = (new string(' ', 8 - ts.Length)) + ts;
                                 }
-                                s += prefix + ts;
+                                s.Append(prefix).Append(ts);
                             }
                             else
                             {
-                                s += ts;
+                                s.Append(ts);
                             }
 
                             n++;
                             if (n != c)
                             {
-                                s += ", ";
+                                s.Append(", ");
                             }
                         }
 
@@ -215,42 +216,42 @@ namespace ExMat.VM
                         {
                             if (prefix == string.Empty)
                             {
-                                s += "]";
+                                s.Append(']');
                             }
                             else
                             {
-                                s += prefix + "]";
+                                s.Append(prefix).Append(']');
                             }
                         }
                         else
                         {
-                            s += "]";
+                            s.Append(']');
                         }
 
-                        res = new(s);
+                        res = new(s.ToString());
                         break;
                     }
                 case ExObjType.DICT:
                     {
                         if (maxdepth == 0)
                         {
-                            res = new("DICT(" + (obj.Value.l_List == null ? "empty" : obj.Value.l_List.Count) + ")");
+                            res = new("DICT(" + (obj.GetList() == null ? "empty" : obj.GetList().Count) + ")");
                             break;
                         }
                         ExObject temp = new(string.Empty);
-                        string s = "{";
+                        StringBuilder s = new("{");
                         int n = 0;
                         int c = obj.Value.d_Dict.Count;
                         if (beauty && c > 0)
                         {
                             if (prefix != string.Empty)
                             {
-                                s = "\n" + prefix + s;
+                                s = new("\n" + prefix + s);
                             }
                         }
                         if (c > 0)
                         {
-                            s += "\n" + prefix + "\t";
+                            s.Append("\n" + prefix + "\t");
                         }
 
                         maxdepth--;
@@ -260,35 +261,35 @@ namespace ExMat.VM
 
                             if (beauty)
                             {
-                                s += prefix + pair.Key + " = " + temp.GetString();
+                                s.Append(prefix).Append(pair.Key).Append(" = ").Append(temp.GetString());
                             }
                             else
                             {
-                                s += pair.Key + " = " + temp.GetString();
+                                s.Append(pair.Key).Append(" = ").Append(temp.GetString());
                             }
 
                             n++;
 
                             if (n != c)
                             {
-                                s += "\n\t";
+                                s.Append("\n\t");
                                 if (beauty)
                                 {
-                                    s += prefix;
+                                    s.Append(prefix);
                                 }
                             }
                             else
                             {
-                                s += "\n";
+                                s.Append('\n');
                                 if (beauty)
                                 {
-                                    s += prefix;
+                                    s.Append(prefix);
                                 }
                             }
                         }
-                        s += "}";
+                        s.Append('}');
 
-                        res = new(s);
+                        res = new(s.ToString());
                         break;
                     }
                 case ExObjType.NATIVECLOSURE:
@@ -585,7 +586,7 @@ namespace ExMat.VM
 
             if (!NewSlot(self, key, val, bstat))
             {
-                AddToErrorMessage("failed to create a slot named '" + key + "'");
+                AddToErrorMessage("failed to create a slot named " + (key.Type == ExObjType.STRING ? "'" + key.GetString() + "'" : ("non-string type <" + key.Type.ToString() + ">")));
                 return false;
             }
 
@@ -967,10 +968,10 @@ namespace ExMat.VM
             {
                 if (nParamters != nArguments)       // Argüman sayısı parametre sayısından farklı
                 {
-                    int difference, nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParamters - nDefaultParams;
+                    int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParamters - nDefaultParams;
 
                     // Minimum sayıda argüman sağlandığını kontrol et
-                    if (nDefaultParams > 0 && nArguments < nParamters && (difference = nParamters - nArguments) <= nDefaultParams)
+                    if (nDefaultParams > 0 && nArguments < nParamters && (nParamters - nArguments) <= nDefaultParams)
                     {
                         for (int n = 1; n < nParamters; n++)
                         {
@@ -1147,7 +1148,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (argument.Value.l_List.Count != space.Dimension && space.Dimension != -1)
+                        if (argument.GetList().Count != space.Dimension && space.Dimension != -1)
                         {
                             if (raise)
                             {
@@ -1158,7 +1159,7 @@ namespace ExMat.VM
 
                         if (space.Child != null)
                         {
-                            foreach (ExObject val in argument.Value.l_List)
+                            foreach (ExObject val in argument.GetList())
                             {
                                 if (!IsInSpace(val, space.Child, i, raise))
                                 {
@@ -1172,7 +1173,7 @@ namespace ExMat.VM
                         {
                             case "C":
                                 {
-                                    foreach (ExObject val in argument.Value.l_List)
+                                    foreach (ExObject val in argument.GetList())
                                     {
                                         if (!val.IsNumeric())
                                         {
@@ -1195,7 +1196,7 @@ namespace ExMat.VM
                                     {
                                         case '+':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (!val.IsRealNumber() || val.GetFloat() <= 0)
                                                     {
@@ -1210,7 +1211,7 @@ namespace ExMat.VM
                                             }
                                         case '-':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (!val.IsRealNumber() || val.GetFloat() >= 0)
                                                     {
@@ -1225,7 +1226,7 @@ namespace ExMat.VM
                                             }
                                         case '\\':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (!val.IsRealNumber() || val.GetFloat() == 0)
                                                     {
@@ -1256,7 +1257,7 @@ namespace ExMat.VM
                                     {
                                         case '+':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (!val.IsRealNumber() || val.GetFloat() < 0)
                                                     {
@@ -1271,7 +1272,7 @@ namespace ExMat.VM
                                             }
                                         case '-':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (!val.IsRealNumber() || val.GetFloat() > 0)
                                                     {
@@ -1286,7 +1287,7 @@ namespace ExMat.VM
                                             }
                                         case '\\':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (!val.IsRealNumber())
                                                     {
@@ -1316,7 +1317,7 @@ namespace ExMat.VM
                                     {
                                         case '+':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (val.Type != ExObjType.INTEGER || val.GetFloat() < 0)
                                                     {
@@ -1331,7 +1332,7 @@ namespace ExMat.VM
                                             }
                                         case '-':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (val.Type != ExObjType.INTEGER || val.GetFloat() > 0)
                                                     {
@@ -1346,7 +1347,7 @@ namespace ExMat.VM
                                             }
                                         case '\\':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (val.Type != ExObjType.INTEGER)
                                                     {
@@ -1376,7 +1377,7 @@ namespace ExMat.VM
                                     {
                                         case '+':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (val.Type != ExObjType.INTEGER || val.GetInt() <= 0)
                                                     {
@@ -1391,7 +1392,7 @@ namespace ExMat.VM
                                             }
                                         case '-':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (val.Type != ExObjType.INTEGER || val.GetInt() >= 0)
                                                     {
@@ -1406,7 +1407,7 @@ namespace ExMat.VM
                                             }
                                         case '\\':
                                             {
-                                                foreach (ExObject val in argument.Value.l_List)
+                                                foreach (ExObject val in argument.GetList())
                                                 {
                                                     if (val.Type != ExObjType.INTEGER || val.GetInt() == 0)
                                                     {
@@ -1946,7 +1947,7 @@ namespace ExMat.VM
                                     {
                                         ExSpace sp_org = GetTargetInStack(instruction.arg1).Value.c_Space;
                                         ExSpace sp = sp_org.DeepCopy();
-                                        int nparams = sp.Depth();
+
                                         int varcount = sp.VarCount();
                                         int argcount = (int)instruction.arg3 - 1;
                                         if (argcount > varcount)
@@ -1999,7 +2000,7 @@ namespace ExMat.VM
                             // İçinde ismin aranacağı obje ( tablo veya sınıf gibi )
                             ExObject lookUp = GetTargetInStack(instruction.arg2);
                             // 'lookUp' objesi 'name' in taşıdığı isimli bir değere sahipse 'TempRegistery' içine yükler
-                            if (!Getter(ref lookUp, ref name, ref TempRegistery, false, (ExFallback)instruction.arg2))
+                            if (!Getter(lookUp, name, ref TempRegistery, false, (ExFallback)instruction.arg2))
                             {
                                 AddToErrorMessage("unknown method or field '" + name.GetString() + "'");
                                 return FixStackAfterError();
@@ -2064,9 +2065,7 @@ namespace ExMat.VM
                         }
                     case OPC.GET:
                         {
-                            ExObject s1 = new(GetTargetInStack(instruction.arg1));
-                            ExObject s2 = new(GetTargetInStack(instruction.arg2));
-                            if (!Getter(ref s1, ref s2, ref TempRegistery, false, (ExFallback)instruction.arg1))
+                            if (!Getter(new(GetTargetInStack(instruction.arg1)), new(GetTargetInStack(instruction.arg2)), ref TempRegistery, false, (ExFallback)instruction.arg1))
                             {
                                 return FixStackAfterError();
                             }
@@ -2075,12 +2074,9 @@ namespace ExMat.VM
                         }
                     case OPC.GETK:
                         {
-                            ExObject tmp = GetTargetInStack(instruction.arg2);
-                            ExObject lit = CallInfo.Value.Literals[(int)instruction.arg1];
-
-                            if (!Getter(ref tmp, ref lit, ref TempRegistery, false, (ExFallback)instruction.arg2))
+                            if (!Getter(GetTargetInStack(instruction.arg2), CallInfo.Value.Literals[(int)instruction.arg1], ref TempRegistery, false, (ExFallback)instruction.arg2))
                             {
-                                AddToErrorMessage("unknown variable '" + lit.GetString() + "'"); // access to local var decl before
+                                AddToErrorMessage("unknown variable '" + CallInfo.Value.Literals[(int)instruction.arg1].GetString() + "'"); // access to local var decl before
                                 return FixStackAfterError();
                             }
                             SwapObjects(GetTargetInStack(instruction), TempRegistery);
@@ -2279,7 +2275,7 @@ namespace ExMat.VM
                                         throw new Exception("unknown array append method");
                                     }
                             }
-                            GetTargetInStack(instruction.arg0).Value.l_List.Add(val);
+                            GetTargetInStack(instruction.arg0).GetList().Add(val);
                             continue;
                         }
                     case OPC.TRANSPOSE:
@@ -2298,7 +2294,7 @@ namespace ExMat.VM
 
                             ExObject s1 = new(GetTargetInStack(instruction.arg1));
                             ExObject s2 = new(GetTargetInStack(instruction.arg2));
-                            if (!DoDerefInc(OPC.ADD, GetTargetInStack(instruction), ref s1, ref s2, ref ob, instruction.op == OPC.PINC, (ExFallback)instruction.arg1))
+                            if (!DoDerefInc(OPC.ADD, GetTargetInStack(instruction), ref s1, ref s2, ob, instruction.op == OPC.PINC, (ExFallback)instruction.arg1))
                             {
                                 return FixStackAfterError();
                             }
@@ -2329,7 +2325,7 @@ namespace ExMat.VM
                                 {
                                     ExObject targ = new(GetTargetInStack(instruction));
                                     ExObject val = new(GetTargetInStack(instruction.arg1));
-                                    if (!DoVarInc(OPC.ADD, ref targ, ref val, ref ob))
+                                    if (!DoVarInc(OPC.ADD, ref targ, ref val, ob))
                                     {
                                         return FixStackAfterError();
                                     }
@@ -2339,9 +2335,7 @@ namespace ExMat.VM
                         }
                     case OPC.EXISTS:
                         {
-                            ExObject s1 = new(GetTargetInStack(instruction.arg1));
-                            ExObject s2 = new(GetTargetInStack(instruction.arg2));
-                            bool b = Getter(ref s1, ref s2, ref TempRegistery, true, ExFallback.DONT, true);
+                            bool b = Getter(new(GetTargetInStack(instruction.arg1)), new(GetTargetInStack(instruction.arg2)), ref TempRegistery, true, ExFallback.DONT, true);
 
                             GetTargetInStack(instruction).Assign(instruction.arg3 == 0 ? b : !b);
 
@@ -2427,7 +2421,7 @@ namespace ExMat.VM
                             ExObject s2 = GetTargetInStack(instruction.arg2);
                             ExObject s1v = GetTargetInStack(instruction.arg1 & 0x0000FFFF);
 
-                            if (!DoDerefInc((OPC)instruction.arg3, GetTargetInStack(instruction), ref si, ref s2, ref s1v, false, (ExFallback)idx))
+                            if (!DoDerefInc((OPC)instruction.arg3, GetTargetInStack(instruction), ref si, ref s2, s1v, false, (ExFallback)idx))
                             {
                                 return FixStackAfterError();
                             }
@@ -2685,12 +2679,12 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoDerefInc(OPC op, ExObject t, ref ExObject self, ref ExObject k, ref ExObject inc, bool post, ExFallback idx)
+        public bool DoDerefInc(OPC op, ExObject t, ref ExObject self, ref ExObject k, ExObject inc, bool post, ExFallback idx)
         {
             ExObject tmp = new();
             ExObject tmpk = k;
             ExObject tmps = self;
-            if (!Getter(ref self, ref tmpk, ref tmp, false, idx))
+            if (!Getter(self, tmpk, ref tmp, false, idx))
             {
                 return false;
             }
@@ -2711,7 +2705,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoVarInc(OPC op, ref ExObject t, ref ExObject o, ref ExObject diff)
+        public bool DoVarInc(OPC op, ref ExObject t, ref ExObject o, ExObject diff)
         {
             ExObject res = new();
             if (!DoArithmeticOP(op, o, diff, ref res))
@@ -3177,10 +3171,10 @@ namespace ExMat.VM
                     double total = 0;
                     for (int k = 0; k < cA; k++)
                     {
-                        total += row[k].GetFloat() * B[k].Value.l_List[j].GetFloat();
+                        total += row[k].GetFloat() * B[k].GetList()[j].GetFloat();
                     }
 
-                    r[i].Value.l_List.Add(new(total));
+                    r[i].GetList().Add(new(total));
                 }
 
             }
@@ -3214,10 +3208,10 @@ namespace ExMat.VM
 
             for (int i = 0; i < ac; i++)
             {
-                ExObject ar = a.Value.l_List[i];
+                ExObject ar = a.GetList()[i];
                 for (int j = 0; j < bc; j++)
                 {
-                    r.Add(new(new List<ExObject>(2) { new(ar), new(b.Value.l_List[j]) }));
+                    r.Add(new(new List<ExObject>(2) { new(ar), new(b.GetList()[j]) }));
                 }
             }
             res = new(r);
@@ -3496,20 +3490,20 @@ namespace ExMat.VM
                         break;
                     case ExObjType.ARRAY:
                         {
-                            if (x.Value.l_List.Count != y.Value.l_List.Count)
+                            if (x.GetList().Count != y.GetList().Count)
                             {
                                 res = false;
                                 break;
                             }
                             res = true;
-                            for (int i = 0; i < x.Value.l_List.Count; i++)
+                            for (int i = 0; i < x.GetList().Count; i++)
                             {
-                                ExObject r = x.Value.l_List[i];
+                                ExObject r = x.GetList()[i];
                                 if (!res)
                                 {
                                     break;
                                 }
-                                if (!CheckEqual(r, y.Value.l_List[i], ref res))
+                                if (!CheckEqual(r, y.GetList()[i], ref res))
                                 {
                                     return false;
                                 }
@@ -3581,26 +3575,26 @@ namespace ExMat.VM
                     {
                         if (k.IsNumeric())
                         {
-                            if (self.Value.l_List == null)
+                            if (self.GetList() == null)
                             {
                                 AddToErrorMessage("attempted to access null array");
                                 return false;
                             }
 
                             int n = (int)k.GetInt();
-                            int l = self.Value.l_List.Count;
+                            int l = self.GetList().Count;
                             if (Math.Abs(n) < l)
                             {
                                 if (n < 0)
                                 {
                                     n = l + n;
                                 }
-                                self.Value.l_List[n].Assign(v);
+                                self.GetList()[n].Assign(v);
                                 return true;
                             }
                             else
                             {
-                                AddToErrorMessage("array index error: count " + self.Value.l_List.Count + " idx: " + k.GetInt());
+                                AddToErrorMessage("array index error: count " + self.GetList().Count + " idx: " + k.GetInt());
                                 return false;
                             }
                         }
@@ -3847,7 +3841,7 @@ namespace ExMat.VM
             }
             return ExFallback.NOMATCH;
         }
-        public bool Getter(ref ExObject self, ref ExObject k, ref ExObject dest, bool raw, ExFallback f, bool bExists = false)
+        public bool Getter(ExObject self, ExObject k, ref ExObject dest, bool raw, ExFallback f, bool bExists = false)
         {
             switch (self.Type)
             {
@@ -3869,7 +3863,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (self.Value.l_List == null)
+                        if (self.GetList() == null)
                         {
                             AddToErrorMessage("attempted to access null array");
                             return false;
@@ -3877,21 +3871,21 @@ namespace ExMat.VM
 
                         if (k.IsNumeric() && !bExists)
                         {
-                            if (!bExists && self.Value.l_List.Count != 0 && self.Value.l_List.Count > k.GetInt())
+                            if (!bExists && self.GetList().Count != 0 && self.GetList().Count > k.GetInt())
                             {
-                                dest.Assign(new ExObject(self.Value.l_List[(int)k.GetInt()]));
+                                dest.Assign(new ExObject(self.GetList()[(int)k.GetInt()]));
                                 return true;
                             }
                             else
                             {
                                 if (!bExists)
                                 {
-                                    AddToErrorMessage("array index error: count " + self.Value.l_List.Count + ", idx: " + k.GetInt());
+                                    AddToErrorMessage("array index error: count " + self.GetList().Count + ", idx: " + k.GetInt());
                                 }
                                 else
                                 {
                                     bool found = false;
-                                    foreach (ExObject o in self.Value.l_List)
+                                    foreach (ExObject o in self.GetList())
                                     {
                                         CheckEqual(o, k, ref found);
                                         if (found)
@@ -3906,7 +3900,7 @@ namespace ExMat.VM
                         else if (bExists)
                         {
                             bool found = false;
-                            foreach (ExObject o in self.Value.l_List)
+                            foreach (ExObject o in self.GetList())
                             {
                                 CheckEqual(o, k, ref found);
                                 if (found)
@@ -4012,7 +4006,7 @@ namespace ExMat.VM
 
                             List<ExObject> lis = k.Type != ExObjType.ARRAY
                                     ? new() { k }
-                                    : k.Value.l_List;
+                                    : k.GetList();
 
                             if (!DoClusterParamChecks(self.Value._Closure, lis))
                             {
