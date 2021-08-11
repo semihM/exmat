@@ -241,6 +241,7 @@ class Vector3D
 
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
     }
+
 }
 
 class Vector
@@ -310,8 +311,7 @@ class Vector
     {
         ::assert(vec instanceof Vector, "expected 'Vector' type for '**' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '**' of 'Vector'")
-        var i = 0
-        return parse(Vector, map($(x) vec.vals[i++] ** x, this.vals));
+        return parse(Vector, map($(x,i) vec.vals[i] ** x, this.vals, range(vec.vals.len())));
     }
 
     function _STRING()
@@ -342,6 +342,20 @@ class Vector
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for 'Vector.AngleBetween'")
 
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
+    }
+
+    function DistanceBetween(vec)
+    {
+        ::assert(typeof vec is typeof Vector, "expected 'Vector' type for 'DistanceBetween' of 'Vector'")
+        ::assert(this.vals.len() == vec.vals.len(),"expected same size vector for 'Vector.DistanceBetween'")
+
+        return parse(sum, map($(x,y) (x-y)**2 , this.vals, vec.vals))**0.5
+    }
+
+    function UnitVector()
+    {
+        var length = float(Length());
+        return parse(Vector, map($(x) x/length, this.vals));
     }
 }
 
