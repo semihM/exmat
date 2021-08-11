@@ -66,6 +66,13 @@ namespace ExMat.BaseLib
             return e;
         }
 
+        public static ExFunctionStatus IoClear(ExVM vm, int nargs)
+        {
+            Console.Clear();
+            vm.Pop(nargs + 2);
+            return ExFunctionStatus.VOID;
+        }
+
         public static ExFunctionStatus IoWritefile(ExVM vm, int nargs)
         {
             string i = vm.GetArgument(1).GetString();
@@ -478,6 +485,19 @@ namespace ExMat.BaseLib
                         }
                         break;
                     }
+                case "net":
+                    {
+                        if (nargs == 2)
+                        {
+                            ExAPI.PushRootTable(vm);
+                            ExAPI.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname);
+                        }
+                        else if (!ExStdNet.RegisterStdNet(vm))
+                        {
+                            return vm.AddToErrorMessage("something went wrong...");
+                        }
+                        break;
+                    }
             }
             return 0;
         }
@@ -504,8 +524,17 @@ namespace ExMat.BaseLib
             return vm.AddToErrorMessage("couldn't find a native function named '" + fname + "', try 'reload_base' function");
         }
 
+        public static List<ExRegFunc> IOFuncs => _stdiofuncs;
+
         private static readonly List<ExRegFunc> _stdiofuncs = new()
         {
+            new()
+            {
+                Name = "clear",
+                Function = IoClear,
+                nParameterChecks = 1,
+                ParameterMask = "."
+            },
             new()
             {
                 Name = "read_bytes",
@@ -713,7 +742,6 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, new ExObject(input));
         }
 
-        public static List<ExRegFunc> IOFuncs => _stdiofuncs;
 
         public static bool RegisterStdIO(ExVM vm)
         {

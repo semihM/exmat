@@ -382,4 +382,20 @@ namespace ExMat
         /// </summary>
         RUNTIME
     }
+
+    public enum ExInteractiveConsoleFlag
+    {
+        /// <summary>
+        /// User input was empty
+        /// </summary>
+        EMPTYINPUT = 1 << 0,
+        /// <summary>
+        /// Multi-line code state
+        /// </summary>
+        LINECARRY = 1 << 1,
+        /// <summary>
+        /// Prevented CTRL+C or CTRL+BREAK
+        /// </summary>
+        CANCELEVENT = 1 << 2
+    }
 }

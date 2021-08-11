@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Numerics;
 using System.Text;
 using ExMat.API;
@@ -26,6 +27,12 @@ namespace ExMat.VM
         /// Time when the virtual machine was first initialized
         /// </summary>
         public readonly DateTime StartingTime = DateTime.Now;
+
+        /// <summary>
+        /// Stores the starting directory
+        /// </summary>
+        public readonly string StartDirectory = Directory.GetCurrentDirectory();
+
         /// <summary>
         /// Shared state model to access some of compilation time variables
         /// </summary>
