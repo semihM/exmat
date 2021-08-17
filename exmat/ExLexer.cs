@@ -466,6 +466,7 @@ namespace ExMat.Lexer
         private TokenType ReadMacroBlock()
         {
             MacroBlock = new();
+            StringBuilder mtag = new();
             while (true)
             {
                 while (CurrentChar != ExMat.EndChar && CurrentChar != '#')
@@ -476,7 +477,7 @@ namespace ExMat.Lexer
 
                 if (CurrentChar == '#')
                 {
-                    StringBuilder mtag = new();
+                    mtag.Clear();
                     NextChar();
 
                     string pname = string.Empty;

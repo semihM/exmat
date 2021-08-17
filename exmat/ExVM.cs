@@ -111,6 +111,97 @@ namespace ExMat.VM
             ExBaseLib.RegisterStdBase(this);
         }
 
+        public string GetSimpleString(ExObject obj)
+        {
+            switch (obj.Type)
+            {
+                case ExObjType.COMPLEX:
+                    {
+                        return obj.GetComplexString();
+                    }
+                case ExObjType.INTEGER:
+                    {
+                        return obj.GetInt().ToString();
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        double r = obj.GetFloat();
+                        if (r % 1 == 0.0)
+                        {
+                            if (r < 1e+14)
+                            {
+                                return obj.GetFloat().ToString();
+                            }
+                            else
+                            {
+                                return obj.GetFloat().ToString("E14");
+                            }
+                        }
+                        else if (r >= (double)1e-14)
+                        {
+                            return obj.GetFloat().ToString("0.00000000000000");
+                        }
+                        else if (r < 1e+14)
+                        {
+                            return obj.GetFloat().ToString();
+                        }
+                        else
+                        {
+                            return obj.GetFloat().ToString("E14");
+                        }
+                    }
+                case ExObjType.STRING:
+                    {
+                        return obj.GetString();
+                    }
+                case ExObjType.BOOL:
+                    {
+                        return obj.Value.b_Bool ? "true" : "false";
+                    }
+                case ExObjType.NULL:
+                    {
+                        return obj.Value.s_String ?? "null";
+                    }
+                case ExObjType.ARRAY:
+                    {
+                        return "ARRAY";
+                    }
+                case ExObjType.DICT:
+                    {
+                        return "DICTIONARY";
+                    }
+                case ExObjType.NATIVECLOSURE:
+                case ExObjType.CLOSURE:
+                    {
+                        return "FUNCTION";
+                    }
+                case ExObjType.SPACE:
+                    {
+                        return obj.Value.c_Space.GetSpaceString();
+                    }
+                default:
+                    {
+                        if (obj.IsDelegable())
+                        {
+                            ExObject c = new();
+                            ExObject res = new();
+                            if (obj.GetInstance().GetMetaM(this, ExMetaM.STRING, ref c))
+                            {
+                                if (CallMeta(ref c, ExMetaM.STRING, 1, ref res))
+                                {
+                                    return res.GetString();
+                                }
+                                else
+                                {
+                                    return string.Empty;
+                                }
+                            }
+                        }
+                        return obj.Type.ToString();
+                    }
+            }
+        }
+
         public bool ToString(ExObject obj,
                              ref ExObject res,
                              int maxdepth = 2,
@@ -715,6 +806,12 @@ namespace ExMat.VM
         }
 
         public ExFunctionStatus CleanReturn(long n, List<ExObject> o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public ExFunctionStatus CleanReturn(long n, Dictionary<string, ExObject> o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
@@ -2436,7 +2533,26 @@ namespace ExMat.VM
                         }
                     case OPC.TYPEOF:
                         {
-                            GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg1).Type.ToString());
+                            ExObject obj = GetTargetInStack(instruction.arg1);
+                            ExObject res = new();
+                            if (obj.Type == ExObjType.INSTANCE && obj.GetInstance().GetMetaM(this, ExMetaM.TYPEOF, ref res))
+                            {
+                                ExObject r = new();
+                                Push(obj);
+                                if (!CallMeta(ref res, ExMetaM.TYPEOF, 1, ref r))
+                                {
+                                    AddToErrorMessage("'typeof' failed for the instance");
+                                    return FixStackAfterError();
+                                }
+                                else
+                                {
+                                    GetTargetInStack(instruction).Assign(GetSimpleString(r));
+                                }
+                            }
+                            else
+                            {
+                                GetTargetInStack(instruction).Assign(obj.Type.ToString());
+                            }
                             continue;
                         }
                     case OPC.INSTANCEOF:
@@ -3265,7 +3381,7 @@ namespace ExMat.VM
                         if (!InnerDoArithmeticOPFloat(op, a.GetFloat(), b.GetFloat(), ref res))
                         {
                             return false;
-                        };
+                        }
                         break;
                     }
                 case (int)ArithmeticMask.FLOATCOMPLEX:

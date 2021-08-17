@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using ExMat.API;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -60,14 +61,14 @@ namespace ExMat.BaseLib
             }
 
             int n = lis != null ? lis.Count : 0;
-            string res = string.Empty;
+            StringBuilder res = new();
 
             for (int i = 0; i < n; i++)
             {
                 ExObject str = new();
                 if (vm.ToString(lis[i], ref str, depth))
                 {
-                    res += str.GetString();
+                    res.Append(str.GetString());
                 }
                 else
                 {
@@ -75,11 +76,11 @@ namespace ExMat.BaseLib
                 }
                 if (i != n - 1)
                 {
-                    res += s;
+                    res.Append(s);
                 }
             }
 
-            return vm.CleanReturn(nargs + 2, res);
+            return vm.CleanReturn(nargs + 2, res.ToString());
         }
 
         public static void ReplaceMacroParams(ExMacro m, List<ExObject> args)
@@ -132,7 +133,7 @@ namespace ExMat.BaseLib
             }
             catch
             {
-                return vm.AddToErrorMessage("not enough arguments given for format string"); ;
+                return vm.AddToErrorMessage("not enough arguments given for format string");
             }
         }
 

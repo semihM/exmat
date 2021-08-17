@@ -11,12 +11,12 @@ namespace ExMat.BaseLib
 {
     public class ExStdNet
     {
-        private readonly static Dictionary<string, string> SearchEngines = new()
+        private static readonly Dictionary<string, string> SearchEngines = new()
         {
             { "Wiki", "https://www.googleapis.com/customsearch/v1/siterestrict?cx=21b0943ef3404ce56" }
         };
 
-        private readonly static Dictionary<string, string> APIFiles = new()
+        private static readonly Dictionary<string, string> APIFiles = new()
         {
             { "Wiki", "wiki_api.txt" }
         };
@@ -32,9 +32,10 @@ namespace ExMat.BaseLib
 
         private static dynamic CreateWebRequest(string link)
         {
-            var request = WebRequest.Create(link);
+            WebRequest request = WebRequest.Create(link);
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-            string responseText = new StreamReader(response.GetResponseStream()).ReadToEnd();
+            using StreamReader str = new(response.GetResponseStream());
+            string responseText = str.ReadToEnd();
             return JsonConvert.DeserializeObject(responseText);
         }
 
@@ -49,14 +50,14 @@ namespace ExMat.BaseLib
     3. Write your api key into '" + APIFiles["Wiki"] + @"'
 
     - You can use the following code to create the file(replace APIKEY with your key):
-        write_text(""" + string.Format("{0}/{1}",vm.StartDirectory.Replace("\\","/"), APIFiles["Wiki"]) + @""", ""APIKEY"");");
+        write_text(""" + string.Format("{0}/{1}", vm.StartDirectory.Replace("\\", "/"), APIFiles["Wiki"]) + @""", ""APIKEY"");");
             }
 
             List<ExObject> Results = new();
 
             string query = vm.GetArgument(1).GetString().Trim();
 
-            if(string.IsNullOrWhiteSpace(query))
+            if (string.IsNullOrWhiteSpace(query))
             {
                 return vm.CleanReturn(nargs + 2, Results);
             }
@@ -69,21 +70,21 @@ namespace ExMat.BaseLib
 
                 if (deserializedResponse.items != null)
                 {
-                    foreach (var item in deserializedResponse.items)
+                    foreach (dynamic item in deserializedResponse.items)
                     {
-                        Results.Add( new(
-                            new List<ExObject>() 
-                            { 
+                        Results.Add(new(
+                            new List<ExObject>()
+                            {
                                 new(item.link.ToString()),
                                 new(item.title.ToString()),
-                                new(item.snippet.ToString()) 
+                                new(item.snippet.ToString())
                             })
                         );
                     }
                 }
                 return vm.CleanReturn(nargs + 2, Results);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return vm.AddToErrorMessage("WIKI SEARCH ERROR: " + e.Message);
             }
