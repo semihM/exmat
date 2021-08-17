@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.VM;
@@ -144,12 +145,17 @@ namespace ExMat
             Console.ResetColor();
         }
 
-        // TO-DO Window size change brakes this
         /// <summary>
-        /// Reads user input, cleans it up, sets console flags
+        /// Time in ms to delay output so CTRL+C doesn't mess up
         /// </summary>
-        /// <returns>Cleaned user input</returns>
-        private static string GetInput()
+        private static readonly int CANCELKEY_THREAD_TIMER = 50;
+
+        /// <summary>
+        /// Title of the interactive console
+        /// </summary>
+        private static readonly string ConsoleTitle = "[] ExMat Interactive";
+
+        protected static string ReadInputByKey()
         {
             StringBuilder input = new();
             bool reading = true;
@@ -169,9 +175,9 @@ namespace ExMat
                     top = Console.CursorTop,
                     buffer = Console.BufferWidth;
 
-                if(Console.WindowWidth != first_width)
+                if (Console.WindowWidth != first_width)
                 {
-                    if(string.IsNullOrEmpty(input.ToString()))
+                    if (string.IsNullOrEmpty(input.ToString()))
                     {
                         in_line = Console.CursorTop;
                     }
@@ -196,20 +202,20 @@ namespace ExMat
                             break;
                         }
                     case '\x08':
-                       {
-                            if(input.Length > 0)
+                        {
+                            if (input.Length > 0)
                             {
-                                if(left == 0)
+                                if (left == 0)
                                 {
-                                    if (top > in_line )
+                                    if (top > in_line)
                                     {
                                         Console.SetCursorPosition(buffer - 1, top - 1);
                                         Console.Write(" ");
                                         Console.SetCursorPosition(buffer - 1, top - 1);
                                     }
                                 }
-                                else if (left == buffer - 1 
-                                    && input.Length > 1 
+                                else if (left == buffer - 1
+                                    && input.Length > 1
                                     && (prefixlen + input.Length) == buffer)
                                 {
                                     Console.Write(string.Format("\x08{0} \x08", input[^2].ToString()));
@@ -223,7 +229,7 @@ namespace ExMat
                                 int diff = top != in_line ?
                                     (top - in_line - 1) * buffer + (buffer - prefixlen) + left - 1
                                     : left - prefixlen - 1;
-                               
+
                                 input.Remove(diff, 1);
 
                                 Console.Write(input.ToString()[diff..input.Length]);
@@ -251,20 +257,20 @@ namespace ExMat
                         }
                     case '\0':
                         {
-                            switch(press.Key)
+                            switch (press.Key)
                             {
                                 case ConsoleKey.LeftArrow:
                                     {
-                                        if(top == in_line )    // First line
+                                        if (top == in_line)    // First line
                                         {
-                                            if(left > prefixlen) // Between IN and code
+                                            if (left > prefixlen) // Between IN and code
                                             {
                                                 Console.SetCursorPosition(left - 1, top);
                                             }
                                         }
                                         else // Multiline
                                         {
-                                            if(left == 0) // At start, go up
+                                            if (left == 0) // At start, go up
                                             {
                                                 Console.SetCursorPosition(buffer - 1, top - 1);
                                             }
@@ -277,11 +283,11 @@ namespace ExMat
                                     }
                                 case ConsoleKey.RightArrow:
                                     {
-                                        if (top == in_line ) // First line
+                                        if (top == in_line) // First line
                                         {
-                                            if(left == buffer - 1) // At end
+                                            if (left == buffer - 1) // At end
                                             {
-                                                if(input.Length + prefixlen > buffer) // Go down if code long enough
+                                                if (input.Length + prefixlen > buffer) // Go down if code long enough
                                                 {
                                                     Console.SetCursorPosition(0, top + 1);
                                                 }
@@ -293,8 +299,8 @@ namespace ExMat
                                         }
                                         else // Multiline
                                         {
-                                            int charsinrow = input.Length - (buffer - prefixlen + (top-in_line -1) * buffer);
-                                            if(charsinrow < buffer) // last or first row
+                                            int charsinrow = input.Length - (buffer - prefixlen + (top - in_line - 1) * buffer);
+                                            if (charsinrow < buffer) // last or first row
                                             {
                                                 if (left < charsinrow) // Long enough, go right
                                                 {
@@ -320,19 +326,19 @@ namespace ExMat
                         }
                     default:
                         {
-                            if(char.IsLetterOrDigit(key) 
-                                || char.IsSymbol(key) 
+                            if (char.IsLetterOrDigit(key)
+                                || char.IsSymbol(key)
                                 || char.IsPunctuation(key)
                                  || char.IsSeparator(key))
                             {
-                                int diff = (top == in_line) 
-                                    ? left - prefixlen 
-                                    : left - prefixlen + buffer + (( top - in_line - 1) * buffer);
+                                int diff = (top == in_line)
+                                    ? left - prefixlen
+                                    : left - prefixlen + buffer + ((top - in_line - 1) * buffer);
                                 if (diff == input.Length)    // Appending
                                 {
                                     Console.Write(key);
                                     input.Append(key);
-                                    if(buffer - left == 1)
+                                    if (buffer - left == 1)
                                     {
                                         Console.SetCursorPosition(0, top + 1);
                                     }
@@ -341,7 +347,7 @@ namespace ExMat
                                 {
                                     Console.Write(key);
                                     Console.Write(input.ToString()[diff..input.Length]);
-                                    if(left + 1 == buffer)
+                                    if (left + 1 == buffer)
                                     {
                                         Console.SetCursorPosition(0, top + 1);
                                     }
@@ -357,8 +363,22 @@ namespace ExMat
                 }
             }
 
-            string code = input.ToString();
+            return input.ToString();
+        }
 
+        // TO-DO Window size change brakes this
+        /// <summary>
+        /// Reads user input, cleans it up, sets console flags
+        /// </summary>
+        /// <returns>Cleaned user input</returns>
+        private static string GetInput()
+        {
+#if DEBUG
+            //string code = ReadInputByKey();
+            string code = Console.ReadLine();
+#else  
+            string code = Console.ReadLine();
+#endif
             if (string.IsNullOrWhiteSpace(code))
             {
                 SetFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
@@ -397,7 +417,7 @@ namespace ExMat
         /// <param name="flag">Flag to set</param>
         protected static void SetFlag(ExInteractiveConsoleFlag flag)
         {
-            InteractiveConsoleFlags |= (int)flag; 
+            InteractiveConsoleFlags |= (int)flag;
         }
 
         /// <summary>
@@ -454,7 +474,18 @@ namespace ExMat
 
         private static void Indent(int n = 1)
         {
-            Console.Write(new string('\t',n));
+            Console.Write(new string('\t', n));
+        }
+
+        private static void ContinueDelayedInput(StringBuilder code)
+        {
+            Thread.Sleep(CANCELKEY_THREAD_TIMER);
+            while (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
+            {
+                RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
+                code.Append(GetInput());
+                Thread.Sleep(CANCELKEY_THREAD_TIMER);
+            }
         }
 
         /// <summary>
@@ -504,9 +535,8 @@ namespace ExMat
             ///////////
             // Event handlers
             AddCancelEventHandler();
-            // Title
-            Console.Title = "[] ExMat Interactive";
-            // Version info
+            // Title, Version info
+            Console.Title = ConsoleTitle;
             Console.ResetColor();
             WriteVersion(vm);
             ///////////
@@ -516,11 +546,7 @@ namespace ExMat
                 if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı kod oku
                 {
                     code.Append(GetInput());
-                    while (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
-                    {
-                        RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
-                        code.Append(GetInput());
-                    }
+                    ContinueDelayedInput(code);
                 }
                 else
                 {
@@ -531,18 +557,17 @@ namespace ExMat
                         ///////////
                     }
 
-                    code = new(GetInput());     // Kod dizisini oku
-                    while(HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
-                    {
-                        RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
-                        code.Append(GetInput());
-                    }
+                    code = new(GetInput());
+                    ContinueDelayedInput(code);
+
                     // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
                     if (vm.GotUserInput && HasFlag(ExInteractiveConsoleFlag.EMPTYINPUT))
                     {
                         RemoveFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
                         vm.GotUserInput = false;
+
                         code = new(GetInput());
+                        ContinueDelayedInput(code);
                     }
                 }
 
@@ -552,6 +577,8 @@ namespace ExMat
                     code.Append("\r\n");
                     continue;
                 }
+
+                ContinueDelayedInput(code);
 
                 ///////////
                 WriteOut(count++);    // Çıktı numarası yaz

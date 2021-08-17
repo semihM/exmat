@@ -174,7 +174,7 @@ namespace ExMat.BaseLib
 
             int idx;
             return vm.CleanReturn(nargs + 2,
-                                  (a > 0 && a <= PrimeMax && (idx = Primes.BinarySearch(item: (int)a)) >= 0 && idx < PrimeCount) ? Primes[++idx] : NextClosestPrime(a));
+                                  (a > 0 && a <= PrimeMax && (idx = Primes.BinarySearch(item: (int)a)) >= 0 && idx < PrimeCount) ? Primes[idx + 1] : NextClosestPrime(a));
         }
 
         public static ExFunctionStatus MathIsPrime(ExVM vm, int nargs)

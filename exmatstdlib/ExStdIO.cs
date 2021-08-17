@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using ClosedXML.Excel;
+using ExcelDataReader;
 using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
@@ -524,6 +527,98 @@ namespace ExMat.BaseLib
             return vm.AddToErrorMessage("couldn't find a native function named '" + fname + "', try 'reload_base' function");
         }
 
+        private static readonly ExcelReaderConfiguration ExcelReaderConfig = new()
+        {
+            // Gets or sets the encoding to use when the input XLS lacks a CodePage
+            // record, or when the input CSV lacks a BOM and does not parse as UTF8. 
+            // Default: cp1252 (XLS BIFF2-5 and CSV only)
+            FallbackEncoding = Encoding.GetEncoding(1252),
+
+            // Gets or sets the password used to open password protected workbooks.
+            Password = "password",
+
+            // Gets or sets an array of CSV separator candidates. The reader 
+            // autodetects which best fits the input data. Default: , ; TAB | # 
+            // (CSV only)
+            AutodetectSeparators = new char[] { ',', ';', '\t', '|', '#' },
+
+            // Gets or sets a value indicating whether to leave the stream open after
+            // the IExcelDataReader object is disposed. Default: false
+            LeaveOpen = false,
+
+            // Gets or sets a value indicating the number of rows to analyze for
+            // encoding, separator and field count in a CSV. When set, this option
+            // causes the IExcelDataReader.RowCount property to throw an exception.
+            // Default: 0 - analyzes the entire file (CSV only, has no effect on other
+            // formats)
+            AnalyzeInitialCsvRows = 0,
+        };
+
+        public static ExFunctionStatus IoReadExcel(ExVM vm, int nargs)
+        {
+            string path = vm.GetArgument(1).GetString();
+            ExcelReaderConfig.Password = nargs > 1 ? vm.GetArgument(2).GetString() : string.Empty;
+
+            using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read);
+            using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream, ExcelReaderConfig);
+
+            // The result of each spreadsheet is in result.Tables
+            DataSet result = reader.AsDataSet();
+
+            Dictionary<string, ExObject> res = new(result.Tables.Count);
+
+            foreach (DataTable table in result.Tables)
+            {
+                List<ExObject> rows = new(table.Rows.Count);
+                foreach (DataRow row in table.Rows)
+                {
+                    List<ExObject> rowcontent = new(table.Columns.Count);
+                    foreach (DataColumn column in table.Columns)
+                    {
+                        rowcontent.Add(new(row[column].ToString()));
+                    }
+                    rows.Add(new(rowcontent));
+                }
+                res.Add(table.TableName, new(rows));
+            }
+
+            return vm.CleanReturn(nargs + 2, res);
+        }
+
+        public static ExFunctionStatus IoWriteExcel(ExVM vm, int nargs)
+        {
+            string file = vm.GetArgument(1).GetString();
+            string sheet = vm.GetArgument(2).GetString();
+            List<ExObject> rows = vm.GetArgument(3).GetList();
+
+            int rowoffset = nargs > 3 ? (int)vm.GetArgument(4).GetInt() : 0;
+            int coloffset = nargs > 4 ? (int)vm.GetArgument(5).GetInt() : 0;
+            rowoffset = rowoffset < 0 ? 0 : rowoffset;
+            coloffset = coloffset < 0 ? 0 : coloffset;
+
+            using XLWorkbook workbook = File.Exists(file) ? new XLWorkbook(file, new LoadOptions() { }) : new XLWorkbook();
+
+            IXLWorksheet worksheet = workbook.Worksheets.Contains(sheet) ? workbook.Worksheet(sheet) : workbook.Worksheets.Add(sheet);
+
+            for (int i = 1; i <= rows.Count; i++)
+            {
+                switch (rows[i - 1].Type)
+                {
+                    case ExObjType.ARRAY:
+                        {
+                            List<ExObject> row = rows[i - 1].GetList();
+                            for (int j = 1; j <= row.Count; j++)
+                            {
+                                worksheet.Cell(i + rowoffset, j + coloffset).Value = vm.GetSimpleString(row[j - 1]);
+                            }
+                            break;
+                        }
+                }
+            }
+            workbook.SaveAs(file);
+            return vm.CleanReturn(nargs + 2, true);
+        }
+
         public static List<ExRegFunc> IOFuncs => _stdiofuncs;
 
         private static readonly List<ExRegFunc> _stdiofuncs = new()
@@ -534,6 +629,29 @@ namespace ExMat.BaseLib
                 Function = IoClear,
                 nParameterChecks = 1,
                 ParameterMask = "."
+            },
+            new()
+            {
+                Name = "read_excel",
+                Function = IoReadExcel,
+                nParameterChecks = -2,
+                ParameterMask = ".ss",
+                DefaultValues = new()
+                {
+                    { 2, new(string.Empty) }
+                }
+            },
+            new()
+            {
+                Name = "write_excel",
+                Function = IoWriteExcel,
+                nParameterChecks = -4,
+                ParameterMask = ".ssaii",
+                DefaultValues = new()
+                {
+                    { 4, new(0) },
+                    { 5, new(0) }
+                }
             },
             new()
             {
@@ -745,6 +863,9 @@ namespace ExMat.BaseLib
 
         public static bool RegisterStdIO(ExVM vm)
         {
+            // For read_excel
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
             ExAPI.RegisterNativeFunctions(vm, IOFuncs);
 
             return true;

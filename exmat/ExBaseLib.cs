@@ -67,7 +67,7 @@ namespace ExMat.BaseLib
 
         public static ExFunctionStatus StdType(ExVM vm, int nargs)
         {
-            return vm.CleanReturn(nargs + 2, new ExObject(vm.GetArgument(1).Type.ToString())); ;
+            return vm.CleanReturn(nargs + 2, new ExObject(vm.GetArgument(1).Type.ToString()));
         }
 
         public static ExFunctionStatus StdTime(ExVM vm, int nargs)

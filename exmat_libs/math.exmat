@@ -175,42 +175,42 @@ class Vector3D
     // Meta methods
     function _ADD(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '+' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for '+' of 'Vector3D'")
 
         return Vector3D(this.x + vec.x, this.y + vec.y, this.z + vec.z);
     }
 
     function _SUB(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '-' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for '-' of 'Vector3D'")
 
         return Vector3D(this.x - vec.x, this.y - vec.y, this.z - vec.z);
     }
 
     function _MLT(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '*' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for '*' of 'Vector3D'")
 
         return Vector3D(this.x * vec.x, this.y * vec.y, this.z * vec.z);
     }
 
     function _DIV(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '/' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for '/' of 'Vector3D'")
 
         return Vector3D(this.x / vec.x, this.y / vec.y, this.z / vec.z);
     }
 
     function _MOD(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '%' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for '%' of 'Vector3D'")
 
         return Vector3D(this.x % vec.x, this.y % vec.y, this.z % vec.z);
     }
 
     function _EXP(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for '%' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for '%' of 'Vector3D'")
 
         return Vector3D(this.x ** vec.x, this.y ** vec.y, this.z ** vec.z);
     }
@@ -223,24 +223,25 @@ class Vector3D
 
     function Dot(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for 'Dot' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for 'Dot' of 'Vector3D'")
 
         return (this.x * vec.x + this.y * vec.y + this.z * vec.z);
     }
 
     function Cross(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for 'Cross' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for 'Cross' of 'Vector3D'")
 
         return Vector3D(this.y * vec.z - this.z * vec.y, this.z * vec.x - this.x * vec.z, this.x * vec.y - this.y * vec.x);
     }
 
     function AngleBetween(vec)
     {
-        ::assert(vec instanceof Vector3D, "expected 'Vector3D' type for 'AngleBetween' of 'Vector3D'")
+        ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for 'AngleBetween' of 'Vector3D'")
 
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
     }
+
 }
 
 class Vector
@@ -268,7 +269,7 @@ class Vector
     // Meta methods
     function _ADD(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '+' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for '+' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '+' of 'Vector'")
         var i = 0
         return parse(Vector, map($(x) vec.vals[i++] + x, this.vals));
@@ -276,7 +277,7 @@ class Vector
 
     function _SUB(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '-' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for '-' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '-' of 'Vector'")
         var i = 0
         return parse(Vector, map($(x) vec.vals[i++] - x, this.vals));
@@ -284,7 +285,7 @@ class Vector
 
     function _MLT(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '*' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for '*' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '*' of 'Vector'")
         var i = 0
         return parse(Vector, map($(x) vec.vals[i++] * x, this.vals));
@@ -292,7 +293,7 @@ class Vector
 
     function _DIV(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '/' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for '/' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '/' of 'Vector'")
         var i = 0
         return parse(Vector, map($(x) vec.vals[i++] / x, this.vals));
@@ -300,7 +301,7 @@ class Vector
 
     function _MOD(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '%' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for '%' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '%' of 'Vector'")
         var i = 0
         return parse(Vector, map($(x) vec.vals[i++] % x, this.vals));
@@ -308,10 +309,9 @@ class Vector
 
     function _EXP(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for '**' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for '**' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for '**' of 'Vector'")
-        var i = 0
-        return parse(Vector, map($(x) vec.vals[i++] ** x, this.vals));
+        return parse(Vector, map($(x,i) vec.vals[i] ** x, this.vals, range(vec.vals.len())));
     }
 
     function _STRING()
@@ -322,7 +322,7 @@ class Vector
 
     function Dot(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Vector.Dot'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for 'Vector.Dot'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for 'Vector.Dot'")
         var i = 0
         return iter($(prev,curr,idx) prev + curr, map($(x) vec.vals[i++] * x, this.vals), 0);
@@ -330,7 +330,7 @@ class Vector
 
     function Cross(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for 'Cross' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for 'Cross' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for 'Vector.Cross'")
 
         return this.vals.len() == 3 ? Vector(this.vals[1] * vec.vals[2] - this.vals[2] * vec.vals[1], this.vals[2] * vec.vals[0] - this.vals[0] * vec.vals[2], this.vals[0] * vec.vals[1] - this.vals[1] * vec.vals[0]) : null;
@@ -338,10 +338,24 @@ class Vector
 
     function AngleBetween(vec)
     {
-        ::assert(vec instanceof Vector, "expected 'Vector' type for 'AngleBetween' of 'Vector'")
+        ::assert(typeof vec is typeof Vector , "expected 'Vector' type for 'AngleBetween' of 'Vector'")
         ::assert(vec.vals.len() ==  this.vals.len(), "expected same size vector for 'Vector.AngleBetween'")
 
         return acos( this.Dot(vec) / ( this.Length() * vec.Length() ) );
+    }
+
+    function DistanceBetween(vec)
+    {
+        ::assert(typeof vec is typeof Vector, "expected 'Vector' type for 'DistanceBetween' of 'Vector'")
+        ::assert(this.vals.len() == vec.vals.len(),"expected same size vector for 'Vector.DistanceBetween'")
+
+        return parse(sum, map($(x,y) (x-y)**2 , this.vals, vec.vals))**0.5
+    }
+
+    function UnitVector()
+    {
+        var length = float(Length());
+        return parse(Vector, map($(x) x/length, this.vals));
     }
 }
 
@@ -369,3 +383,254 @@ class Formula
         return compile("return " + parse(format,[this.eq].extend(args)))
     }
 }
+
+class Matrix
+{
+    init(m, n, func = null)
+    {
+        ::assert(m in @Z+@,"Row dimension must be a positive integer")
+        ::assert(n in @Z+@,"Column dimension must be a positive integer")
+        row = m;
+        col = n;
+
+        if(func != null)
+        {
+            if(typeof func is "CLOSURE")
+            {
+                ::assert(func.n_minargs <= 2 and func.n_params >= 2, "expected 2 parameter expecting function")
+                vals = matrix(m,n,func)
+            }
+            else if(func in @E'r*c@(m,n))
+                vals = func
+            else
+                vals = matrix(m,n,func)
+            
+        }
+        else
+            vals = matrix(m,n)
+    }
+
+    row = 0;
+    col = 0;
+    vals = matrix(1,1);
+
+    function dim()
+    {
+        return [this.row, this.col]
+    }
+
+    function tofloat()
+    {
+        return Matrix(this.row, this.col, map($(x) map($(y) float(y), x), this.vals))
+    }
+
+    function _ADD(other)
+    {
+        if(typeof other is typeof this)
+        {
+            ::assert(other.dim() == this.dim(), "expected same dimensions for matrix addition")
+
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] + other.vals[i][j]
+            }
+
+            return res
+        }
+        else if(typeof other in [typeof 0, typeof 0.0, typeof 0i])
+        {
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] + other
+            }
+
+            return res
+        }
+        else
+            ::assert(false, "expected numeric value or matrix for addition")
+    }
+
+    function _SUB(other)
+    {
+        if(typeof other is typeof this)
+        {
+            ::assert(other.dim() == this.dim(), "expected same dimensions for matrix substitution")
+
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] - other.vals[i][j]
+            }
+
+            return res
+        }
+        else if(typeof other in [typeof 0, typeof 0.0, typeof 0i])
+        {
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] - other
+            }
+
+            return res
+        }
+        else
+            ::assert(false, "expected numeric value or matrix for substitution")
+    }
+
+    function _MLT(other)
+    {
+        if(typeof other is typeof this)
+        {
+            ::assert(other.dim() == this.dim(), "expected same dimensions for matrix multiplication")
+
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] * other.vals[i][j]
+            }
+
+            return res
+        }
+        else if(typeof other in [typeof 0, typeof 0.0, typeof 0i])
+        {
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] * other
+            }
+
+            return res
+        }
+        else
+            ::assert(false, "expected numeric value or matrix for multiplication")
+    }
+
+    function _DIV(other)
+    {
+        if(typeof other is typeof this)
+        {
+            ::assert(other.dim() == this.dim(), "expected same dimensions for matrix division")
+
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] / other.vals[i][j]
+            }
+
+            return res
+        }
+        else if(typeof other in [typeof 0, typeof 0.0, typeof 0i])
+        {
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] / other
+            }
+
+            return res
+        }
+        else
+            ::assert(false, "expected numeric value or matrix for division")
+    }
+
+    function _MOD(other)
+    {
+        if(typeof other is typeof this)
+        {
+            ::assert(other.dim() == this.dim(), "expected same dimensions for matrix modulo")
+
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] % other.vals[i][j]
+            }
+
+            return res
+        }
+        else if(typeof other in [typeof 0, typeof 0.0, typeof 0i])
+        {
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] % other
+            }
+
+            return res
+        }
+        else
+            ::assert(false, "expected numeric value or matrix for modulo")
+    }
+
+    function _EXP(other)
+    {
+        if(typeof other is typeof this)
+        {
+            ::assert(other.dim() == this.dim(), "expected same dimensions for matrix exponentials")
+
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] ** other.vals[i][j]
+            }
+
+            return res
+        }
+        else if(typeof other in [typeof 0, typeof 0.0, typeof 0i])
+        {
+            var r = this.row
+            var c = this.col
+            var res = Matrix(r,c)
+            for(var i = 0; i < r ; i++)
+            {
+                for(var j = 0; j < c; j++)
+                    res.vals[i][j] = this.vals[i][j] ** other
+            }
+
+            return res
+        }
+        else
+            ::assert(false, "expected numeric value or matrix for exponentials")
+    }
+
+    function _STRING()
+    {
+        return format("Matrix<{0},{1}>\n{2}", row, col, vals)
+    }
+}
+
