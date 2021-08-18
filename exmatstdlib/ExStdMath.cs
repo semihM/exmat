@@ -904,7 +904,7 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (int)Math.Pow(b, i2.GetInt()));
+                                    return vm.CleanReturn(nargs + 2, Math.Pow(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
@@ -912,7 +912,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Pow(b, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Pow(b, i2.GetFloat()));
                                 }
                         }
                     }
@@ -942,7 +942,7 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Pow(b, i2.GetInt()));
+                                    return vm.CleanReturn(nargs + 2, Math.Pow(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
@@ -950,7 +950,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Pow(b, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Pow(b, i2.GetFloat()));
                                 }
                         }
                     }
