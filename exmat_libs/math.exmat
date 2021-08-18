@@ -173,6 +173,11 @@ class Vector3D
     }
 
     // Meta methods
+    function _TYPEOF()
+    {
+        return "EXMAT_VECTOR3D"
+    }
+
     function _ADD(vec)
     {
         ::assert(typeof vec is typeof Vector3D , "expected 'Vector3D' type for '+' of 'Vector3D'")
@@ -267,6 +272,11 @@ class Vector
     }
 
     // Meta methods
+    function _TYPEOF()
+    {
+        return "EXMAT_VECTOR"
+    }
+
     function _ADD(vec)
     {
         ::assert(typeof vec is typeof Vector , "expected 'Vector' type for '+' of 'Vector'")
@@ -370,6 +380,11 @@ class Formula
     eq = ""
     params = []
 
+    function _TYPEOF()
+    {
+        return "EXMAT_FORMULA"
+    }
+
     function _STRING()
     {
         return parse(format,[this.eq].extend(this.params))
@@ -456,6 +471,11 @@ class Matrix
         }
         else
             ::assert(false, "expected numeric value or matrix for addition")
+    }
+
+    function _TYPEOF()
+    {
+        return "EXMAT_MATRIX"
     }
 
     function _SUB(other)
