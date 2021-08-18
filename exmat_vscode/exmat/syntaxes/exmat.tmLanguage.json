@@ -173,7 +173,7 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(root|clean)\\b"
+				"match": "\\b(root|clean|sleep|paint_print|to_base64|from_base64)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
