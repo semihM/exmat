@@ -3400,9 +3400,9 @@ namespace ExMat.BaseLib
         private const string _reloadbase = "reload_base";
         public static string ReloadBaseFunc => _reloadbase;
 
-        private const string __version__ = "ExMat v0.0.2";
+        private const string __version__ = "ExMat v0.0.3";
 
-        private const int __versionnumber__ = 2;
+        private const int __versionnumber__ = 3;
 
         public static bool RegisterStdBase(ExVM vm)
         {
