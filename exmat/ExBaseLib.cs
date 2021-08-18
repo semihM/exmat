@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using ExMat.API;
 using ExMat.Class;
 using ExMat.Closure;
@@ -22,6 +23,34 @@ namespace ExMat.BaseLib
             vm.Pop(nargs + 2);
             ExAPI.PushRootTable(vm);
             return ExFunctionStatus.SUCCESS;
+        }
+
+        public static ExFunctionStatus StdSleep(ExVM vm, int nargs)
+        {
+            ExObject sleep = vm.GetArgument(1);
+            int time = sleep.Type == ExObjType.FLOAT ? (int)sleep.GetFloat() : (int)sleep.GetInt();
+
+            vm.Pop(nargs + 2);
+            if (time >= 0)
+            {
+                Thread.Sleep(time);
+            }
+
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        public static ExFunctionStatus StdToBase64(ExVM vm, int nargs)
+        {
+            string str = vm.GetArgument(1).GetString();
+            Encoding enc = ExAPI.DecideEncodingFromString(nargs > 1 ? vm.GetArgument(2).GetString() : "utf-8");
+            return vm.CleanReturn(nargs + 2, Convert.ToBase64String(enc.GetBytes(str)));
+        }
+
+        public static ExFunctionStatus StdFromBase64(ExVM vm, int nargs)
+        {
+            string str = vm.GetArgument(1).GetString();
+            Encoding enc = ExAPI.DecideEncodingFromString(nargs > 1 ? vm.GetArgument(2).GetString() : "utf-8");
+            return vm.CleanReturn(nargs + 2, enc.GetString(Convert.FromBase64String(str)));
         }
 
         public static ExFunctionStatus StdPrint(ExVM vm, int nargs)
@@ -432,7 +461,7 @@ namespace ExMat.BaseLib
         }
         public static ExFunctionStatus StdBits32(ExVM vm, int nargs)
         {
-            bool reverse = true;
+            bool reverse = false;
             switch (nargs)
             {
                 case 2:
@@ -467,9 +496,9 @@ namespace ExMat.BaseLib
 
                                     List<ExObject> l = new(32);
 
-                                    for (int i = 0; i < 32; i++)
+                                    foreach (int bit in ExAPI.GetBits(b, 32))
                                     {
-                                        l.Add(new((b >> i) % 2));
+                                        l.Add(new(bit));
                                     }
 
                                     if (reverse)
@@ -490,7 +519,7 @@ namespace ExMat.BaseLib
 
         public static ExFunctionStatus StdBits(ExVM vm, int nargs)
         {
-            bool reverse = true;
+            bool reverse = false;
             switch (nargs)
             {
                 case 2:
@@ -517,10 +546,9 @@ namespace ExMat.BaseLib
                             default:
                                 {
                                     List<ExObject> l = new(64);
-
-                                    for (int i = 0; i < 64; i++)
+                                    foreach (int bit in ExAPI.GetBits(b, 64))
                                     {
-                                        l.Add(new((b >> i) % 2));
+                                        l.Add(new(bit));
                                     }
 
                                     if (reverse)
@@ -3005,6 +3033,35 @@ namespace ExMat.BaseLib
             },
             new()
             {
+                Name = "sleep",
+                Function = StdSleep,
+                nParameterChecks = 2,
+                ParameterMask = ".n"
+            },
+            new()
+            {
+                Name = "to_base64",
+                Function = StdToBase64,
+                nParameterChecks = -2,
+                ParameterMask = ".ss",
+                DefaultValues = new()
+                {
+                    { 2, new("utf-8") }
+                }
+            },
+            new()
+            {
+                Name = "from_base64",
+                Function = StdFromBase64,
+                nParameterChecks = -2,
+                ParameterMask = ".ss",
+                DefaultValues = new()
+                {
+                    { 2, new("utf-8") }
+                }
+            },
+            new()
+            {
                 Name = "print",
                 Function = StdPrint,
                 nParameterChecks = -2,
@@ -3343,6 +3400,10 @@ namespace ExMat.BaseLib
         private const string _reloadbase = "reload_base";
         public static string ReloadBaseFunc => _reloadbase;
 
+        private const string __version__ = "ExMat v0.0.2";
+
+        private const int __versionnumber__ = 2;
+
         public static bool RegisterStdBase(ExVM vm)
         {
             // Global tabloyu sanal belleğe ata
@@ -3351,8 +3412,8 @@ namespace ExMat.BaseLib
             ExAPI.RegisterNativeFunctions(vm, BaseFuncs);
 
             // Sabit değerleri tabloya ekle
-            ExAPI.CreateConstantInt(vm, "_versionnumber_", 1);
-            ExAPI.CreateConstantString(vm, "_version_", "ExMat v0.0.1");
+            ExAPI.CreateConstantInt(vm, "_versionnumber_", __versionnumber__);
+            ExAPI.CreateConstantString(vm, "_version_", __version__);
 
             // Kayıtları yaptıktan sonra global tabloyu bellekten kaldır
             vm.Pop(1);
