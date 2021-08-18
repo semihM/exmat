@@ -1,0 +1,147 @@
+class Sheet
+{
+    init(_name = "Empty Sheet", _row = 1, _col = 1, _vals = null, _has_header = false)
+    {
+        this.name = _name
+        this.row = _row > 0 ? _row : 0
+        this.col = _col > 0 ? _col : 0
+        this.vals = _vals ? _vals : matrix(1,1,"")
+        this.has_header = _has_header
+    }
+
+    name = ""
+    row = 0
+    col = 0
+    vals = null
+    has_header = false
+
+    function _TYPEOF()
+    {
+        return "EXMAT_SHEET"
+    }
+
+    function GetColumnIndex(name)
+    {
+        if(!this.has_header)
+            return -1
+        else
+            return this.vals[0].index_of(name)
+    }
+
+    function GetUniqueRowsByColumn(name)
+    {
+        var uniques = []
+        var unique_rows = []
+
+        var i = 0;
+        var col_idx = GetColumnIndex(name)
+
+        if(col_idx == -1)
+            return
+
+        if(this.has_header)
+        {
+            i = 1
+            unique_rows.append(this.vals[0])
+        }
+
+        for(; i < this.row; i++)
+        {
+            if(!(this.vals[i][col_idx] in uniques))
+            {
+                uniques.append(this.vals[i][col_idx])
+                unique_rows.append(this.vals[i])
+            }
+        }
+
+        return Sheet(this.name, unique_rows.len(), this.col, unique_rows, this.has_header)
+    }
+
+    function SaveAs(path, name = null)
+    {
+        return write_excel(path,name ? name : this.name, this.vals)
+    }
+
+    function LoadFrom(path, _has_header = false, sheetname = null)
+    {
+        var file = read_excel(path)
+        var sheet;
+        if(file.len() > 1)
+        {
+            if(!sheetname)
+                ::assert(false, "File has multiple sheets, a sheet name has to be specified")
+            else if (!(sheetname in file.get_keys()))
+                ::assert(false, format("No sheet named '{0}' was found", sheetname))
+            else
+                sheet = file[sheetname]
+        }
+        else
+            sheet = file[(sheetname = file.get_keys()[0])]
+
+        var rows = sheet.len()
+
+        return Sheet(sheetname, rows, rows > 0 ? sheet[0].len() : 0, sheet, _has_header)
+    }
+
+    function AppendSheet(other)
+    {
+        ::assert(typeof other is typeof this, "expected Sheet type to append")
+        ::assert(this.col == other.col, "expected same column dimension for appending")
+
+        return Sheet(this.name, this.row + other.row, this.col, this.vals.extend(other.vals), this.has_header)
+    }
+
+    function GetColumns(cols)
+    {
+        if(!has_header)
+            return
+        
+        if(typeof cols is "STRING")
+            cols = [cols]
+
+        ::assert(typeof cols is "ARRAY", "expected list of column names")
+
+        var result = list(this.row)
+        var colcount = 0;
+
+        for(var i = 0; i < cols.len(); i++)
+        {
+            var cidx = this.GetColumnIndex(cols[i])
+            if(cidx != -1)
+            {
+                colcount++;
+                for(var r = 0; r < this.row; r++)
+                {
+                    if(result[r] == null)
+                        result[r] = [this.vals[r][cidx]]
+                    else
+                        result[r].append(this.vals[r][cidx])
+                }
+            }
+        }
+
+        return Sheet(this.name, this.row, colcount, result, true)
+    }
+
+    function _STRING()
+    {
+        return format("Name: {0}\nDimensions: {1} x {2}\n{3}", this.name, this.row, this.col, this.vals)
+    }
+}
+
+function MergeExcelFilesInDirectory(path)
+{
+    var files = filter($(x) ".xlsx" in x.to_lower(), dir_content(path))
+
+    if(files.len() == 0)
+        return
+    
+    var mainsheet = Sheet.LoadFrom(files[0],true,..)
+
+    for(var i = 1; i < files.len(); i++)
+    {
+        mainsheet = mainsheet.AppendSheet(Sheet.LoadFrom(files[i],true,..))
+    }
+
+    return mainsheet;
+}
