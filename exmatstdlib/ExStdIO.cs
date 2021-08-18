@@ -14,65 +14,31 @@ namespace ExMat.BaseLib
 {
     public static class ExStdIO
     {
-        public static Encoding DecideEncodingFromString(string enc)
-        {
-            Encoding e;
-            if (string.IsNullOrEmpty(enc))
-            {
-                e = Encoding.Default;
-            }
-            else
-            {
-                switch (enc.ToLower())
-                {
-                    case "utf-8":
-                    case "utf8":
-                        {
-                            e = Encoding.UTF8;
-                            break;
-                        }
-                    case "utf32":
-                    case "utf-32":
-                        {
-                            e = Encoding.UTF32;
-                            break;
-                        }
-                    case "latin":
-                    case "latin1":
-                        {
-                            e = Encoding.Latin1;
-                            break;
-                        }
-                    case "be-unicode":
-                        {
-                            e = Encoding.BigEndianUnicode;
-                            break;
-                        }
-                    case "unicode":
-                        {
-                            e = Encoding.Unicode;
-                            break;
-                        }
-                    case "ascii":
-                        {
-                            e = Encoding.ASCII;
-                            break;
-                        }
-                    default:
-                        {
-                            e = Encoding.Default;
-                            break;
-                        }
-                }
-            }
-
-            return e;
-        }
-
         public static ExFunctionStatus IoClear(ExVM vm, int nargs)
         {
             Console.Clear();
             vm.Pop(nargs + 2);
+            return ExFunctionStatus.VOID;
+        }
+
+        public static ExFunctionStatus IoPaint(ExVM vm, int nargs)
+        {
+            string s = vm.GetArgument(1).GetString();
+
+            if (nargs > 2)
+            {
+                Console.ForegroundColor = ExAPI.GetColorFromName(vm.GetArgument(3).GetString(), ConsoleColor.White);
+                Console.BackgroundColor = ExAPI.GetColorFromName(vm.GetArgument(2).GetString());
+            }
+            else if (nargs > 1)
+            {
+                Console.BackgroundColor = ExAPI.GetColorFromName(vm.GetArgument(2).GetString());
+            }
+
+            vm.Print(s);
+
+            Console.ResetColor();
+
             return ExFunctionStatus.VOID;
         }
 
@@ -89,7 +55,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = DecideEncodingFromString(enc);
+            Encoding e = ExAPI.DecideEncodingFromString(enc);
 
             vm.Pop(nargs + 2);
             File.WriteAllText(i, code, e);
@@ -107,7 +73,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = DecideEncodingFromString(enc);
+            Encoding e = ExAPI.DecideEncodingFromString(enc);
 
             int n = lis.Value.l_List.Count;
 
@@ -159,7 +125,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = DecideEncodingFromString(enc);
+            Encoding e = ExAPI.DecideEncodingFromString(enc);
 
             vm.Pop(nargs + 2);
             File.AppendAllText(i, code, e);
@@ -177,7 +143,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = DecideEncodingFromString(enc);
+            Encoding e = ExAPI.DecideEncodingFromString(enc);
 
             int n = lis.Value.l_List.Count;
 
@@ -208,7 +174,7 @@ namespace ExMat.BaseLib
                     enc = vm.GetArgument(2).GetString();
                 }
 
-                Encoding e = DecideEncodingFromString(enc);
+                Encoding e = ExAPI.DecideEncodingFromString(enc);
 
                 return vm.CleanReturn(nargs + 2, File.ReadAllText(f, e));
             }
@@ -233,7 +199,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(2).GetString();
             }
 
-            Encoding e = DecideEncodingFromString(enc);
+            Encoding e = ExAPI.DecideEncodingFromString(enc);
 
             string[] lines = File.ReadAllLines(f, e);
 
@@ -534,9 +500,6 @@ namespace ExMat.BaseLib
             // Default: cp1252 (XLS BIFF2-5 and CSV only)
             FallbackEncoding = Encoding.GetEncoding(1252),
 
-            // Gets or sets the password used to open password protected workbooks.
-            Password = "password",
-
             // Gets or sets an array of CSV separator candidates. The reader 
             // autodetects which best fits the input data. Default: , ; TAB | # 
             // (CSV only)
@@ -629,6 +592,18 @@ namespace ExMat.BaseLib
                 Function = IoClear,
                 nParameterChecks = 1,
                 ParameterMask = "."
+            },
+            new()
+            {
+                Name = "paint_print",
+                Function = IoPaint,
+                nParameterChecks = -2,
+                ParameterMask = ".sss",
+                DefaultValues = new()
+                {
+                    { 2, new("black") },
+                    { 3, new("white") }
+                }
             },
             new()
             {
