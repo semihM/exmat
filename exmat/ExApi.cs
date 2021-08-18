@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using ExMat.Closure;
 using ExMat.Compiler;
 using ExMat.Objects;
@@ -95,6 +97,149 @@ namespace ExMat.API
             }
             vm.CleanReturn(pop, res);
             return true;
+        }
+
+        public static ConsoleColor GetColorFromName(string name, ConsoleColor def = ConsoleColor.Black)
+        {
+            switch (name.Trim().ToLower())
+            {
+                case "black":
+                    {
+                        return ConsoleColor.Black;
+                    }
+                case "white":
+                    {
+                        return ConsoleColor.White;
+                    }
+                case "darkred":
+                    {
+                        return ConsoleColor.DarkRed;
+                    }
+                case "red":
+                    {
+                        return ConsoleColor.Red;
+                    }
+                case "darkgreen":
+                    {
+                        return ConsoleColor.DarkGreen;
+                    }
+                case "green":
+                    {
+                        return ConsoleColor.Green;
+                    }
+                case "darkyellow":
+                    {
+                        return ConsoleColor.DarkYellow;
+                    }
+                case "yellow":
+                    {
+                        return ConsoleColor.Yellow;
+                    }
+                case "darkgrey":
+                case "darkgray":
+                    {
+                        return ConsoleColor.DarkGray;
+                    }
+                case "grey":
+                case "gray":
+                    {
+                        return ConsoleColor.Gray;
+                    }
+                case "darkblue":
+                    {
+                        return ConsoleColor.DarkBlue;
+                    }
+                case "blue":
+                    {
+                        return ConsoleColor.Blue;
+                    }
+                case "darkcyan":
+                    {
+                        return ConsoleColor.DarkCyan;
+                    }
+                case "cyan":
+                    {
+                        return ConsoleColor.Cyan;
+                    }
+                case "darkmagenta":
+                    {
+                        return ConsoleColor.DarkMagenta;
+                    }
+                case "magenta":
+                    {
+                        return ConsoleColor.Magenta;
+                    }
+                default:
+                    {
+                        return def;
+                    }
+            }
+        }
+
+        public static Encoding DecideEncodingFromString(string enc)
+        {
+            Encoding e;
+            if (string.IsNullOrEmpty(enc))
+            {
+                e = Encoding.Default;
+            }
+            else
+            {
+                switch (enc.ToLower())
+                {
+                    case "utf-8":
+                    case "utf8":
+                        {
+                            e = Encoding.UTF8;
+                            break;
+                        }
+                    case "utf32":
+                    case "utf-32":
+                        {
+                            e = Encoding.UTF32;
+                            break;
+                        }
+                    case "latin":
+                    case "latin1":
+                        {
+                            e = Encoding.Latin1;
+                            break;
+                        }
+                    case "be-unicode":
+                        {
+                            e = Encoding.BigEndianUnicode;
+                            break;
+                        }
+                    case "unicode":
+                        {
+                            e = Encoding.Unicode;
+                            break;
+                        }
+                    case "ascii":
+                        {
+                            e = Encoding.ASCII;
+                            break;
+                        }
+                    default:
+                        {
+                            e = Encoding.Default;
+                            break;
+                        }
+                }
+            }
+
+            return e;
+        }
+
+        /// <summary>
+        /// Get bits representation of an integer
+        /// </summary>
+        /// <param name="i">Integer to use</param>
+        /// <param name="bits">Bits to pad to left</param>
+        /// <returns>An array of zero and ones</returns>
+        public static int[] GetBits(long i, int bits)
+        {
+            return Convert.ToString(i, 2).PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
         }
 
         /// <summary>
