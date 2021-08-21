@@ -3028,7 +3028,7 @@ namespace ExMat.BaseLib
             {
                 Name = "root",
                 Function = StdRoot,
-                nParameterChecks = 1,
+                nParameterChecks = -1,
                 ParameterMask = null
             },
             new()
