@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ExMat.Class;
 using ExMat.Closure;
 using ExMat.Compiler;
 using ExMat.Objects;
@@ -97,6 +98,129 @@ namespace ExMat.API
             }
             vm.CleanReturn(pop, res);
             return true;
+        }
+
+        /// <summary>
+        /// Checks equality of given two objects
+        /// </summary>
+        /// <param name="x">First object</param>
+        /// <param name="y">Second object</param>
+        /// <param name="res">Result of equality check</param>
+        /// <returns><see langword="true"/> if no errors occur, otherwise <see langword="false"/></returns>
+        public static bool CheckEqual(ExObject x, ExObject y, ref bool res)
+        {
+            if (x.Type == y.Type)
+            {
+                switch (x.Type)
+                {
+                    case ExObjType.BOOL:
+                        res = x.GetBool() == y.GetBool();
+                        break;
+                    case ExObjType.STRING:
+                        res = x.GetString() == y.GetString();
+                        break;
+                    case ExObjType.COMPLEX:
+                        res = x.GetComplex() == y.GetComplex();
+                        break;
+                    case ExObjType.INTEGER:
+                        res = x.GetInt() == y.GetInt();
+                        break;
+                    case ExObjType.FLOAT:
+                        {
+                            double xv = x.GetFloat();
+                            double yv = y.GetFloat();
+                            if (double.IsNaN(xv))
+                            {
+                                res = double.IsNaN(yv);
+                            }
+                            else if (double.IsNaN(yv))
+                            {
+                                res = double.IsNaN(xv);
+                            }
+                            else
+                            {
+                                res = x.GetFloat() == y.GetFloat();
+                            }
+                        }
+                        break;
+                    case ExObjType.NULL:
+                        res = true;
+                        break;
+                    case ExObjType.NATIVECLOSURE:
+                        CheckEqual(x.GetNClosure().Name, y.GetNClosure().Name, ref res);
+                        break;
+                    case ExObjType.CLOSURE:
+                        CheckEqual(x.GetClosure().Function.Name, y.GetClosure().Function.Name, ref res);
+                        break;
+                    case ExObjType.ARRAY:
+                        {
+                            if (x.GetList().Count != y.GetList().Count)
+                            {
+                                res = false;
+                                break;
+                            }
+                            res = true;
+                            for (int i = 0; i < x.GetList().Count; i++)
+                            {
+                                ExObject r = x.GetList()[i];
+                                if (!res)
+                                {
+                                    break;
+                                }
+                                if (!CheckEqual(r, y.GetList()[i], ref res))
+                                {
+                                    return false;
+                                }
+                            }
+                            break;
+                        }
+                    default:
+                        res = x == y;   // TO-DO
+                        break;
+                }
+            }
+            else
+            {
+                bool bx = x.IsNumeric();
+                bool by = y.IsNumeric();
+                if (by && x.Type == ExObjType.COMPLEX)
+                {
+                    res = x.GetComplex() == y.GetFloat();
+                }
+                else if (bx && y.Type == ExObjType.COMPLEX)
+                {
+                    res = x.GetFloat() == y.GetComplex();
+                }
+                else if (bx && by)
+                {
+                    res = x.GetFloat() == y.GetFloat();
+                }
+                else
+                {
+                    res = false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Checks if given object exists in given list
+        /// </summary>
+        /// <param name="lis">List to iterate over</param>
+        /// <param name="key">Object to match</param>
+        /// <returns><see langword="true"/> if <paramref name="key"/> has an equal object in <paramref name="lis"/>, otherwise <see langword="false"/></returns>
+        public static bool FindInArray(List<ExObject> lis, ExObject key)
+        {
+            bool found = false;
+            foreach (ExObject o in lis)
+            {
+                CheckEqual(o, key, ref found);
+                if (found)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         public static ConsoleColor GetColorFromName(string name, ConsoleColor def = ConsoleColor.Black)
@@ -642,7 +766,7 @@ namespace ExMat.API
             int count = 0;
             for (; i < lis.Count; i++)
             {
-                ExVM.CheckEqual(lis[i], obj, ref f);
+                CheckEqual(lis[i], obj, ref f);
                 if (f)
                 {
                     count++;
@@ -662,13 +786,108 @@ namespace ExMat.API
             for (int i = 0; i < lis.Count; i++)
             {
                 bool f = false;
-                ExVM.CheckEqual(lis[i], obj, ref f);
+                CheckEqual(lis[i], obj, ref f);
                 if (f)
                 {
                     return i;
                 }
             }
             return -1;
+        }
+
+        public static ExGetterStatus GetFunctionAttribute(ExClosure func, string key, ref ExObject dest)
+        {
+            switch (key)
+            {
+                case "vargs":
+                    {
+                        dest = new(func.Function.HasVargs);
+                        return ExGetterStatus.FOUND;
+                    }
+                case "n_params":
+                    {
+                        dest = new(func.Function.nParams - 1);
+                        return ExGetterStatus.FOUND;
+                    }
+                case "n_defparams":
+                    {
+                        dest = new(func.Function.nDefaultParameters);
+                        return ExGetterStatus.FOUND;
+                    }
+                case "n_minargs":
+                    {
+                        dest = new(func.Function.nParams - 1 - func.Function.nDefaultParameters);
+                        return ExGetterStatus.FOUND;
+                    }
+                case "defparams":
+                    {
+                        int ndef = func.Function.nDefaultParameters;
+                        int npar = func.Function.nParams - 1;
+                        int start = npar - ndef;
+                        Dictionary<string, ExObject> dict = new();
+                        foreach (ExObject d in func.DefaultParams)
+                        {
+                            dict.Add((++start).ToString(), d);
+                        }
+                        dest = new(dict);
+                        return ExGetterStatus.FOUND;
+                    }
+                default:
+                    {
+                        ExClass c = func.Base;
+
+                        string mem = func.Function.Name.GetString();
+                        int memid = c.Members[mem].GetMemberID();
+
+                        if (c.Methods[memid].Attributes.GetDict().ContainsKey(key))
+                        {
+                            dest = new ExObject(c.Methods[memid].Attributes.GetDict()[key]);
+                            return ExGetterStatus.FOUND;
+                        }
+
+                        return ExGetterStatus.ERROR;
+                    }
+            }
+        }
+        public static ExGetterStatus GetNativeFunctionAttribute(ExNativeClosure func, string key, ref ExObject dest)
+        {
+            switch (key)
+            {
+                case "vargs":
+                    {
+                        dest = new(func.TypeMasks.Count == 0);
+                        return ExGetterStatus.FOUND;
+                    }
+                case "n_params":
+                    {
+                        dest = new(func.nParameterChecks < 0 ? -func.nParameterChecks : (func.nParameterChecks - 1));
+                        return ExGetterStatus.FOUND;
+                    }
+                case "n_defparams":
+                    {
+                        dest = new(func.DefaultValues.Count);
+                        return ExGetterStatus.FOUND;
+                    }
+                case "n_minargs":
+                    {
+                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks + 1) : (func.nParameterChecks - 1));
+                        return ExGetterStatus.FOUND;
+                    }
+                case "defparams":
+                    {
+                        Dictionary<string, ExObject> dict = new();
+                        foreach (KeyValuePair<int, ExObject> pair in func.DefaultValues)
+                        {
+                            dict.Add(pair.Key.ToString(), new(pair.Value));
+                        }
+                        dest = new(dict);
+                        return ExGetterStatus.FOUND;
+                    }
+                default:
+                    {
+                        return ExGetterStatus.ERROR;
+                    }
+            }
         }
 
         /// <summary>
