@@ -3891,7 +3891,7 @@ namespace ExMat.VM
                 return ExGetterStatus.FOUND;
             }
 
-            if(!isUsingIn)
+            if (!isUsingIn)
             {
                 AddToErrorMessage("key '" + key.GetString() + "' doesn't exist");
             }

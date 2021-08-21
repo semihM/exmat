@@ -836,7 +836,7 @@ namespace ExMat.API
                     {
                         ExClass c = func.Base;
 
-                        if(c != null)
+                        if (c != null)
                         {
                             string mem = func.Function.Name.GetString();
                             int memid = c.Members[mem].GetMemberID();
@@ -863,7 +863,7 @@ namespace ExMat.API
                     }
                 case "n_params":
                     {
-                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks - 1)  : (func.nParameterChecks - 1));
+                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks - 1) : (func.nParameterChecks - 1));
                         return ExGetterStatus.FOUND;
                     }
                 case "n_defparams":
