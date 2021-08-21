@@ -157,7 +157,7 @@
 				},
 				{
 				"name": "entity.name.function.exmat",
-				"match": "\\b(write_excel|read_excel|read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input|open_dir|make_dir)\\b"
+				"match": "\\b(write_excel|read_excel|read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input|raw_key|open_dir|make_dir)\\b"
 				},
 				{
 				"name": "entity.name.function.exmat",
