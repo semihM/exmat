@@ -773,6 +773,19 @@ namespace ExMat.BaseLib
 
             new()
             {
+                Name = "raw_key",
+                Function = IoRawinputkey,
+                nParameterChecks = -1,
+                ParameterMask = ".s.",
+                DefaultValues = new()
+                {
+                    { 1, new("") },
+                    { 2, new(true) }
+                }
+            },
+
+            new()
+            {
                 Name = "file_exists",
                 Function = IoFileexists,
                 nParameterChecks = 2,
@@ -807,6 +820,26 @@ namespace ExMat.BaseLib
         private const string _reloadlibfunc = "reload_func";
         public static string ReloadLibFunc => _reloadlibfunc;
 
+        private static void GetUserInput(ref string res, bool single = false, bool intercept = false)
+        {
+            char ch;
+            if (single)
+            {
+                if (!char.IsControl(ch = Console.ReadKey(intercept).KeyChar))
+                {
+                    res = ch.ToString();
+                    return;
+                }
+            }
+            else
+            {
+                while (!char.IsControl(ch = (char)Console.Read()))
+                {
+                    res += ch.ToString();
+                }
+            }
+        }
+
         public static ExFunctionStatus IoRawinput(ExVM vm, int nargs)
         {
             if (nargs == 1)
@@ -815,26 +848,35 @@ namespace ExMat.BaseLib
             }
 
             string input = string.Empty;
-            char ch;
+            GetUserInput(ref input);
 
-            while (!char.IsControl(ch = (char)Console.Read()))
-            {
-                input += ch;
-            }
-
-            if (vm.GotUserInput)
-            {
-                input = string.Empty;
-                while (!char.IsControl(ch = (char)Console.Read()))
-                {
-                    input += ch;
-                }
-            }
             vm.GotUserInput = true;
+            vm.PrintedToConsole = true;
 
             return vm.CleanReturn(nargs + 2, new ExObject(input));
         }
 
+        public static ExFunctionStatus IoRawinputkey(ExVM vm, int nargs)
+        {
+            bool intercept = true;
+            if (nargs >= 2)
+            {
+                intercept = vm.GetArgument(1).GetBool();
+            }
+
+            if (nargs >= 1)
+            {
+                vm.Print(vm.GetArgument(1).GetString());
+            }
+
+            string input = string.Empty;
+            GetUserInput(ref input, true, intercept);
+
+            vm.GotUserInput = true;
+            vm.PrintedToConsole = true;
+
+            return vm.CleanReturn(nargs + 2, new ExObject(input.ToString()));
+        }
 
         public static bool RegisterStdIO(ExVM vm)
         {

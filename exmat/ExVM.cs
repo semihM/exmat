@@ -202,6 +202,131 @@ namespace ExMat.VM
             }
         }
 
+        public string GetArrayString(List<ExObject> lis, bool beauty = false, bool isdictval = false, int maxdepth = 2, string prefix = "")
+        {
+            if (maxdepth == 0)
+            {
+                return "ARRAY(" + (lis == null ? "empty" : lis.Count) + ")";
+            }
+            ExObject temp = new(string.Empty);
+            StringBuilder s = new("[");
+            int n = 0;
+            int c = lis.Count;
+            maxdepth--;
+
+            if (beauty && !isdictval && c > 0)
+            {
+                if (prefix != string.Empty)
+                {
+                    s = new("\n" + prefix + s);
+                }
+            }
+
+            foreach (ExObject o in lis)
+            {
+                ToString(o, ref temp, maxdepth, !beauty, beauty, prefix + " ");
+
+                string ts = temp.GetString();
+                if (beauty && !isdictval)
+                {
+                    if (ts.Length < 4)
+                    {
+                        ts = (new string(' ', 8 - ts.Length)) + ts;
+                    }
+                    s.Append(prefix).Append(ts);
+                }
+                else
+                {
+                    s.Append(ts);
+                }
+
+                n++;
+                if (n != c)
+                {
+                    s.Append(", ");
+                }
+            }
+
+            if (beauty && !isdictval)
+            {
+                if (prefix == string.Empty)
+                {
+                    s.Append(']');
+                }
+                else
+                {
+                    s.Append(prefix).Append(']');
+                }
+            }
+            else
+            {
+                s.Append(']');
+            }
+
+            return s.ToString();
+        }
+
+        public string GetDictString(Dictionary<string, ExObject> dict, bool beauty = false, bool isdictval = false, int maxdepth = 2, string prefix = "")
+        {
+            if (maxdepth == 0)
+            {
+                return "DICT(" + (dict == null ? "empty" : dict.Count) + ")";
+            }
+
+            ExObject temp = new(string.Empty);
+            StringBuilder s = new("{");
+            int n = 0;
+            int c = dict.Count;
+            if (beauty && c > 0)
+            {
+                if (prefix != string.Empty)
+                {
+                    s = new("\n" + prefix + s);
+                }
+            }
+            if (c > 0)
+            {
+                s.Append("\n" + prefix + "\t");
+            }
+
+            maxdepth--;
+            foreach (KeyValuePair<string, ExObject> pair in dict)
+            {
+                ToString(pair.Value, ref temp, maxdepth, true, beauty, prefix + "\t");
+
+                if (beauty)
+                {
+                    s.Append(prefix).Append(pair.Key).Append(" = ").Append(temp.GetString());
+                }
+                else
+                {
+                    s.Append(pair.Key).Append(" = ").Append(temp.GetString());
+                }
+
+                n++;
+
+                if (n != c)
+                {
+                    s.Append("\n\t");
+                    if (beauty)
+                    {
+                        s.Append(prefix);
+                    }
+                }
+                else
+                {
+                    s.Append('\n');
+                    if (beauty)
+                    {
+                        s.Append(prefix);
+                    }
+                }
+            }
+            s.Append('}');
+
+            return s.ToString();
+        }
+
         public bool ToString(ExObject obj,
                              ref ExObject res,
                              int maxdepth = 2,
@@ -266,137 +391,21 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (maxdepth == 0)
-                        {
-                            res = new("ARRAY(" + (obj.GetList() == null ? "empty" : obj.GetList().Count) + ")");
-                            break;
-                        }
-                        ExObject temp = new(string.Empty);
-                        StringBuilder s = new("[");
-                        int n = 0;
-                        int c = obj.GetList().Count;
-                        maxdepth--;
-
-                        if (beauty && !dval && c > 0)
-                        {
-                            if (prefix != string.Empty)
-                            {
-                                s = new("\n" + prefix + s);
-                            }
-                        }
-
-                        foreach (ExObject o in obj.GetList())
-                        {
-                            ToString(o, ref temp, maxdepth, !beauty, beauty, prefix + " ");
-
-                            string ts = temp.GetString();
-                            if (beauty && !dval)
-                            {
-                                if (ts.Length < 4)
-                                {
-                                    ts = (new string(' ', 8 - ts.Length)) + ts;
-                                }
-                                s.Append(prefix).Append(ts);
-                            }
-                            else
-                            {
-                                s.Append(ts);
-                            }
-
-                            n++;
-                            if (n != c)
-                            {
-                                s.Append(", ");
-                            }
-                        }
-
-                        if (beauty && !dval)
-                        {
-                            if (prefix == string.Empty)
-                            {
-                                s.Append(']');
-                            }
-                            else
-                            {
-                                s.Append(prefix).Append(']');
-                            }
-                        }
-                        else
-                        {
-                            s.Append(']');
-                        }
-
-                        res = new(s.ToString());
+                        res = new(GetArrayString(obj.GetList(), beauty, dval, maxdepth, prefix));
                         break;
                     }
                 case ExObjType.DICT:
                     {
-                        if (maxdepth == 0)
-                        {
-                            res = new("DICT(" + (obj.GetList() == null ? "empty" : obj.GetList().Count) + ")");
-                            break;
-                        }
-                        ExObject temp = new(string.Empty);
-                        StringBuilder s = new("{");
-                        int n = 0;
-                        int c = obj.Value.d_Dict.Count;
-                        if (beauty && c > 0)
-                        {
-                            if (prefix != string.Empty)
-                            {
-                                s = new("\n" + prefix + s);
-                            }
-                        }
-                        if (c > 0)
-                        {
-                            s.Append("\n" + prefix + "\t");
-                        }
-
-                        maxdepth--;
-                        foreach (KeyValuePair<string, ExObject> pair in obj.Value.d_Dict)
-                        {
-                            ToString(pair.Value, ref temp, maxdepth, true, beauty, prefix + "\t");
-
-                            if (beauty)
-                            {
-                                s.Append(prefix).Append(pair.Key).Append(" = ").Append(temp.GetString());
-                            }
-                            else
-                            {
-                                s.Append(pair.Key).Append(" = ").Append(temp.GetString());
-                            }
-
-                            n++;
-
-                            if (n != c)
-                            {
-                                s.Append("\n\t");
-                                if (beauty)
-                                {
-                                    s.Append(prefix);
-                                }
-                            }
-                            else
-                            {
-                                s.Append('\n');
-                                if (beauty)
-                                {
-                                    s.Append(prefix);
-                                }
-                            }
-                        }
-                        s.Append('}');
-
-                        res = new(s.ToString());
+                        res = new(GetDictString(obj.GetDict(), beauty, dval, maxdepth, prefix));
                         break;
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
-                        string s = obj.Type.ToString() + "(" + obj.Value._NativeClosure.Name.GetString() + ", ";
-                        int n = obj.Value._NativeClosure.nParameterChecks;
+                        string s = obj.Type.ToString() + "(" + obj.GetNClosure().Name.GetString() + ", ";
+                        int n = obj.GetNClosure().nParameterChecks;
                         if (n < 0)
                         {
-                            int tnc = obj.Value._NativeClosure.TypeMasks.Count;
+                            int tnc = obj.GetNClosure().TypeMasks.Count;
                             if (tnc == 0)
                             {
                                 s += "min:" + (-n - 1) + " params";
@@ -412,7 +421,7 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            s += "<=" + (obj.Value._NativeClosure.TypeMasks.Count - 1) + " params";
+                            s += "<=" + (obj.GetNClosure().TypeMasks.Count - 1) + " params";
                         }
 
                         s += ")";
@@ -422,7 +431,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.CLOSURE:
                     {
-                        ExPrototype tmp = obj.Value._Closure.Function;
+                        ExPrototype tmp = obj.GetClosure().Function;
                         string s = string.Empty;
                         switch (tmp.ClosureType)
                         {
@@ -666,7 +675,7 @@ namespace ExMat.VM
                 return false;
             }
 
-            ExClass cls = self.Value._Class;
+            ExClass cls = self.GetClass();
 
             if (!braw)
             {
@@ -717,13 +726,13 @@ namespace ExMat.VM
                         {
                             ExObject v = new();
                             v.Assign(val);
-                            if (self.Value.d_Dict.ContainsKey(key.GetString()))
+                            if (self.GetDict().ContainsKey(key.GetString()))
                             {
-                                self.Value.d_Dict[key.GetString()].Assign(v);    // TO-DO should i really allow this ?
+                                self.GetDict()[key.GetString()].Assign(v);    // TO-DO should i really allow this ?
                             }
                             else
                             {
-                                self.Value.d_Dict.Add(key.GetString(), new(v));
+                                self.GetDict().Add(key.GetString(), new(v));
                             }
                         }
                         break;
@@ -735,9 +744,9 @@ namespace ExMat.VM
                     }
                 case ExObjType.CLASS:
                     {
-                        if (!self.Value._Class.NewSlot(SharedState, key, val, bstat))
+                        if (!self.GetClass().NewSlot(SharedState, key, val, bstat))
                         {
-                            if (self.Value._Class.GotInstanced)
+                            if (self.GetClass().GotInstanced)
                             {
                                 AddToErrorMessage("can't modify a class that has already been instantianted");
                             }
@@ -1860,7 +1869,7 @@ namespace ExMat.VM
             TempRegistery = new(closure);
             Node<ExCallInfo> prevCallInfo = CallInfo;
             // Fonksiyonu çağır
-            if (!StartCall(TempRegistery.Value._Closure, StackTop - nArguments, nArguments, stackBase, false))
+            if (!StartCall(TempRegistery.GetClosure(), StackTop - nArguments, nArguments, stackBase, false))
             {
                 return false;
             }
@@ -1950,7 +1959,7 @@ namespace ExMat.VM
                                 {
                                     GetTargetInStack(j).Assign(GetTargetInStack(instruction.arg2 + j));
                                 }
-                                if (!StartCall(c.Value._Closure, CallInfo.Value.Target, instruction.arg3, StackBase, true))
+                                if (!StartCall(c.GetClosure(), CallInfo.Value.Target, instruction.arg3, StackBase, true))
                                 {
                                     return FixStackAfterError();
                                 }
@@ -1965,7 +1974,7 @@ namespace ExMat.VM
                             {
                                 case ExObjType.CLOSURE: // Kullanıcı fonksiyonu
                                     {
-                                        if (!StartCall(obj.Value._Closure, instruction.arg0, instruction.arg3, StackBase + instruction.arg2, false))
+                                        if (!StartCall(obj.GetClosure(), instruction.arg0, instruction.arg3, StackBase + instruction.arg2, false))
                                         {
                                             return FixStackAfterError();
                                         }
@@ -1973,7 +1982,7 @@ namespace ExMat.VM
                                     }
                                 case ExObjType.NATIVECLOSURE:   // Yerli fonksiyon
                                     {
-                                        if (!CallNative(obj.Value._NativeClosure, instruction.arg3, StackBase + instruction.arg2, ref obj))
+                                        if (!CallNative(obj.GetNClosure(), instruction.arg3, StackBase + instruction.arg2, ref obj))
                                         {
                                             return FixStackAfterError();
                                         }
@@ -1987,7 +1996,7 @@ namespace ExMat.VM
                                 case ExObjType.CLASS:   // Sınıf (yeni bir obje oluşturmaya yarar)
                                     {
                                         ExObject instance = new();
-                                        if (!CreateClassInst(obj.Value._Class, ref instance, obj))
+                                        if (!CreateClassInst(obj.GetClass(), ref instance, obj))
                                         {
                                             return FixStackAfterError();
                                         }
@@ -2003,7 +2012,7 @@ namespace ExMat.VM
                                                 {
                                                     sbase = StackBase + (int)instruction.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!StartCall(obj.Value._Closure, -1, instruction.arg3, sbase, false))
+                                                    if (!StartCall(obj.GetClosure(), -1, instruction.arg3, sbase, false))
                                                     {
                                                         return FixStackAfterError();
                                                     }
@@ -2013,7 +2022,7 @@ namespace ExMat.VM
                                                 {
                                                     sbase = StackBase + (int)instruction.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!CallNative(obj.Value._NativeClosure, instruction.arg3, sbase, ref obj))
+                                                    if (!CallNative(obj.GetNClosure(), instruction.arg3, sbase, ref obj))
                                                     {
                                                         return FixStackAfterError();
                                                     }
@@ -2190,7 +2199,7 @@ namespace ExMat.VM
                     case OPC.NEQ:
                         {
                             bool res = false;
-                            if (!CheckEqual(GetTargetInStack(instruction.arg2), GetConditionFromInstr(instruction), ref res))
+                            if (!ExAPI.CheckEqual(GetTargetInStack(instruction.arg2), GetConditionFromInstr(instruction), ref res))
                             {
                                 AddToErrorMessage("equal op failed");
                                 return FixStackAfterError();
@@ -2564,7 +2573,7 @@ namespace ExMat.VM
                             }
                             GetTargetInStack(instruction).Assign(
                                 GetTargetInStack(instruction.arg2).Type == ExObjType.INSTANCE
-                                && GetTargetInStack(instruction.arg2).Value._Instance.IsInstanceOf(GetTargetInStack(instruction.arg1).Value._Class));
+                                && GetTargetInStack(instruction.arg2).GetInstance().IsInstanceOf(GetTargetInStack(instruction.arg1).GetClass()));
                             continue;
                         }
                     case OPC.RETURNMACRO:   // TO-DO
@@ -2578,7 +2587,7 @@ namespace ExMat.VM
                         }
                     case OPC.GETBASE:
                         {
-                            ExClosure c = CallInfo.Value.Closure.Value._Closure;
+                            ExClosure c = CallInfo.Value.Closure.GetClosure();
                             if (c.Base != null)
                             {
                                 GetTargetInStack(instruction).Assign(c.Base);
@@ -2618,11 +2627,11 @@ namespace ExMat.VM
                         {
                             if (self.Type == ExObjType.DICT)
                             {
-                                if (self.Value.d_Dict.ContainsKey(k.GetString()))
+                                if (self.GetDict().ContainsKey(k.GetString()))
                                 {
-                                    tmp = new(self.Value.d_Dict[k.GetString()]);
+                                    tmp = new(self.GetDict()[k.GetString()]);
 
-                                    self.Value.d_Dict.Remove(k.GetString());
+                                    self.GetDict().Remove(k.GetString());
                                 }
                                 else
                                 {
@@ -2730,7 +2739,7 @@ namespace ExMat.VM
                             }
                         case ExOuterType.OUTER:
                             {
-                                cl.OutersList[i].Assign(CallInfo.Value.Closure.Value._Closure.OutersList[(int)ov.Index.GetInt()]);
+                                cl.OutersList[i].Assign(CallInfo.Value.Closure.GetClosure().OutersList[(int)ov.Index.GetInt()]);
                                 break;
                             }
                     }
@@ -2857,17 +2866,17 @@ namespace ExMat.VM
             target.Assign(ExClass.Create(SharedState, cb));
 
             // TO-DO meta methods!
-            if (target.Value._Class.MetaFuncs[(int)ExMetaM.INHERIT].Type != ExObjType.NULL)
+            if (target.GetClass().MetaFuncs[(int)ExMetaM.INHERIT].Type != ExObjType.NULL)
             {
                 int np = 2;
                 ExObject r = new();
                 Push(target);
                 Push(atrs);
-                ExObject mm = target.Value._Class.MetaFuncs[(int)ExMetaM.INHERIT];
+                ExObject mm = target.GetClass().MetaFuncs[(int)ExMetaM.INHERIT];
                 Call(ref mm, np, StackTop - np, ref r);
                 Pop(np);
             }
-            target.Value._Class.Attributes.Assign(atrs);
+            target.GetClass().Attributes.Assign(atrs);
             return true;
         }
 
@@ -3020,7 +3029,7 @@ namespace ExMat.VM
                     p.Assign(makeBoolean ? new(Stack[StackBase + a1].GetBool()) : Stack[StackBase + a1]);
 
                     // Dizi kontrolü ve optimizasyonu
-                    bool isSequence = CallInfo.Value.Closure.Value._Closure.Function.IsSequence();
+                    bool isSequence = CallInfo.Value.Closure.GetClosure().Function.IsSequence();
                     #region Dizi Optimizasyonu
                     if (isSequence)
                     {
@@ -3565,103 +3574,6 @@ namespace ExMat.VM
             STRINGNULL = ExObjType.STRING | ExObjType.NULL
         }
 
-
-        public static bool CheckEqual(ExObject x, ExObject y, ref bool res)
-        {
-            if (x.Type == y.Type)
-            {
-                switch (x.Type)
-                {
-                    case ExObjType.BOOL:
-                        res = x.GetBool() == y.GetBool();
-                        break;
-                    case ExObjType.STRING:
-                        res = x.GetString() == y.GetString();
-                        break;
-                    case ExObjType.COMPLEX:
-                        res = x.GetComplex() == y.GetComplex();
-                        break;
-                    case ExObjType.INTEGER:
-                        res = x.GetInt() == y.GetInt();
-                        break;
-                    case ExObjType.FLOAT:
-                        {
-                            double xv = x.GetFloat();
-                            double yv = y.GetFloat();
-                            if (double.IsNaN(xv))
-                            {
-                                res = double.IsNaN(yv);
-                            }
-                            else if (double.IsNaN(yv))
-                            {
-                                res = double.IsNaN(xv);
-                            }
-                            else
-                            {
-                                res = x.GetFloat() == y.GetFloat();
-                            }
-                        }
-                        break;
-                    case ExObjType.NULL:
-                        res = true;
-                        break;
-                    case ExObjType.NATIVECLOSURE:
-                        CheckEqual(x.Value._NativeClosure.Name, y.Value._NativeClosure.Name, ref res);
-                        break;
-                    case ExObjType.CLOSURE:
-                        CheckEqual(x.Value._Closure.Function.Name, y.Value._Closure.Function.Name, ref res);
-                        break;
-                    case ExObjType.ARRAY:
-                        {
-                            if (x.GetList().Count != y.GetList().Count)
-                            {
-                                res = false;
-                                break;
-                            }
-                            res = true;
-                            for (int i = 0; i < x.GetList().Count; i++)
-                            {
-                                ExObject r = x.GetList()[i];
-                                if (!res)
-                                {
-                                    break;
-                                }
-                                if (!CheckEqual(r, y.GetList()[i], ref res))
-                                {
-                                    return false;
-                                }
-                            }
-                            break;
-                        }
-                    default:
-                        res = x == y;   // TO-DO
-                        break;
-                }
-            }
-            else
-            {
-                bool bx = x.IsNumeric();
-                bool by = y.IsNumeric();
-                if (by && x.Type == ExObjType.COMPLEX)
-                {
-                    res = x.GetComplex() == y.GetFloat();
-                }
-                else if (bx && y.Type == ExObjType.COMPLEX)
-                {
-                    res = x.GetFloat() == y.GetComplex();
-                }
-                else if (bx && by)
-                {
-                    res = x.GetFloat() == y.GetFloat();
-                }
-                else
-                {
-                    res = false;
-                }
-            }
-            return true;
-        }
-
         public ExObject GetConditionFromInstr(ExInstr i)
         {
             return i.arg3 != 0 ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
@@ -3681,17 +3593,17 @@ namespace ExMat.VM
             {
                 case ExObjType.DICT:
                     {
-                        if (self.Value.d_Dict == null)
+                        if (self.GetDict() == null)
                         {
                             AddToErrorMessage("attempted to access null dictionary");
                             return false;
                         }
 
-                        if (!self.Value.d_Dict.ContainsKey(k.GetString()))
+                        if (!self.GetDict().ContainsKey(k.GetString()))
                         {
-                            self.Value.d_Dict.Add(k.GetString(), new());
+                            self.GetDict().Add(k.GetString(), new());
                         }
-                        self.Value.d_Dict[k.GetString()].Assign(v);
+                        self.GetDict()[k.GetString()].Assign(v);
                         return true;
                     }
                 case ExObjType.ARRAY:
@@ -3726,16 +3638,16 @@ namespace ExMat.VM
                     }
                 case ExObjType.INSTANCE:
                     {
-                        if (self.Value._Instance == null)
+                        if (self.GetInstance() == null)
                         {
                             AddToErrorMessage("attempted to access null instance");
                             return false;
                         }
 
-                        if (self.Value._Instance.Class.Members.ContainsKey(k.GetString())
-                            && self.Value._Instance.Class.Members[k.GetString()].IsField())
+                        if (self.GetInstance().Class.Members.ContainsKey(k.GetString())
+                            && self.GetInstance().Class.Members[k.GetString()].IsField())
                         {
-                            self.Value._Instance.MemberValues[self.Value._Instance.Class.Members[k.GetString()].GetMemberID()].Assign(new ExObject(v));
+                            self.GetInstance().MemberValues[self.GetInstance().Class.Members[k.GetString()].GetMemberID()].Assign(new ExObject(v));
                             return true;
                         }
                         break;
@@ -3803,9 +3715,9 @@ namespace ExMat.VM
 
             if (f == ExFallback.OK)
             {
-                if (RootDictionary.Value.d_Dict.ContainsKey(k.GetString()))
+                if (RootDictionary.GetDict().ContainsKey(k.GetString()))
                 {
-                    RootDictionary.Value.d_Dict[k.GetString()].Assign(v);
+                    RootDictionary.GetDict()[k.GetString()].Assign(v);
                     return true;
                 }
             }
@@ -3866,50 +3778,50 @@ namespace ExMat.VM
             {
                 case ExObjType.CLASS:
                     {
-                        del = SharedState.ClassDelegate.Value.d_Dict;
+                        del = SharedState.ClassDelegate.GetDict();
                         break;
                     }
                 case ExObjType.INSTANCE:
                     {
-                        del = SharedState.InstanceDelegate.Value.d_Dict;
+                        del = SharedState.InstanceDelegate.GetDict();
                         break;
                     }
                 case ExObjType.DICT:
                     {
-                        del = SharedState.DictDelegate.Value.d_Dict;
+                        del = SharedState.DictDelegate.GetDict();
                         break;
                     }
                 case ExObjType.ARRAY:
                     {
-                        del = SharedState.ListDelegate.Value.d_Dict;
+                        del = SharedState.ListDelegate.GetDict();
                         break;
                     }
                 case ExObjType.STRING:
                     {
-                        del = SharedState.StringDelegate.Value.d_Dict;
+                        del = SharedState.StringDelegate.GetDict();
                         break;
                     }
                 case ExObjType.COMPLEX:
                     {
-                        del = SharedState.ComplexDelegate.Value.d_Dict;
+                        del = SharedState.ComplexDelegate.GetDict();
                         break;
                     }
                 case ExObjType.INTEGER:
                 case ExObjType.FLOAT:
                 case ExObjType.BOOL:
                     {
-                        del = SharedState.NumberDelegate.Value.d_Dict;
+                        del = SharedState.NumberDelegate.GetDict();
                         break;
                     }
                 case ExObjType.CLOSURE:
                 case ExObjType.NATIVECLOSURE:
                     {
-                        del = SharedState.ClosureDelegate.Value.d_Dict;
+                        del = SharedState.ClosureDelegate.GetDict();
                         break;
                     }
                 case ExObjType.WEAKREF:
                     {
-                        del = SharedState.WeakRefDelegate.Value.d_Dict;
+                        del = SharedState.WeakRefDelegate.GetDict();
                         break;
                     }
             }
@@ -3964,260 +3876,253 @@ namespace ExMat.VM
             }
             return ExFallback.NOMATCH;
         }
-        public bool Getter(ExObject self, ExObject k, ref ExObject dest, bool raw, ExFallback f, bool bExists = false)
+
+        public ExGetterStatus Getter(Dictionary<string, ExObject> dict, ExObject key, ref ExObject dest)
         {
+            if (dict == null)
+            {
+                AddToErrorMessage("attempted to access null dictionary");
+                return ExGetterStatus.ERROR;
+            }
+
+            if (dict.ContainsKey(key.GetString()))
+            {
+                dest.Assign(new ExObject(dict[key.GetString()]));
+                return ExGetterStatus.FOUND;
+            }
+
+            return ExGetterStatus.NOTFOUND;
+        }
+
+
+        public ExGetterStatus Getter(List<ExObject> lis, ExObject key, ref ExObject dest, bool isUsingIn)
+        {
+            if (lis == null)
+            {
+                AddToErrorMessage("attempted to access null array");
+                return ExGetterStatus.ERROR;
+            }
+
+            if (key.IsNumeric() && !isUsingIn)
+            {
+                int idx = (int)key.GetInt();
+                idx += idx < 0 ? lis.Count : 0;
+
+                if (!isUsingIn && idx >= 0 && lis.Count != 0 && lis.Count > idx)
+                {
+                    dest.Assign(new ExObject(lis[idx]));
+                    return ExGetterStatus.FOUND;
+                }
+                else
+                {
+                    if (!isUsingIn)
+                    {
+                        AddToErrorMessage("array index error: count " + lis.Count + ", idx: " + key.GetInt());
+                    }
+                    else
+                    {
+                        return ExAPI.FindInArray(lis, key) ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+                    }
+                }
+            }
+            else if (isUsingIn)
+            {
+                return ExAPI.FindInArray(lis, key) ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+            }
+
+            return ExGetterStatus.NOTFOUND;
+        }
+
+        public ExGetterStatus Getter(ExInstance instance, ExObject key, ref ExObject dest)
+        {
+            if (instance == null)
+            {
+                AddToErrorMessage("attempted to access null instance");
+                return ExGetterStatus.ERROR;
+            }
+
+            if (instance.Class.Members.ContainsKey(key.GetString()))
+            {
+                dest.Assign(new ExObject(instance.Class.Members[key.GetString()]));
+                if (dest.IsField())
+                {
+                    ExObject o = new(instance.MemberValues[dest.GetMemberID()]);
+                    dest.Assign(o.Type == ExObjType.WEAKREF ? o.GetWeakRef().ReferencedObject : o);
+                }
+                else
+                {
+                    dest.Assign(new ExObject(instance.Class.Methods[dest.GetMemberID()].Value));
+                }
+                return ExGetterStatus.FOUND;
+            }
+
+            return ExGetterStatus.NOTFOUND;
+        }
+
+        public ExGetterStatus Getter(ExClass cls, ExObject key, ref ExObject dest)
+        {
+            if (cls == null)
+            {
+                AddToErrorMessage("attempted to access null class");
+                return ExGetterStatus.ERROR;
+            }
+            if (cls.Members.ContainsKey(key.GetString()))
+            {
+                dest.Assign(new ExObject(cls.Members[key.GetString()]));
+                if (dest.IsField())
+                {
+                    ExObject o = new(cls.DefaultValues[dest.GetMemberID()].Value);
+                    dest.Assign(o.Type == ExObjType.WEAKREF ? o.GetWeakRef().ReferencedObject : o);
+                }
+                else
+                {
+                    dest.Assign(new ExObject(cls.Methods[dest.GetMemberID()].Value));
+                }
+                return ExGetterStatus.FOUND;
+            }
+
+            return ExGetterStatus.NOTFOUND;
+        }
+
+        public ExGetterStatus Getter(ExObject fbase, ExObject key, ref ExObject dest, bool isUsingIn, bool isNative = false)
+        {
+            ExClosure func = fbase.GetClosure();
+            if (!isNative && isUsingIn)
+            {
+                if (!func.Function.IsCluster())
+                {
+                    return ExGetterStatus.ERROR;
+                }
+
+                List<ExObject> lis = key.Type != ExObjType.ARRAY
+                        ? new() { key }
+                        : key.GetList();
+
+                if (!DoClusterParamChecks(func, lis))
+                {
+                    return ExGetterStatus.ERROR;
+                }
+
+                ExObject tmp = new();
+                Push(fbase);
+                Push(RootDictionary);
+
+                int nargs = 2;
+                if (func.DefaultParams.Count == 1)
+                {
+                    Push(lis);
+                }
+                else
+                {
+                    nargs += lis.Count - 1;
+                    PushParse(lis);
+                }
+
+                if (!Call(ref fbase, nargs, StackTop - nargs, ref tmp, true))
+                {
+                    Pop(nargs + 1);
+                    return ExGetterStatus.ERROR;
+                }
+                Pop(nargs + 1);
+                return tmp.GetBool() ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+            }
+
+            if (key.Type == ExObjType.STRING)
+            {
+                ExGetterStatus status = isNative ? ExAPI.GetNativeFunctionAttribute(fbase.GetNClosure(), key.GetString(), ref dest) : ExAPI.GetFunctionAttribute(func, key.GetString(), ref dest);
+                if (status == ExGetterStatus.ERROR)
+                {
+                    AddToErrorMessage("unknown function attribute '" + key.GetString() + "'");
+                }
+                return status;
+            }
+
+            if (!isUsingIn)
+            {
+                AddToErrorMessage(string.Format("can't index '{0}' with '{1}'", isNative ? "NATIVECLOSURE" : "CLOSURE", key.Type.ToString()));
+            }
+            return ExGetterStatus.ERROR;
+        }
+
+        public ExGetterStatus Getter(string str, ExObject key, ref ExObject dest, bool isUsingIn)
+        {
+            if (key.IsNumeric())
+            {
+                int n = (int)key.GetInt();
+                if (Math.Abs(n) < str.Length)
+                {
+                    if (n < 0)
+                    {
+                        n = str.Length + n;
+                    }
+                    dest = new ExObject(str[n].ToString());
+                    return ExGetterStatus.FOUND;
+                }
+                else if (!isUsingIn)
+                {
+                    AddToErrorMessage("string index error. count " + str.Length + " idx " + key.GetInt());
+                    return ExGetterStatus.ERROR;
+                }
+                else
+                {
+                    return ExGetterStatus.NOTFOUND;
+                }
+            }
+            else if (isUsingIn)
+            {
+                return str.IndexOf(key.GetString()) != -1 ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+            }
+
+            return ExGetterStatus.NOTFOUND;
+        }
+
+        public bool Getter(ExObject self, ExObject k, ref ExObject dest, bool raw, ExFallback f, bool isUsingIn = false)
+        {
+            ExGetterStatus status = ExGetterStatus.NOTFOUND;
             switch (self.Type)
             {
                 case ExObjType.DICT:
                     {
-                        if (self.Value.d_Dict == null)
-                        {
-                            AddToErrorMessage("attempted to access null dictionary");
-                            return false;
-                        }
-
-                        if (self.Value.d_Dict.ContainsKey(k.GetString()))
-                        {
-                            dest.Assign(new ExObject(self.Value.d_Dict[k.GetString()]));
-                            return true;
-                        }
-
+                        status = Getter(self.GetDict(), k, ref dest);
                         break;
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (self.GetList() == null)
-                        {
-                            AddToErrorMessage("attempted to access null array");
-                            return false;
-                        }
-
-                        if (k.IsNumeric() && !bExists)
-                        {
-                            if (!bExists && self.GetList().Count != 0 && self.GetList().Count > k.GetInt())
-                            {
-                                dest.Assign(new ExObject(self.GetList()[(int)k.GetInt()]));
-                                return true;
-                            }
-                            else
-                            {
-                                if (!bExists)
-                                {
-                                    AddToErrorMessage("array index error: count " + self.GetList().Count + ", idx: " + k.GetInt());
-                                }
-                                else
-                                {
-                                    bool found = false;
-                                    foreach (ExObject o in self.GetList())
-                                    {
-                                        CheckEqual(o, k, ref found);
-                                        if (found)
-                                        {
-                                            return true;
-                                        }
-                                    }
-                                }
-                                return false;
-                            }
-                        }
-                        else if (bExists)
-                        {
-                            bool found = false;
-                            foreach (ExObject o in self.GetList())
-                            {
-                                CheckEqual(o, k, ref found);
-                                if (found)
-                                {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
+                        status = Getter(self.GetList(), k, ref dest, isUsingIn);
                         break;
                     }
                 case ExObjType.INSTANCE:
                     {
-                        if (self.Value._Instance == null)
-                        {
-                            AddToErrorMessage("attempted to access null instance");
-                            return false;
-                        }
-
-                        if (self.Value._Instance.Class.Members.ContainsKey(k.GetString()))
-                        {
-                            dest.Assign(new ExObject(self.Value._Instance.Class.Members[k.GetString()]));
-                            if (dest.IsField())
-                            {
-                                ExObject o = new(self.Value._Instance.MemberValues[dest.GetMemberID()]);
-                                dest.Assign(o.Type == ExObjType.WEAKREF ? o.Value._WeakRef.ReferencedObject : o);
-                            }
-                            else
-                            {
-                                dest.Assign(new ExObject(self.Value._Instance.Class.Methods[dest.GetMemberID()].Value));
-                            }
-                            return true;
-                        }
+                        status = Getter(self.GetInstance(), k, ref dest);
                         break;
                     }
                 case ExObjType.CLASS:
                     {
-                        if (self.Value._Class == null)
-                        {
-                            AddToErrorMessage("attempted to access null class");
-                            return false;
-                        }
-                        if (self.Value._Class.Members.ContainsKey(k.GetString()))
-                        {
-                            dest.Assign(new ExObject(self.Value._Class.Members[k.GetString()]));
-                            if (dest.IsField())
-                            {
-                                ExObject o = new(self.Value._Class.DefaultValues[dest.GetMemberID()].Value);
-                                dest.Assign(o.Type == ExObjType.WEAKREF ? o.Value._WeakRef.ReferencedObject : o);
-                            }
-                            else
-                            {
-                                dest.Assign(new ExObject(self.Value._Class.Methods[dest.GetMemberID()].Value));
-                            }
-                            return true;
-                        }
+                        status = Getter(self.GetClass(), k, ref dest);
                         break;
                     }
                 case ExObjType.STRING:
                     {
-                        if (k.IsNumeric())   // TO-DO stack index is wrong
-                        {
-                            int n = (int)k.GetInt();
-                            if (Math.Abs(n) < self.GetString().Length)
-                            {
-                                if (n < 0)
-                                {
-                                    n = self.GetString().Length + n;
-                                }
-                                dest = new ExObject(self.GetString()[n].ToString());
-                                return true;
-                            }
-                            if (!bExists)
-                            {
-                                AddToErrorMessage("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
-                            }
-                            return false;
-                        }
-                        else if (bExists)
-                        {
-                            return self.GetString().IndexOf(k.GetString()) != -1;
-                        }
+                        status = Getter(self.GetString(), k, ref dest, isUsingIn);
                         break;
                     }
                 case ExObjType.SPACE:
                     {
-                        if (bExists)
+                        if (isUsingIn)
                         {
                             return IsInSpace(k, self.Value.c_Space, 1, false);
                         }
-
-                        goto default;
-
+                        else
+                        {
+                            AddToErrorMessage("can't index 'SPACE' with '" + k.Type.ToString() + "'");
+                            return false;
+                        }
                     }
+                case ExObjType.NATIVECLOSURE:
                 case ExObjType.CLOSURE:
                     {
-                        if (bExists)
-                        {
-                            if (!self.GetClosure().Function.IsCluster())
-                            {
-                                goto default;
-                            }
-
-                            List<ExObject> lis = k.Type != ExObjType.ARRAY
-                                    ? new() { k }
-                                    : k.GetList();
-
-                            if (!DoClusterParamChecks(self.Value._Closure, lis))
-                            {
-                                return false;
-                            }
-
-                            ExObject tmp = new();
-                            Push(self);
-                            Push(RootDictionary);
-
-                            int nargs = 2;
-                            if (self.Value._Closure.DefaultParams.Count == 1)
-                            {
-                                Push(lis);
-                            }
-                            else
-                            {
-                                nargs += lis.Count - 1;
-                                PushParse(lis);
-                            }
-
-                            if (!Call(ref self, nargs, StackTop - nargs, ref tmp, true))
-                            {
-                                Pop(nargs + 1);
-                                return false;
-                            }
-                            Pop(nargs + 1);
-                            return tmp.GetBool();
-                        }
-
-                        if (k.Type == ExObjType.STRING)
-                        {
-                            switch (k.GetString())
-                            {
-                                case "vargs":
-                                    {
-                                        dest = new(self.GetClosure().Function.HasVargs);
-                                        return true;
-                                    }
-                                case "n_params":
-                                    {
-                                        dest = new(self.GetClosure().Function.nParams - 1);
-                                        return true;
-                                    }
-                                case "n_defparams":
-                                    {
-                                        dest = new(self.GetClosure().Function.nDefaultParameters);
-                                        return true;
-                                    }
-                                case "n_minargs":
-                                    {
-                                        dest = new(self.GetClosure().Function.nParams - 1 - self.GetClosure().Function.nDefaultParameters);
-                                        return true;
-                                    }
-                                case "defparams":
-                                    {
-                                        int ndef = self.GetClosure().Function.nDefaultParameters;
-                                        int npar = self.GetClosure().Function.nParams - 1;
-                                        int start = npar - ndef;
-                                        Dictionary<string, ExObject> dict = new();
-                                        foreach (ExObject d in self.GetClosure().DefaultParams)
-                                        {
-                                            dict.Add((++start).ToString(), d);
-                                        }
-                                        dest = new(dict);
-                                        return true;
-                                    }
-                                default:
-                                    {
-                                        ExClass c = self.GetClosure().Base;
-
-                                        string mem = self.GetClosure().Function.Name.GetString();
-                                        string attr = k.GetString();
-                                        int memid = c.Members[mem].GetMemberID();
-
-                                        if (c.Methods[memid].Attributes.GetDict().ContainsKey(attr))
-                                        {
-                                            dest = new ExObject(c.Methods[memid].Attributes.GetDict()[attr]);
-                                            return true;
-                                        }
-
-                                        AddToErrorMessage("unknown attribute '" + attr + "'");
-                                        return false;
-                                    }
-                            }
-                        }
-                        goto default;
-
+                        status = Getter(fbase: self, k, ref dest, isUsingIn, self.Type == ExObjType.NATIVECLOSURE);
+                        break;
                     }
                 case ExObjType.WEAKREF:
                 case ExObjType.COMPLEX:
@@ -4226,12 +4131,17 @@ namespace ExMat.VM
                     }
                 default:
                     {
-                        if (!bExists)
+                        if (!isUsingIn)
                         {
                             AddToErrorMessage("can't index '" + self.Type.ToString() + "' with '" + k.Type.ToString() + "'");
                         }
                         return false;
                     }
+            }
+
+            if (status != ExGetterStatus.NOTFOUND)
+            {
+                return status == ExGetterStatus.FOUND;
             }
 
             if (!raw)
@@ -4259,7 +4169,7 @@ namespace ExMat.VM
                 }
             }
 
-            if (!bExists && k.Type == ExObjType.STRING && self.Type != ExObjType.DICT)
+            if (!isUsingIn && k.Type == ExObjType.STRING && self.Type != ExObjType.DICT)
             {
                 AddToErrorMessage("index not found for type '" + self.Type.ToString() + "' named '" + k.GetString() + "'");
             }
@@ -4360,16 +4270,16 @@ namespace ExMat.VM
                     List<ExObject> dp = new();
                     List<ExObject> ps = new();
 
-                    for (int i = 0; i < CallInfo.Value.Closure.Value._Closure.Function.nParams; i++)
+                    for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nParams; i++)
                     {
-                        ps.Add(new(CallInfo.Value.Closure.Value._Closure.Function.Parameters[i]));
+                        ps.Add(new(CallInfo.Value.Closure.GetClosure().Function.Parameters[i]));
                     }
-                    for (int i = 0; i < CallInfo.Value.Closure.Value._Closure.Function.nDefaultParameters; i++)
+                    for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nDefaultParameters; i++)
                     {
-                        dp.Add(new(CallInfo.Value.Closure.Value._Closure.DefaultParams[i]));
+                        dp.Add(new(CallInfo.Value.Closure.GetClosure().DefaultParams[i]));
                     }
-                    CallInfo.Value.Closure.Value._Closure.DefaultParams = new(dp);
-                    CallInfo.Value.Closure.Value._Closure.Function.Parameters = new(ps);
+                    CallInfo.Value.Closure.GetClosure().DefaultParams = new(dp);
+                    CallInfo.Value.Closure.GetClosure().Function.Parameters = new(ps);
                 }
             }
             #endregion
@@ -4559,7 +4469,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.NATIVECLOSURE:   // Yerli fonksiyon çağır
                     {
-                        bool state = CallNative(cls.Value._NativeClosure, nArguments, stackBase, ref result);
+                        bool state = CallNative(cls.GetNClosure(), nArguments, stackBase, ref result);
                         _forcereturn = forceStatus;
                         return state;
                     }
@@ -4568,7 +4478,7 @@ namespace ExMat.VM
                         ExObject cn = new();
                         ExObject tmp = new();
 
-                        CreateClassInst(cls.Value._Class, ref result, cn);
+                        CreateClassInst(cls.GetClass(), ref result, cn);
                         if (cn.Type != ExObjType.NULL)
                         {
                             Stack[stackBase].Assign(result);

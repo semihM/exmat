@@ -369,6 +369,27 @@ namespace ExMat
     }
 
     /// <summary>
+    /// Getter method status
+    /// </summary>
+    public enum ExGetterStatus
+    {
+        /// <summary>
+        /// Base object had issues
+        /// </summary>
+        ERROR,
+
+        /// <summary>
+        /// Object was found in base object
+        /// </summary>
+        FOUND,
+
+        /// <summary>
+        /// Object was not found in base object
+        /// </summary>
+        NOTFOUND
+    }
+
+    /// <summary>
     /// Error types used for messages
     /// </summary>
     public enum ExErrorType

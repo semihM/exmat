@@ -466,7 +466,7 @@ namespace ExMat.BaseLib
             {
                 case 2:
                     {
-                        reverse = !vm.GetArgument(2).GetBool();
+                        reverse = vm.GetArgument(2).GetBool();
                         goto case 1;
                     }
                 case 1:
@@ -524,7 +524,7 @@ namespace ExMat.BaseLib
             {
                 case 2:
                     {
-                        reverse = !vm.GetArgument(2).GetBool();
+                        reverse = vm.GetArgument(2).GetBool();
                         goto case 1;
                     }
                 case 1:

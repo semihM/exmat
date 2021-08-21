@@ -128,6 +128,11 @@ namespace ExMat.Objects
             return Type == ExObjType.STRING ? Value.s_String : (Type == ExObjType.NULL && Value.s_String != null ? Value.s_String : string.Empty);
         }
 
+        public ExWeakRef GetWeakRef()
+        {
+            return Value._WeakRef;
+        }
+
         public void SetString(string s)
         {
             Value.s_String = s;
@@ -162,7 +167,7 @@ namespace ExMat.Objects
 
         public Dictionary<string, ExObject> GetDict()
         {
-            return Type == ExObjType.DICT ? Value.d_Dict : null;
+            return Value.d_Dict;
         }
 
         public List<ExObject> GetList()
@@ -183,6 +188,11 @@ namespace ExMat.Objects
         public ExInstance GetInstance()
         {
             return Value._Instance;
+        }
+
+        public ExClass GetClass()
+        {
+            return Value._Class;
         }
 
         public virtual string GetDebuggerDisplay()
