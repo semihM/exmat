@@ -806,7 +806,7 @@ namespace ExMat.API
                     }
                 case "n_params":
                     {
-                        dest = new(func.Function.nParams - 1);
+                        dest = new(func.Function.nParams - 1 - (func.Function.HasVargs ? 1 : 0));
                         return ExGetterStatus.FOUND;
                     }
                 case "n_defparams":
@@ -816,7 +816,7 @@ namespace ExMat.API
                     }
                 case "n_minargs":
                     {
-                        dest = new(func.Function.nParams - 1 - func.Function.nDefaultParameters);
+                        dest = new(func.Function.nParams - 1 - func.Function.nDefaultParameters - (func.Function.HasVargs ? 1 : 0));
                         return ExGetterStatus.FOUND;
                     }
                 case "defparams":
@@ -836,13 +836,16 @@ namespace ExMat.API
                     {
                         ExClass c = func.Base;
 
-                        string mem = func.Function.Name.GetString();
-                        int memid = c.Members[mem].GetMemberID();
-
-                        if (c.Methods[memid].Attributes.GetDict().ContainsKey(key))
+                        if(c != null)
                         {
-                            dest = new ExObject(c.Methods[memid].Attributes.GetDict()[key]);
-                            return ExGetterStatus.FOUND;
+                            string mem = func.Function.Name.GetString();
+                            int memid = c.Members[mem].GetMemberID();
+
+                            if (c.Methods[memid].Attributes.GetDict().ContainsKey(key))
+                            {
+                                dest = new ExObject(c.Methods[memid].Attributes.GetDict()[key]);
+                                return ExGetterStatus.FOUND;
+                            }
                         }
 
                         return ExGetterStatus.ERROR;
@@ -860,7 +863,7 @@ namespace ExMat.API
                     }
                 case "n_params":
                     {
-                        dest = new(func.nParameterChecks < 0 ? -func.nParameterChecks : (func.nParameterChecks - 1));
+                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks - 1)  : (func.nParameterChecks - 1));
                         return ExGetterStatus.FOUND;
                     }
                 case "n_defparams":
@@ -870,7 +873,7 @@ namespace ExMat.API
                     }
                 case "n_minargs":
                     {
-                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks + 1) : (func.nParameterChecks - 1));
+                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks - 1) : (func.nParameterChecks - 1));
                         return ExGetterStatus.FOUND;
                     }
                 case "defparams":

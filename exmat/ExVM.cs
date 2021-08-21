@@ -3877,7 +3877,7 @@ namespace ExMat.VM
             return ExFallback.NOMATCH;
         }
 
-        public ExGetterStatus Getter(Dictionary<string, ExObject> dict, ExObject key, ref ExObject dest)
+        public ExGetterStatus Getter(Dictionary<string, ExObject> dict, ExObject key, ref ExObject dest, bool isUsingIn)
         {
             if (dict == null)
             {
@@ -3891,6 +3891,10 @@ namespace ExMat.VM
                 return ExGetterStatus.FOUND;
             }
 
+            if(!isUsingIn)
+            {
+                AddToErrorMessage("key '" + key.GetString() + "' doesn't exist");
+            }
             return ExGetterStatus.NOTFOUND;
         }
 
@@ -3933,7 +3937,7 @@ namespace ExMat.VM
             return ExGetterStatus.NOTFOUND;
         }
 
-        public ExGetterStatus Getter(ExInstance instance, ExObject key, ref ExObject dest)
+        public ExGetterStatus Getter(ExInstance instance, ExObject key, ref ExObject dest, bool isUsingIn)
         {
             if (instance == null)
             {
@@ -3956,10 +3960,14 @@ namespace ExMat.VM
                 return ExGetterStatus.FOUND;
             }
 
+            if (!isUsingIn)
+            {
+                AddToErrorMessage("member '" + key.GetString() + "' doesn't exist");
+            }
             return ExGetterStatus.NOTFOUND;
         }
 
-        public ExGetterStatus Getter(ExClass cls, ExObject key, ref ExObject dest)
+        public ExGetterStatus Getter(ExClass cls, ExObject key, ref ExObject dest, bool isUsingIn)
         {
             if (cls == null)
             {
@@ -3979,6 +3987,11 @@ namespace ExMat.VM
                     dest.Assign(new ExObject(cls.Methods[dest.GetMemberID()].Value));
                 }
                 return ExGetterStatus.FOUND;
+            }
+
+            if (!isUsingIn)
+            {
+                AddToErrorMessage("member '" + key.GetString() + "' doesn't exist");
             }
 
             return ExGetterStatus.NOTFOUND;
@@ -4083,7 +4096,7 @@ namespace ExMat.VM
             {
                 case ExObjType.DICT:
                     {
-                        status = Getter(self.GetDict(), k, ref dest);
+                        status = Getter(self.GetDict(), k, ref dest, isUsingIn);
                         break;
                     }
                 case ExObjType.ARRAY:
@@ -4093,12 +4106,12 @@ namespace ExMat.VM
                     }
                 case ExObjType.INSTANCE:
                     {
-                        status = Getter(self.GetInstance(), k, ref dest);
+                        status = Getter(self.GetInstance(), k, ref dest, isUsingIn);
                         break;
                     }
                 case ExObjType.CLASS:
                     {
-                        status = Getter(self.GetClass(), k, ref dest);
+                        status = Getter(self.GetClass(), k, ref dest, isUsingIn);
                         break;
                     }
                 case ExObjType.STRING:
