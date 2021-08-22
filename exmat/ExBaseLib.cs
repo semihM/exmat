@@ -5,10 +5,9 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using Exmat.Exceptions;
 using ExMat.API;
 using ExMat.Class;
-using ExMat.Closure;
-using ExMat.FuncPrototype;
 using ExMat.Objects;
 using ExMat.Utils;
 using ExMat.VM;
@@ -799,7 +798,7 @@ namespace ExMat.BaseLib
                                     ExObject o = obj.GetList()[i];
                                     ExObject o2 = obj2.GetList()[i];
                                     vm.Push(cls);
-                                    vm.Push(vm.RootDictionary);
+                                    ExAPI.PushRootTable(vm);
 
                                     vm.Push(o);
                                     vm.Push(o2);
@@ -827,7 +826,7 @@ namespace ExMat.BaseLib
                                 {
                                     ExObject o = obj.GetList()[i];
                                     vm.Push(cls);
-                                    vm.Push(vm.RootDictionary);
+                                    ExAPI.PushRootTable(vm);
 
                                     vm.Push(o);
                                     if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
@@ -881,7 +880,7 @@ namespace ExMat.BaseLib
                     ExObject o = obj.GetList()[i];
                     ExObject o2 = obj2.GetList()[i];
                     vm.Push(cls);
-                    vm.Push(vm.RootDictionary);
+                    ExAPI.PushRootTable(vm);
 
                     vm.Push(o);
                     vm.Push(o2);
@@ -903,7 +902,7 @@ namespace ExMat.BaseLib
                 foreach (ExObject o in obj.GetList())
                 {
                     vm.Push(cls);
-                    vm.Push(vm.RootDictionary);
+                    ExAPI.PushRootTable(vm);
 
                     vm.Push(o);
                     if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
@@ -953,7 +952,7 @@ namespace ExMat.BaseLib
             foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
-                vm.Push(vm.RootDictionary);
+                ExAPI.PushRootTable(vm);
 
                 vm.Push(o);
                 if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
@@ -979,88 +978,63 @@ namespace ExMat.BaseLib
         public static ExFunctionStatus StdCall(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
-
             ExObject res = new();
+            bool is_cluster = false,
+                 is_seq = false,
+                 is_deleg = false;
 
-            bool need_b = false;
-            bool iscls = cls.Type == ExObjType.CLOSURE;
-
-            if (!iscls && cls.Type != ExObjType.NATIVECLOSURE)
+            switch (cls.Type)
             {
-                return vm.AddToErrorMessage("can't call non-closure type");
+                case ExObjType.CLOSURE:
+                    {
+                        is_cluster = cls.GetClosure().Function.IsCluster();
+                        is_seq = cls.GetClosure().Function.IsSequence();
+                        break;
+                    }
+                case ExObjType.NATIVECLOSURE:
+                    {
+                        is_deleg = cls.GetNClosure().IsDelegateFunction;
+                        break;
+                    }
+                default:
+                    {
+                        return vm.AddToErrorMessage("can't call non-closure type");
+                    }
             }
 
             List<ExObject> args = new();
 
+            vm.FillArgumentArray(args, nargs);
+            args.Reverse();
 
-            if (iscls)
+            if (!is_deleg)
             {
-                ExPrototype pro = cls.GetClosure().Function;
-
-                if (pro.nParams == 1)
-                {
-                    if (nargs != 1)
-                    {
-                        return vm.AddToErrorMessage("expected 0 arguments");
-                    }
-                    need_b = true;
-                }
-                else
-                {
-                    int p = pro.nParams;
-                    need_b = p > 1;
-
-                    if (need_b)
-                    {
-                        int nn = nargs - 1;
-                        while (nn > 0)
-                        {
-                            args.Add(new(vm.GetAbove(-1)));
-                            vm.Pop();
-                            nn--;
-                        }
-                    }
-
-                    if (need_b
-                        && pro.nDefaultParameters > 0)
-                    {
-                        int n_def = pro.nDefaultParameters;
-                        int diff;
-                        if (n_def > 0 && nargs < p && (diff = p - nargs) <= n_def)
-                        {
-                            for (int n = n_def - diff; n < n_def; n++)
-                            {
-                                args.Add(cls.GetClosure().DefaultParams[n]);
-                            }
-                        }
-                    }
-                    else if (pro.nParams != nargs)
-                    {
-                        return vm.AddToErrorMessage("wrong number of arguments");
-                    }
-                }
+                nargs = args.Count + 1;
+                ExAPI.PushRootTable(vm);
             }
             else
             {
-                if (!DecideCallNeedNC(vm, cls.GetNClosure(), nargs, ref need_b))
+                nargs = args.Count;
+            }
+
+            if (is_cluster)
+            {
+                if (!PushArgsForCluster(vm, cls, args, ref nargs, false))
                 {
                     return ExFunctionStatus.ERROR;
                 }
             }
-
-            if (iscls)  //TO-DO fix this mess
+            else
             {
-                vm.Push(vm.GetAbove(-2));
-                args.Reverse();
                 vm.PushParse(args);
-                nargs = args.Count + 1;
             }
 
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
-            if (ExAPI.Call(vm, 3, true, need_b, iscls, nargs))
+
+            if (ExAPI.Call(vm, nargs, true, true))
             {
-                res.Assign(vm.GetAbove(-1)); // ExAPI.GetFromStack(vm, nargs - (iscls ? 1 : 0))
+                res.Assign(vm.GetAbove(is_seq ? -nargs : -1)); // ExAPI.GetFromStack(vm, nargs - (iscls ? 1 : 0))
                 vm.Pop();
             }
             else
@@ -1073,33 +1047,38 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(3, res);
         }
 
-        private static bool DecideCallNeedNC(ExVM v, ExNativeClosure c, int n, ref bool b)
+        private static bool PushArgsForCluster(ExVM vm, ExObject cls, List<ExObject> args, ref int nargs, bool parsing = true)
         {
-            if (c.IsDelegateFunction)
+            int req = cls.GetClosure().GetAttribute(ExMat.nParams);
+            if (req > 1)
             {
-                b = c.nParameterChecks == 1;
-            }
-            else if (c.nParameterChecks > 0)
-            {
-                if (c.nParameterChecks == 1)
+                if (req != args.Count)
                 {
-                    if (n != 1)
-                    {
-                        v.AddToErrorMessage("expected 0 arguments");
-                        return false;
-                    }
-                    b = n == 2;
+                    vm.AddToErrorMessage("expected " + req + " arguments for the cluster");
+                    return false;
                 }
                 else
                 {
-                    b = c.nParameterChecks == 2;
+                    nargs = args.Count + 1;
+                    vm.PushParse(args);
                 }
             }
             else
             {
-                b = c.nParameterChecks == -1;
+                if (parsing)
+                {
+                    nargs = args.Count;
+                    vm.Push(args);
+                }
+                else
+                {
+                    if (args.Count != 1)
+                    {
+                        throw new ExException("args count were not 1");
+                    }
+                    vm.Push(args[0]);
+                }
             }
-
             return true;
         }
 
@@ -1113,66 +1092,67 @@ namespace ExMat.BaseLib
                 return ExFunctionStatus.ERROR;
             }
 
-            vm.Pop();
+            bool is_cluster = false,
+                 is_seq = false,
+                 is_deleg = false;
 
-            int n = args.Count + 1;
-            int extra = 0;
             switch (cls.Type)
             {
                 case ExObjType.CLOSURE:
                     {
-                        vm.Push(cls);
-                        vm.Push(vm.RootDictionary);
-                        if (cls.GetClosure().Function.IsCluster()
-                            && cls.GetClosure().DefaultParams.Count == 1)
-                        {
-                            vm.Push(args); // Handle 1 parameter clusters => [args]
-                            n = 2;
-                        }
-                        else
-                        {
-                            vm.PushParse(args);
-                        }
-                        extra++;
+                        is_cluster = cls.GetClosure().Function.IsCluster();
+                        is_seq = cls.GetClosure().Function.IsSequence();
                         break;
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
-                        vm.Push(cls);
-                        if (args.Count == 0)
-                        {
-                            vm.Push(new ExObject());
-                        }
-                        vm.PushParse(args);
-                        break;
-                    }
-                case ExObjType.CLASS:
-                    {
-                        vm.Push(cls);
-                        vm.Push(vm.RootDictionary);
-                        vm.PushParse(args);
-                        extra++;
+                        is_deleg = cls.GetNClosure().IsDelegateFunction;
                         break;
                     }
                 default:
                     {
-                        vm.AddToErrorMessage("can't call '" + cls.Type + "' type");
-                        return ExFunctionStatus.ERROR;
+                        return vm.AddToErrorMessage("can't call non-closure type");
                     }
+            }
+
+            vm.Pop();
+
+            if (is_deleg)
+            {
+                nargs = args.Count;
+            }
+            else
+            {
+                nargs = args.Count + 1;
+                ExAPI.PushRootTable(vm);
+            }
+
+            if (is_cluster)
+            {
+                if (!PushArgsForCluster(vm, cls, args, ref nargs))
+                {
+                    return ExFunctionStatus.ERROR;
+                }
+            }
+            else
+            {
+                vm.PushParse(args);
             }
 
             ExObject tmp = new();
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
-            if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
+            if (!ExAPI.Call(vm, nargs, true, false))
             {
-                vm.Pop(n + extra);
+                vm.Pop(4);
                 vm.IsMainCall = bm;
                 return ExFunctionStatus.ERROR;
             }
 
+            tmp.Assign(vm.GetAbove(is_seq ? -nargs : -1));
             vm.IsMainCall = bm;
-            return vm.CleanReturn(n + extra + 3, tmp);
+
+            return vm.CleanReturn(4, tmp);
         }
 
         public static ExFunctionStatus StdIter(ExVM vm, int nargs)
@@ -1205,7 +1185,7 @@ namespace ExMat.BaseLib
             foreach (ExObject o in obj.GetList()) // TO-DO use for loop, remove need of 3rd arg in iter
             {
                 vm.Push(cls);
-                vm.Push(vm.RootDictionary);
+                ExAPI.PushRootTable(vm);
                 vm.Push(o); // curr
                 vm.Push(prev);  // prev
                 vm.Push(i); // idx
@@ -1256,7 +1236,7 @@ namespace ExMat.BaseLib
             foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
-                vm.Push(vm.RootDictionary);
+                ExAPI.PushRootTable(vm);
 
                 vm.Push(o);
                 if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
@@ -1312,7 +1292,7 @@ namespace ExMat.BaseLib
             foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
-                vm.Push(vm.RootDictionary);
+                ExAPI.PushRootTable(vm);
 
                 vm.Push(o);
                 if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
@@ -1368,7 +1348,7 @@ namespace ExMat.BaseLib
             foreach (ExObject o in obj.GetList())
             {
                 vm.Push(cls);
-                vm.Push(vm.RootDictionary);
+                ExAPI.PushRootTable(vm);
 
                 vm.Push(o);
                 if (!vm.Call(ref cls, n, vm.StackTop - n, ref tmp, true))
@@ -2128,7 +2108,7 @@ namespace ExMat.BaseLib
                                         for (int j = 0; j < n; j++)
                                         {
                                             ExObject res = new();
-                                            vm.Push(vm.RootDictionary);
+                                            ExAPI.PushRootTable(vm);
                                             vm.Push(i);
                                             vm.Push(j);
                                             if (!vm.Call(ref filler, 3, vm.StackTop - 3, ref res, true))
@@ -2150,7 +2130,7 @@ namespace ExMat.BaseLib
                                 {
                                     int nparamscheck = filler.GetNClosure().nParameterChecks;
                                     if (((nparamscheck > 0) && (nparamscheck != 3)) ||
-                                        ((nparamscheck < 0) && (3 < (-nparamscheck))))
+                                        ((nparamscheck < 0) && ((-nparamscheck) > 3)))
                                     {
                                         if (nparamscheck < 0)
                                         {
@@ -2853,7 +2833,7 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-2).GetString();
             string attr = vm.GetAbove(-1).GetString();
 
-            ExClass cls = res.Value._Instance.Class;
+            ExClass cls = res.GetInstance().Class;
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -2885,7 +2865,7 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-2).GetString();
             string attr = vm.GetAbove(-1).GetString();
 
-            ExClass cls = res.Value._Instance.Class;
+            ExClass cls = res.GetInstance().Class;
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -2921,7 +2901,7 @@ namespace ExMat.BaseLib
             string mem = vm.GetAbove(-3).GetString();
             string attr = vm.GetAbove(-2).GetString();
             ExObject val = vm.GetAbove(-1);
-            ExClass cls = res.Value._Instance.Class;
+            ExClass cls = res.GetInstance().Class;
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -3028,7 +3008,7 @@ namespace ExMat.BaseLib
             {
                 Name = "root",
                 Function = StdRoot,
-                nParameterChecks = 1,
+                nParameterChecks = -1,
                 ParameterMask = null
             },
             new()
@@ -3400,9 +3380,9 @@ namespace ExMat.BaseLib
         private const string _reloadbase = "reload_base";
         public static string ReloadBaseFunc => _reloadbase;
 
-        private const string __version__ = "ExMat v0.0.4";
+        private const string __version__ = "ExMat v0.0.5";
 
-        private const int __versionnumber__ = 4;
+        private const int __versionnumber__ = 5;
 
         public static bool RegisterStdBase(ExVM vm)
         {

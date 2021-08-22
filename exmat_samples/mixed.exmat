@@ -316,7 +316,7 @@ printl("-----------------------")
 var str = "get length of this"
 printl("str length: "+str.len())
 printl("-----------------------")
-printl("this length: "+len())
+printl("this length: "+ this.len())
 printl("-----------------------")
 x = range(1,11,0.5)
 printl(x)
@@ -375,15 +375,13 @@ else
 printl("-----------------------")
 
 var dir = "./test.txt"
-var dir1 = "./test1.txt"
-var dir2 = "./test2.txt"
 var content = "hello test\n\twriting files"
 
 write_text(dir,content)
 
 printl(read_text(dir))
 printl(read_lines(dir))
-printl(read_bytes(dir1))
+printl(read_bytes(dir))
 
 printl("-----------------------")
 

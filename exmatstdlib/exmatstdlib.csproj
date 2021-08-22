@@ -10,6 +10,7 @@
     <PackageReference Include="ClosedXML" Version="0.95.4" />
     <PackageReference Include="ExcelDataReader" Version="3.6.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.6.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.36" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="ScottPlot" Version="4.1.16" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="5.0.0" />

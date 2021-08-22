@@ -31,7 +31,7 @@ class MyClass
 
     function MyMethod()
     {
-        return member_3 == null ? 0 : member_3.len();
+        return member_3 == null ? 0 : member_3;
     }
 
     /. 

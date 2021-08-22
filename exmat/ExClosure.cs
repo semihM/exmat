@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using ExMat.Class;
 using ExMat.FuncPrototype;
+using ExMat.Interfaces;
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.Utils;
@@ -9,80 +10,7 @@ using ExMat.Utils;
 namespace ExMat.Closure
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExOuter : ExRefC
-    {
-        public int Index;
-        public ExObject ValueRef;
-
-        public ExOuter _prev;
-        public ExOuter _next;
-        public ExSState SharedState;
-
-        public ExOuter()
-        {
-        }
-
-        public static ExOuter Create(ExSState exS, ExObject o)
-        {
-            ExOuter exo = new() { SharedState = exS, ValueRef = new(o) };
-            return exo;
-        }
-
-        public static new ExObjType GetType()
-        {
-            return ExObjType.OUTER;
-        }
-
-        public virtual void Release()
-        {
-            if (--ReferenceCount == 0)
-            {
-                Index = -1;
-                if (ValueRef != null)
-                {
-                    ValueRef.Release();
-                }
-                SharedState = null;
-                if (_prev != null)
-                {
-                    _prev._next = _next;
-                    _prev = null;
-                }
-                if (_next != null)
-                {
-                    _next._prev = _prev;
-                    _next = null;
-                }
-            }
-        }
-
-        public new string GetDebuggerDisplay()
-        {
-            return "OUTER(" + Index + ", " + (ValueRef == null ? "null" : ValueRef.GetInt()) + ")";
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-
-            Disposer.DisposeObjects(ValueRef);
-
-            if (_prev != null)
-            {
-                _prev._next = _next;
-                _prev = null;
-            }
-            if (_next != null)
-            {
-                _next._prev = _prev;
-                _next = null;
-            }
-
-        }
-    }
-
-    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClosure : ExRefC
+    public class ExClosure : ExRefC, IExClosureAttr
     {
         public ExClass Base;                // Ait olunan sınıf(varsa)
         public ExPrototype Function;        // Fonksiyon prototipi
@@ -136,6 +64,55 @@ namespace ExMat.Closure
             return res;
         }
 
+        public dynamic GetAttribute(string attr)
+        {
+            switch (attr)
+            {
+                case ExMat.VargsName:
+                    {
+                        return Function.HasVargs;
+                    }
+                case ExMat.nParams:
+                    {
+                        return Function.nParams - 1 - (Function.HasVargs ? 1 : 0);
+                    }
+                case ExMat.nDefParams:
+                    {
+                        return Function.nDefaultParameters;
+                    }
+                case ExMat.nMinArgs:
+                    {
+                        return Function.nParams - 1 - Function.nDefaultParameters - (Function.HasVargs ? 1 : 0);
+                    }
+                case ExMat.DefParams:
+                    {
+                        int ndef = Function.nDefaultParameters;
+                        int npar = Function.nParams - 1;
+                        int start = npar - ndef;
+                        Dictionary<string, ExObject> dict = new();
+                        foreach (ExObject d in DefaultParams)
+                        {
+                            dict.Add((++start).ToString(), d);
+                        }
+                        return dict;
+                    }
+                default:
+                    {
+                        if (Base != null)
+                        {
+                            string mem = Function.Name.GetString();
+                            int memid = Base.Members[mem].GetMemberID();
+
+                            if (Base.Methods[memid].Attributes.GetDict().ContainsKey(attr))
+                            {
+                                return Base.Methods[memid].Attributes.GetDict()[attr];
+                            }
+                        }
+
+                        return null;
+                    }
+            }
+        }
         public virtual void Release()
         {
             foreach (ExObject o in OutersList)
@@ -171,65 +148,4 @@ namespace ExMat.Closure
 
     }
 
-    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExNativeClosure : ExRefC
-    {
-        public ExSState SharedState;            // Ortak değerler
-        public ExObject Name;                   // Fonksiyon ismi
-        public ExRegFunc.FunctionRef Function;  // C# metotu referansı
-        public bool IsDelegateFunction;         // Temsili(delegate) metot?
-
-        public int nOuters;                     // Dışardaki değişkenlere referansı sayısı
-        public List<ExObject> OutersList;       // Dış değişkenlerin bellek indeks bilgisi
-
-        public List<int> TypeMasks = new();     // Parametre maskeleri
-        public int nParameterChecks;            // Parametre sayısı
-
-        public Dictionary<int, ExObject> DefaultValues = new(); // Varsayılan değerler
-
-        protected override void Dispose(bool disposing)
-        {
-            base.Dispose(disposing);
-            WeakReference = null;
-            TypeMasks = null;
-            nOuters = 0;
-            nParameterChecks = 0;
-            Function = null;
-
-            Disposer.DisposeObjects(Name);
-            Disposer.DisposeList(ref OutersList);
-            Disposer.DisposeDict(ref DefaultValues);
-        }
-
-        public ExNativeClosure()
-        {
-            ReferenceCount = 1;
-        }
-
-        public static ExNativeClosure Create(ExSState exS, ExRegFunc.FunctionRef f, int nout)
-        {
-            ExNativeClosure cls = new() { SharedState = exS, Function = f };
-            ExUtils.InitList(ref cls.OutersList, nout);
-            cls.nOuters = nout;
-            return cls;
-        }
-
-        public virtual void Release()
-        {
-            foreach (ExObject o in OutersList)
-            {
-                o.Nullify();
-            }
-            OutersList = null;
-        }
-        public static new ExObjType GetType()
-        {
-            return ExObjType.NATIVECLOSURE;
-        }
-
-        public new string GetDebuggerDisplay()
-        {
-            return "NATIVECLOSURE(" + Name.GetString() + ")";
-        }
-    }
 }

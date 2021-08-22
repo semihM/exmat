@@ -12,6 +12,7 @@ using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Objects;
 using ExMat.OPs;
+using ExMat.Outer;
 using ExMat.States;
 using ExMat.Utils;
 
@@ -52,7 +53,7 @@ namespace ExMat.VM
         public int StackTop;                    // Anlık bellek tavan indeksi
 
         public List<ExCallInfo> CallStack;      // Çağrı yığını
-        public Node<ExCallInfo> CallInfo;       // Çağrı bağlı listesi
+        public ExNode<ExCallInfo> CallInfo;       // Çağrı bağlı listesi
         public int AllocatedCallSize;           // Yığının ilk boyutu
         public int CallStackSize;               // Yığının anlık boyutu
 
@@ -109,6 +110,16 @@ namespace ExMat.VM
             RootDictionary = new(new Dictionary<string, ExObject>());
             // Standart kütüphaneyi kaydet
             ExBaseLib.RegisterStdBase(this);
+        }
+
+        public void FillArgumentArray(List<ExObject> args, int nargs)
+        {
+            while (nargs > 1)
+            {
+                args.Add(new(GetAbove(-1)));
+                Pop();
+                nargs--;
+            }
         }
 
         public string GetSimpleString(ExObject obj)
@@ -1867,7 +1878,7 @@ namespace ExMat.VM
             }
             // Fonksiyon kopyasını al
             TempRegistery = new(closure);
-            Node<ExCallInfo> prevCallInfo = CallInfo;
+            ExNode<ExCallInfo> prevCallInfo = CallInfo;
             // Fonksiyonu çağır
             if (!StartCall(TempRegistery.GetClosure(), StackTop - nArguments, nArguments, stackBase, false))
             {
@@ -3891,10 +3902,6 @@ namespace ExMat.VM
                 return ExGetterStatus.FOUND;
             }
 
-            if(!isUsingIn)
-            {
-                AddToErrorMessage("key '" + key.GetString() + "' doesn't exist");
-            }
             return ExGetterStatus.NOTFOUND;
         }
 
@@ -3919,14 +3926,8 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    if (!isUsingIn)
-                    {
-                        AddToErrorMessage("array index error: count " + lis.Count + ", idx: " + key.GetInt());
-                    }
-                    else
-                    {
-                        return ExAPI.FindInArray(lis, key) ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
-                    }
+                    AddToErrorMessage("array index error: count " + lis.Count + ", idx: " + key.GetInt());
+                    return ExGetterStatus.ERROR;
                 }
             }
             else if (isUsingIn)
@@ -3960,10 +3961,6 @@ namespace ExMat.VM
                 return ExGetterStatus.FOUND;
             }
 
-            if (!isUsingIn)
-            {
-                AddToErrorMessage("member '" + key.GetString() + "' doesn't exist");
-            }
             return ExGetterStatus.NOTFOUND;
         }
 
@@ -3987,11 +3984,6 @@ namespace ExMat.VM
                     dest.Assign(new ExObject(cls.Methods[dest.GetMemberID()].Value));
                 }
                 return ExGetterStatus.FOUND;
-            }
-
-            if (!isUsingIn)
-            {
-                AddToErrorMessage("member '" + key.GetString() + "' doesn't exist");
             }
 
             return ExGetterStatus.NOTFOUND;
@@ -4042,7 +4034,7 @@ namespace ExMat.VM
 
             if (key.Type == ExObjType.STRING)
             {
-                ExGetterStatus status = isNative ? ExAPI.GetNativeFunctionAttribute(fbase.GetNClosure(), key.GetString(), ref dest) : ExAPI.GetFunctionAttribute(func, key.GetString(), ref dest);
+                ExGetterStatus status = isNative ? ExAPI.GetFunctionAttribute(fbase.GetNClosure(), key.GetString(), ref dest) : ExAPI.GetFunctionAttribute(func, key.GetString(), ref dest);
                 if (status == ExGetterStatus.ERROR)
                 {
                     AddToErrorMessage("unknown function attribute '" + key.GetString() + "'");
@@ -4243,7 +4235,7 @@ namespace ExMat.VM
                 }
 
                 // Çağrı zinciri listesini sıralı liste halinde CallInfo içerisinde sakla
-                CallInfo = Node<ExCallInfo>.BuildNodesFromList(CallStack, CallStackSize++);
+                CallInfo = ExNode<ExCallInfo>.BuildNodesFromList(CallStack, CallStackSize++);
 
                 CallInfo.Value.PrevBase = newBase - StackBase;  // tabanı kaydet
                 CallInfo.Value.PrevTop = StackTop - StackBase;  // tavanı kaydet
