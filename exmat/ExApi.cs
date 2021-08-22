@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using ExMat.Class;
+using Exmat.Exceptions;
 using ExMat.Closure;
 using ExMat.Compiler;
+using ExMat.Interfaces;
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.VM;
@@ -701,7 +702,7 @@ namespace ExMat.API
                     List<int> r = new();
                     if (!CompileTypeMask(mask, r))
                     {
-                        throw new Exception("failed to compile type mask");
+                        throw new ExException("failed to compile type mask");
                     }
                     nc.TypeMasks = r;
                 }
@@ -737,7 +738,7 @@ namespace ExMat.API
         {
             if (GetTopOfStack(vm) < 3)
             {
-                throw new Exception("not enough parameters in stack");
+                throw new ExException("not enough parameters in stack");
             }
             ExObject self = GetFromStack(vm, idx);
             if (self.Type == ExObjType.DICT || self.Type == ExObjType.CLASS)
@@ -746,7 +747,7 @@ namespace ExMat.API
                 k.Assign(vm.GetAbove(-2));
                 if (k.Type == ExObjType.NULL)
                 {
-                    throw new Exception("'null' is not a valid key");
+                    throw new ExException("'null' is not a valid key");
                 }
                 vm.NewSlot(self, k, vm.GetAbove(-1), false);
                 vm.Pop(2);
@@ -795,100 +796,43 @@ namespace ExMat.API
             return -1;
         }
 
-        public static ExGetterStatus GetFunctionAttribute(ExClosure func, string key, ref ExObject dest)
+        /// <summary>
+        /// Gets an attribute of a given function and assigns it to given destination
+        /// </summary>
+        /// <param name="func">Function to get the attribute from</param>
+        /// <param name="attr">Attribute name</param>
+        /// <param name="dest">Attribute's value if found</param>
+        /// <returns>If attribute exists <see cref="ExGetterStatus.FOUND"/>, otherwise <see cref="ExGetterStatus.ERROR"/></returns>
+        public static ExGetterStatus GetFunctionAttribute(IExClosureAttr func, string attr, ref ExObject dest)
         {
-            switch (key)
+            switch (attr)
             {
-                case "vargs":
+                case ExMat.VargsName:
                     {
-                        dest = new(func.Function.HasVargs);
+                        dest = new((bool)func.GetAttribute(attr));
                         return ExGetterStatus.FOUND;
                     }
-                case "n_params":
+                case ExMat.nParams:
+                case ExMat.nDefParams:
+                case ExMat.nMinArgs:
                     {
-                        dest = new(func.Function.nParams - 1 - (func.Function.HasVargs ? 1 : 0));
+                        dest = new((int)func.GetAttribute(attr));
                         return ExGetterStatus.FOUND;
                     }
-                case "n_defparams":
+                case ExMat.DefParams:
                     {
-                        dest = new(func.Function.nDefaultParameters);
-                        return ExGetterStatus.FOUND;
-                    }
-                case "n_minargs":
-                    {
-                        dest = new(func.Function.nParams - 1 - func.Function.nDefaultParameters - (func.Function.HasVargs ? 1 : 0));
-                        return ExGetterStatus.FOUND;
-                    }
-                case "defparams":
-                    {
-                        int ndef = func.Function.nDefaultParameters;
-                        int npar = func.Function.nParams - 1;
-                        int start = npar - ndef;
-                        Dictionary<string, ExObject> dict = new();
-                        foreach (ExObject d in func.DefaultParams)
-                        {
-                            dict.Add((++start).ToString(), d);
-                        }
-                        dest = new(dict);
+                        dest = new((Dictionary<string, ExObject>)func.GetAttribute(attr));
                         return ExGetterStatus.FOUND;
                     }
                 default:
                     {
-                        ExClass c = func.Base;
-
-                        if (c != null)
+                        dynamic res = func.GetAttribute(attr);
+                        if (res is null)
                         {
-                            string mem = func.Function.Name.GetString();
-                            int memid = c.Members[mem].GetMemberID();
-
-                            if (c.Methods[memid].Attributes.GetDict().ContainsKey(key))
-                            {
-                                dest = new ExObject(c.Methods[memid].Attributes.GetDict()[key]);
-                                return ExGetterStatus.FOUND;
-                            }
+                            return ExGetterStatus.ERROR;
                         }
-
-                        return ExGetterStatus.ERROR;
-                    }
-            }
-        }
-        public static ExGetterStatus GetNativeFunctionAttribute(ExNativeClosure func, string key, ref ExObject dest)
-        {
-            switch (key)
-            {
-                case "vargs":
-                    {
-                        dest = new(func.TypeMasks.Count == 0);
+                        dest = new((ExObject)res);
                         return ExGetterStatus.FOUND;
-                    }
-                case "n_params":
-                    {
-                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks - 1) : (func.nParameterChecks - 1));
-                        return ExGetterStatus.FOUND;
-                    }
-                case "n_defparams":
-                    {
-                        dest = new(func.DefaultValues.Count);
-                        return ExGetterStatus.FOUND;
-                    }
-                case "n_minargs":
-                    {
-                        dest = new(func.nParameterChecks < 0 ? (-func.nParameterChecks - 1) : (func.nParameterChecks - 1));
-                        return ExGetterStatus.FOUND;
-                    }
-                case "defparams":
-                    {
-                        Dictionary<string, ExObject> dict = new();
-                        foreach (KeyValuePair<int, ExObject> pair in func.DefaultValues)
-                        {
-                            dict.Add(pair.Key.ToString(), new(pair.Value));
-                        }
-                        dest = new(dict);
-                        return ExGetterStatus.FOUND;
-                    }
-                default:
-                    {
-                        return ExGetterStatus.ERROR;
                     }
             }
         }
@@ -968,61 +912,6 @@ namespace ExMat.API
                     vm.Push(result);
                 }
                 return true;
-            }
-            return false;
-        }
-        // TO-DO: FIX THIS MESS ....
-        public static bool Call(ExVM vm, int pcount, bool ret, bool bP = false, bool cls = false, int nargs = 2)
-        {
-            ExObject res = new();
-            ExObject tmp = vm.GetAbove(-(nargs) + (cls ? -1 : 0));
-            if (cls)
-            {
-                int top = vm.StackTop;
-                vm.StackTop = vm.StackBase + tmp.GetClosure().Function.StackSize + 2;
-                if (vm.Call(ref tmp,
-                        nargs - (bP
-                                    ? (cls
-                                            ? 0
-                                            : (tmp.GetNClosure().nParameterChecks == 1
-                                                ? 1
-                                                : 0))
-                                    : 0),
-                        vm.StackBase + 2,
-                        ref res,
-                        cls))
-                {
-                    while (vm.StackTop >= top)
-                    {
-                        vm.Pop();
-                    }
-                    if (ret)
-                    {
-                        vm.Push(res);
-                    }
-                    vm.StackTop = top;
-                    return true;
-                }
-            }
-            else
-            {
-                if (vm.Call(ref tmp,
-                        nargs - (bP
-                                    ? ((tmp.GetNClosure().nParameterChecks == 1
-                                                ? 1
-                                                : 0))
-                                    : 0),
-                        vm.StackBase + 1, // vm._top - nargs + (cls ? (parsing ? -2 : 0)  : 0 ), //+ ,
-                        ref res,
-                        cls))
-                {
-                    vm.Pop(nargs - 1);
-                    if (ret)
-                    {
-                        vm.Push(res);
-                    }
-                    return true;
-                }
             }
             return false;
         }
