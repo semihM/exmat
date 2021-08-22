@@ -217,37 +217,6 @@ namespace ExMat.BaseLib
             }
         }
 
-        private static ExObject GetJsonContent(JToken item)
-        {
-            if (item is JValue)
-            {
-                return new(item.ToString());
-            }
-            else if (item is JProperty i)
-            {
-                return new(i.Value.ToString());
-            }
-            else if (item is JArray ja)
-            {
-                List<ExObject> res = new();
-                foreach (JToken tkn in ja)
-                {
-                    res.Add(GetJsonContent(tkn));
-                }
-                return new(res);
-            }
-            else if (item is JObject)
-            {
-                Dictionary<string, ExObject> res = new();
-                foreach (JProperty tkn in item.Children())
-                {
-                    res.Add(tkn.Name, GetJsonContent(tkn));
-                }
-                return new(res);
-            }
-            return new();
-        }
-
         public static ExFunctionStatus Fetch(ExVM vm, int nargs)
         {
             string link = vm.GetArgument(1).GetString().Trim();
@@ -267,12 +236,7 @@ namespace ExMat.BaseLib
                 }
                 else if (deserializedResponse is JObject obj && obj.Count > 0)
                 {
-                    Dictionary<string, ExObject> Results = new();
-                    foreach (JProperty item in obj.Children())
-                    {
-                        Results.Add(item.Name, GetJsonContent(item.Value));
-                    }
-                    return vm.CleanReturn(nargs + 2, Results);
+                    return vm.CleanReturn(nargs + 2, ExStdIO.GetJsonContent(obj));
                 }
                 return vm.CleanReturn(nargs + 2, new ExObject());
             }
