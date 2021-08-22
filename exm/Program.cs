@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using ExMat.API;
@@ -30,19 +29,18 @@ namespace ExMat
             int tp = vm.StackTop - vm.StackBase;
             int ret = 0;
 
+            SetFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
+
             if (ExAPI.CompileSource(vm, code))      // Derle
             {
                 ExAPI.PushRootTable(vm);            // Global tabloyu belleğe yükle
                 if (ExAPI.Call(vm, 1, true, true))  // main 'i çağır
                 {
-                    // En üstteki değer boş değil ve konsola başka değer yazılmadıysa 
-                    //      değeri konsola yaz
-                    if (!vm.PrintedToConsole && vm.GetAbove(-1).Type != ExObjType.NULL)
+                    if (!vm.PrintedToConsole
+                        && vm.GetAbove(-1).Type != ExObjType.NULL
+                        && ExAPI.ToString(vm, -1, 2))
                     {
-                        if (ExAPI.ToString(vm, -1, 2)) // Değeri yazı dizisine çevir
-                        {
-                            Console.Write(vm.GetAbove(-1).GetString());
-                        }
+                        Console.Write(vm.GetAbove(-1).GetString());
                     }
                 }
                 else
@@ -66,6 +64,9 @@ namespace ExMat
 
             FixStackTopAfterCalls(vm, tp);  // Kullanılmayan değerleri temizle
             vm.PrintedToConsole = false;
+
+            RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
+
             return ret;
         }
 
@@ -103,9 +104,9 @@ namespace ExMat
             Console.WriteLine(new string('/', width + 2));
             Console.Write("/");
 
-            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', (width - vlen) / 2 + (vlen % 2 == 1 ? 1 : 0)));
+            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', ((width - vlen) / 2) + (vlen % 2 == 1 ? 1 : 0)));
             Console.WriteLine("/");
-            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', (width - dlen) / 2 + (dlen % 2 == 1 ? 1 : 0)) + "/\n");
+            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', ((width - dlen) / 2) + (dlen % 2 == 1 ? 1 : 0)) + "/\n");
 
             Console.WriteLine(new string('/', width + 2));
 
@@ -156,230 +157,14 @@ namespace ExMat
         /// </summary>
         private static readonly string ConsoleTitle = "[] ExMat Interactive";
 
-        protected static string ReadInputByKey()
-        {
-            StringBuilder input = new();
-            bool reading = true;
-            int prefixlen = Console.CursorLeft;
-            double start_window_buffer = Console.BufferWidth;
-            int in_line = Console.CursorTop;
-
-            int first_width = Console.WindowWidth,
-                first_height = Console.WindowHeight;
-
-            while (reading)
-            {
-                ConsoleKeyInfo press = Console.ReadKey(true);
-
-                char key = press.KeyChar;
-                int left = Console.CursorLeft,
-                    top = Console.CursorTop,
-                    buffer = Console.BufferWidth;
-
-                if (Console.WindowWidth != first_width)
-                {
-                    if (string.IsNullOrEmpty(input.ToString()))
-                    {
-                        in_line = Console.CursorTop;
-                    }
-                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        Console.WindowWidth = first_width;
-                    }
-                    // TO-DO
-                    else
-                    {
-                        return "\"\nERROR: WINDOW SIZE SHOULDN'T BE CHANGED DURING INPUT READING!\n\"";
-                    }
-                }
-
-                switch (key)
-                {
-                    case '\x0D':
-                        {
-                            RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
-                            Console.WriteLine();
-                            reading = false;
-                            break;
-                        }
-                    case '\x08':
-                        {
-                            if (input.Length > 0)
-                            {
-                                if (left == 0)
-                                {
-                                    if (top > in_line)
-                                    {
-                                        Console.SetCursorPosition(buffer - 1, top - 1);
-                                        Console.Write(" ");
-                                        Console.SetCursorPosition(buffer - 1, top - 1);
-                                    }
-                                }
-                                else if (left == buffer - 1
-                                    && input.Length > 1
-                                    && (prefixlen + input.Length) == buffer)
-                                {
-                                    Console.Write(string.Format("\x08{0} \x08", input[^2].ToString()));
-                                    Console.SetCursorPosition(buffer - 1, top);
-                                }
-                                else
-                                {
-                                    Console.Write("\x08 \x08");
-                                }
-
-                                int diff = top != in_line ?
-                                    (top - in_line - 1) * buffer + (buffer - prefixlen) + left - 1
-                                    : left - prefixlen - 1;
-
-                                input.Remove(diff, 1);
-
-                                Console.Write(input.ToString()[diff..input.Length]);
-                                Console.Write(new string(' ', input.Length - diff));
-                                if (top == in_line)    // First line
-                                {
-                                    if (left > prefixlen) // Between IN and code
-                                    {
-                                        Console.SetCursorPosition(left - 1, top);
-                                    }
-                                }
-                                else // Multiline
-                                {
-                                    if (left == 0) // At start, go up
-                                    {
-                                        Console.SetCursorPosition(buffer - 1, top - 1);
-                                    }
-                                    else // Go left
-                                    {
-                                        Console.SetCursorPosition(left - 1, top);
-                                    }
-                                }
-                            }
-                            break;
-                        }
-                    case '\0':
-                        {
-                            switch (press.Key)
-                            {
-                                case ConsoleKey.LeftArrow:
-                                    {
-                                        if (top == in_line)    // First line
-                                        {
-                                            if (left > prefixlen) // Between IN and code
-                                            {
-                                                Console.SetCursorPosition(left - 1, top);
-                                            }
-                                        }
-                                        else // Multiline
-                                        {
-                                            if (left == 0) // At start, go up
-                                            {
-                                                Console.SetCursorPosition(buffer - 1, top - 1);
-                                            }
-                                            else // Go left
-                                            {
-                                                Console.SetCursorPosition(left - 1, top);
-                                            }
-                                        }
-                                        break;
-                                    }
-                                case ConsoleKey.RightArrow:
-                                    {
-                                        if (top == in_line) // First line
-                                        {
-                                            if (left == buffer - 1) // At end
-                                            {
-                                                if (input.Length + prefixlen > buffer) // Go down if code long enough
-                                                {
-                                                    Console.SetCursorPosition(0, top + 1);
-                                                }
-                                            }
-                                            else if (input.Length + prefixlen > left) // Go right
-                                            {
-                                                Console.SetCursorPosition(left + 1, top);
-                                            }
-                                        }
-                                        else // Multiline
-                                        {
-                                            int charsinrow = input.Length - (buffer - prefixlen + (top - in_line - 1) * buffer);
-                                            if (charsinrow < buffer) // last or first row
-                                            {
-                                                if (left < charsinrow) // Long enough, go right
-                                                {
-                                                    Console.SetCursorPosition(left + 1, top);
-                                                }
-                                            }
-                                            else // Mid rows
-                                            {
-                                                if (left != buffer - 1) // Long enough, go right
-                                                {
-                                                    Console.SetCursorPosition(left + 1, top);
-                                                }
-                                                else
-                                                {
-                                                    Console.SetCursorPosition(0, top + 1);
-                                                }
-                                            }
-                                        }
-                                        break;
-                                    }
-                            }
-                            break;
-                        }
-                    default:
-                        {
-                            if (char.IsLetterOrDigit(key)
-                                || char.IsSymbol(key)
-                                || char.IsPunctuation(key)
-                                 || char.IsSeparator(key))
-                            {
-                                int diff = (top == in_line)
-                                    ? left - prefixlen
-                                    : left - prefixlen + buffer + ((top - in_line - 1) * buffer);
-                                if (diff == input.Length)    // Appending
-                                {
-                                    Console.Write(key);
-                                    input.Append(key);
-                                    if (buffer - left == 1)
-                                    {
-                                        Console.SetCursorPosition(0, top + 1);
-                                    }
-                                }
-                                else // Inserting
-                                {
-                                    Console.Write(key);
-                                    Console.Write(input.ToString()[diff..input.Length]);
-                                    if (left + 1 == buffer)
-                                    {
-                                        Console.SetCursorPosition(0, top + 1);
-                                    }
-                                    else
-                                    {
-                                        Console.SetCursorPosition(left + 1, top);
-                                    }
-                                    input.Insert(diff, key);
-                                }
-                            }
-                            break;
-                        }
-                }
-            }
-
-            return input.ToString();
-        }
-
-        // TO-DO Window size change brakes this
         /// <summary>
         /// Reads user input, cleans it up, sets console flags
         /// </summary>
         /// <returns>Cleaned user input</returns>
         private static string GetInput()
         {
-#if DEBUG
-            //string code = ReadInputByKey();
             string code = Console.ReadLine();
-#else  
-            string code = Console.ReadLine();
-#endif
+
             if (string.IsNullOrWhiteSpace(code))
             {
                 SetFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
@@ -392,6 +177,7 @@ namespace ExMat
                 if (string.IsNullOrWhiteSpace(code))
                 {
                     SetFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
+                    code = string.Empty;
                 }
 
                 if (code.EndsWith('\\'))
