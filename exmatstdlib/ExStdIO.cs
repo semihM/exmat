@@ -9,11 +9,220 @@ using ExcelDataReader;
 using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ExMat.BaseLib
 {
     public static class ExStdIO
     {
+
+        public static ExObject GetJsonContent(JToken item)
+        {
+            if (item is JValue)
+            {
+                return new(item.ToString());
+            }
+            else if (item is JProperty i)
+            {
+                return new(GetJsonContent(i.Value));
+            }
+            else if (item is JArray ja)
+            {
+                List<ExObject> res = new();
+                foreach (JToken tkn in ja)
+                {
+                    res.Add(GetJsonContent(tkn));
+                }
+                return new(res);
+            }
+            else if (item is JObject)
+            {
+                Dictionary<string, ExObject> res = new();
+                foreach (JProperty tkn in item.Children())
+                {
+                    res.Add(tkn.Name, GetJsonContent(tkn));
+                }
+                return new(res);
+            }
+            return new();
+        }
+
+        public static string ConvertToJson(ExObject obj, string prev = "", string prefix = "")
+        {
+            ExObjType typ = obj.Type;
+            if (prefix == "")
+            {
+                prev += (typ == ExObjType.DICT) ? "{\n"
+                                         : (typ == ExObjType.ARRAY) ? "[\n"
+                                                               : "";
+
+                prefix = " ";
+            }
+
+            switch (typ)
+            {
+                case ExObjType.DICT:
+                    {
+                        int i = -1;
+                        int last = obj.GetDict().Count - 1;
+                        foreach (KeyValuePair<string, ExObject> pair in obj.GetDict())
+                        {
+                            i++;
+                            string key = "\"" + pair.Key + "\"";
+                            switch (pair.Value.Type)
+                            {
+                                case ExObjType.DICT:
+                                    {
+                                        prev += prefix + key + " : \n" + prefix + "{\n";
+                                        prev = ConvertToJson(pair.Value, prev, prefix + " ");
+                                        prev += prefix + "}" + (i != last ? ",\n" : "\n");
+                                        break;
+                                    }
+                                case ExObjType.ARRAY:
+                                    {
+                                        prev += prefix + key + " : \n" + prefix + "[\n";
+                                        prev = ConvertToJson(pair.Value, prev, prefix + " ");
+                                        prev += prefix + "]" + (i != last ? ",\n" : "\n");
+                                        break;
+                                    }
+                                case ExObjType.INTEGER:
+                                case ExObjType.FLOAT:
+                                    {
+                                        prev += prefix + key + ": \"" + pair.Value.GetFloat() + "\"" + (i != last ? ",\n" : "\n");
+                                        break;
+                                    }
+                                case ExObjType.COMPLEX:
+                                    {
+                                        prev += prefix + key + ": \"" + pair.Value.GetComplexString() + "\"" + (i != last ? ",\n" : "\n");
+                                        break;
+                                    }
+                                case ExObjType.STRING:
+                                    {
+                                        prev += prefix + key + ": \"" + pair.Value.GetString() + "\"" + (i != last ? ",\n" : "\n");
+                                        break;
+                                    }
+                                case ExObjType.SPACE:
+                                    {
+                                        prev += prefix + key + ": \"" + pair.Value.Value.c_Space.GetSpaceString() + "\"" + (i != last ? ",\n" : "\n");
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        prev += prefix + key + ": \"" + pair.Value.Type.ToString() + "\"" + (i != last ? ",\n" : "\n");
+                                        break;
+                                    }
+                            }
+                        }
+
+                        break;
+                    }
+                case ExObjType.ARRAY:
+                    {
+                        prev += prefix + "[\n";
+                        List<ExObject> list = obj.GetList();
+                        int last = list.Count - 1;
+                        for (int i = 0; i < list.Count; i++)
+                        {
+                            ExObject o = list[i];
+                            prev = ConvertToJson(o, prev, prefix + " ") + (i != last ? ", " : "\n");
+                        }
+                        prev += prefix + "]\n";
+                        break;
+                    }
+                case ExObjType.INTEGER:
+                case ExObjType.FLOAT:
+                    {
+                        prev += prefix + "\"" + obj.GetFloat() + "\"";
+                        break;
+                    }
+                case ExObjType.COMPLEX:
+                    {
+                        prev += prefix + "\"" + obj.GetComplexString() + "\"";
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        prev += prefix + "\"" + obj.GetString() + "\"";
+                        break;
+                    }
+                case ExObjType.SPACE:
+                    {
+                        prev += prefix + "\"" + obj.Value.c_Space.GetSpaceString() + "\"";
+                        break;
+                    }
+                default:
+                    {
+                        prev += prefix + "\"" + typ.ToString() + "\"";
+                        break;
+                    }
+            }
+
+
+            if (prefix == " ")
+            {
+                prev += (typ == ExObjType.DICT) ? "}\n"
+                                        : (typ == ExObjType.ARRAY) ? "]\n"
+                                                            : "";
+            }
+            return prev;
+        }
+
+        public static ExFunctionStatus IoReadjson(ExVM vm, int nargs)
+        {
+            string f = vm.GetArgument(1).GetString();
+
+            if (File.Exists(f))
+            {
+                string enc = null;
+                if (nargs == 2)
+                {
+                    enc = vm.GetArgument(2).GetString();
+                }
+
+                Encoding e = ExAPI.DecideEncodingFromString(enc);
+                try
+                {
+                    ExObject res = GetJsonContent((JObject)JsonConvert.DeserializeObject(File.ReadAllText(f, e)));
+                    return vm.CleanReturn(nargs + 2, res);
+                }
+                catch (Exception err)
+                {
+                    return vm.AddToErrorMessage(err.Message);
+                }
+            }
+            else
+            {
+                return vm.CleanReturn(nargs + 2, new ExObject());
+            }
+        }
+
+        public static ExFunctionStatus IoWritejson(ExVM vm, int nargs)
+        {
+            string i = vm.GetArgument(1).GetString();
+
+            string enc = null;
+            if (nargs == 3)
+            {
+                enc = vm.GetArgument(3).GetString();
+            }
+
+            Encoding e = ExAPI.DecideEncodingFromString(enc);
+
+            string js = ConvertToJson(vm.GetArgument(2));
+            try
+            {
+                File.WriteAllText(i.EndsWith(".json") ? i : (i + ".json"), js, e);
+                vm.Pop(nargs + 2);
+
+                return ExFunctionStatus.VOID;
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage(err.Message);
+            }
+        }
+
         public static ExFunctionStatus IoClear(ExVM vm, int nargs)
         {
             Console.Clear();
@@ -626,6 +835,28 @@ namespace ExMat.BaseLib
                 {
                     { 4, new(0) },
                     { 5, new(0) }
+                }
+            },
+            new()
+            {
+                Name = "read_json",
+                Function = IoReadjson,
+                nParameterChecks = -2,
+                ParameterMask = ".ss",
+                DefaultValues = new()
+                {
+                    { 2, new("") }
+                }
+            },
+            new()
+            {
+                Name = "write_json",
+                Function = IoWritejson,
+                nParameterChecks = -3,
+                ParameterMask = ".s.s",
+                DefaultValues = new()
+                {
+                    { 3, new("") }
                 }
             },
             new()
