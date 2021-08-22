@@ -4,6 +4,7 @@ using ExMat.Class;
 using ExMat.Closure;
 using ExMat.FuncPrototype;
 using ExMat.Objects;
+using ExMat.Outer;
 
 namespace ExMat
 {
@@ -42,6 +43,26 @@ namespace ExMat
         /// INTERNAL: Used to check for some special cases
         /// </summary>
         public const int InvalidArgument = 985;
+
+        /// <summary>
+        /// Function attribute, returns named parameter count
+        /// </summary>
+        public const string nParams = "n_params";
+
+        /// <summary>
+        /// Function attribute, returns default valued parameter count
+        /// </summary>
+        public const string nDefParams = "n_defparams";
+
+        /// <summary>
+        /// Function attribute, returns minimum amount of arguments required
+        /// </summary>
+        public const string nMinArgs = "n_minargs";
+
+        /// <summary>
+        /// Function attribute, returns dictionary of default values for parameters
+        /// </summary>
+        public const string DefParams = "defparams";
     }
 
     /// <summary>
@@ -242,6 +263,12 @@ namespace ExMat
         [FieldOffset(0)] public long i;
     }
 
+    public enum ExMemberFlag
+    {
+        METHOD = 0x01000000,
+        FIELD = 0x02000000
+    }
+
     /// <summary>
     /// Values stored for <see cref="ExObject"/> objects
     /// </summary>
@@ -404,6 +431,9 @@ namespace ExMat
         RUNTIME
     }
 
+    /// <summary>
+    /// Interactive console flags
+    /// </summary>
     public enum ExInteractiveConsoleFlag
     {
         /// <summary>
@@ -417,6 +447,19 @@ namespace ExMat
         /// <summary>
         /// Prevented CTRL+C or CTRL+BREAK
         /// </summary>
-        CANCELEVENT = 1 << 2
+        CANCELEVENT = 1 << 2,
+        /// <summary>
+        /// Is the active VM currently in the execution process ?
+        /// </summary>
+        CURRENTLYEXECUTING = 1 << 3
+    }
+
+    /// <summary>
+    /// Outer variable types
+    /// </summary>
+    public enum ExOuterType
+    {
+        LOCAL,
+        OUTER
     }
 }
