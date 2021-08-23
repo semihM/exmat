@@ -83,7 +83,7 @@ namespace ExMat.BaseLib
                         foreach (KeyValuePair<string, ExObject> pair in obj.GetDict())
                         {
                             i++;
-                            prev = prefix + "\"" + pair.Key + "\": " +  ConvertToJson(pair.Value, prev, prefix + " ") + (i != last ? ",\n" : "\n")
+                            prev = prefix + "\"" + pair.Key + "\": " +  ConvertToJson(pair.Value, prev, prefix + " ") + (i != last ? ",\n" : "\n");
                         }
 
                         break;

@@ -33,7 +33,7 @@ namespace ExMat.BaseLib
             {
                 remove_empty = vm.GetArgument(3).GetBool()
                     ? StringSplitOptions.RemoveEmptyEntries
-                    : StringSplitOptions.None
+                    : StringSplitOptions.None;
             }
             else
             {
