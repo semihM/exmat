@@ -43,7 +43,7 @@ namespace ExMat.Closure
             {
                 case ExMat.FuncName:
                     {
-                        return Name;
+                        return Name.GetString();
                     }
                 case ExMat.VargsName:
                     {
