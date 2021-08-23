@@ -53,22 +53,22 @@ namespace ExMat.BaseLib
             ExObjType typ = obj.Type;
             if (prefix == "")
             {
-                switch(typ)
+                switch (typ)
                 {
                     case ExObjType.DICT:
-                    {
-                        prev += "{\n";
-                        break;
-                    }
+                        {
+                            prev += "{\n";
+                            break;
+                        }
                     case ExObjType.ARRAY:
-                    {
-                        prev += "[\n";
-                        break;
-                    }
+                        {
+                            prev += "[\n";
+                            break;
+                        }
                     default:
-                    {
-                        break;
-                    }
+                        {
+                            break;
+                        }
                 }
 
                 prefix = " ";
@@ -83,7 +83,7 @@ namespace ExMat.BaseLib
                         foreach (KeyValuePair<string, ExObject> pair in obj.GetDict())
                         {
                             i++;
-                            prev = prefix + "\"" + pair.Key + "\": " +  ConvertToJson(pair.Value, prev, prefix + " ") + (i != last ? ",\n" : "\n");
+                            prev = prefix + "\"" + pair.Key + "\": " + ConvertToJson(pair.Value, prev, prefix + " ") + (i != last ? ",\n" : "\n");
                         }
 
                         break;
@@ -112,7 +112,7 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.BOOL:
                     {
-                        prev += prefix + (obj.GetBool() ?  "true" : "false");
+                        prev += prefix + (obj.GetBool() ? "true" : "false");
                         break;
                     }
                 case ExObjType.STRING:
@@ -135,22 +135,22 @@ namespace ExMat.BaseLib
 
             if (prefix == " ")
             {
-                switch(typ)
+                switch (typ)
                 {
                     case ExObjType.DICT:
-                    {
-                        prev += "}\n";
-                        break;
-                    }
+                        {
+                            prev += "}\n";
+                            break;
+                        }
                     case ExObjType.ARRAY:
-                    {
-                        prev += "]\n";
-                        break;
-                    }
+                        {
+                            prev += "]\n";
+                            break;
+                        }
                     default:
-                    {
-                        break;
-                    }
+                        {
+                            break;
+                        }
                 }
             }
             return prev;

@@ -34,6 +34,11 @@ namespace ExMat
         public const string ThisName = "this";
 
         /// <summary>
+        /// Function attribute, returns name of the function
+        /// </summary>
+        public const string FuncName = "name";
+
+        /// <summary>
         /// Variable parameter count functions' argument list keyword name
         /// <para>Example function where this is available: <see langword="function"/><c> Foo(...){}</c></para>
         /// </summary>

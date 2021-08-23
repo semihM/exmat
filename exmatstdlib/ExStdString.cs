@@ -29,7 +29,7 @@ namespace ExMat.BaseLib
             string s = vm.GetArgument(1).GetString();
             string c = vm.GetArgument(2).GetString();
             StringSplitOptions remove_empty;
-            if(nargs == 3)
+            if (nargs == 3)
             {
                 remove_empty = vm.GetArgument(3).GetBool()
                     ? StringSplitOptions.RemoveEmptyEntries
