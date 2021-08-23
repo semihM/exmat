@@ -69,65 +69,20 @@ namespace ExMat.BaseLib
                         foreach (KeyValuePair<string, ExObject> pair in obj.GetDict())
                         {
                             i++;
-                            string key = "\"" + pair.Key + "\"";
-                            switch (pair.Value.Type)
-                            {
-                                case ExObjType.DICT:
-                                    {
-                                        prev += prefix + key + " : \n" + prefix + "{\n";
-                                        prev = ConvertToJson(pair.Value, prev, prefix + " ");
-                                        prev += prefix + "}" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.ARRAY:
-                                    {
-                                        prev += prefix + key + " : \n" + prefix + "[\n";
-                                        prev = ConvertToJson(pair.Value, prev, prefix + " ");
-                                        prev += prefix + "]" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.INTEGER:
-                                case ExObjType.FLOAT:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.GetFloat() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.COMPLEX:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.GetComplexString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.STRING:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.GetString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.SPACE:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.Value.c_Space.GetSpaceString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                default:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.Type.ToString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                            }
+                            prev = prefix + "\"" + pair.Key + "\": " +  ConvertToJson(pair.Value, prev, prefix + " ") + (i != last ? ",\n" : "\n")
                         }
 
                         break;
                     }
                 case ExObjType.ARRAY:
                     {
-                        prev += prefix + "[\n";
-                        List<ExObject> list = obj.GetList();
+                        int i = -1;
                         int last = list.Count - 1;
-                        for (int i = 0; i < list.Count; i++)
+                        foreach (ExObject o in obj.GetList())
                         {
-                            ExObject o = list[i];
+                            i++;
                             prev = ConvertToJson(o, prev, prefix + " ") + (i != last ? ", " : "\n");
                         }
-                        prev += prefix + "]\n";
                         break;
                     }
                 case ExObjType.INTEGER:
@@ -139,6 +94,11 @@ namespace ExMat.BaseLib
                 case ExObjType.COMPLEX:
                     {
                         prev += prefix + "\"" + obj.GetComplexString() + "\"";
+                        break;
+                    }
+                case ExObjType.BOOL:
+                    {
+                        prev += prefix + obj.GetBool() ?  "true" : "false";
                         break;
                     }
                 case ExObjType.STRING:
