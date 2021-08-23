@@ -232,10 +232,7 @@ namespace ExMat.VM
                 && c > 0 
                 && prefix != string.Empty)
             {
-                if ()
-                {
-                    s = new("\n" + prefix + s);
-                }
+                s = new("\n" + prefix + s);
             }
 
             foreach (ExObject o in lis)
