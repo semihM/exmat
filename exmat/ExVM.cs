@@ -15,6 +15,7 @@ using ExMat.OPs;
 using ExMat.Outer;
 using ExMat.States;
 using ExMat.Utils;
+using Exmat.Exceptions;
 
 namespace ExMat.VM
 {
@@ -105,7 +106,8 @@ namespace ExMat.VM
             // Sanal belleği oluştur
             ExUtils.InitList(ref Stack, stacksize);
             // Çağrı yığınını oluştur
-            ExUtils.InitList(ref CallStack, AllocatedCallSize = 4);
+            AllocatedCallSize = 4;
+            ExUtils.InitList(ref CallStack, AllocatedCallSize);
             // Global tabloyu oluştur
             RootDictionary = new(new Dictionary<string, ExObject>());
             // Standart kütüphaneyi kaydet
@@ -225,12 +227,12 @@ namespace ExMat.VM
             int c = lis.Count;
             maxdepth--;
 
-            if (beauty && !isdictval && c > 0)
+            if (beauty 
+                && !isdictval 
+                && c > 0 
+                && prefix != string.Empty)
             {
-                if (prefix != string.Empty)
-                {
-                    s = new("\n" + prefix + s);
-                }
+                s = new("\n" + prefix + s);
             }
 
             foreach (ExObject o in lis)
@@ -288,13 +290,14 @@ namespace ExMat.VM
             StringBuilder s = new("{");
             int n = 0;
             int c = dict.Count;
-            if (beauty && c > 0)
+
+            if (beauty 
+                && c > 0 
+                && prefix != string.Empty)
             {
-                if (prefix != string.Empty)
-                {
-                    s = new("\n" + prefix + s);
-                }
+                s = new("\n" + prefix + s);
             }
+
             if (c > 0)
             {
                 s.Append("\n" + prefix + "\t");
@@ -471,22 +474,6 @@ namespace ExMat.VM
                                     s += (tmp.nParams - 1) + " params)";
                                     break;
                                 }
-                            #region _
-                            /*
-                        case ExClosureType.MACRO:
-                            {
-                                s = "MACRO(" + tmp.Name.GetString() + ", ";
-                                if (tmp.nDefaultParameters > 0)
-                                {
-                                    s += (tmp.nParams - 1) + " params (min:" + (tmp.nParams - tmp.nDefaultParameters - 1) + ")";
-                                }
-                                else
-                                {
-                                    s += ")";
-                                }
-                                break;
-                            }*/
-                            #endregion
                             case ExClosureType.CLUSTER:
                                 {
                                     s = "CLUSTER(" + tmp.Name.GetString() + ", ";
@@ -560,28 +547,24 @@ namespace ExMat.VM
                         }
                         else if (s.StartsWith("0x"))
                         {
-                            if (s.Length <= 18)
+                            if (s.Length <= 18
+                                && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
                             {
-                                if (long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
-                                {
-                                    res = new(new DoubleLong() { i = hr }.f);
-                                    break;
-                                }
+                                res = new(new DoubleLong() { i = hr }.f);
+                                break;
                             }
                         }
-                        else if (s.StartsWith("0b"))
+                        else if (s.StartsWith("0b") 
+                                && s.Length <= 66)
                         {
-                            if (s.Length <= 66)
+                            try
                             {
-                                try
-                                {
-                                    res = new(new DoubleLong() { i = Convert.ToInt64(s[2..], 2) }.f);
-                                    break;
-                                }
-                                catch (Exception err)
-                                {
-                                    AddToErrorMessage("Conversion Error: " + err.Message);
-                                }
+                                res = new(new DoubleLong() { i = Convert.ToInt64(s[2..], 2) }.f);
+                                break;
+                            }
+                            catch (Exception err)
+                            {
+                                AddToErrorMessage("Conversion Error: " + err.Message);
                             }
                         }
 
@@ -636,28 +619,24 @@ namespace ExMat.VM
                         }
                         else if (s.StartsWith("0x"))
                         {
-                            if (s.Length <= 18)
+                            if (s.Length <= 18
+                                && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
                             {
-                                if (long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
-                                {
-                                    res = new(hr);
-                                    break;
-                                }
+                                res = new(hr);
+                                break;
                             }
                         }
-                        else if (s.StartsWith("0b"))
+                        else if (s.StartsWith("0b")
+                                && s.Length <= 66)
                         {
-                            if (s.Length <= 66)
+                            try
                             {
-                                try
-                                {
-                                    res = new(Convert.ToInt64(s[2..], 2));
-                                    break;
-                                }
-                                catch (Exception err)
-                                {
-                                    AddToErrorMessage("Conversion Error: " + err.Message);
-                                }
+                                res = new(Convert.ToInt64(s[2..], 2));
+                                break;
+                            }
+                            catch (Exception err)
+                            {
+                                AddToErrorMessage("Conversion Error: " + err.Message);
                             }
                         }
 
@@ -729,9 +708,6 @@ namespace ExMat.VM
                     {
                         bool raw = true;
                         bool deleg = true; // TO-DO
-                        if (deleg)
-                        {
-                        }
 
                         if (raw)
                         {
@@ -1859,7 +1835,7 @@ namespace ExMat.VM
 
                 if (!LeaveFrame())
                 {
-                    throw new Exception("something went wrong with the stack!");
+                    throw new ExException("something went wrong with the stack!");
                 }
                 if (end)
                 {
@@ -1874,7 +1850,7 @@ namespace ExMat.VM
         {
             if (nNativeCalls++ > 100)   // Sonsuz döngüye girildi
             {
-                throw new Exception("Native stack overflow");
+                throw new ExException("Native stack overflow");
             }
             // Fonksiyon kopyasını al
             TempRegistery = new(closure);
@@ -2210,7 +2186,7 @@ namespace ExMat.VM
                     case OPC.NEQ:
                         {
                             bool res = false;
-                            if (!ExAPI.CheckEqual(GetTargetInStack(instruction.arg2), GetConditionFromInstr(instruction), ref res))
+                            if (!ExApi.CheckEqual(GetTargetInStack(instruction.arg2), GetConditionFromInstr(instruction), ref res))
                             {
                                 AddToErrorMessage("equal op failed");
                                 return FixStackAfterError();
@@ -2298,19 +2274,13 @@ namespace ExMat.VM
                             GetTargetInStack(instruction).Assign(RootDictionary);
                             continue;
                         }
-                    case OPC.JZS:
-                        {
-                            if (!GetTargetInStack(instruction.arg0).GetBool())
-                            {
-                                CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
-                            }
-                            continue;
-                        }
                     case OPC.JMP:   // arg1 adet komutu atla
                         {
                             CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
                             continue;
                         }
+                    
+                    case OPC.JZS:
                     case OPC.JZ:    // Hedef(arg0 indeksli) boolean olarak 'false' ise arg1 adet komutu atla
                         {
                             if (!GetTargetInStack(instruction.arg0).GetBool())
@@ -2396,7 +2366,7 @@ namespace ExMat.VM
                                     val.Assign(instruction.arg1 == 1); break;
                                 default:
                                     {
-                                        throw new Exception("unknown array append method");
+                                        throw new ExException("unknown array append method");
                                     }
                             }
                             GetTargetInStack(instruction.arg0).GetList().Add(val);
@@ -2812,12 +2782,12 @@ namespace ExMat.VM
             int rows = vals.Count;
             int cols = 0;
 
-            if (!ExAPI.DoMatrixTransposeChecks(this, vals, ref cols))
+            if (!ExApi.DoMatrixTransposeChecks(this, vals, ref cols))
             {
                 return false;
             }
 
-            t.Assign(ExAPI.TransposeMatrix(rows, cols, vals));
+            t.Assign(ExApi.TransposeMatrix(rows, cols, vals));
 
             return true;
         }
@@ -3183,7 +3153,7 @@ namespace ExMat.VM
                         res = new(c);
                         break;
                     }
-                default: throw new Exception("unknown arithmetic operation");
+                default: throw new ExException("unknown arithmetic operation");
             }
             return true;
         }
@@ -3210,7 +3180,7 @@ namespace ExMat.VM
                         res = new(c);
                         break;
                     }
-                default: throw new Exception("unknown arithmetic operation");
+                default: throw new ExException("unknown arithmetic operation");
             }
             return true;
         }
@@ -3237,7 +3207,7 @@ namespace ExMat.VM
                         res = new(c);
                         break;
                     }
-                default: throw new Exception("unknown arithmetic operation");
+                default: throw new ExException("unknown arithmetic operation");
             }
             return true;
         }
@@ -3724,13 +3694,11 @@ namespace ExMat.VM
                     return false;
             }
 
-            if (f == ExFallback.OK)
+            if (f == ExFallback.OK
+                && RootDictionary.GetDict().ContainsKey(k.GetString()))
             {
-                if (RootDictionary.GetDict().ContainsKey(k.GetString()))
-                {
-                    RootDictionary.GetDict()[k.GetString()].Assign(v);
-                    return true;
-                }
+                RootDictionary.GetDict()[k.GetString()].Assign(v);
+                return true;
             }
 
             AddToErrorMessage("key error: " + k.GetString());
@@ -3850,18 +3818,8 @@ namespace ExMat.VM
             {
                 case ExObjType.DICT:
                     {
-                        //if (self.GetInstance()._delegate != null)
-                        //{
-                        //    if (Getter(ref self.GetInstance()._delegate, ref k, ref dest, false, ExFallback.DONT))
-                        //    {
-                        //        return ExFallback.OK;
-                        //    }
-                        //}
-                        //else
-                        //{
+                        // TO-DO Dict delegates ?
                         return ExFallback.NOMATCH;
-                        //}
-                        //goto case ExObjType.INSTANCE;
                     }
                 case ExObjType.INSTANCE:
                     {
@@ -3919,7 +3877,7 @@ namespace ExMat.VM
                 int idx = (int)key.GetInt();
                 idx += idx < 0 ? lis.Count : 0;
 
-                if (!isUsingIn && idx >= 0 && lis.Count != 0 && lis.Count > idx)
+                if (idx >= 0 && lis.Count != 0 && lis.Count > idx)
                 {
                     dest.Assign(new ExObject(lis[idx]));
                     return ExGetterStatus.FOUND;
@@ -3932,7 +3890,7 @@ namespace ExMat.VM
             }
             else if (isUsingIn)
             {
-                return ExAPI.FindInArray(lis, key) ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+                return ExApi.FindInArray(lis, key) ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
             }
 
             return ExGetterStatus.NOTFOUND;
@@ -4034,7 +3992,7 @@ namespace ExMat.VM
 
             if (key.Type == ExObjType.STRING)
             {
-                ExGetterStatus status = isNative ? ExAPI.GetFunctionAttribute(fbase.GetNClosure(), key.GetString(), ref dest) : ExAPI.GetFunctionAttribute(func, key.GetString(), ref dest);
+                ExGetterStatus status = isNative ? ExApi.GetFunctionAttribute(fbase.GetNClosure(), key.GetString(), ref dest) : ExApi.GetFunctionAttribute(func, key.GetString(), ref dest);
                 if (status == ExGetterStatus.ERROR)
                 {
                     AddToErrorMessage("unknown function attribute '" + key.GetString() + "'");
@@ -4165,13 +4123,11 @@ namespace ExMat.VM
                     return true;
                 }
             }
-            if (f == ExFallback.OK)
+            if (f == ExFallback.OK 
+                && RootDictionary.GetDict().ContainsKey(k.GetString()))
             {
-                if (RootDictionary.GetDict().ContainsKey(k.GetString()))
-                {
-                    dest.Assign(RootDictionary.GetDict()[k.GetString()]);
-                    return true;
-                }
+                dest.Assign(RootDictionary.GetDict()[k.GetString()]);
+                return true;
             }
 
             if (!isUsingIn && k.Type == ExObjType.STRING && self.Type != ExObjType.DICT)
@@ -4254,7 +4210,7 @@ namespace ExMat.VM
             {
                 if (nMetaCalls > 0)     // meta metot içerisinde ise hata ver
                 {
-                    throw new Exception("stack overflow, cant resize while in metamethod");
+                    throw new ExException("stack overflow, cant resize while in metamethod");
                 }
                 ExUtils.ExpandListTo(Stack, 256);   // değilse belleği genişlet
             }
@@ -4268,24 +4224,23 @@ namespace ExMat.VM
             int css = --CallStackSize;      // Çağrı yığını sayısı
 
             #region Dizi optimizasyonu
-            if (sequenceOptimize)
+            if (sequenceOptimize
+                && IsMainCall 
+                && (css <= 0 || (css > 0 && CallStack[css - 1].IsRootCall)))
             {
-                if (IsMainCall && (css <= 0 || (css > 0 && CallStack[css - 1].IsRootCall)))
-                {
-                    List<ExObject> dp = new();
-                    List<ExObject> ps = new();
+                List<ExObject> dp = new();
+                List<ExObject> ps = new();
 
-                    for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nParams; i++)
-                    {
-                        ps.Add(new(CallInfo.Value.Closure.GetClosure().Function.Parameters[i]));
-                    }
-                    for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nDefaultParameters; i++)
-                    {
-                        dp.Add(new(CallInfo.Value.Closure.GetClosure().DefaultParams[i]));
-                    }
-                    CallInfo.Value.Closure.GetClosure().DefaultParams = new(dp);
-                    CallInfo.Value.Closure.GetClosure().Function.Parameters = new(ps);
+                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nParams; i++)
+                {
+                    ps.Add(new(CallInfo.Value.Closure.GetClosure().Function.Parameters[i]));
                 }
+                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nDefaultParameters; i++)
+                {
+                    dp.Add(new(CallInfo.Value.Closure.GetClosure().DefaultParams[i]));
+                }
+                CallInfo.Value.Closure.GetClosure().DefaultParams = new(dp);
+                CallInfo.Value.Closure.GetClosure().Function.Parameters = new(ps);
             }
             #endregion
 
@@ -4328,7 +4283,7 @@ namespace ExMat.VM
 
             if (nNativeCalls + 1 > 100)
             {
-                throw new Exception("Native stack overflow");
+                throw new ExException("Native stack overflow");
             }
 
             // nParameterChecks > 0 => tam nParameterChecks adet argüman gerekli
@@ -4379,7 +4334,7 @@ namespace ExMat.VM
                     else if (ts[i] != -1 && !IncludesType((int)argumentType, ts[i]))
                     {
                         AddToErrorMessage("invalid parameter type for parameter " + i + ", expected one of "
-                                          + ExAPI.GetExpectedTypes(ts[i]) + ", got: " + Stack[newBase + i].Type.ToString());
+                                          + ExApi.GetExpectedTypes(ts[i]) + ", got: " + Stack[newBase + i].Type.ToString());
                         return false;
                     }
                 }
@@ -4417,7 +4372,7 @@ namespace ExMat.VM
                     {
                         if (!LeaveFrame())  // Çerçeveyi kapat ve hata dönme sürecini başlat
                         {
-                            throw new Exception("something went wrong with the stack!");
+                            throw new ExException("something went wrong with the stack!");
                         }
                         return false;
                     }
@@ -4442,7 +4397,7 @@ namespace ExMat.VM
             // Çerçeveden çık
             if (!LeaveFrame())
             {
-                throw new Exception("something went wrong with the stack!");
+                throw new ExException("something went wrong with the stack!");
             }
             return true;
         }

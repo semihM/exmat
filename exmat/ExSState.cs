@@ -505,7 +505,7 @@ namespace ExMat.States
                 }
                 cls.Name = new(f[i].Name);
 
-                if (!string.IsNullOrEmpty(f[i].ParameterMask) && !API.ExAPI.CompileTypeMask(f[i].ParameterMask, cls.TypeMasks))
+                if (!string.IsNullOrEmpty(f[i].ParameterMask) && !API.ExApi.CompileTypeMask(f[i].ParameterMask, cls.TypeMasks))
                 {
                     return new();
                 }
@@ -561,13 +561,6 @@ namespace ExMat.States
                 disposedValue = true;
             }
         }
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ExSState()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
 
         public void Dispose()
         {

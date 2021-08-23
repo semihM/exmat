@@ -31,14 +31,14 @@ namespace ExMat
 
             SetFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
 
-            if (ExAPI.CompileSource(vm, code))      // Derle
+            if (ExApi.CompileSource(vm, code))      // Derle
             {
-                ExAPI.PushRootTable(vm);            // Global tabloyu belleğe yükle
-                if (ExAPI.Call(vm, 1, true, true))  // main 'i çağır
+                ExApi.PushRootTable(vm);            // Global tabloyu belleğe yükle
+                if (ExApi.Call(vm, 1, true, true))  // main 'i çağır
                 {
                     if (!vm.PrintedToConsole
                         && vm.GetAbove(-1).Type != ExObjType.NULL
-                        && ExAPI.ToString(vm, -1, 2))
+                        && ExApi.ToString(vm, -1, 2))
                     {
                         Console.Write(vm.GetAbove(-1).GetString());
                     }
@@ -51,14 +51,14 @@ namespace ExMat
                     }
                     else
                     {
-                        ExAPI.WriteErrorMessages(vm, ExErrorType.RUNTIME);   // İşleme hatası
+                        ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);   // İşleme hatası
                         ret = -1;
                     }
                 }
             }
             else
             {
-                ExAPI.WriteErrorMessages(vm, ExErrorType.COMPILE);            // Derleme hatası 
+                ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);            // Derleme hatası 
                 ret = -1;
             }
 
@@ -296,12 +296,12 @@ namespace ExMat
                 }
 
                 // Sanal makineyi başlat
-                ExVM v = ExAPI.Start(VM_STACK_SIZE);
+                ExVM v = ExApi.Start(VM_STACK_SIZE);
                 // Versiyon numarası
                 WriteVersion(v);
 
                 // Global tabloyu belleğe yükle
-                ExAPI.PushRootTable(v);
+                ExApi.PushRootTable(v);
                 // Standart kütüphaneleri tabloya kaydet
                 RegisterStdLibraries(v);
 
@@ -311,8 +311,8 @@ namespace ExMat
 
             // Interactive
             #region Interactive
-            ExVM vm = ExAPI.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
-            ExAPI.PushRootTable(vm);                    // Global tabloyu ekle
+            ExVM vm = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
+            ExApi.PushRootTable(vm);                    // Global tabloyu ekle
 
             RegisterStdLibraries(vm);   // Standard kütüphaneler
 
@@ -373,7 +373,7 @@ namespace ExMat
 
                 int ret = CompileString(vm, code.ToString().TrimEnd('\\', ' ', '\t'));  // Derle ve işle
 
-                ExAPI.CollectGarbage(); // Çöp toplayıcıyı çağır
+                ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
 
                 if (vm.ExitCalled)  // exit fonksiyonu çağırıldıysa bitir
                 {

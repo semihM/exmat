@@ -11,7 +11,7 @@ using Newtonsoft.Json.Linq;
 
 namespace ExMat.BaseLib
 {
-    public class ExStdNet
+    public static class ExStdNet
     {
         private static readonly Dictionary<string, string> SearchEngines = new()
         {
@@ -267,7 +267,7 @@ namespace ExMat.BaseLib
 
         public static bool RegisterStdNet(ExVM vm)
         {
-            ExAPI.RegisterNativeFunctions(vm, NetFuncs);
+            ExApi.RegisterNativeFunctions(vm, NetFuncs);
             return true;
         }
     }

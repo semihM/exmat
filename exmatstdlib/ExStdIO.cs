@@ -53,9 +53,23 @@ namespace ExMat.BaseLib
             ExObjType typ = obj.Type;
             if (prefix == "")
             {
-                prev += (typ == ExObjType.DICT) ? "{\n"
-                                         : (typ == ExObjType.ARRAY) ? "[\n"
-                                                               : "";
+                switch(typ)
+                {
+                    case ExObjType.DICT:
+                    {
+                        prev += "{\n";
+                        break;
+                    }
+                    case ExObjType.ARRAY:
+                    {
+                        prev += "[\n";
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
 
                 prefix = " ";
             }
@@ -69,65 +83,20 @@ namespace ExMat.BaseLib
                         foreach (KeyValuePair<string, ExObject> pair in obj.GetDict())
                         {
                             i++;
-                            string key = "\"" + pair.Key + "\"";
-                            switch (pair.Value.Type)
-                            {
-                                case ExObjType.DICT:
-                                    {
-                                        prev += prefix + key + " : \n" + prefix + "{\n";
-                                        prev = ConvertToJson(pair.Value, prev, prefix + " ");
-                                        prev += prefix + "}" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.ARRAY:
-                                    {
-                                        prev += prefix + key + " : \n" + prefix + "[\n";
-                                        prev = ConvertToJson(pair.Value, prev, prefix + " ");
-                                        prev += prefix + "]" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.INTEGER:
-                                case ExObjType.FLOAT:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.GetFloat() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.COMPLEX:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.GetComplexString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.STRING:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.GetString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                case ExObjType.SPACE:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.Value.c_Space.GetSpaceString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                                default:
-                                    {
-                                        prev += prefix + key + ": \"" + pair.Value.Type.ToString() + "\"" + (i != last ? ",\n" : "\n");
-                                        break;
-                                    }
-                            }
+                            prev = prefix + "\"" + pair.Key + "\": " +  ConvertToJson(pair.Value, prev, prefix + " ") + (i != last ? ",\n" : "\n");
                         }
 
                         break;
                     }
                 case ExObjType.ARRAY:
                     {
-                        prev += prefix + "[\n";
-                        List<ExObject> list = obj.GetList();
-                        int last = list.Count - 1;
-                        for (int i = 0; i < list.Count; i++)
+                        int i = -1;
+                        int last = obj.GetList().Count - 1;
+                        foreach (ExObject o in obj.GetList())
                         {
-                            ExObject o = list[i];
+                            i++;
                             prev = ConvertToJson(o, prev, prefix + " ") + (i != last ? ", " : "\n");
                         }
-                        prev += prefix + "]\n";
                         break;
                     }
                 case ExObjType.INTEGER:
@@ -139,6 +108,11 @@ namespace ExMat.BaseLib
                 case ExObjType.COMPLEX:
                     {
                         prev += prefix + "\"" + obj.GetComplexString() + "\"";
+                        break;
+                    }
+                case ExObjType.BOOL:
+                    {
+                        prev += prefix + (obj.GetBool() ?  "true" : "false");
                         break;
                     }
                 case ExObjType.STRING:
@@ -161,9 +135,23 @@ namespace ExMat.BaseLib
 
             if (prefix == " ")
             {
-                prev += (typ == ExObjType.DICT) ? "}\n"
-                                        : (typ == ExObjType.ARRAY) ? "]\n"
-                                                            : "";
+                switch(typ)
+                {
+                    case ExObjType.DICT:
+                    {
+                        prev += "}\n";
+                        break;
+                    }
+                    case ExObjType.ARRAY:
+                    {
+                        prev += "]\n";
+                        break;
+                    }
+                    default:
+                    {
+                        break;
+                    }
+                }
             }
             return prev;
         }
@@ -180,7 +168,7 @@ namespace ExMat.BaseLib
                     enc = vm.GetArgument(2).GetString();
                 }
 
-                Encoding e = ExAPI.DecideEncodingFromString(enc);
+                Encoding e = ExApi.DecideEncodingFromString(enc);
                 try
                 {
                     ExObject res = GetJsonContent((JObject)JsonConvert.DeserializeObject(File.ReadAllText(f, e)));
@@ -207,7 +195,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = ExAPI.DecideEncodingFromString(enc);
+            Encoding e = ExApi.DecideEncodingFromString(enc);
 
             string js = ConvertToJson(vm.GetArgument(2));
             try
@@ -236,12 +224,12 @@ namespace ExMat.BaseLib
 
             if (nargs > 2)
             {
-                Console.ForegroundColor = ExAPI.GetColorFromName(vm.GetArgument(3).GetString(), ConsoleColor.White);
-                Console.BackgroundColor = ExAPI.GetColorFromName(vm.GetArgument(2).GetString());
+                Console.ForegroundColor = ExApi.GetColorFromName(vm.GetArgument(3).GetString(), ConsoleColor.White);
+                Console.BackgroundColor = ExApi.GetColorFromName(vm.GetArgument(2).GetString());
             }
             else if (nargs > 1)
             {
-                Console.BackgroundColor = ExAPI.GetColorFromName(vm.GetArgument(2).GetString());
+                Console.BackgroundColor = ExApi.GetColorFromName(vm.GetArgument(2).GetString());
             }
 
             vm.Print(s);
@@ -264,7 +252,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = ExAPI.DecideEncodingFromString(enc);
+            Encoding e = ExApi.DecideEncodingFromString(enc);
 
             vm.Pop(nargs + 2);
             File.WriteAllText(i, code, e);
@@ -282,7 +270,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = ExAPI.DecideEncodingFromString(enc);
+            Encoding e = ExApi.DecideEncodingFromString(enc);
 
             int n = lis.Value.l_List.Count;
 
@@ -334,7 +322,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = ExAPI.DecideEncodingFromString(enc);
+            Encoding e = ExApi.DecideEncodingFromString(enc);
 
             vm.Pop(nargs + 2);
             File.AppendAllText(i, code, e);
@@ -352,7 +340,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(3).GetString();
             }
 
-            Encoding e = ExAPI.DecideEncodingFromString(enc);
+            Encoding e = ExApi.DecideEncodingFromString(enc);
 
             int n = lis.Value.l_List.Count;
 
@@ -383,7 +371,7 @@ namespace ExMat.BaseLib
                     enc = vm.GetArgument(2).GetString();
                 }
 
-                Encoding e = ExAPI.DecideEncodingFromString(enc);
+                Encoding e = ExApi.DecideEncodingFromString(enc);
 
                 return vm.CleanReturn(nargs + 2, File.ReadAllText(f, e));
             }
@@ -408,7 +396,7 @@ namespace ExMat.BaseLib
                 enc = vm.GetArgument(2).GetString();
             }
 
-            Encoding e = ExAPI.DecideEncodingFromString(enc);
+            Encoding e = ExApi.DecideEncodingFromString(enc);
 
             string[] lines = File.ReadAllLines(f, e);
 
@@ -555,12 +543,12 @@ namespace ExMat.BaseLib
                         continue;
                     }
 
-                    if (ExAPI.CompileSource(vm, File.ReadAllText(f)))
+                    if (ExApi.CompileSource(vm, File.ReadAllText(f)))
                     {
-                        ExAPI.PushRootTable(vm);
-                        if (!ExAPI.Call(vm, 1, false, false))
+                        ExApi.PushRootTable(vm);
+                        if (!ExApi.Call(vm, 1, false, false))
                         {
-                            ExAPI.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                            ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
                             failed = true;
                             break;
                         }
@@ -568,7 +556,7 @@ namespace ExMat.BaseLib
                     }
                     else
                     {
-                        ExAPI.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                        ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
                         failed = true;
                         break;
                     }
@@ -587,12 +575,12 @@ namespace ExMat.BaseLib
                     fname += ".exmat";
                 }
 
-                if (ExAPI.CompileSource(vm, File.ReadAllText(fname)))
+                if (ExApi.CompileSource(vm, File.ReadAllText(fname)))
                 {
-                    ExAPI.PushRootTable(vm);
-                    if (!ExAPI.Call(vm, 1, false, false))
+                    ExApi.PushRootTable(vm);
+                    if (!ExApi.Call(vm, 1, false, false))
                     {
-                        ExAPI.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                        ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
                         return vm.CleanReturn(nargs + 3, false);
                     }
                     else
@@ -602,7 +590,7 @@ namespace ExMat.BaseLib
                 }
                 else
                 {
-                    ExAPI.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                    ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
                     return vm.CleanReturn(nargs + 3, false);
                 }
             }
@@ -627,8 +615,8 @@ namespace ExMat.BaseLib
                         {
                             if (fname != ReloadLibFunc)
                             {
-                                ExAPI.PushRootTable(vm);
-                                ExAPI.ReloadNativeFunction(vm, IOFuncs, fname);
+                                ExApi.PushRootTable(vm);
+                                ExApi.ReloadNativeFunction(vm, IOFuncs, fname);
                             }
                         }
                         else if (!RegisterStdIO(vm))
@@ -641,8 +629,8 @@ namespace ExMat.BaseLib
                     {
                         if (nargs == 2)
                         {
-                            ExAPI.PushRootTable(vm);
-                            ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname);
+                            ExApi.PushRootTable(vm);
+                            ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname);
                         }
                         else if (!ExStdMath.RegisterStdMath(vm))
                         {
@@ -654,8 +642,8 @@ namespace ExMat.BaseLib
                     {
                         if (nargs == 2)
                         {
-                            ExAPI.PushRootTable(vm);
-                            ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname);
+                            ExApi.PushRootTable(vm);
+                            ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname);
                         }
                         else if (!ExStdString.RegisterStdString(vm))
                         {
@@ -667,8 +655,8 @@ namespace ExMat.BaseLib
                     {
                         if (nargs == 2)
                         {
-                            ExAPI.PushRootTable(vm);
-                            ExAPI.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname);
+                            ExApi.PushRootTable(vm);
+                            ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname);
                         }
                         else if (!ExStdNet.RegisterStdNet(vm))
                         {
@@ -686,15 +674,15 @@ namespace ExMat.BaseLib
 
             if (fname != ReloadLibFunc
                 && fname != ReloadLib
-                && ExAPI.ReloadNativeFunction(vm, IOFuncs, fname))
+                && ExApi.ReloadNativeFunction(vm, IOFuncs, fname))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExAPI.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExAPI.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname))
             {
                 return ExFunctionStatus.VOID;
             }
@@ -1114,7 +1102,7 @@ namespace ExMat.BaseLib
             // For read_excel
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            ExAPI.RegisterNativeFunctions(vm, IOFuncs);
+            ExApi.RegisterNativeFunctions(vm, IOFuncs);
 
             return true;
         }
