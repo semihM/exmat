@@ -81,7 +81,6 @@ namespace ExMat.FuncPrototype
 
             funcPro.nDefaultParameters = nDefparams;
             funcPro.DefaultParameters = new();
-            //ExUtils.InitList(ref funcPro._defparams, n_defparams);
 
             return funcPro;
         }
@@ -149,10 +148,6 @@ namespace ExMat.FuncPrototype
         {
             return ClosureType == ExClosureType.RULE;
         }
-        /*public bool IsMacro()
-        {
-            return ClosureType == ExClosureType.MACRO;
-        }*/
         public bool IsSequence()
         {
             return ClosureType == ExClosureType.SEQUENCE;

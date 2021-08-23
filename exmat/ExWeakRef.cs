@@ -19,6 +19,7 @@
             {
                 if (disposing)
                 {
+                    base.Dispose(true);
                     Disposer.DisposeObjects(ReferencedObject);
                 }
 

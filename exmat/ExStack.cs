@@ -147,7 +147,6 @@ namespace ExMat.Objects
 
         public void Insert(int i, ExObject o)
         {
-            //_values.Insert(i, o);
             Resize(Size + 1);
             for (int j = Size; j > i; j--)
             {
@@ -181,13 +180,6 @@ namespace ExMat.Objects
                 disposedValue = true;
             }
         }
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ExStack()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
 
         public void Dispose()
         {

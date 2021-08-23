@@ -6,6 +6,7 @@ using ExMat.InfoVar;
 using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.OPs;
+using ExMat.ExException;
 
 namespace ExMat.States
 {
@@ -220,7 +221,7 @@ namespace ExMat.States
                 if (nLiterals > MAX_LITERALS)
                 {
                     v.Nullify();
-                    throw new Exception("too many literals");
+                    throw new ExException("too many literals");
                 }
             }
             else
@@ -291,10 +292,7 @@ namespace ExMat.States
                 ExLineInfo li = new();
                 li.Line = line;
                 li.Position = GetCurrPos() + 1;
-                if (op)
-                {
-                    //AddInstr(OPC.LINE, 0, line, 0, 0);
-                }
+
                 if (LastLine != line)
                 {
                     LineInfos.Add(li);
@@ -362,7 +360,7 @@ namespace ExMat.States
             {
                 if (StackSize > MAX_STACK_SIZE) // Çok fazla değişken tanımı
                 {
-                    throw new Exception("Too many locals!");
+                    throw new ExException("Too many locals!");
                 }
                 StackSize = size;
             }
@@ -643,19 +641,6 @@ namespace ExMat.States
                             break;
                         }
                         #endregion
-                        #region _
-                        /*
-                    case OPC.LINE:
-                        {
-                            if (prev.op == OPC.LINE)
-                            {
-                                Instructions.RemoveAt(size - 1);
-                                LineInfos.RemoveAt(LineInfos.Count - 1);
-                            }
-                            break;
-                        }
-                        */
-                        #endregion
                 }
             }
             NotSnoozed = true;      // Tekrardan bağımlılığa izin ver
@@ -815,15 +800,7 @@ namespace ExMat.States
                 Stack = Stack
             };
         }
-
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ExFState()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
-
+        
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

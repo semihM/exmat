@@ -925,7 +925,7 @@ namespace ExMat.Lexer
                             else
                             {
                                 NextChar();
-                                TokenType typ = ReadId(); // ReadId(true);
+                                TokenType typ = ReadId();
                                 switch (typ)
                                 {
                                     case TokenType.MACROSTART:
@@ -1302,14 +1302,6 @@ namespace ExMat.Lexer
             }
             return TokenType.ENDLINE;
         }
-
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ExLexer()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
 
         public void Dispose()
         {

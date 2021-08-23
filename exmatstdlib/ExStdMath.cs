@@ -33,7 +33,10 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         int i = (int)vm.GetArgument(1).GetInt();
-                        i = i < 0 ? (i > int.MinValue ? Math.Abs(i) : 0) : i;
+                        if(i < 0)
+                        {
+                            i = i > int.MinValue ? Math.Abs(i) : 0;
+                        }
                         return vm.CleanReturn(3, Rand.Next(i));
                     }
                 case 2:
@@ -353,8 +356,14 @@ namespace ExMat.BaseLib
                 case ExObjType.INTEGER:
                     {
                         long o = i.GetInt();
-                        o = o < 0 ? o > long.MinValue ? Math.Abs(o) : 0 : Math.Abs(o);
-                        return vm.CleanReturn(nargs + 2, o);
+                        if(o < 0)
+                        {
+                            return vm.CleanReturn(nargs + 2, o > long.MinValue ? Math.Abs(o) : 0);
+                        }
+                        else
+                        {
+                            return vm.CleanReturn(nargs + 2, Math.Abs(o));
+                        }
                     }
                 case ExObjType.COMPLEX:
                     {
@@ -1171,7 +1180,7 @@ namespace ExMat.BaseLib
             else
             {
                 ExObject res = new();
-                args = ExAPI.GetNObjects(vm, nargs);
+                args = ExApi.GetNObjects(vm, nargs);
                 for (int i = 0; i < nargs; i++)
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
@@ -1223,7 +1232,7 @@ namespace ExMat.BaseLib
             else
             {
                 ExObject res = new();
-                args = ExAPI.GetNObjects(vm, nargs);
+                args = ExApi.GetNObjects(vm, nargs);
                 for (int i = 0; i < nargs; i++)
                 {
                     if (vm.DoArithmeticOP(OPs.OPC.MLT, args[i], mul, ref res))
@@ -1310,7 +1319,7 @@ namespace ExMat.BaseLib
                 if (!l[i].IsNumeric())
                 {
                     vm.AddToErrorMessage("cant plot non-numeric values");
-                    return null;
+                    return new Array.Empty<double>();
                 }
                 a[i] = l[i].GetFloat();
             }
@@ -1325,8 +1334,8 @@ namespace ExMat.BaseLib
                 return false;
             }
 
-            string[] fname;
-            if ((fname = name.Split(".")).Length > 1)
+            string[] fname = name.Split(".");
+            if (fname.Length > 1)
             {
                 switch (fname[^1])
                 {
@@ -1432,12 +1441,12 @@ namespace ExMat.BaseLib
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
-                if (X == null)
+                if (X.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
-                if (Y == null)
+                if (Y.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
@@ -1505,12 +1514,12 @@ namespace ExMat.BaseLib
             }
 
             double[] X = CreateNumArr(vm, x);
-            if (X == null)
+            if (X.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
-            if (Y == null)
+            if (Y.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
@@ -1612,12 +1621,12 @@ namespace ExMat.BaseLib
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
-                if (X == null)
+                if (X.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
-                if (Y == null)
+                if (Y.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
@@ -1685,12 +1694,12 @@ namespace ExMat.BaseLib
             }
 
             double[] X = CreateNumArr(vm, x);
-            if (X == null)
+            if (X.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
-            if (Y == null)
+            if (Y.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
@@ -1792,12 +1801,12 @@ namespace ExMat.BaseLib
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
-                if (X == null)
+                if (X.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
-                if (Y == null)
+                if (Y.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
@@ -1865,12 +1874,12 @@ namespace ExMat.BaseLib
             }
 
             double[] X = CreateNumArr(vm, x);
-            if (X == null)
+            if (X.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
-            if (Y == null)
+            if (Y.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
@@ -1972,12 +1981,12 @@ namespace ExMat.BaseLib
                 List<ExObject> y = plotdata[1].GetList();
 
                 double[] X = CreateNumArr(vm, x);
-                if (X == null)
+                if (X.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
                 double[] Y = CreateNumArr(vm, y);
-                if (Y == null)
+                if (Y.Length == 0)
                 {
                     return ExFunctionStatus.ERROR;
                 }
@@ -2045,12 +2054,12 @@ namespace ExMat.BaseLib
             }
 
             double[] X = CreateNumArr(vm, x);
-            if (X == null)
+            if (X.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
             double[] Y = CreateNumArr(vm, y);
-            if (Y == null)
+            if (Y.Length == 0)
             {
                 return ExFunctionStatus.ERROR;
             }
@@ -2641,42 +2650,42 @@ namespace ExMat.BaseLib
 
         public static bool RegisterStdMath(ExVM vm)
         {
-            ExAPI.RegisterNativeFunctions(vm, MathFuncs);
+            ExApi.RegisterNativeFunctions(vm, MathFuncs);
 
-            ExAPI.CreateConstantInt(vm, "INT8_MAX", sbyte.MaxValue);
-            ExAPI.CreateConstantInt(vm, "INT8_MIN", sbyte.MinValue);
+            ExApi.CreateConstantInt(vm, "INT8_MAX", sbyte.MaxValue);
+            ExApi.CreateConstantInt(vm, "INT8_MIN", sbyte.MinValue);
 
-            ExAPI.CreateConstantInt(vm, "INT16_MAX", short.MaxValue);
-            ExAPI.CreateConstantInt(vm, "INT16_MIN", short.MinValue);
+            ExApi.CreateConstantInt(vm, "INT16_MAX", short.MaxValue);
+            ExApi.CreateConstantInt(vm, "INT16_MIN", short.MinValue);
 
-            ExAPI.CreateConstantInt(vm, "INT32_MAX", int.MaxValue);
-            ExAPI.CreateConstantInt(vm, "INT32_MIN", int.MinValue);
+            ExApi.CreateConstantInt(vm, "INT32_MAX", int.MaxValue);
+            ExApi.CreateConstantInt(vm, "INT32_MIN", int.MinValue);
 
-            ExAPI.CreateConstantInt(vm, "INT64_MAX", long.MaxValue);
-            ExAPI.CreateConstantInt(vm, "INT64_MIN", long.MinValue);
+            ExApi.CreateConstantInt(vm, "INT64_MAX", long.MaxValue);
+            ExApi.CreateConstantInt(vm, "INT64_MIN", long.MinValue);
 
-            ExAPI.CreateConstantInt(vm, "UINT8_MAX", byte.MaxValue);
-            ExAPI.CreateConstantInt(vm, "UINT16_MAX", ushort.MaxValue);
-            ExAPI.CreateConstantInt(vm, "UINT32_MAX", uint.MaxValue);
+            ExApi.CreateConstantInt(vm, "UINT8_MAX", byte.MaxValue);
+            ExApi.CreateConstantInt(vm, "UINT16_MAX", ushort.MaxValue);
+            ExApi.CreateConstantInt(vm, "UINT32_MAX", uint.MaxValue);
 
-            ExAPI.CreateConstantFloat(vm, "FLOAT32_MAX", float.MaxValue);
-            ExAPI.CreateConstantFloat(vm, "FLOAT32_MIN", float.MinValue);
+            ExApi.CreateConstantFloat(vm, "FLOAT32_MAX", float.MaxValue);
+            ExApi.CreateConstantFloat(vm, "FLOAT32_MIN", float.MinValue);
 
-            ExAPI.CreateConstantFloat(vm, "FLOAT64_MAX", double.MaxValue);
-            ExAPI.CreateConstantFloat(vm, "FLOAT64_MIN", double.MinValue);
+            ExApi.CreateConstantFloat(vm, "FLOAT64_MAX", double.MaxValue);
+            ExApi.CreateConstantFloat(vm, "FLOAT64_MIN", double.MinValue);
 
-            ExAPI.CreateConstantFloat(vm, "TAU", Math.Tau);
-            ExAPI.CreateConstantFloat(vm, "PI", Math.PI);
-            ExAPI.CreateConstantFloat(vm, "E", Math.E);
-            ExAPI.CreateConstantFloat(vm, "GOLDEN", (1.0 + Math.Sqrt(5.0)) / 2.0);
-            ExAPI.CreateConstantFloat(vm, "DEGREE", Math.PI / 180.0);
-            ExAPI.CreateConstantFloat(vm, "EPSILON", double.Epsilon);
+            ExApi.CreateConstantFloat(vm, "TAU", Math.Tau);
+            ExApi.CreateConstantFloat(vm, "PI", Math.PI);
+            ExApi.CreateConstantFloat(vm, "E", Math.E);
+            ExApi.CreateConstantFloat(vm, "GOLDEN", (1.0 + Math.Sqrt(5.0)) / 2.0);
+            ExApi.CreateConstantFloat(vm, "DEGREE", Math.PI / 180.0);
+            ExApi.CreateConstantFloat(vm, "EPSILON", double.Epsilon);
 
-            ExAPI.CreateConstantFloat(vm, "NAN", double.NaN);
-            ExAPI.CreateConstantFloat(vm, "NINF", double.NegativeInfinity);
-            ExAPI.CreateConstantFloat(vm, "INF", double.PositiveInfinity);
+            ExApi.CreateConstantFloat(vm, "NAN", double.NaN);
+            ExApi.CreateConstantFloat(vm, "NINF", double.NegativeInfinity);
+            ExApi.CreateConstantFloat(vm, "INF", double.PositiveInfinity);
 
-            ExAPI.CreateConstantDict(vm, "SPACES", new()
+            ExApi.CreateConstantDict(vm, "SPACES", new()
             {
                 { "R", ExSpace.Create("R", '\\', 1) },
                 { "R2", ExSpace.Create("R", '\\', 2) },

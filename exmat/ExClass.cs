@@ -132,11 +132,15 @@ namespace ExMat.Class
                 return false;
             }
 
-            ExObject tmp = new();
-            if (Members.ContainsKey(key.GetString()) && (tmp = Members[key.GetString()]).IsField())
+            ExObject tmp = Members[key.GetString()];
+            if (Members.ContainsKey(key.GetString()) && tmp.IsField())
             {
                 DefaultValues[Members[key.GetString()].GetMemberID()].Value.Assign(val);
                 return true;
+            }
+            else
+            {
+                tmp = new();
             }
 
             if (bdict)

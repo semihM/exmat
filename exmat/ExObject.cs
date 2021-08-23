@@ -78,7 +78,21 @@ namespace ExMat.Objects
 
         public string GetString()
         {
-            return Type == ExObjType.STRING ? Value.s_String : (Type == ExObjType.NULL && Value.s_String != null ? Value.s_String : string.Empty);
+            switch(Type)
+            {
+                case ExObjType.STRING:
+                {
+                    return Value.s_String;
+                }
+                case ExObjType.NULL:
+                {
+                    return Value.s_String != null ? Value.s_String : string.Empty;
+                }
+                default:
+                {
+                    return string.Empty;
+                }
+            }
         }
 
         public ExWeakRef GetWeakRef()
@@ -157,7 +171,6 @@ namespace ExMat.Objects
                 case ExObjType.INTEGER: s += " " + GetInt(); break;
                 case ExObjType.FLOAT: s += " " + GetFloat(); break;
                 case ExObjType.COMPLEX: s += " " + GetComplex().ToString(); break;
-                //case ExObjType.SYMBOL: s += " (" + GetSymCoef().GetDebuggerDisplay() + ") * (" + (GetSym().type == ExSymType.VARIABLE ? GetSymName() : GetSym().GetNumeric().ToString()) + ") ** (" + GetSymExpo().GetDebuggerDisplay() + ")"; break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
                 case ExObjType.CLOSURE: s = (GetClosure() == null ? s + GetString() : Value._Closure.GetDebuggerDisplay()); break;

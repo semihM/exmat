@@ -15,7 +15,7 @@ namespace ExMat.API
     /// <summary>
     /// A middle-ground class for accessing mostly <see cref="ExVM"/> related methods easier
     /// </summary>
-    public static class ExAPI
+    public static class ExApi
     {
         /// <summary>
         /// Get an object from stack and assert a certain <paramref name="type"/>

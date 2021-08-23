@@ -28,11 +28,17 @@ namespace ExMat.BaseLib
         {
             string s = vm.GetArgument(1).GetString();
             string c = vm.GetArgument(2).GetString();
-            StringSplitOptions remove_empty = nargs == 3
-                ? (vm.GetArgument(3).GetBool()
+            StringSplitOptions remove_empty;
+            if(nargs == 3)
+            {
+                remove_empty = vm.GetArgument(3).GetBool()
                     ? StringSplitOptions.RemoveEmptyEntries
-                    : StringSplitOptions.None)
-                : StringSplitOptions.None;
+                    : StringSplitOptions.None
+            }
+            else
+            {
+                remove_empty = StringSplitOptions.None;
+            }
 
             string[] arr = s.Split(c, remove_empty);
 
@@ -101,7 +107,7 @@ namespace ExMat.BaseLib
         {
             string code = vm.GetArgument(1).GetString();
 
-            if (ExAPI.CompileSource(vm, code))
+            if (ExApi.CompileSource(vm, code))
             {
                 return vm.CleanReturn(nargs + 3, new ExObject(vm.GetAbove(-1)));
             }
@@ -113,7 +119,7 @@ namespace ExMat.BaseLib
         {
             string format = vm.GetArgument(1).GetString();
             object[] ps = new object[nargs - 1];
-            ExObject[] args = ExAPI.GetNObjects(vm, nargs - 1, 3);
+            ExObject[] args = ExApi.GetNObjects(vm, nargs - 1, 3);
             for (int i = 0; i < nargs - 1; i++)
             {
                 ExObject st = new();
@@ -202,7 +208,7 @@ namespace ExMat.BaseLib
 
         public static bool RegisterStdString(ExVM vm)
         {
-            ExAPI.RegisterNativeFunctions(vm, StringFuncs);
+            ExApi.RegisterNativeFunctions(vm, StringFuncs);
             return true;
         }
     }

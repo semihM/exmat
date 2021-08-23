@@ -7,6 +7,7 @@ using ExMat.OPs;
 using ExMat.States;
 using ExMat.Token;
 using ExMat.VM;
+using ExMat.ExException;
 
 namespace ExMat.Compiler
 {
@@ -143,12 +144,11 @@ namespace ExMat.Compiler
                 {
                     return false;
                 }
-                if (Lexer.TokenPrev != TokenType.CURLYCLOSE && Lexer.TokenPrev != TokenType.SMC)
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE 
+                    && Lexer.TokenPrev != TokenType.SMC
+                    && !CheckSMC())
                 {
-                    if (!CheckSMC())
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
             // Değişkenleri yığını temizle
@@ -264,21 +264,12 @@ namespace ExMat.Compiler
                 }
 
                 if (Lexer.TokenPrev != TokenType.CURLYCLOSE
-                    && Lexer.TokenPrev != TokenType.SMC)                // && (!macro || (CurrentToken != TokenType.MACROEND)))
+                    && Lexer.TokenPrev != TokenType.SMC
+                    && !CheckSMC())                // && (!macro || (CurrentToken != TokenType.MACROEND)))
                 {
-                    if (!CheckSMC())    // İfade sonu kontrolü
-                    {
-                        return false;
-                    }
+                    // İfade sonu kontrolü
+                    return false;
                 }
-                #region _
-                /*
-                if (macro && CurrentToken == TokenType.MACROEND)
-                {
-                    return true;
-                }
-                */
-                #endregion
             }
             return true;
         }
@@ -442,44 +433,12 @@ namespace ExMat.Compiler
                         break;
                     }
                 #endregion 
-                #region SEQUENCE, CLUSTER, RULE
-
-                #endregion
-                #region _
-                /*
-            case TokenType.MACROBLOCK:
-                {
-                    if (!ProcessMacroBlockStatement())
-                    {
-                        return false;
-                    }
-                    break;
-                }
-            case TokenType.MACROSTART:
-                {
-                    if (!ProcessMacroStatement())
-                    {
-                        return false;
-                    }
-                    break;
-                }
-                */
-                #endregion
-                // 
                 default:
                     {
                         if (!ExSepExp())
                         {
                             return false;
                         }
-                        #region _
-                        /*
-                        if (!macro)
-                        {
-                            FunctionState.DiscardTopTarget();
-                        }
-                        */
-                        #endregion
                         break;
                     }
             }
@@ -489,12 +448,10 @@ namespace ExMat.Compiler
 
         public void DoOuterControl()
         {
-            if (FunctionState.GetLocalVariablesCount() != CurrentScope.nLocal)
+            if (FunctionState.GetLocalVariablesCount() != CurrentScope.nLocal
+                && FunctionState.GetOuterSize(CurrentScope.nLocal) > 0)
             {
-                if (FunctionState.GetOuterSize(CurrentScope.nLocal) > 0)
-                {
-                    FunctionState.AddInstr(OPC.CLOSE, 0, CurrentScope.nLocal, 0, 0);
-                }
+                FunctionState.AddInstr(OPC.CLOSE, 0, CurrentScope.nLocal, 0, 0);
             }
         }
 
@@ -564,12 +521,12 @@ namespace ExMat.Compiler
             {
                 return false;
             }
-            if (CurrentToken != TokenType.CURLYCLOSE && CurrentToken != TokenType.ELSE) // Tek satırlık koşullu ifade kontrolü yap
+            if (CurrentToken != TokenType.CURLYCLOSE 
+                && CurrentToken != TokenType.ELSE
+                && !CheckSMC()) 
             {
-                if (!CheckSMC())    // Tek satırlık ifade ise ifadenin sonlandırıldığını kontrol et
-                {
-                    return false;
-                }
+                // Tek satırlık ifade ise ifadenin sonlandırıldığını kontrol et
+                return false;
             }
             ReleaseScope(old);      // Eski çerçeveye dön
 
@@ -587,12 +544,10 @@ namespace ExMat.Compiler
                     return false;
                 }
 
-                if (Lexer.TokenPrev != TokenType.CURLYCLOSE)    // Tek satırlık ifade ise sonlandırıldığından emin ol
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE 
+                    && !CheckSMC())    // Tek satırlık ifade ise sonlandırıldığından emin ol
                 {
-                    if (!CheckSMC())
-                    {
-                        return false;
-                    }
+                    return false;
                 }
                 ReleaseScope(old);  // Eski çerçeveye dön
                 // OPC.JMP komutunun 1. argümanı =  atlanacak komut sayısı
@@ -983,8 +938,6 @@ namespace ExMat.Compiler
 
                     if (CurrentToken != TokenType.SPACE)
                     {
-                        //AddToErrorMessage("expected a constant SPACE for parameter " + pcount + "'s domain");
-                        //return false;
                         if (!ExExp())
                         {
                             return false;
@@ -1171,7 +1124,6 @@ namespace ExMat.Compiler
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
-            //fpro.ClosureType = ExClosureType.FORMULA;
 
             FunctionState = tmp;
             FunctionState.Functions.Add(fpro);
@@ -2138,10 +2090,6 @@ namespace ExMat.Compiler
                             switch (ExpressionState.Type)
                             {
                                 case ExEType.EXPRESSION:
-                                //{
-                                //    AddToErrorMessage("can't get transpose of an expression");
-                                //    return false;
-                                //}
                                 case ExEType.OBJECT:
                                 case ExEType.BASE:
                                 case ExEType.VAR:
@@ -2247,25 +2195,6 @@ namespace ExMat.Compiler
                         }
                     default:
                         {
-                            #region _
-                            /*
-                            if (macro)
-                            {
-                                int k_loc = FunctionState.PopTarget();
-                                int obj_loc = FunctionState.PopTarget();
-                                int closure = FunctionState.PushTarget();
-                                int target = FunctionState.PushTarget();
-
-                                FunctionState.AddInstr(OPC.PREPCALL, closure, k_loc, obj_loc, target);
-
-                                ExpressionState.Type = ExEType.EXPRESSION;
-
-                                int st = FunctionState.PopTarget();
-                                int cl = FunctionState.PopTarget();
-
-                                FunctionState.AddInstr(OPC.CALL, FunctionState.PushTarget(), cl, st, 1);
-                            }*/
-                            #endregion
                             return true;
                         }
                 }
@@ -2340,24 +2269,7 @@ namespace ExMat.Compiler
                         {
                             return false;
                         }
-                        #region _
-                        /*
-                        if (FunctionState.IsBlockMacro(idx.GetString()))
-                        {
-                            FunctionState.PushTarget(0);
-                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
-                            //macro = true;
-                            ExpressionState.Type = ExEType.OBJECT;
-                        }
-                        else if (FunctionState.IsMacro(idx) && !FunctionState.IsFuncMacro(idx))
-                        {
-                            FunctionState.PushTarget(0);
-                            FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(idx), 0, 0);
-                            macro = true;
-                            ExpressionState.Type = ExEType.OBJECT;
-                        }
-                        */
-                        #endregion
+
                         if ((p = FunctionState.GetLocal(idx)) != -1)
                         {
                             FunctionState.PushTarget(p);
@@ -2410,21 +2322,6 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
-                #region _
-                /*
-            case TokenType.MACROPARAMNUM:
-            case TokenType.MACROPARAMSTR:
-                {
-                    FunctionState.AddInstr(OPC.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetConst(FunctionState.CreateString(Lexer.ValString)), 0, 0);
-
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                    break;
-                }
-                */
-                #endregion
                 #endregion
                 case TokenType.INTEGER:
                     {
@@ -2498,13 +2395,12 @@ namespace ExMat.Compiler
                             {
                                 return false;
                             }
-                            if (CurrentToken == TokenType.SEP)
+                            if (CurrentToken == TokenType.SEP
+                                && !ReadAndSetToken())
                             {
-                                if (!ReadAndSetToken())
-                                {
-                                    return false;
-                                }
+                                return false;
                             }
+
                             int v = FunctionState.PopTarget();
                             int a = FunctionState.TopTarget();
                             FunctionState.AddInstr(OPC.APPENDTOARRAY, a, v, (int)ArrayAType.STACK, 0);
@@ -2646,15 +2542,6 @@ namespace ExMat.Compiler
                         }
                         break;
                     }
-                #region _
-                /*
-            case TokenType.MACROSTART:
-                {
-                    AddToErrorMessage("macros can only be defined on new lines");
-                    return false;
-                }
-                */
-                #endregion
                 default:
                     {
                         AddToErrorMessage("expression expected");
@@ -2892,19 +2779,17 @@ namespace ExMat.Compiler
             while (CurrentToken != end)
             {
                 bool a_present = false;
-                if (sep == TokenType.SMC)
+                if (sep == TokenType.SMC
+                    && CurrentToken == TokenType.ATTRIBUTEBEGIN)
                 {
-                    if (CurrentToken == TokenType.ATTRIBUTEBEGIN)
-                    {
-                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
+                    FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
 
-                        if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
-                        {
-                            AddToErrorMessage("failed to parse attribute");
-                            return false;
-                        }
-                        a_present = true;
+                    if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
+                    {
+                        AddToErrorMessage("failed to parse attribute");
+                        return false;
                     }
+                    a_present = true;
                 }
                 switch (CurrentToken)
                 {
@@ -2985,12 +2870,10 @@ namespace ExMat.Compiler
                         }
                 }
 
-                if (CurrentToken == sep)
+                if (CurrentToken == sep
+                    && !ReadAndSetToken())
                 {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
+                    return false;
                 }
                 n++;
 
@@ -3000,7 +2883,7 @@ namespace ExMat.Compiler
 
                 if (!((a_present && (a == k - 1)) || !a_present))
                 {
-                    throw new Exception("attributes present count error");
+                    throw new ExException("attributes present count error");
                 }
 
                 int flg = a_present ? (int)ExNewSlotFlag.ATTR : 0; // to-do static flag
@@ -3192,10 +3075,6 @@ namespace ExMat.Compiler
                     {
                         return false;
                     }
-                    //if (!ProcessStatement(true,true))
-                    //{
-                    //    return false;
-                    //}
                 }
                 if (!ReadAndSetToken())
                 {
@@ -3217,7 +3096,6 @@ namespace ExMat.Compiler
             f_state.SetLocalStackSize(0);
 
             ExPrototype fpro = f_state.CreatePrototype();
-            //fpro.ClosureType = ExClosureType.MACRO;
 
             FunctionState = tmp;
             FunctionState.Functions.Add(fpro);
@@ -3458,14 +3336,6 @@ namespace ExMat.Compiler
 
             return true;
         }
-
-
-        // // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-        // ~ExCompiler()
-        // {
-        //     // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-        //     Dispose(disposing: false);
-        // }
 
         public void Dispose()
         {
