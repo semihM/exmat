@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace ExMat.OPs
+﻿namespace ExMat.OPs
 {
     public enum BitOP
     {
@@ -132,38 +130,6 @@ namespace ExMat.OPs
         INTEGER,
         FLOAT,
         BOOL
-    }
-
-    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExInstr
-    {
-        public OPC op;
-        public long arg0;
-        public long arg1;
-        public long arg2;
-        public long arg3;
-
-        public ExInstr() { }
-        public string GetDebuggerDisplay()
-        {
-            return op.ToString() + ": " + arg0 + ", " + arg1 + ", " + arg2 + ", " + arg3;
-        }
-    }
-
-    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExTrap
-    {
-        public int StackBase;
-        public int StackSize;
-        public ExInstr Instruction;
-        public int Target;
-
-        public ExTrap() { }
-        public ExTrap(ExTrap e) { StackBase = e.StackBase; StackSize = e.StackSize; Instruction = e.Instruction; Target = e.Target; }
-        private string GetDebuggerDisplay()
-        {
-            return "TRAP(" + Instruction.GetDebuggerDisplay() + "): " + StackBase + ", " + StackSize + ", " + Target;
-        }
     }
 
     public enum ExNewSlotFlag
