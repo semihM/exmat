@@ -1319,7 +1319,7 @@ namespace ExMat.BaseLib
                 if (!l[i].IsNumeric())
                 {
                     vm.AddToErrorMessage("cant plot non-numeric values");
-                    return new Array.Empty<double>();
+                    return Array.Empty<double>();
                 }
                 a[i] = l[i].GetFloat();
             }

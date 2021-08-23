@@ -39,7 +39,7 @@ namespace ExMat.BaseLib
             else if (item is JObject)
             {
                 Dictionary<string, ExObject> res = new();
-                foreach (JToken tkn in item.Children())
+                foreach (JProperty tkn in item.Children())
                 {
                     res.Add(tkn.Name, GetJsonContent(tkn));
                 }
@@ -91,7 +91,7 @@ namespace ExMat.BaseLib
                 case ExObjType.ARRAY:
                     {
                         int i = -1;
-                        int last = list.Count - 1;
+                        int last = obj.GetList().Count - 1;
                         foreach (ExObject o in obj.GetList())
                         {
                             i++;
@@ -112,7 +112,7 @@ namespace ExMat.BaseLib
                     }
                 case ExObjType.BOOL:
                     {
-                        prev += prefix + obj.GetBool() ?  "true" : "false";
+                        prev += prefix + (obj.GetBool() ?  "true" : "false");
                         break;
                     }
                 case ExObjType.STRING:
