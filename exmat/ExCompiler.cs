@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using ExMat.Exceptions;
 using ExMat.FuncPrototype;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -7,7 +8,6 @@ using ExMat.OPs;
 using ExMat.States;
 using ExMat.Token;
 using ExMat.VM;
-using Exmat.Exceptions;
 
 namespace ExMat.Compiler
 {
@@ -144,7 +144,7 @@ namespace ExMat.Compiler
                 {
                     return false;
                 }
-                if (Lexer.TokenPrev != TokenType.CURLYCLOSE 
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE
                     && Lexer.TokenPrev != TokenType.SMC
                     && !CheckSMC())
                 {
@@ -521,9 +521,9 @@ namespace ExMat.Compiler
             {
                 return false;
             }
-            if (CurrentToken != TokenType.CURLYCLOSE 
+            if (CurrentToken != TokenType.CURLYCLOSE
                 && CurrentToken != TokenType.ELSE
-                && !CheckSMC()) 
+                && !CheckSMC())
             {
                 // Tek satırlık ifade ise ifadenin sonlandırıldığını kontrol et
                 return false;
@@ -544,7 +544,7 @@ namespace ExMat.Compiler
                     return false;
                 }
 
-                if (Lexer.TokenPrev != TokenType.CURLYCLOSE 
+                if (Lexer.TokenPrev != TokenType.CURLYCLOSE
                     && !CheckSMC())    // Tek satırlık ifade ise sonlandırıldığından emin ol
                 {
                     return false;

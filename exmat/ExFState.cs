@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ExMat.Exceptions;
 using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.OPs;
-using Exmat.Exceptions;
 
 namespace ExMat.States
 {
@@ -800,7 +800,7 @@ namespace ExMat.States
                 Stack = Stack
             };
         }
-        
+
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
