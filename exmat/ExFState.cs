@@ -6,7 +6,7 @@ using ExMat.InfoVar;
 using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.OPs;
-using ExMat.ExException;
+using Exmat.Exceptions;
 
 namespace ExMat.States
 {

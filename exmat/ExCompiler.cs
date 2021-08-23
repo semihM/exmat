@@ -7,7 +7,7 @@ using ExMat.OPs;
 using ExMat.States;
 using ExMat.Token;
 using ExMat.VM;
-using ExMat.ExException;
+using Exmat.Exceptions;
 
 namespace ExMat.Compiler
 {

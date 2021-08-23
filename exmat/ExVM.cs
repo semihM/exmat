@@ -15,7 +15,7 @@ using ExMat.OPs;
 using ExMat.Outer;
 using ExMat.States;
 using ExMat.Utils;
-using ExMat.ExException;
+using Exmat.Exceptions;
 
 namespace ExMat.VM
 {
