@@ -78,20 +78,20 @@ namespace ExMat.Objects
 
         public string GetString()
         {
-            switch(Type)
+            switch (Type)
             {
                 case ExObjType.STRING:
-                {
-                    return Value.s_String;
-                }
+                    {
+                        return Value.s_String;
+                    }
                 case ExObjType.NULL:
-                {
-                    return Value.s_String != null ? Value.s_String : string.Empty;
-                }
+                    {
+                        return Value.s_String ?? string.Empty;
+                    }
                 default:
-                {
-                    return string.Empty;
-                }
+                    {
+                        return string.Empty;
+                    }
             }
         }
 

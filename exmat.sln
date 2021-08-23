@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "exmatTests", "exmatTests\exmatTests.csproj", "{007F2B8B-826F-482A-A45D-B34DB9179537}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{D0C639D3-4995-40E8-A2D1-5AEEAF1807C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D0C639D3-4995-40E8-A2D1-5AEEAF1807C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D0C639D3-4995-40E8-A2D1-5AEEAF1807C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{007F2B8B-826F-482A-A45D-B34DB9179537}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{007F2B8B-826F-482A-A45D-B34DB9179537}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{007F2B8B-826F-482A-A45D-B34DB9179537}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{007F2B8B-826F-482A-A45D-B34DB9179537}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

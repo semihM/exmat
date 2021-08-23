@@ -33,7 +33,7 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         int i = (int)vm.GetArgument(1).GetInt();
-                        if(i < 0)
+                        if (i < 0)
                         {
                             i = i > int.MinValue ? Math.Abs(i) : 0;
                         }
@@ -356,7 +356,7 @@ namespace ExMat.BaseLib
                 case ExObjType.INTEGER:
                     {
                         long o = i.GetInt();
-                        if(o < 0)
+                        if (o < 0)
                         {
                             return vm.CleanReturn(nargs + 2, o > long.MinValue ? Math.Abs(o) : 0);
                         }

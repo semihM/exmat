@@ -68,6 +68,10 @@ namespace ExMat.Closure
         {
             switch (attr)
             {
+                case ExMat.FuncName:
+                    {
+                        return Function.Name;
+                    }
                 case ExMat.VargsName:
                     {
                         return Function.HasVargs;

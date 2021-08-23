@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using Exmat.Exceptions;
 using ExMat.Closure;
 using ExMat.Compiler;
+using ExMat.Exceptions;
 using ExMat.Interfaces;
 using ExMat.Objects;
 using ExMat.States;
@@ -807,6 +807,11 @@ namespace ExMat.API
         {
             switch (attr)
             {
+                case ExMat.FuncName:
+                    {
+                        dest = new((string)func.GetAttribute(attr));
+                        return ExGetterStatus.FOUND;
+                    }
                 case ExMat.VargsName:
                     {
                         dest = new((bool)func.GetAttribute(attr));
@@ -835,6 +840,86 @@ namespace ExMat.API
                         return ExGetterStatus.FOUND;
                     }
             }
+        }
+
+        /// <summary>
+        /// Parse string to integer, allows hex and binary
+        /// </summary>
+        /// <param name="s">String to parse</param>
+        /// <param name="res">Resulting value</param>
+        /// <returns><see langword="true"/> if parsing was successful, otherwise <see langword="false"/></returns>
+        public static bool ParseStringToInteger(string s, ref ExObject res)
+        {
+            if (long.TryParse(s, out long r))
+            {
+                res = new(r);
+            }
+            else if (s.StartsWith("0x"))
+            {
+                if (s.Length <= 18
+                    && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
+                {
+                    res = new(hr);
+                }
+            }
+            else if (s.StartsWith("0b")
+                    && s.Length <= 66)
+            {
+                try
+                {
+                    res = new(Convert.ToInt64(s[2..], 2));
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Parse string to float, allows hex and binary
+        /// </summary>
+        /// <param name="s">String to parse</param>
+        /// <param name="res">Resulting value</param>
+        /// <returns><see langword="true"/> if parsing was successful, otherwise <see langword="false"/></returns>
+        public static bool ParseStringToFloat(string s, ref ExObject res)
+        {
+            if (double.TryParse(s, out double r))
+            {
+                res = new(r);
+            }
+            else if (s.StartsWith("0x"))
+            {
+                if (s.Length <= 18
+                    && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
+                {
+                    res = new(new DoubleLong() { i = hr }.f);
+                }
+            }
+            else if (s.StartsWith("0b")
+                    && s.Length <= 66)
+            {
+                try
+                {
+                    res = new(new DoubleLong() { i = Convert.ToInt64(s[2..], 2) }.f);
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>

@@ -41,13 +41,28 @@ namespace ExMat.Closure
         {
             switch (attr)
             {
+                case ExMat.FuncName:
+                    {
+                        return Name;
+                    }
                 case ExMat.VargsName:
                     {
                         return TypeMasks.Count == 0;
                     }
                 case ExMat.nParams:
                     {
-                        return nParameterChecks < 0 ? (-nParameterChecks - 1) : (nParameterChecks - 1);
+                        if (nParameterChecks < 0)
+                        {
+                            return TypeMasks.Count == 0 ? (-nParameterChecks - 1) : TypeMasks.Count - 1;
+                        }
+                        else if (nParameterChecks > 0)
+                        {
+                            return nParameterChecks - 1;
+                        }
+                        else
+                        {
+                            return TypeMasks.Count - 1;
+                        }
                     }
                 case ExMat.nDefParams:
                     {

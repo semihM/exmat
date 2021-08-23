@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Numerics;
 using System.Text;
@@ -8,6 +9,7 @@ using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.Class;
 using ExMat.Closure;
+using ExMat.Exceptions;
 using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Objects;
@@ -15,7 +17,6 @@ using ExMat.OPs;
 using ExMat.Outer;
 using ExMat.States;
 using ExMat.Utils;
-using Exmat.Exceptions;
 
 namespace ExMat.VM
 {
@@ -227,9 +228,9 @@ namespace ExMat.VM
             int c = lis.Count;
             maxdepth--;
 
-            if (beauty 
-                && !isdictval 
-                && c > 0 
+            if (beauty
+                && !isdictval
+                && c > 0
                 && prefix != string.Empty)
             {
                 s = new("\n" + prefix + s);
@@ -291,8 +292,8 @@ namespace ExMat.VM
             int n = 0;
             int c = dict.Count;
 
-            if (beauty 
-                && c > 0 
+            if (beauty
+                && c > 0
                 && prefix != string.Empty)
             {
                 s = new("\n" + prefix + s);
@@ -539,37 +540,15 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        string s = obj.GetString();
-                        if (double.TryParse(s, out double r))
+                        if (ExApi.ParseStringToInteger(obj.GetString(), ref res))
                         {
-                            res = new(r);
-                            break;
+                            return true;
                         }
-                        else if (s.StartsWith("0x"))
+                        else
                         {
-                            if (s.Length <= 18
-                                && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
-                            {
-                                res = new(new DoubleLong() { i = hr }.f);
-                                break;
-                            }
+                            AddToErrorMessage("failed to parse string as double");
+                            return false;
                         }
-                        else if (s.StartsWith("0b") 
-                                && s.Length <= 66)
-                        {
-                            try
-                            {
-                                res = new(new DoubleLong() { i = Convert.ToInt64(s[2..], 2) }.f);
-                                break;
-                            }
-                            catch (Exception err)
-                            {
-                                AddToErrorMessage("Conversion Error: " + err.Message);
-                            }
-                        }
-
-                        AddToErrorMessage("failed to parse string as double");
-                        return false;
                     }
                 case ExObjType.BOOL:
                     {
@@ -584,6 +563,7 @@ namespace ExMat.VM
             }
             return true;
         }
+
 
         public bool ToInteger(ExObject obj, ref ExObject res)
         {
@@ -611,37 +591,15 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        string s = obj.GetString();
-                        if (long.TryParse(s, out long r))
+                        if (ExApi.ParseStringToInteger(obj.GetString(), ref res))
                         {
-                            res = new(r);
-                            break;
+                            return true;
                         }
-                        else if (s.StartsWith("0x"))
+                        else
                         {
-                            if (s.Length <= 18
-                                && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
-                            {
-                                res = new(hr);
-                                break;
-                            }
+                            AddToErrorMessage("failed to parse string as integer");
+                            return false;
                         }
-                        else if (s.StartsWith("0b")
-                                && s.Length <= 66)
-                        {
-                            try
-                            {
-                                res = new(Convert.ToInt64(s[2..], 2));
-                                break;
-                            }
-                            catch (Exception err)
-                            {
-                                AddToErrorMessage("Conversion Error: " + err.Message);
-                            }
-                        }
-
-                        AddToErrorMessage("failed to parse string as integer");
-                        return false;
                     }
                 case ExObjType.BOOL:
                     {
@@ -707,7 +665,7 @@ namespace ExMat.VM
                 case ExObjType.DICT:
                     {
                         bool raw = true;
-                        bool deleg = true; // TO-DO
+                        // TO-DO Check deleg
 
                         if (raw)
                         {
@@ -1035,88 +993,41 @@ namespace ExMat.VM
             return StartCall(cls, (int)trg, (int)args, (int)sbase, tail);
         }
 
-        public bool StartCall(ExClosure closure, int targetIndex, int argumentCount, int stackBase, bool isTailCall)
+        private bool SetVargsInStack(int stackBase, int nArguments, ref int nParameters)
         {
-            ExPrototype prototype = closure.Function;     // Fonksiyon bilgisi
-
-            int nParamters = prototype.nParams;           // Parametre sayısı kontrolü
-            int newTop = stackBase + prototype.StackSize; // Yeni tavan indeksi
-            int nArguments = argumentCount;               // Argüman sayısı
-
-            if (prototype.HasVargs)   // Belirsiz parametre sayısı
+            if (nArguments < --nParameters)    // Yetersiz argüman sayısı
             {
-                if (nArguments < --nParamters)    // Yetersiz argüman sayısı
-                {
-                    AddToErrorMessage("'" + prototype.Name.GetString() + "' takes at least " + (nParamters - 1) + " arguments");
-                    return false;
-                }
-
-                List<ExObject> varglis = new();
-
-                int nVargsArguments = nArguments - nParamters;   // vargs listesine eklenecek argüman sayısı
-                int vargsStartIndex = stackBase + nParamters;        // argümanların bellek indeksi başlangıcı
-                for (int n = 0; n < nVargsArguments; n++)
-                {
-                    varglis.Add(new(Stack[vargsStartIndex]));    // Argümanları 'vargs' listesine kopyala
-                    Stack[vargsStartIndex].Nullify();            // Eski objeyi sıfırla
-                    vargsStartIndex++;
-                }
-
-                Stack[stackBase + nParamters].Assign(varglis);       // vargs listesini belleğe yerleştir
+                return false;
             }
-            else if (prototype.IsFunction())        // Parametre sayısı sınırlı fonksiyon
+
+            List<ExObject> varglis = new();
+
+            int nVargsArguments = nArguments - nParameters;   // vargs listesine eklenecek argüman sayısı
+            int vargsStartIndex = stackBase + nParameters;        // argümanların bellek indeksi başlangıcı
+            for (int n = 0; n < nVargsArguments; n++)
             {
-                if (nParamters != nArguments)       // Argüman sayısı parametre sayısından farklı
-                {
-                    int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParamters - nDefaultParams;
+                varglis.Add(new(Stack[vargsStartIndex]));    // Argümanları 'vargs' listesine kopyala
+                Stack[vargsStartIndex].Nullify();            // Eski objeyi sıfırla
+                vargsStartIndex++;
+            }
 
-                    // Minimum sayıda argüman sağlandığını kontrol et
-                    if (nDefaultParams > 0 && nArguments < nParamters && (nParamters - nArguments) <= nDefaultParams)
-                    {
-                        for (int n = 1; n < nParamters; n++)
-                        {
-                            // ".." sembolü yerine ile varsayılan değeri(varsa) ata
-                            if (Stack[stackBase + n].Type == ExObjType.DEFAULT)
-                            {
-                                if (n >= defaultsIndex)
-                                {
-                                    Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
-                                }
-                                else
-                                {
-                                    AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
-                                    return false;
-                                }
-                            }
+            Stack[stackBase + nParameters].Assign(varglis);       // vargs listesini belleğe yerleştir
+            return true;
+        }
 
-                            // Argümansız ve varsayılan değerli parametrele değerleri ata
-                            else if (n >= defaultsIndex)
-                            {
-                                Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
-                                nArguments++;
-                            }
-                        }
-                    }
-                    // Beklenen sayıda argüman verilmedi, hata mesajı yaz
-                    else
-                    {
-                        if (nDefaultParams > 0 && !prototype.IsCluster())
-                        {
-                            AddToErrorMessage("'" + prototype.Name.GetString() + "' takes min: " + (nParamters - nDefaultParams - 1) + ", max:" + (nParamters - 1) + " arguments");
-                        }
-                        else // 
-                        {
-                            AddToErrorMessage("'" + prototype.Name.GetString() + "' takes exactly " + (nParamters - 1) + " arguments");
-                        }
-                        return false;
-                    }
-                }
-                else // Argüman sayısı == Parametre sayısı, ".." sembollerini kontrol et
+        private bool SetDefaultValuesInStack(ExPrototype prototype, ExClosure closure, int stackBase, int nParameters, ref int nArguments)
+        {
+            if (nParameters != nArguments)       // Argüman sayısı parametre sayısından farklı
+            {
+                int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
+
+                // Minimum sayıda argüman sağlandığını kontrol et
+                if (nDefaultParams > 0 && nArguments < nParameters && (nParameters - nArguments) <= nDefaultParams)
                 {
-                    int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParamters - nDefaultParams;
-                    for (int n = 1; n < nParamters; n++)
+                    for (int n = 1; n < nParameters; n++)
                     {
-                        if (Stack[stackBase + n].Type == ExObjType.DEFAULT) // ".." sembolü yerine ile varsayılan değeri(varsa) ata
+                        // ".." sembolü yerine ile varsayılan değeri(varsa) ata
+                        if (Stack[stackBase + n].Type == ExObjType.DEFAULT)
                         {
                             if (n >= defaultsIndex)
                             {
@@ -1128,8 +1039,133 @@ namespace ExMat.VM
                                 return false;
                             }
                         }
+
+                        // Argümansız ve varsayılan değerli parametrele değerleri ata
+                        else if (n >= defaultsIndex)
+                        {
+                            Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
+                            nArguments++;
+                        }
                     }
                 }
+                // Beklenen sayıda argüman verilmedi, hata mesajı yaz
+                else
+                {
+                    if (nDefaultParams > 0 && !prototype.IsCluster())
+                    {
+                        AddToErrorMessage("'" + prototype.Name.GetString() + "' takes min: " + (nParameters - nDefaultParams - 1) + ", max:" + (nParameters - 1) + " arguments");
+                    }
+                    else // 
+                    {
+                        AddToErrorMessage("'" + prototype.Name.GetString() + "' takes exactly " + (nParameters - 1) + " arguments");
+                    }
+                    return false;
+                }
+            }
+            else // Argüman sayısı == Parametre sayısı, ".." sembollerini kontrol et
+            {
+                int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
+                for (int n = 1; n < nParameters; n++)
+                {
+                    if (Stack[stackBase + n].Type == ExObjType.DEFAULT) // ".." sembolü yerine ile varsayılan değeri(varsa) ata
+                    {
+                        if (n >= defaultsIndex)
+                        {
+                            Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
+                        }
+                        else
+                        {
+                            AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        // TO-DO enum return
+        private int SetDefaultValuesInStackForSequence(ExClosure closure, int stackBase, int nArguments)
+        {
+            if (nArguments < 2)
+            {
+                AddToErrorMessage("sequences require at least 1 argument to be called");
+                return -1;
+            }
+            else // CONTINUE HERE, ALLOW PARAMETERS FOR SEQUENCES
+            {
+                if (!Stack[stackBase + 1].IsNumeric())
+                {
+                    AddToErrorMessage("expected integer or float as sequence argument");
+                    return -1;
+                }
+                else
+                {
+                    if (Stack[stackBase + 1].Type == ExObjType.INTEGER)
+                    {
+                        long ind = Stack[stackBase + 1].GetInt();
+                        string idx = ind.ToString();
+                        for (int i = 2; i < closure.Function.Parameters.Count; i++)
+                        {
+                            ExObject c = closure.Function.Parameters[i];
+                            if (c.GetString() == idx)
+                            {
+                                // TO-DO doesnt return to main, also refactor this
+                                // TO-DO optimize
+                                Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
+                                return 1;
+                            }
+                        }
+                        if (ind < 0)
+                        {
+                            AddToErrorMessage("index can't be negative, unless its a default value");
+                            return -1;
+                        }
+                    }
+                    else if (Stack[stackBase + 1].Type == ExObjType.FLOAT)
+                    {
+                        double ind = Stack[stackBase + 1].GetFloat();
+                        string idx = ind.ToString();
+                        for (int i = 2; i < closure.Function.Parameters.Count; i++)
+                        {
+                            ExObject c = closure.Function.Parameters[i];
+                            if (c.GetString() == idx)
+                            {
+                                // TO-DO doesnt return to main, also refactor this
+                                // TO-DO optimize
+                                Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
+                                return 1;
+                            }
+                        }
+                        if (ind < 0)
+                        {
+                            AddToErrorMessage("index can't be negative, unless its a default value");
+                            return -1;
+                        }
+                    }
+                }
+            }
+            return 0;
+        }
+
+        public bool StartCall(ExClosure closure, int targetIndex, int argumentCount, int stackBase, bool isTailCall)
+        {
+            ExPrototype prototype = closure.Function;     // Fonksiyon bilgisi
+
+            int nParameters = prototype.nParams;           // Parametre sayısı kontrolü
+            int newTop = stackBase + prototype.StackSize; // Yeni tavan indeksi
+            int nArguments = argumentCount;               // Argüman sayısı
+
+            if (prototype.HasVargs
+                && !SetVargsInStack(stackBase, nArguments, ref nParameters))   // Belirsiz parametre sayısı
+            {
+                AddToErrorMessage("'" + prototype.Name.GetString() + "' takes at least " + (nParameters - 1) + " arguments");
+                return false;
+            }
+            else if (prototype.IsFunction()
+                    && !SetDefaultValuesInStack(prototype, closure, stackBase, nParameters, ref nArguments))        // Parametre sayısı sınırlı fonksiyon
+            {
+                return false;
             }
 
             #region Küme, dizi vs. için özel kontroller
@@ -1151,63 +1187,20 @@ namespace ExMat.VM
             }
             else if (prototype.IsSequence())
             {
-                if (nArguments < 2)
+                switch (SetDefaultValuesInStackForSequence(closure, stackBase, nArguments))
                 {
-                    AddToErrorMessage("sequences require at least 1 argument to be called");
-                    return false;
-                }
-                else // CONTINUE HERE, ALLOW PARAMETERS FOR SEQUENCES
-                {
-                    if (!Stack[stackBase + 1].IsNumeric())
-                    {
-                        AddToErrorMessage("expected integer or float as sequence argument");
-                        return false;
-                    }
-                    else
-                    {
-                        if (Stack[stackBase + 1].Type == ExObjType.INTEGER)
+                    case -1:
                         {
-                            long ind = Stack[stackBase + 1].GetInt();
-                            string idx = ind.ToString();
-                            for (int i = 2; i < closure.Function.Parameters.Count; i++)
-                            {
-                                ExObject c = closure.Function.Parameters[i];
-                                if (c.GetString() == idx)
-                                {
-                                    // TO-DO doesnt return to main, also refactor this
-                                    // TO-DO optimize
-                                    Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
-                                    return true;
-                                }
-                            }
-                            if (ind < 0)
-                            {
-                                AddToErrorMessage("index can't be negative, unless its a default value");
-                                return false;
-                            }
+                            return false;
                         }
-                        else if (Stack[stackBase + 1].Type == ExObjType.FLOAT)
+                    case 1:
                         {
-                            double ind = Stack[stackBase + 1].GetFloat();
-                            string idx = ind.ToString();
-                            for (int i = 2; i < closure.Function.Parameters.Count; i++)
-                            {
-                                ExObject c = closure.Function.Parameters[i];
-                                if (c.GetString() == idx)
-                                {
-                                    // TO-DO doesnt return to main, also refactor this
-                                    // TO-DO optimize
-                                    Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
-                                    return true;
-                                }
-                            }
-                            if (ind < 0)
-                            {
-                                AddToErrorMessage("index can't be negative, unless its a default value");
-                                return false;
-                            }
+                            return true;
                         }
-                    }
+                    default:
+                        {
+                            break;
+                        }
                 }
             }
 
@@ -2279,7 +2272,7 @@ namespace ExMat.VM
                             CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
                             continue;
                         }
-                    
+
                     case OPC.JZS:
                     case OPC.JZ:    // Hedef(arg0 indeksli) boolean olarak 'false' ise arg1 adet komutu atla
                         {
@@ -2581,7 +2574,7 @@ namespace ExMat.VM
                         }
                     default:
                         {
-                            throw new Exception("unknown operator " + instruction.op);
+                            throw new ExException("unknown operator " + instruction.op);
                         }
                 }
             }
@@ -2897,7 +2890,7 @@ namespace ExMat.VM
                     default:
                         {
                             //TO-DO
-                            throw new Exception("failed compare operator");
+                            throw new ExException("failed compare operator");
                         }
                 }
 
@@ -3021,7 +3014,7 @@ namespace ExMat.VM
 
                     if (!LeaveFrame(isSequence))
                     {
-                        throw new Exception("something went wrong with the stack!");
+                        throw new ExException("something went wrong with the stack!");
                     }
                     return root;
                 }
@@ -3033,7 +3026,7 @@ namespace ExMat.VM
 
             if (!LeaveFrame())
             {
-                throw new Exception("something went wrong with the stack!");
+                throw new ExException("something went wrong with the stack!");
             }
             return root;
         }
@@ -3057,7 +3050,7 @@ namespace ExMat.VM
                         res.Assign(a.GetInt() >> (int)b.GetInt()); break;
                     default:
                         {
-                            throw new Exception("unknown bitwise operation");
+                            throw new ExException("unknown bitwise operation");
                         }
                 }
             }
@@ -3069,7 +3062,7 @@ namespace ExMat.VM
             return true;
         }
 
-        private static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObject res)
+        public static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObject res)
         {
             switch (op)
             {
@@ -3095,12 +3088,12 @@ namespace ExMat.VM
                         }
                         res = new(a % b); break;
                     }
-                default: throw new Exception("unknown arithmetic operation");
+                default: throw new ExException("unknown arithmetic operation");
             }
             return true;
         }
 
-        private static bool InnerDoArithmeticOPFloat(OPC op, double a, double b, ref ExObject res)
+        public static bool InnerDoArithmeticOPFloat(OPC op, double a, double b, ref ExObject res)
         {
             switch (op)
             {
@@ -3126,12 +3119,12 @@ namespace ExMat.VM
                         }
                         res = new(a % b); break;
                     }
-                default: throw new Exception("unknown arithmetic operation");
+                default: throw new ExException("unknown arithmetic operation");
             }
             return true;
         }
 
-        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
+        public static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
         {
             switch (op)
             {
@@ -3158,6 +3151,7 @@ namespace ExMat.VM
             return true;
         }
 
+        [ExcludeFromCodeCoverage]
         private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, double b, ref ExObject res)
         {
             switch (op)
@@ -3185,6 +3179,7 @@ namespace ExMat.VM
             return true;
         }
 
+        [ExcludeFromCodeCoverage]
         private static bool InnerDoArithmeticOPComplex(OPC op, double a, Complex b, ref ExObject res)
         {
             switch (op)
@@ -3574,12 +3569,6 @@ namespace ExMat.VM
             {
                 case ExObjType.DICT:
                     {
-                        if (self.GetDict() == null)
-                        {
-                            AddToErrorMessage("attempted to access null dictionary");
-                            return false;
-                        }
-
                         if (!self.GetDict().ContainsKey(k.GetString()))
                         {
                             self.GetDict().Add(k.GetString(), new());
@@ -3591,12 +3580,6 @@ namespace ExMat.VM
                     {
                         if (k.IsNumeric())
                         {
-                            if (self.GetList() == null)
-                            {
-                                AddToErrorMessage("attempted to access null array");
-                                return false;
-                            }
-
                             int n = (int)k.GetInt();
                             int l = self.GetList().Count;
                             if (Math.Abs(n) < l)
@@ -3619,12 +3602,6 @@ namespace ExMat.VM
                     }
                 case ExObjType.INSTANCE:
                     {
-                        if (self.GetInstance() == null)
-                        {
-                            AddToErrorMessage("attempted to access null instance");
-                            return false;
-                        }
-
                         if (self.GetInstance().Class.Members.ContainsKey(k.GetString())
                             && self.GetInstance().Class.Members[k.GetString()].IsField())
                         {
@@ -4123,7 +4100,7 @@ namespace ExMat.VM
                     return true;
                 }
             }
-            if (f == ExFallback.OK 
+            if (f == ExFallback.OK
                 && RootDictionary.GetDict().ContainsKey(k.GetString()))
             {
                 dest.Assign(RootDictionary.GetDict()[k.GetString()]);
@@ -4225,7 +4202,7 @@ namespace ExMat.VM
 
             #region Dizi optimizasyonu
             if (sequenceOptimize
-                && IsMainCall 
+                && IsMainCall
                 && (css <= 0 || (css > 0 && CallStack[css - 1].IsRootCall)))
             {
                 List<ExObject> dp = new();
