@@ -15,11 +15,11 @@
 
         protected override void Dispose(bool disposing)
         {
+            base.Dispose(disposing);
             if (!disposedValue)
             {
                 if (disposing)
                 {
-                    base.Dispose(true);
                     Disposer.DisposeObjects(ReferencedObject);
                 }
 

@@ -5,9 +5,9 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
+using ExMat.Exceptions;
 using ExMat.API;
 using ExMat.Class;
-using ExMat.Exceptions;
 using ExMat.Objects;
 using ExMat.Utils;
 using ExMat.VM;
@@ -29,13 +29,12 @@ namespace ExMat.BaseLib
             ExObject sleep = vm.GetArgument(1);
             int time = sleep.Type == ExObjType.FLOAT ? (int)sleep.GetFloat() : (int)sleep.GetInt();
 
-            vm.Pop(nargs + 2);
             if (time >= 0)
             {
                 Thread.Sleep(time);
             }
 
-            return ExFunctionStatus.SUCCESS;
+            return vm.CleanReturn(nargs + 2, true);
         }
 
         public static ExFunctionStatus StdToBase64(ExVM vm, int nargs)

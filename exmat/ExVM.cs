@@ -125,6 +125,34 @@ namespace ExMat.VM
             }
         }
 
+        public string GetFloatString(ExObject obj)
+        {
+            double r = obj.GetFloat();
+            if (r % 1 == 0.0)
+            {
+                if (r < 1e+14)
+                {
+                    return obj.GetFloat().ToString();
+                }
+                else
+                {
+                    return obj.GetFloat().ToString("E14");
+                }
+            }
+            else if (r >= 1e-14)
+            {
+                return obj.GetFloat().ToString("0.00000000000000");
+            }
+            else if (r < 1e+14)
+            {
+                return obj.GetFloat().ToString();
+            }
+            else
+            {
+                return obj.GetFloat().ToString("E14");
+            }
+        }
+
         public string GetSimpleString(ExObject obj)
         {
             switch (obj.Type)
@@ -139,30 +167,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        double r = obj.GetFloat();
-                        if (r % 1 == 0.0)
-                        {
-                            if (r < 1e+14)
-                            {
-                                return obj.GetFloat().ToString();
-                            }
-                            else
-                            {
-                                return obj.GetFloat().ToString("E14");
-                            }
-                        }
-                        else if (r >= (double)1e-14)
-                        {
-                            return obj.GetFloat().ToString("0.00000000000000");
-                        }
-                        else if (r < 1e+14)
-                        {
-                            return obj.GetFloat().ToString();
-                        }
-                        else
-                        {
-                            return obj.GetFloat().ToString("E14");
-                        }
+                        return GetFloatString(obj);
                     }
                 case ExObjType.STRING:
                     {
@@ -199,9 +204,9 @@ namespace ExMat.VM
                         {
                             ExObject c = new();
                             ExObject res = new();
-                            if (obj.GetInstance().GetMetaM(this, ExMetaM.STRING, ref c))
+                            if (obj.GetInstance().GetMetaM(this, ExMetaMethod.STRING, ref c))
                             {
-                                if (CallMeta(ref c, ExMetaM.STRING, 1, ref res))
+                                if (CallMeta(ref c, ExMetaMethod.STRING, 1, ref res))
                                 {
                                     return res.GetString();
                                 }
@@ -363,30 +368,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        double r = obj.GetFloat();
-                        if (r % 1 == 0.0)
-                        {
-                            if (r < 1e+14)
-                            {
-                                res = new(obj.GetFloat().ToString());
-                            }
-                            else
-                            {
-                                res = new(obj.GetFloat().ToString("E14"));
-                            }
-                        }
-                        else if (r >= (double)1e-14)
-                        {
-                            res = new(obj.GetFloat().ToString("0.00000000000000"));
-                        }
-                        else if (r < 1e+14)
-                        {
-                            res = new(obj.GetFloat().ToString());
-                        }
-                        else
-                        {
-                            res = new(obj.GetFloat().ToString("E14"));
-                        }
+                        res = new(GetFloatString(obj));
                         break;
                     }
                 case ExObjType.STRING:
@@ -502,10 +484,10 @@ namespace ExMat.VM
                         {
                             ExObject c = new();
 
-                            if (obj.GetInstance().GetMetaM(this, ExMetaM.STRING, ref c))
+                            if (obj.GetInstance().GetMetaM(this, ExMetaMethod.STRING, ref c))
                             {
                                 Push(obj);
-                                return CallMeta(ref c, ExMetaM.STRING, 1, ref res);
+                                return CallMeta(ref c, ExMetaMethod.STRING, 1, ref res);
                             }
                         }
                         res = new(obj.Type.ToString());
@@ -552,7 +534,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.BOOL:
                     {
-                        res = new((double)(obj.Value.b_Bool ? 1.0 : 0.0));
+                        res = new(obj.Value.b_Bool ? 1.0 : 0.0);
                         break;
                     }
                 default:
@@ -627,7 +609,7 @@ namespace ExMat.VM
 
             if (!braw)
             {
-                ExObject meta = cls.MetaFuncs[(int)ExMetaM.NEWMEMBER];
+                ExObject meta = cls.MetaFuncs[(int)ExMetaMethod.NEWMEMBER];
                 if (meta.Type != ExObjType.NULL)
                 {
                     Push(self);
@@ -635,7 +617,7 @@ namespace ExMat.VM
                     Push(val);
                     Push(attrs);
                     Push(bstat);
-                    return CallMeta(ref meta, ExMetaM.NEWMEMBER, 5, ref TempRegistery);
+                    return CallMeta(ref meta, ExMetaMethod.NEWMEMBER, 5, ref TempRegistery);
                 }
             }
 
@@ -2014,7 +1996,7 @@ namespace ExMat.VM
                                 case ExObjType.INSTANCE:    // Sınıfa ait obje(gerekli meta metota sahio olması beklenir)
                                     {
                                         ExObject cls2 = null;
-                                        if (obj.GetInstance().GetMetaM(this, ExMetaM.CALL, ref cls2))
+                                        if (obj.GetInstance().GetMetaM(this, ExMetaMethod.CALL, ref cls2))
                                         {
                                             Push(obj);
                                             for (int j = 0; j < instruction.arg3; j++)
@@ -2022,7 +2004,7 @@ namespace ExMat.VM
                                                 Push(GetTargetInStack(j + instruction.arg2));
                                             }
 
-                                            if (!CallMeta(ref cls2, ExMetaM.CALL, instruction.arg3 + 1, ref obj))
+                                            if (!CallMeta(ref cls2, ExMetaMethod.CALL, instruction.arg3 + 1, ref obj))
                                             {
                                                 AddToErrorMessage("meta method failed call");
                                                 return FixStackAfterError();
@@ -2518,11 +2500,11 @@ namespace ExMat.VM
                         {
                             ExObject obj = GetTargetInStack(instruction.arg1);
                             ExObject res = new();
-                            if (obj.Type == ExObjType.INSTANCE && obj.GetInstance().GetMetaM(this, ExMetaM.TYPEOF, ref res))
+                            if (obj.Type == ExObjType.INSTANCE && obj.GetInstance().GetMetaM(this, ExMetaMethod.TYPEOF, ref res))
                             {
                                 ExObject r = new();
                                 Push(obj);
-                                if (!CallMeta(ref res, ExMetaM.TYPEOF, 1, ref r))
+                                if (!CallMeta(ref res, ExMetaMethod.TYPEOF, 1, ref r))
                                 {
                                     AddToErrorMessage("'typeof' failed for the instance");
                                     return FixStackAfterError();
@@ -2591,11 +2573,11 @@ namespace ExMat.VM
                         ExObject tmp;
 
                         // TO-DO allow dict deleg ?
-                        if (self.Type == ExObjType.INSTANCE && self.GetInstance().GetMetaM(this, ExMetaM.DELSLOT, ref cls))
+                        if (self.Type == ExObjType.INSTANCE && self.GetInstance().GetMetaM(this, ExMetaMethod.DELSLOT, ref cls))
                         {
                             Push(self);
                             Push(k);
-                            return CallMeta(ref cls, ExMetaM.DELSLOT, 2, ref r);
+                            return CallMeta(ref cls, ExMetaMethod.DELSLOT, 2, ref r);
                         }
                         else
                         {
@@ -2840,13 +2822,13 @@ namespace ExMat.VM
             target.Assign(ExClass.Create(SharedState, cb));
 
             // TO-DO meta methods!
-            if (target.GetClass().MetaFuncs[(int)ExMetaM.INHERIT].Type != ExObjType.NULL)
+            if (target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT].Type != ExObjType.NULL)
             {
                 int np = 2;
                 ExObject r = new();
                 Push(target);
                 Push(atrs);
-                ExObject mm = target.GetClass().MetaFuncs[(int)ExMetaM.INHERIT];
+                ExObject mm = target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT];
                 Call(ref mm, np, StackTop - np, ref r);
                 Pop(np);
             }
@@ -3062,6 +3044,23 @@ namespace ExMat.VM
             return true;
         }
 
+        [ExcludeFromCodeCoverage]
+        private static double HandleZeroInDivision(double a)
+        {
+            if(a > 0)
+            {
+                return double.PositiveInfinity;
+            }
+            else if(a == 0)
+            {
+                return double.NaN;
+            }
+            else
+            {
+                return double.NegativeInfinity;
+            }
+        }
+        
         public static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObject res)
         {
             switch (op)
@@ -3070,23 +3069,18 @@ namespace ExMat.VM
                 case OPC.SUB: res = new(a - b); break;
                 case OPC.MLT: res = new(a * b); break;
                 case OPC.EXP: res = new(Math.Pow(a, b)); break;
+                case OPC.MOD:
                 case OPC.DIV:
                     {
-                        if (b == 0)
+                        if(b == 0)
                         {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
+                            res = new(HandleZeroInDivision((double)a));
                         }
-                        res = new(a / b); break;
-                    }
-                case OPC.MOD:
-                    {
-                        if (b == 0)
+                        else
                         {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
+                            res = new(op == OPC.DIV ? (a / b) : (a % b));
                         }
-                        res = new(a % b); break;
+                        break;
                     }
                 default: throw new ExException("unknown arithmetic operation");
             }
@@ -3103,21 +3097,13 @@ namespace ExMat.VM
                 case OPC.EXP: res = new(Math.Pow(a, b)); break;
                 case OPC.DIV:
                     {
-                        if (b == 0)
-                        {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
-                        }
-                        res = new(a / b); break;
+                        res = new(b == 0 ? HandleZeroInDivision(a) : (a / b));
+                        break;
                     }
                 case OPC.MOD:
                     {
-                        if (b == 0)
-                        {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
-                        }
-                        res = new(a % b); break;
+                        res = new(b == 0 ? HandleZeroInDivision(a) : (a % b));
+                        break;
                     }
                 default: throw new ExException("unknown arithmetic operation");
             }
@@ -3469,42 +3455,42 @@ namespace ExMat.VM
         }
         public bool DoArithmeticMetaOP(OPC op, ExObject a, ExObject b, ref ExObject res)
         {
-            ExMetaM meta;
+            ExMetaMethod meta;
             switch (op)
             {
                 case OPC.ADD:
                     {
-                        meta = ExMetaM.ADD;
+                        meta = ExMetaMethod.ADD;
                         break;
                     }
                 case OPC.SUB:
                     {
-                        meta = ExMetaM.SUB;
+                        meta = ExMetaMethod.SUB;
                         break;
                     }
                 case OPC.DIV:
                     {
-                        meta = ExMetaM.DIV;
+                        meta = ExMetaMethod.DIV;
                         break;
                     }
                 case OPC.MLT:
                     {
-                        meta = ExMetaM.MLT;
+                        meta = ExMetaMethod.MLT;
                         break;
                     }
                 case OPC.MOD:
                     {
-                        meta = ExMetaM.MOD;
+                        meta = ExMetaMethod.MOD;
                         break;
                     }
                 case OPC.EXP:
                     {
-                        meta = ExMetaM.EXP;
+                        meta = ExMetaMethod.EXP;
                         break;
                     }
                 default:
                     {
-                        meta = ExMetaM.ADD;
+                        meta = ExMetaMethod.ADD;
                         break;
                     }
             }
@@ -3522,7 +3508,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool CallMeta(ref ExObject cls, ExMetaM meta, long nargs, ref ExObject res)
+        public bool CallMeta(ref ExObject cls, ExMetaMethod meta, long nargs, ref ExObject res)
         {
             nMetaCalls++;
             bool b = Call(ref cls, nargs, StackTop - nargs, ref res, true);
@@ -3704,7 +3690,7 @@ namespace ExMat.VM
                     {
                         ExObject cls = null;
                         ExObject t = new();
-                        if (self.GetInstance().GetMetaM(this, ExMetaM.SET, ref cls))
+                        if (self.GetInstance().GetMetaM(this, ExMetaMethod.SET, ref cls))
                         {
                             Push(self);
                             Push(k);
@@ -3801,7 +3787,7 @@ namespace ExMat.VM
                 case ExObjType.INSTANCE:
                     {
                         ExObject cls = null;
-                        if (self.GetInstance().GetMetaM(this, ExMetaM.GET, ref cls))
+                        if (self.GetInstance().GetMetaM(this, ExMetaMethod.GET, ref cls))
                         {
                             Push(self);
                             Push(k);

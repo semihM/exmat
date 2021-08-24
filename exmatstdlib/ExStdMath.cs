@@ -9,7 +9,6 @@ namespace ExMat.BaseLib
 {
     public static class ExStdMath
     {
-        private static Random rand = new();
         private static List<int> Primes;
         private static readonly int PrimeSearchSize = int.MaxValue / 100;
         private static readonly int PrimeCacheMaxSize = 1358124 * 2;
@@ -686,13 +685,13 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(l, i2.GetInt()));
+                                    return vm.CleanReturn(nargs + 2, Math.Atan2(l, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Atan2(l, i2.Value.f_Float));
+                                        return vm.CleanReturn(nargs + 2, Math.Atan2(l, i2.Value.f_Float));
                                     }
                                     else
                                     {
@@ -701,7 +700,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(l, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Atan2(l, i2.GetFloat()));
                                 }
                         }
                     }
@@ -728,13 +727,13 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(b, i2.GetInt()));
+                                    return vm.CleanReturn(nargs + 2, Math.Atan2(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Atan2(b, i2.Value.f_Float));
+                                        return vm.CleanReturn(nargs + 2, Math.Atan2(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
@@ -743,7 +742,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Atan2(b, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Atan2(b, i2.GetFloat()));
                                 }
                         }
                     }
@@ -843,7 +842,7 @@ namespace ExMat.BaseLib
             {
                 case ExObjType.INTEGER:
                     {
-                        return vm.CleanReturn(nargs + 2, (double)Math.Round((double)i.GetInt(), dec));
+                        return vm.CleanReturn(nargs + 2, Math.Round((double)i.GetInt(), dec));
                     }
                 case ExObjType.COMPLEX:
                     {
@@ -852,7 +851,7 @@ namespace ExMat.BaseLib
                     }
                 default:
                     {
-                        return vm.CleanReturn(nargs + 2, (double)Math.Round(i.GetFloat(), dec));
+                        return vm.CleanReturn(nargs + 2, Math.Round(i.GetFloat(), dec));
                     }
             }
         }
@@ -986,7 +985,7 @@ namespace ExMat.BaseLib
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.Value.f_Float));
+                                        return vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
@@ -995,7 +994,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Min(b, i2.GetFloat()));
                                 }
                         }
                     }
@@ -1014,7 +1013,7 @@ namespace ExMat.BaseLib
                                     {
                                         if (i2.Value.c_Float == 0.0)
                                         {
-                                            return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.Value.f_Float));
+                                            return vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float));
                                         }
                                         else
                                         {
@@ -1023,7 +1022,7 @@ namespace ExMat.BaseLib
                                     }
                                 default:
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetFloat()));
+                                        return vm.CleanReturn(nargs + 2, Math.Min(b, i2.GetFloat()));
                                     }
                             }
                         }
@@ -1039,13 +1038,13 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetInt()));
+                                    return vm.CleanReturn(nargs + 2, Math.Min(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.Value.f_Float));
+                                        return vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
@@ -1054,7 +1053,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Min(b, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Min(b, i2.GetFloat()));
                                 }
                         }
                     }
@@ -1081,7 +1080,7 @@ namespace ExMat.BaseLib
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.Value.f_Float));
+                                        return vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
@@ -1090,7 +1089,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Max(b, i2.GetFloat()));
                                 }
                         }
                     }
@@ -1109,7 +1108,7 @@ namespace ExMat.BaseLib
                                     {
                                         if (i2.Value.c_Float == 0.0)
                                         {
-                                            return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.Value.f_Float));
+                                            return vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float));
                                         }
                                         else
                                         {
@@ -1118,7 +1117,7 @@ namespace ExMat.BaseLib
                                     }
                                 default:
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetFloat()));
+                                        return vm.CleanReturn(nargs + 2, Math.Max(b, i2.GetFloat()));
                                     }
                             }
                         }
@@ -1134,13 +1133,13 @@ namespace ExMat.BaseLib
                         {
                             case ExObjType.INTEGER:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetInt()));
+                                    return vm.CleanReturn(nargs + 2, Math.Max(b, i2.GetInt()));
                                 }
                             case ExObjType.COMPLEX:
                                 {
                                     if (i2.Value.c_Float == 0.0)
                                     {
-                                        return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.Value.f_Float));
+                                        return vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float));
                                     }
                                     else
                                     {
@@ -1149,7 +1148,7 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    return vm.CleanReturn(nargs + 2, (double)Math.Max(b, i2.GetFloat()));
+                                    return vm.CleanReturn(nargs + 2, Math.Max(b, i2.GetFloat()));
                                 }
                         }
                     }
@@ -2645,6 +2644,8 @@ namespace ExMat.BaseLib
                 }
             }
         };
+
+        private static Random rand = new();
         public static List<ExRegFunc> MathFuncs => _stdmathfuncs;
         public static Random Rand { get => rand; set => rand = value; }
 

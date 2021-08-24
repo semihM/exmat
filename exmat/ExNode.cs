@@ -60,11 +60,6 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    if (Value != null)
-                    {
-                        Value = null;
-                    }
-
                     if (Next != null)
                     {
                         Next.Prev = Prev;
@@ -77,6 +72,7 @@ namespace ExMat.InfoVar
 
                     Prev = null;
                     Next = null;
+                    Value = null;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

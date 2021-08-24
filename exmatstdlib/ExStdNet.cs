@@ -48,17 +48,6 @@ namespace ExMat.BaseLib
             return sw.ToString();
         }
 
-        /// <summary>
-        /// Count the words.
-        /// The content has to be converted to plain text before (using ConvertToPlainText).
-        /// </summary>
-        /// <param name="plainText">The plain text.</param>
-        /// <returns></returns>
-        public static int CountWords(string plainText)
-        {
-            return !string.IsNullOrEmpty(plainText) ? plainText.Split(' ', '\n').Length : 0;
-        }
-
         public static string Cut(string text, int length)
         {
             if (!string.IsNullOrEmpty(text) && text.Length > length)

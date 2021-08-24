@@ -354,7 +354,7 @@ namespace ExMat
     /// <summary>
     /// Meta methods
     /// </summary>
-    public enum ExMetaM
+    public enum ExMetaMethod
     {
         ADD,    // +
         SUB,    // -

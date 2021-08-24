@@ -24,7 +24,7 @@ namespace ExMat.Class
             return ExObjType.INSTANCE;
         }
 
-        public bool GetMetaM(ExVM vm, ExMetaM m, ref ExObject res)
+        public bool GetMetaM(ExVM vm, ExMetaMethod m, ref ExObject res)
         {
             if (Delegate != null)
             {
