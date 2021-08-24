@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
-using Exmat.Exceptions;
+using ExMat.Exceptions;
 using ExMat.API;
 using ExMat.Class;
 using ExMat.Objects;
@@ -3379,9 +3379,9 @@ namespace ExMat.BaseLib
         private const string _reloadbase = "reload_base";
         public static string ReloadBaseFunc => _reloadbase;
 
-        private const string __version__ = "ExMat v0.0.5";
+        private const string __version__ = "ExMat v0.0.6";
 
-        private const int __versionnumber__ = 5;
+        private const int __versionnumber__ = 6;
 
         public static bool RegisterStdBase(ExVM vm)
         {
