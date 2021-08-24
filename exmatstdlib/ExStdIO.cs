@@ -1054,7 +1054,7 @@ namespace ExMat.BaseLib
                 StringBuilder s = new();
                 while (!char.IsControl(ch = (char)Console.Read()))
                 {
-                    s.Append(ch.ToString());
+                    s.Append(ch);
                 }
                 res = s.ToString();
             }
