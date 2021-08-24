@@ -3078,7 +3078,7 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            res = new(op == OPC.DIV ? (a / b) : (a % b))
+                            res = new(op == OPC.DIV ? (a / b) : (a % b));
                         }
                         break;
                     }
