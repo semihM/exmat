@@ -34,7 +34,7 @@ namespace ExMat.BaseLib
                 Thread.Sleep(time);
             }
 
-            return vm.CleanReturn(nargs + 2, new(true));
+            return vm.CleanReturn(nargs + 2, true);
         }
 
         public static ExFunctionStatus StdToBase64(ExVM vm, int nargs)
