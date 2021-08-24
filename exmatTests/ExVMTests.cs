@@ -406,11 +406,11 @@ namespace ExMat.VM.Tests
 
             long res = 2 & 6;
 
-            ExObject tmp = null;
+            ExObject tmp = new();
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.AND, a, b, tmp));
 
-            Assert.IsNotNull(tmp);
+            Assert.IsTrue(tmp.Type == ExObjType.NULL);
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -423,11 +423,11 @@ namespace ExMat.VM.Tests
 
             long res = 2 | 6;
 
-            ExObject tmp = null;
+            ExObject tmp = new();
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.OR, a, b, tmp));
 
-            Assert.IsNotNull(tmp);
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -440,11 +440,11 @@ namespace ExMat.VM.Tests
 
             long res = 2 ^ 6;
 
-            ExObject tmp = null;
+            ExObject tmp = new();
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.XOR, a, b, tmp));
 
-            Assert.IsNotNull(tmp);
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -457,11 +457,11 @@ namespace ExMat.VM.Tests
 
             long res = 2 << 6;
 
-            ExObject tmp = null;
+            ExObject tmp = new();
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTL, a, b, tmp));
 
-            Assert.IsNotNull(tmp);
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -474,11 +474,11 @@ namespace ExMat.VM.Tests
 
             long res = 6 >> 1;
 
-            ExObject tmp = null;
+            ExObject tmp = new();
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
 
-            Assert.IsNotNull(tmp);
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -486,7 +486,7 @@ namespace ExMat.VM.Tests
         [TestMethod()]
         public void DoBitwiseOPThrowOpc()
         {
-            ExObject tmp = null;
+            ExObject tmp = new();
 
             Assert.ThrowsException<ExException>(
                 () => ExVM.DoBitwiseOP((long)OPC.CLOSE, new(1), new(1), tmp)
@@ -499,11 +499,11 @@ namespace ExMat.VM.Tests
             ExObject a = new(Math.PI);
             ExObject b = new(1);
 
-            ExObject tmp = null;
+            ExObject tmp = new();
 
             Assert.IsFalse(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
 
-            Assert.IsNull(tmp);
+            Assert.IsTrue(tmp.Type == ExObjType.NULL);
         }
         #endregion
     }
