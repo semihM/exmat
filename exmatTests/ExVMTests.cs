@@ -402,7 +402,7 @@ namespace ExMat.VM.Tests
         public void DoBitwiseOPAnd()
         {
             ExObject a = new(2);
-            ExObject b = new(4);
+            ExObject b = new(6);
 
             long res = 2 & 6;
 
