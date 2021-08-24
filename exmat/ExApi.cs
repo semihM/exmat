@@ -100,6 +100,39 @@ namespace ExMat.API
             vm.CleanReturn(pop, res);
             return true;
         }
+        
+        /// <summary>
+        /// Returns string format of a float
+        /// </summary>
+        /// <param name="a">Value to get the string of</param>
+        /// <returns>A formatted string</returns>
+        public static string GetFloatString(ExObject obj)
+        {
+            double r = obj.GetFloat();
+            if (r % 1 == 0.0)
+            {
+                if (r < 1e+14)
+                {
+                    return obj.GetFloat().ToString();
+                }
+                else
+                {
+                    return obj.GetFloat().ToString("E14");
+                }
+            }
+            else if (r >= 1e-14)
+            {
+                return obj.GetFloat().ToString("0.00000000000000");
+            }
+            else if (r < 1e+14)
+            {
+                return obj.GetFloat().ToString();
+            }
+            else
+            {
+                return obj.GetFloat().ToString("E14");
+            }
+        }
 
         /// <summary>
         /// Checks equality of given two objects

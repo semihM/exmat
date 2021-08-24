@@ -125,34 +125,6 @@ namespace ExMat.VM
             }
         }
 
-        public string GetFloatString(ExObject obj)
-        {
-            double r = obj.GetFloat();
-            if (r % 1 == 0.0)
-            {
-                if (r < 1e+14)
-                {
-                    return obj.GetFloat().ToString();
-                }
-                else
-                {
-                    return obj.GetFloat().ToString("E14");
-                }
-            }
-            else if (r >= 1e-14)
-            {
-                return obj.GetFloat().ToString("0.00000000000000");
-            }
-            else if (r < 1e+14)
-            {
-                return obj.GetFloat().ToString();
-            }
-            else
-            {
-                return obj.GetFloat().ToString("E14");
-            }
-        }
-
         public string GetSimpleString(ExObject obj)
         {
             switch (obj.Type)
@@ -167,7 +139,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        return GetFloatString(obj);
+                        return ExApi.GetFloatString(obj);
                     }
                 case ExObjType.STRING:
                     {
@@ -368,7 +340,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        res = new(GetFloatString(obj));
+                        res = new(ExApi.GetFloatString(obj));
                         break;
                     }
                 case ExObjType.STRING:
