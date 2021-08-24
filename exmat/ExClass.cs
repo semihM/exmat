@@ -25,7 +25,7 @@ namespace ExMat.Class
 
         public ExClass()
         {
-            ExUtils.InitList(ref MetaFuncs, (int)ExMetaM.LAST);
+            ExUtils.InitList(ref MetaFuncs, (int)ExMetaMethod.LAST);
         }
         public ExClass(ExSState exS, ExClass b)
         {
@@ -35,7 +35,7 @@ namespace ExMat.Class
             GotInstanced = false;
             ConstructorID = -1;
             LengthReprestation = 0;
-            ExUtils.InitList(ref MetaFuncs, (int)ExMetaM.LAST);
+            ExUtils.InitList(ref MetaFuncs, (int)ExMetaMethod.LAST);
 
             if (b != null)
             {

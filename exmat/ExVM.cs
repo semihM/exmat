@@ -199,9 +199,9 @@ namespace ExMat.VM
                         {
                             ExObject c = new();
                             ExObject res = new();
-                            if (obj.GetInstance().GetMetaM(this, ExMetaM.STRING, ref c))
+                            if (obj.GetInstance().GetMetaM(this, ExMetaMethod.STRING, ref c))
                             {
-                                if (CallMeta(ref c, ExMetaM.STRING, 1, ref res))
+                                if (CallMeta(ref c, ExMetaMethod.STRING, 1, ref res))
                                 {
                                     return res.GetString();
                                 }
@@ -502,10 +502,10 @@ namespace ExMat.VM
                         {
                             ExObject c = new();
 
-                            if (obj.GetInstance().GetMetaM(this, ExMetaM.STRING, ref c))
+                            if (obj.GetInstance().GetMetaM(this, ExMetaMethod.STRING, ref c))
                             {
                                 Push(obj);
-                                return CallMeta(ref c, ExMetaM.STRING, 1, ref res);
+                                return CallMeta(ref c, ExMetaMethod.STRING, 1, ref res);
                             }
                         }
                         res = new(obj.Type.ToString());
@@ -627,7 +627,7 @@ namespace ExMat.VM
 
             if (!braw)
             {
-                ExObject meta = cls.MetaFuncs[(int)ExMetaM.NEWMEMBER];
+                ExObject meta = cls.MetaFuncs[(int)ExMetaMethod.NEWMEMBER];
                 if (meta.Type != ExObjType.NULL)
                 {
                     Push(self);
@@ -635,7 +635,7 @@ namespace ExMat.VM
                     Push(val);
                     Push(attrs);
                     Push(bstat);
-                    return CallMeta(ref meta, ExMetaM.NEWMEMBER, 5, ref TempRegistery);
+                    return CallMeta(ref meta, ExMetaMethod.NEWMEMBER, 5, ref TempRegistery);
                 }
             }
 
@@ -2014,7 +2014,7 @@ namespace ExMat.VM
                                 case ExObjType.INSTANCE:    // Sınıfa ait obje(gerekli meta metota sahio olması beklenir)
                                     {
                                         ExObject cls2 = null;
-                                        if (obj.GetInstance().GetMetaM(this, ExMetaM.CALL, ref cls2))
+                                        if (obj.GetInstance().GetMetaM(this, ExMetaMethod.CALL, ref cls2))
                                         {
                                             Push(obj);
                                             for (int j = 0; j < instruction.arg3; j++)
@@ -2022,7 +2022,7 @@ namespace ExMat.VM
                                                 Push(GetTargetInStack(j + instruction.arg2));
                                             }
 
-                                            if (!CallMeta(ref cls2, ExMetaM.CALL, instruction.arg3 + 1, ref obj))
+                                            if (!CallMeta(ref cls2, ExMetaMethod.CALL, instruction.arg3 + 1, ref obj))
                                             {
                                                 AddToErrorMessage("meta method failed call");
                                                 return FixStackAfterError();
@@ -2518,11 +2518,11 @@ namespace ExMat.VM
                         {
                             ExObject obj = GetTargetInStack(instruction.arg1);
                             ExObject res = new();
-                            if (obj.Type == ExObjType.INSTANCE && obj.GetInstance().GetMetaM(this, ExMetaM.TYPEOF, ref res))
+                            if (obj.Type == ExObjType.INSTANCE && obj.GetInstance().GetMetaM(this, ExMetaMethod.TYPEOF, ref res))
                             {
                                 ExObject r = new();
                                 Push(obj);
-                                if (!CallMeta(ref res, ExMetaM.TYPEOF, 1, ref r))
+                                if (!CallMeta(ref res, ExMetaMethod.TYPEOF, 1, ref r))
                                 {
                                     AddToErrorMessage("'typeof' failed for the instance");
                                     return FixStackAfterError();
@@ -2591,11 +2591,11 @@ namespace ExMat.VM
                         ExObject tmp;
 
                         // TO-DO allow dict deleg ?
-                        if (self.Type == ExObjType.INSTANCE && self.GetInstance().GetMetaM(this, ExMetaM.DELSLOT, ref cls))
+                        if (self.Type == ExObjType.INSTANCE && self.GetInstance().GetMetaM(this, ExMetaMethod.DELSLOT, ref cls))
                         {
                             Push(self);
                             Push(k);
-                            return CallMeta(ref cls, ExMetaM.DELSLOT, 2, ref r);
+                            return CallMeta(ref cls, ExMetaMethod.DELSLOT, 2, ref r);
                         }
                         else
                         {
@@ -2840,13 +2840,13 @@ namespace ExMat.VM
             target.Assign(ExClass.Create(SharedState, cb));
 
             // TO-DO meta methods!
-            if (target.GetClass().MetaFuncs[(int)ExMetaM.INHERIT].Type != ExObjType.NULL)
+            if (target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT].Type != ExObjType.NULL)
             {
                 int np = 2;
                 ExObject r = new();
                 Push(target);
                 Push(atrs);
-                ExObject mm = target.GetClass().MetaFuncs[(int)ExMetaM.INHERIT];
+                ExObject mm = target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT];
                 Call(ref mm, np, StackTop - np, ref r);
                 Pop(np);
             }
@@ -3469,42 +3469,42 @@ namespace ExMat.VM
         }
         public bool DoArithmeticMetaOP(OPC op, ExObject a, ExObject b, ref ExObject res)
         {
-            ExMetaM meta;
+            ExMetaMethod meta;
             switch (op)
             {
                 case OPC.ADD:
                     {
-                        meta = ExMetaM.ADD;
+                        meta = ExMetaMethod.ADD;
                         break;
                     }
                 case OPC.SUB:
                     {
-                        meta = ExMetaM.SUB;
+                        meta = ExMetaMethod.SUB;
                         break;
                     }
                 case OPC.DIV:
                     {
-                        meta = ExMetaM.DIV;
+                        meta = ExMetaMethod.DIV;
                         break;
                     }
                 case OPC.MLT:
                     {
-                        meta = ExMetaM.MLT;
+                        meta = ExMetaMethod.MLT;
                         break;
                     }
                 case OPC.MOD:
                     {
-                        meta = ExMetaM.MOD;
+                        meta = ExMetaMethod.MOD;
                         break;
                     }
                 case OPC.EXP:
                     {
-                        meta = ExMetaM.EXP;
+                        meta = ExMetaMethod.EXP;
                         break;
                     }
                 default:
                     {
-                        meta = ExMetaM.ADD;
+                        meta = ExMetaMethod.ADD;
                         break;
                     }
             }
@@ -3522,7 +3522,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool CallMeta(ref ExObject cls, ExMetaM meta, long nargs, ref ExObject res)
+        public bool CallMeta(ref ExObject cls, ExMetaMethod meta, long nargs, ref ExObject res)
         {
             nMetaCalls++;
             bool b = Call(ref cls, nargs, StackTop - nargs, ref res, true);
@@ -3704,7 +3704,7 @@ namespace ExMat.VM
                     {
                         ExObject cls = null;
                         ExObject t = new();
-                        if (self.GetInstance().GetMetaM(this, ExMetaM.SET, ref cls))
+                        if (self.GetInstance().GetMetaM(this, ExMetaMethod.SET, ref cls))
                         {
                             Push(self);
                             Push(k);
@@ -3801,7 +3801,7 @@ namespace ExMat.VM
                 case ExObjType.INSTANCE:
                     {
                         ExObject cls = null;
-                        if (self.GetInstance().GetMetaM(this, ExMetaM.GET, ref cls))
+                        if (self.GetInstance().GetMetaM(this, ExMetaMethod.GET, ref cls))
                         {
                             Push(self);
                             Push(k);

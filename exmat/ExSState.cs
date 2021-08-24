@@ -469,9 +469,9 @@ namespace ExMat.States
         {
             MetaMethodsMap.Value.d_Dict = new();
 
-            for (int i = 0; i < (int)ExMetaM.LAST; i++)
+            for (int i = 0; i < (int)ExMetaMethod.LAST; i++)
             {
-                string mname = "_" + ((ExMetaM)i).ToString();
+                string mname = "_" + ((ExMetaMethod)i).ToString();
 
                 MetaMethods.Add(new(mname));
                 MetaMethodsMap.Value.d_Dict.Add(mname, new(i));

@@ -682,10 +682,6 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public static bool ProcessForeachStatement()
-        {
-            return false;
-        }
         public bool ExSequenceCreate(ExObject o)
         {
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
@@ -1242,11 +1238,6 @@ namespace ExMat.Compiler
             AddBasicDerefInstr(OPC.NEWSLOT);
 
             return true;
-        }
-
-        public static bool ProcessSumStatement()
-        {
-            return false;
         }
 
         public bool ProcessVarAsgStatement()
