@@ -410,7 +410,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.AND, a, b, tmp));
 
-            Assert.IsTrue(tmp.Type == ExObjType.NULL);
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
 
             Assert.AreEqual(res, tmp.GetInt());
         }
