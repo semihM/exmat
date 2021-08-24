@@ -1047,15 +1047,16 @@ namespace ExMat.BaseLib
                 if (!char.IsControl(ch = Console.ReadKey(intercept).KeyChar))
                 {
                     res = ch.ToString();
-                    return;
                 }
             }
             else
             {
+                StringBuilder s = new();
                 while (!char.IsControl(ch = (char)Console.Read()))
                 {
-                    res += ch.ToString();
+                    s.Append(ch.ToString());
                 }
+                res = s.ToString();
             }
         }
 

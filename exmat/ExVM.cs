@@ -125,6 +125,34 @@ namespace ExMat.VM
             }
         }
 
+        public string GetFloatString(ExObject obj)
+        {
+            double r = obj.GetFloat();
+            if (r % 1 == 0.0)
+            {
+                if (r < 1e+14)
+                {
+                    return obj.GetFloat().ToString();
+                }
+                else
+                {
+                    return obj.GetFloat().ToString("E14");
+                }
+            }
+            else if (r >= 1e-14)
+            {
+                return obj.GetFloat().ToString("0.00000000000000");
+            }
+            else if (r < 1e+14)
+            {
+                return obj.GetFloat().ToString();
+            }
+            else
+            {
+                return obj.GetFloat().ToString("E14");
+            }
+        }
+
         public string GetSimpleString(ExObject obj)
         {
             switch (obj.Type)
@@ -139,30 +167,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        double r = obj.GetFloat();
-                        if (r % 1 == 0.0)
-                        {
-                            if (r < 1e+14)
-                            {
-                                return obj.GetFloat().ToString();
-                            }
-                            else
-                            {
-                                return obj.GetFloat().ToString("E14");
-                            }
-                        }
-                        else if (r >= (double)1e-14)
-                        {
-                            return obj.GetFloat().ToString("0.00000000000000");
-                        }
-                        else if (r < 1e+14)
-                        {
-                            return obj.GetFloat().ToString();
-                        }
-                        else
-                        {
-                            return obj.GetFloat().ToString("E14");
-                        }
+                        return GetFloatString(obj);
                     }
                 case ExObjType.STRING:
                     {
@@ -363,30 +368,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.FLOAT:
                     {
-                        double r = obj.GetFloat();
-                        if (r % 1 == 0.0)
-                        {
-                            if (r < 1e+14)
-                            {
-                                res = new(obj.GetFloat().ToString());
-                            }
-                            else
-                            {
-                                res = new(obj.GetFloat().ToString("E14"));
-                            }
-                        }
-                        else if (r >= (double)1e-14)
-                        {
-                            res = new(obj.GetFloat().ToString("0.00000000000000"));
-                        }
-                        else if (r < 1e+14)
-                        {
-                            res = new(obj.GetFloat().ToString());
-                        }
-                        else
-                        {
-                            res = new(obj.GetFloat().ToString("E14"));
-                        }
+                        res = new(GetFloatString(obj));
                         break;
                     }
                 case ExObjType.STRING:
@@ -552,7 +534,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.BOOL:
                     {
-                        res = new((double)(obj.Value.b_Bool ? 1.0 : 0.0));
+                        res = new(obj.Value.b_Bool ? 1.0 : 0.0);
                         break;
                     }
                 default:
@@ -3062,6 +3044,23 @@ namespace ExMat.VM
             return true;
         }
 
+        [ExcludeFromCodeCoverage]
+        private static double HandleZeroInDivision(double a)
+        {
+            if(a > 0)
+            {
+                return double.PositiveInfinity;
+            }
+            else if(a == 0)
+            {
+                return double.NaN;
+            }
+            else
+            {
+                return double.NegativeInfinity;
+            }
+        }
+        
         public static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObject res)
         {
             switch (op)
@@ -3070,23 +3069,18 @@ namespace ExMat.VM
                 case OPC.SUB: res = new(a - b); break;
                 case OPC.MLT: res = new(a * b); break;
                 case OPC.EXP: res = new(Math.Pow(a, b)); break;
+                case OPC.MOD:
                 case OPC.DIV:
                     {
-                        if (b == 0)
+                        if(b == 0)
                         {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
+                            res = new(HandleZeroInDivision((double)a));
                         }
-                        res = new(a / b); break;
-                    }
-                case OPC.MOD:
-                    {
-                        if (b == 0)
+                        else
                         {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
+                            res = new(op == OPC.DIV ? (a / b) : (a % b))
                         }
-                        res = new(a % b); break;
+                        break;
                     }
                 default: throw new ExException("unknown arithmetic operation");
             }
@@ -3103,21 +3097,13 @@ namespace ExMat.VM
                 case OPC.EXP: res = new(Math.Pow(a, b)); break;
                 case OPC.DIV:
                     {
-                        if (b == 0)
-                        {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
-                        }
-                        res = new(a / b); break;
+                        res = new(b == 0 ? HandleZeroInDivision(a) : (a / b));
+                        break;
                     }
                 case OPC.MOD:
                     {
-                        if (b == 0)
-                        {
-                            res = new(a > 0 ? double.PositiveInfinity : (a == 0 ? double.NaN : double.NegativeInfinity));
-                            break;
-                        }
-                        res = new(a % b); break;
+                        res = new(b == 0 ? HandleZeroInDivision(a) : (a % b));
+                        break;
                     }
                 default: throw new ExException("unknown arithmetic operation");
             }
