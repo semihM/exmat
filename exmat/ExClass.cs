@@ -132,11 +132,20 @@ namespace ExMat.Class
                 return false;
             }
 
-            ExObject tmp = Members[key.GetString()];
-            if (Members.ContainsKey(key.GetString()) && tmp.IsField())
+            string k = key.GetString();
+            ExObject tmp;
+            
+            if (Members.ContainsKey(k))
             {
-                DefaultValues[Members[key.GetString()].GetMemberID()].Value.Assign(val);
-                return true;
+                if(Members[k].IsField())
+                {
+                    DefaultValues[Members[k].GetMemberID()].Value.Assign(val);
+                    return true;
+                }
+                else
+                {
+                    tmp = Members[k];
+                }
             }
             else
             {
@@ -177,7 +186,7 @@ namespace ExMat.Class
 
                         ExClassMem cm = new();
                         cm.Value.Assign(tmpv);
-                        Members.Add(key.GetString(), new((int)ExMemberFlag.METHOD | Methods.Count));
+                        Members.Add(k, new((int)ExMemberFlag.METHOD | Methods.Count));
                         Methods.Add(cm);
                     }
                     else
@@ -190,7 +199,7 @@ namespace ExMat.Class
 
             ExClassMem cmem = new();
             cmem.Value.Assign(val);
-            Members.Add(key.GetString(), new((int)ExMemberFlag.FIELD | DefaultValues.Count));
+            Members.Add(k, new((int)ExMemberFlag.FIELD | DefaultValues.Count));
             DefaultValues.Add(cmem);
 
             return true;
