@@ -2182,6 +2182,7 @@ namespace ExMat.VM
                         {
                             if (!DoBitwiseOP(instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), GetTargetInStack(instruction)))
                             {
+                                AddToErrorMessage("bitwise op between '" + GetTargetInStack(instruction.arg2).Type.ToString() + "' and '" + GetTargetInStack(instruction.arg1).Type.ToString() + "'");
                                 return FixStackAfterError();
                             }
 
@@ -2985,7 +2986,7 @@ namespace ExMat.VM
             return root;
         }
 
-        public bool DoBitwiseOP(long iop, ExObject a, ExObject b, ExObject res)
+        public static bool DoBitwiseOP(long iop, ExObject a, ExObject b, ExObject res)
         {
             int a_mask = (int)a.Type | (int)b.Type;
             if (a_mask == (int)ExObjType.INTEGER)
@@ -3010,7 +3011,6 @@ namespace ExMat.VM
             }
             else
             {
-                AddToErrorMessage("bitwise op between '" + a.Type.ToString() + "' and '" + b.Type.ToString() + "'");
                 return false;
             }
             return true;
