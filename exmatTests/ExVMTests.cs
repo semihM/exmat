@@ -506,5 +506,46 @@ namespace ExMat.VM.Tests
             Assert.IsTrue(tmp.Type == ExObjType.NULL);
         }
         #endregion
+    
+        #region InnerDoCompareOP
+        [TestMethod()]
+        public void InnerDoCompareOPIntegersLT()
+        {
+            ExObject a = new(2);
+            ExObject b = new(6);
+
+            int tmp = 999;
+            int res = -1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+        
+        [TestMethod()]
+        public void InnerDoCompareOPFloatsLT()
+        {
+            ExObject a = new(Math.E);
+            ExObject b = new(Math.PI);
+
+            int tmp = 999;
+            int res = -1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+
+        [TestMethod()]
+        public void InnerDoCompareOPStringsLT()
+        {
+            ExObject a = new("test string");
+            ExObject b = new("the other 1");
+
+            int tmp = 999;
+            int res = 1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+        #endregion
     }
 }
