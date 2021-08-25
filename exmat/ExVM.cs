@@ -2809,22 +2809,16 @@ namespace ExMat.VM
             return true;
         }
 
-        private bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
+        private static bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
         {
             ExObjType at = a.Type;
             ExObjType bt = b.Type;
             if (at == ExObjType.COMPLEX || bt == ExObjType.COMPLEX)
             {
-                AddToErrorMessage("can't compare complex numbers");
                 return false;
             }
             if (at == bt)
             {
-                if (a.Value.i_Int == b.Value.i_Int)
-                {
-                    t = 0;
-                    return true;
-                }
                 switch (at)
                 {
                     case ExObjType.STRING:
@@ -2834,12 +2828,26 @@ namespace ExMat.VM
                         }
                     case ExObjType.INTEGER:
                         {
-                            t = a.GetInt() < b.GetInt() ? -1 : 1;
+                            if (a.GetInt() == b.GetInt())
+                            {
+                                t = 0;
+                            }
+                            else
+                            {
+                                t = a.GetInt() < b.GetInt() ? -1 : 1;
+                            }
                             return true;
                         }
                     case ExObjType.FLOAT:
                         {
-                            t = a.GetFloat() < b.GetFloat() ? -1 : 1;
+                            if (a.GetFloat() == b.GetFloat())
+                            {
+                                t = 0;
+                            }
+                            else
+                            {
+                                t = a.GetFloat() < b.GetFloat() ? -1 : 1;
+                            }
                             return true;
                         }
                     default:
@@ -2860,13 +2868,9 @@ namespace ExMat.VM
                         {
                             t = 0;
                         }
-                        else if (a.GetInt() < b.GetFloat())
-                        {
-                            t = -1;
-                        }
                         else
                         {
-                            t = 1;
+                            t = a.GetInt() < b.GetFloat() ? -1 : 1;
                         }
                     }
                     else
@@ -2875,34 +2879,20 @@ namespace ExMat.VM
                         {
                             t = 0;
                         }
-                        else if (a.GetFloat() < b.GetInt())
-                        {
-                            t = -1;
-                        }
                         else
                         {
-                            t = 1;
+                            t = a.GetFloat() < b.GetInt() ? -1 : 1;
                         }
                     }
                     return true;
                 }
-                else if (at == ExObjType.NULL)
-                {
-                    t = -1;
-                    return true;
-                }
-                else if (bt == ExObjType.NULL)
-                {
-                    t = 1;
-                    return true;
-                }
                 else
                 {
-                    AddToErrorMessage("failed to compare " + at.ToString() + " and " + bt.ToString());
                     return false;
                 }
             }
         }
+        
         public bool DoCompareOP(CmpOP cop, ExObject a, ExObject b, ExObject res)
         {
             int t = 0;
@@ -2918,6 +2908,17 @@ namespace ExMat.VM
                         res.Assign(t < 0); return true;
                     case CmpOP.LET:
                         res.Assign(t <= 0); return true;
+                }
+            }
+            else
+            {
+                if(a.Type == ExObjType.COMPLEX || b.Type == ExObjType.COMPLEX)
+                {
+                    AddToErrorMessage("can't compare complex numbers");
+                }
+                else
+                {
+                    AddToErrorMessage("failed to compare " + a.Type.ToString() + " and " + b.Type.ToString());
                 }
             }
             return false;
