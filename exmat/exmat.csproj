@@ -7,7 +7,7 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ScottPlot" Version="4.1.16" />
+    <PackageReference Include="ScottPlot" Version="4.1.17" />
   </ItemGroup>
 
 </Project>
