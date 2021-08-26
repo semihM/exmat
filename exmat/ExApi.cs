@@ -1108,9 +1108,9 @@ namespace ExMat.API
         /// </summary>
         public static void CollectGarbage()
         {
-            GC.Collect();
+            GC.Collect(); //lgtm [cs/call-to-gc]
             GC.WaitForPendingFinalizers();
-            GC.Collect();
+            GC.Collect(); //lgtm [cs/call-to-gc]
         }
 
         /// <summary>
