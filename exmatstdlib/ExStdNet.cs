@@ -42,7 +42,7 @@ namespace ExMat.BaseLib
             HtmlDocument doc = new();
             doc.LoadHtml(html);
 
-            StringWriter sw = new();
+            using StringWriter sw = new();
             ConvertTo(doc.DocumentNode, sw);
             sw.Flush();
             return sw.ToString();
@@ -143,7 +143,7 @@ namespace ExMat.BaseLib
                         HtmlDocument doc = new();
                         doc.LoadHtml(responseText);
 
-                        StringWriter sw = new();
+                        using StringWriter sw = new();
                         ConvertTo(doc.DocumentNode, sw);
                         sw.Flush();
                         return sw.ToString();

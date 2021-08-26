@@ -2011,7 +2011,6 @@ namespace ExMat.Compiler
                 {
                     case TokenType.DOT:
                         {
-                            p = -1;
                             if (!ReadAndSetToken())
                             {
                                 return false;

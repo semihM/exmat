@@ -202,7 +202,13 @@ namespace ExMat.VM
             ExObject temp = new(string.Empty);
             StringBuilder s = new("[");
             int n = 0;
+
+            if(lis == null)
+            {
+                lis = new();
+            }
             int c = lis.Count;
+
             maxdepth--;
 
             if (beauty
@@ -267,6 +273,11 @@ namespace ExMat.VM
             ExObject temp = new(string.Empty);
             StringBuilder s = new("{");
             int n = 0;
+
+            if(dict == null)
+            {
+                dict = new();
+            }
             int c = dict.Count;
 
             if (beauty
@@ -2784,7 +2795,8 @@ namespace ExMat.VM
             ExObject atrs = new();
             if (bcls != -1)
             {
-                // TO-DO extern ??
+                // TO-DO extends or sth
+                return false;
             }
 
             if (attr != ExMat.InvalidArgument)

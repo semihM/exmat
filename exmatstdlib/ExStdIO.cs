@@ -48,6 +48,13 @@ namespace ExMat.BaseLib
             return new();
         }
 
+        private static string Indentation = " ";
+
+        private static string IndentPrefix(string prefix)
+        {
+            return string.Format("{0}{1}", prefix, Indentation);
+        }
+
         public static string ConvertToJson(ExObject obj, string prev = "", string prefix = "")
         {
             ExObjType typ = obj.Type;
@@ -71,7 +78,7 @@ namespace ExMat.BaseLib
                         }
                 }
 
-                prefix = " ";
+                prefix = Indentation;
             }
 
             switch (typ)
@@ -83,7 +90,7 @@ namespace ExMat.BaseLib
                         foreach (KeyValuePair<string, ExObject> pair in obj.GetDict())
                         {
                             i++;
-                            prev = prefix + "\"" + pair.Key + "\": " + ConvertToJson(pair.Value, prev, prefix + " ") + (i != last ? ",\n" : "\n");
+                            prev = string.Format("{0}\"{1}\": {2}{3}", prefix, pair.Key, ConvertToJson(pair.Value, prev, IndentPrefix(prefix)), i != last ? ",\n" : "\n");
                         }
 
                         break;
@@ -95,7 +102,7 @@ namespace ExMat.BaseLib
                         foreach (ExObject o in obj.GetList())
                         {
                             i++;
-                            prev = ConvertToJson(o, prev, prefix + " ") + (i != last ? ", " : "\n");
+                            prev = string.Format("{0}{1}", ConvertToJson(o, prev, IndentPrefix(prefix)), i != last ? ", " : "\n");
                         }
                         break;
                     }
