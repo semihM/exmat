@@ -396,5 +396,156 @@ namespace ExMat.VM.Tests
             );
         }
         #endregion
+    
+        #region DoBitwiseOP
+        [TestMethod()]
+        public void DoBitwiseOPAnd()
+        {
+            ExObject a = new(2);
+            ExObject b = new(6);
+
+            long res = 2 & 6;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.AND, a, b, tmp));
+
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+
+            Assert.AreEqual(res, tmp.GetInt());
+        }
+        
+        [TestMethod()]
+        public void DoBitwiseOPOr()
+        {
+            ExObject a = new(2);
+            ExObject b = new(6);
+
+            long res = 2 | 6;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.OR, a, b, tmp));
+
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+
+            Assert.AreEqual(res, tmp.GetInt());
+        }
+
+        [TestMethod()]
+        public void DoBitwiseOPXor()
+        {
+            ExObject a = new(2);
+            ExObject b = new(6);
+
+            long res = 2 ^ 6;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.XOR, a, b, tmp));
+
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+
+            Assert.AreEqual(res, tmp.GetInt());
+        }
+
+        [TestMethod()]
+        public void DoBitwiseOPShiftLeft()
+        {
+            ExObject a = new(2);
+            ExObject b = new(6);
+
+            long res = 2 << 6;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTL, a, b, tmp));
+
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+
+            Assert.AreEqual(res, tmp.GetInt());
+        }
+        
+        [TestMethod()]
+        public void DoBitwiseOPShiftRight()
+        {
+            ExObject a = new(6);
+            ExObject b = new(1);
+
+            long res = 6 >> 1;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
+
+            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+
+            Assert.AreEqual(res, tmp.GetInt());
+        }
+
+        [TestMethod()]
+        public void DoBitwiseOPThrowOpc()
+        {
+            ExObject tmp = new();
+
+            Assert.ThrowsException<ExException>(
+                () => ExVM.DoBitwiseOP((long)OPC.CLOSE, new(1), new(1), tmp)
+            );
+        }
+        
+        [TestMethod()]
+        public void DoBitwiseOPNonInteger()
+        {
+            ExObject a = new(Math.PI);
+            ExObject b = new(1);
+
+            ExObject tmp = new();
+
+            Assert.IsFalse(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
+
+            Assert.IsTrue(tmp.Type == ExObjType.NULL);
+        }
+        #endregion
+    
+        #region InnerDoCompareOP
+        [TestMethod()]
+        public void InnerDoCompareOPIntegersLT()
+        {
+            ExObject a = new(2);
+            ExObject b = new(6);
+
+            int tmp = 999;
+            int res = -1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+        
+        [TestMethod()]
+        public void InnerDoCompareOPFloatsLT()
+        {
+            ExObject a = new(Math.E);
+            ExObject b = new(Math.PI);
+
+            int tmp = 999;
+            int res = -1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+
+        [TestMethod()]
+        public void InnerDoCompareOPStringsLT()
+        {
+            ExObject a = new("test string");
+            ExObject b = new("the other 1");
+
+            int tmp = 999;
+            int res = -1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+        #endregion
     }
 }

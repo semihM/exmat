@@ -202,7 +202,13 @@ namespace ExMat.VM
             ExObject temp = new(string.Empty);
             StringBuilder s = new("[");
             int n = 0;
+
+            if(lis == null)
+            {
+                lis = new();
+            }
             int c = lis.Count;
+
             maxdepth--;
 
             if (beauty
@@ -267,6 +273,11 @@ namespace ExMat.VM
             ExObject temp = new(string.Empty);
             StringBuilder s = new("{");
             int n = 0;
+
+            if(dict == null)
+            {
+                dict = new();
+            }
             int c = dict.Count;
 
             if (beauty
@@ -2182,6 +2193,7 @@ namespace ExMat.VM
                         {
                             if (!DoBitwiseOP(instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), GetTargetInStack(instruction)))
                             {
+                                AddToErrorMessage("bitwise op between '" + GetTargetInStack(instruction.arg2).Type.ToString() + "' and '" + GetTargetInStack(instruction.arg1).Type.ToString() + "'");
                                 return FixStackAfterError();
                             }
 
@@ -2783,7 +2795,8 @@ namespace ExMat.VM
             ExObject atrs = new();
             if (bcls != -1)
             {
-                // TO-DO extern ??
+                // TO-DO extends or sth
+                return false;
             }
 
             if (attr != ExMat.InvalidArgument)
@@ -2808,22 +2821,16 @@ namespace ExMat.VM
             return true;
         }
 
-        private bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
+        public static bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
         {
             ExObjType at = a.Type;
             ExObjType bt = b.Type;
             if (at == ExObjType.COMPLEX || bt == ExObjType.COMPLEX)
             {
-                AddToErrorMessage("can't compare complex numbers");
                 return false;
             }
             if (at == bt)
             {
-                if (a.Value.i_Int == b.Value.i_Int)
-                {
-                    t = 0;
-                    return true;
-                }
                 switch (at)
                 {
                     case ExObjType.STRING:
@@ -2833,12 +2840,26 @@ namespace ExMat.VM
                         }
                     case ExObjType.INTEGER:
                         {
-                            t = a.GetInt() < b.GetInt() ? -1 : 1;
+                            if (a.GetInt() == b.GetInt())
+                            {
+                                t = 0;
+                            }
+                            else
+                            {
+                                t = a.GetInt() < b.GetInt() ? -1 : 1;
+                            }
                             return true;
                         }
                     case ExObjType.FLOAT:
                         {
-                            t = a.GetFloat() < b.GetFloat() ? -1 : 1;
+                            if (a.GetFloat() == b.GetFloat())
+                            {
+                                t = 0;
+                            }
+                            else
+                            {
+                                t = a.GetFloat() < b.GetFloat() ? -1 : 1;
+                            }
                             return true;
                         }
                     default:
@@ -2859,13 +2880,9 @@ namespace ExMat.VM
                         {
                             t = 0;
                         }
-                        else if (a.GetInt() < b.GetFloat())
-                        {
-                            t = -1;
-                        }
                         else
                         {
-                            t = 1;
+                            t = a.GetInt() < b.GetFloat() ? -1 : 1;
                         }
                     }
                     else
@@ -2874,34 +2891,20 @@ namespace ExMat.VM
                         {
                             t = 0;
                         }
-                        else if (a.GetFloat() < b.GetInt())
-                        {
-                            t = -1;
-                        }
                         else
                         {
-                            t = 1;
+                            t = a.GetFloat() < b.GetInt() ? -1 : 1;
                         }
                     }
                     return true;
                 }
-                else if (at == ExObjType.NULL)
-                {
-                    t = -1;
-                    return true;
-                }
-                else if (bt == ExObjType.NULL)
-                {
-                    t = 1;
-                    return true;
-                }
                 else
                 {
-                    AddToErrorMessage("failed to compare " + at.ToString() + " and " + bt.ToString());
                     return false;
                 }
             }
         }
+        
         public bool DoCompareOP(CmpOP cop, ExObject a, ExObject b, ExObject res)
         {
             int t = 0;
@@ -2917,6 +2920,17 @@ namespace ExMat.VM
                         res.Assign(t < 0); return true;
                     case CmpOP.LET:
                         res.Assign(t <= 0); return true;
+                }
+            }
+            else
+            {
+                if(a.Type == ExObjType.COMPLEX || b.Type == ExObjType.COMPLEX)
+                {
+                    AddToErrorMessage("can't compare complex numbers");
+                }
+                else
+                {
+                    AddToErrorMessage("failed to compare " + a.Type.ToString() + " and " + b.Type.ToString());
                 }
             }
             return false;
@@ -2985,7 +2999,7 @@ namespace ExMat.VM
             return root;
         }
 
-        public bool DoBitwiseOP(long iop, ExObject a, ExObject b, ExObject res)
+        public static bool DoBitwiseOP(long iop, ExObject a, ExObject b, ExObject res)
         {
             int a_mask = (int)a.Type | (int)b.Type;
             if (a_mask == (int)ExObjType.INTEGER)
@@ -3010,7 +3024,6 @@ namespace ExMat.VM
             }
             else
             {
-                AddToErrorMessage("bitwise op between '" + a.Type.ToString() + "' and '" + b.Type.ToString() + "'");
                 return false;
             }
             return true;
