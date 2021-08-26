@@ -72,7 +72,7 @@ namespace ExMat.BaseLib
             for (int i = 0; i < n; i++)
             {
                 ExObject str = new();
-                if (vm.ToString(lis[i], ref str, depth))
+                if (vm.ToString(lis[i], ref str, depth)) //lgtm [cs/dereferenced-value-may-be-null]
                 {
                     res.Append(str.GetString());
                 }
