@@ -2821,7 +2821,7 @@ namespace ExMat.VM
             return true;
         }
 
-        private static bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
+        public static bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
         {
             ExObjType at = a.Type;
             ExObjType bt = b.Type;
