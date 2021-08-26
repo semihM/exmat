@@ -541,7 +541,7 @@ namespace ExMat.VM.Tests
             ExObject b = new("the other 1");
 
             int tmp = 999;
-            int res = 1;
+            int res = -1;
 
             Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
             Assert.AreEqual(res, tmp);
