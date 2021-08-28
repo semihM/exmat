@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.Class;
@@ -76,6 +77,8 @@ namespace ExMat.VM
         public bool ExitCalled;                 // Çıkış fonksiyonu çağırıldı ?
         public int ExitCode;                    // Çıkışta dönülecek değer
 
+        public Thread ActiveThread;
+        public bool IsSleeping;
 
         public void Print(string str)
         {
@@ -203,7 +206,7 @@ namespace ExMat.VM
             StringBuilder s = new("[");
             int n = 0;
 
-            if(lis == null)
+            if (lis == null)
             {
                 lis = new();
             }
@@ -274,7 +277,7 @@ namespace ExMat.VM
             StringBuilder s = new("{");
             int n = 0;
 
-            if(dict == null)
+            if (dict == null)
             {
                 dict = new();
             }
@@ -1121,11 +1124,13 @@ namespace ExMat.VM
             int newTop = stackBase + prototype.StackSize; // Yeni tavan indeksi
             int nArguments = argumentCount;               // Argüman sayısı
 
-            if (prototype.HasVargs
-                && !SetVargsInStack(stackBase, nArguments, ref nParameters))   // Belirsiz parametre sayısı
+            if (prototype.HasVargs)   // Belirsiz parametre sayısı
             {
-                AddToErrorMessage("'" + prototype.Name.GetString() + "' takes at least " + (nParameters - 1) + " arguments");
-                return false;
+                if (!SetVargsInStack(stackBase, nArguments, ref nParameters))
+                {
+                    AddToErrorMessage("'" + prototype.Name.GetString() + "' takes at least " + (nParameters - 1) + " arguments");
+                    return false;
+                }
             }
             else if (prototype.IsFunction()
                     && !SetDefaultValuesInStack(prototype, closure, stackBase, nParameters, ref nArguments))        // Parametre sayısı sınırlı fonksiyon
@@ -2904,7 +2909,7 @@ namespace ExMat.VM
                 }
             }
         }
-        
+
         public bool DoCompareOP(CmpOP cop, ExObject a, ExObject b, ExObject res)
         {
             int t = 0;
@@ -2924,7 +2929,7 @@ namespace ExMat.VM
             }
             else
             {
-                if(a.Type == ExObjType.COMPLEX || b.Type == ExObjType.COMPLEX)
+                if (a.Type == ExObjType.COMPLEX || b.Type == ExObjType.COMPLEX)
                 {
                     AddToErrorMessage("can't compare complex numbers");
                 }
@@ -3032,11 +3037,11 @@ namespace ExMat.VM
         [ExcludeFromCodeCoverage]
         private static double HandleZeroInDivision(double a)
         {
-            if(a > 0)
+            if (a > 0)
             {
                 return double.PositiveInfinity;
             }
-            else if(a == 0)
+            else if (a == 0)
             {
                 return double.NaN;
             }
@@ -3045,7 +3050,7 @@ namespace ExMat.VM
                 return double.NegativeInfinity;
             }
         }
-        
+
         public static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObject res)
         {
             switch (op)
@@ -3057,9 +3062,9 @@ namespace ExMat.VM
                 case OPC.MOD:
                 case OPC.DIV:
                     {
-                        if(b == 0)
+                        if (b == 0)
                         {
-                            res = new(HandleZeroInDivision((double)a));
+                            res = new(HandleZeroInDivision(a));
                         }
                         else
                         {
