@@ -508,7 +508,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        if (ExApi.ParseStringToInteger(obj.GetString(), ref res))
+                        if (ExApi.ParseStringToFloat(obj.GetString(), ref res))
                         {
                             return true;
                         }
