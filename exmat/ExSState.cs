@@ -180,7 +180,11 @@ namespace ExMat.States
                 Name = "slice",
                 nParameterChecks = -2,
                 ParameterMask = "aii",
-                Function = ExBaseLib.StdArraySlice
+                Function = ExBaseLib.StdArraySlice,
+                DefaultValues = new()
+                {
+                    { 2, new(-1) }
+                }
             },
             new()
             {
@@ -200,6 +204,24 @@ namespace ExMat.States
             {
                 Name = "weakref",
                 Function = ExBaseLib.StdWeakRef,
+                nParameterChecks = 1,
+                ParameterMask = "a"
+            },
+            new()
+            {
+                Name = "random",
+                Function = ExBaseLib.StdArrayRandom,
+                nParameterChecks = -1,
+                ParameterMask = "an",
+                DefaultValues = new()
+                {
+                    { 1, new(1) }
+                }
+            },
+            new()
+            {
+                Name = "shuffle",
+                Function = ExBaseLib.StdArrayShuffle,
                 nParameterChecks = 1,
                 ParameterMask = "a"
             },
@@ -330,56 +352,88 @@ namespace ExMat.States
                 Name = "isAlphabetic",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = ExBaseLib.StdStringAlphabetic
+                Function = ExBaseLib.StdStringAlphabetic,
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
                 Name = "isNumeric",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = ExBaseLib.StdStringNumeric
+                Function = ExBaseLib.StdStringNumeric,
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
                 Name = "isAlphaNumeric",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = ExBaseLib.StdStringAlphaNumeric
+                Function = ExBaseLib.StdStringAlphaNumeric,
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
                 Name = "isLower",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = ExBaseLib.StdStringLower
+                Function = ExBaseLib.StdStringLower,
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
                 Name = "isUpper",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = ExBaseLib.StdStringUpper
+                Function = ExBaseLib.StdStringUpper,
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
                 Name = "isWhitespace",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = ExBaseLib.StdStringWhitespace
+                Function = ExBaseLib.StdStringWhitespace,
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
                 Name = "isSymbol",
                 nParameterChecks = -1,
                 ParameterMask = "si",
-                Function = ExBaseLib.StdStringSymbol
+                Function = ExBaseLib.StdStringSymbol,
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
                 Name = "slice",
                 nParameterChecks = -2,
                 ParameterMask = "sii",
-                Function = ExBaseLib.StdStringSlice
+                Function = ExBaseLib.StdStringSlice,
+                DefaultValues = new()
+                {
+                    { 2, new(-1) }
+                }
             },
             new()
             {
@@ -495,22 +549,24 @@ namespace ExMat.States
             while (f[i].Name != string.Empty)
             {
                 f[i].IsDelegateFunction = true;
+
                 ExNativeClosure cls = ExNativeClosure.Create(exs, f[i].Function, 0);
+                cls.Name = new(f[i].Name);
                 cls.nParameterChecks = f[i].nParameterChecks;
+                cls.DefaultValues = f[i].DefaultValues;
                 cls.IsDelegateFunction = true;
 
                 if (!exs.Strings.ContainsKey(f[i].Name))
                 {
                     exs.Strings.Add(f[i].Name, new(f[i].Name));
                 }
-                cls.Name = new(f[i].Name);
 
                 if (!string.IsNullOrEmpty(f[i].ParameterMask) && !API.ExApi.CompileTypeMask(f[i].ParameterMask, cls.TypeMasks))
                 {
                     return new();
                 }
-                d.Add(f[i].Name, new(cls));
-                i++;
+
+                d.Add(f[i++].Name, new(cls));
             }
             return new(d);
         }
