@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using ExMat.Interfaces;
 using ExMat.Objects;
 using ExMat.States;
@@ -48,6 +49,10 @@ namespace ExMat.Closure
                 case ExMat.VargsName:
                     {
                         return TypeMasks.Count == 0;
+                    }
+                case ExMat.DelegName:
+                    {
+                        return IsDelegateFunction;
                     }
                 case ExMat.nParams:
                     {
@@ -112,6 +117,66 @@ namespace ExMat.Closure
         public static new ExObjType GetType()
         {
             return ExObjType.NATIVECLOSURE;
+        }
+
+        public string GetParameterInfoString()
+        {
+            StringBuilder s = new();
+            List<string> infos = new();
+
+            if (!(bool)GetAttribute(ExMat.VargsName)
+                && API.ExApi.GetTypeMaskInfo(TypeMasks, infos))
+            {
+                int min = (int)GetAttribute(ExMat.nMinArgs);
+                int paramsleft = (int)GetAttribute(ExMat.nDefParams);
+                int i = 0;
+
+                if (!(bool)GetAttribute(ExMat.DelegName)
+                    || min != paramsleft)
+                {
+                    infos.RemoveAt(0);
+                }
+
+                s.Append(string.Join(", ", infos.GetRange(0, min)));
+
+                if (paramsleft > 0)
+                {
+                    if (s.Length > 0)
+                    {
+                        s.Append(", ");
+                    }
+
+                    s.Append(API.ExApi.GetNClosureDefaultParamInfo(i + min,
+                                                                   paramsleft + min,
+                                                                   infos,
+                                                                   (Dictionary<string, ExObject>)GetAttribute(ExMat.DefParams)));
+                }
+            }
+
+            if (s.Length == 0)
+            {
+                return "delegate, params: 0, minargs: 0";
+            }
+
+            return s.ToString();
+        }
+
+        public string GetInfoString()
+        {
+            string s = (string)GetAttribute(ExMat.FuncName) + ", ";
+
+            if ((bool)GetAttribute(ExMat.VargsName))
+            {
+                s += "vargs";
+                s += ", params: " + (int)GetAttribute(ExMat.nParams);
+                s += ", minargs: " + (int)GetAttribute(ExMat.nMinArgs);
+            }
+            else
+            {
+                s += GetParameterInfoString();
+            }
+
+            return s;
         }
 
         public new string GetDebuggerDisplay()
