@@ -148,40 +148,44 @@
 					"match": "\\b(function|cluster|rule|class|seq)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(print|printl|type|time|date|string|float|integer|complex|complex2|list|range|rangei|matrix|bytes|bits|bits32)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(print|printl|type|time|date|string|float|integer|complex|complex2|list|range|rangei|matrix|bytes|bits|bits32)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(map|filter|call|parse|iter|first|any|all)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(map|filter|call|parse|iter|first|any|all)\\b"
 				},
 				{
 					"name": "entity.name.function.exmat",
 					"match": "\\b(write_json|read_json|write_excel|read_excel|read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input|raw_key|open_dir|make_dir)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(GCD|LCD|prime|isPrime|next_prime|isDivisible|divRem|divQuot|divRemQuot|factorize|recip|min|max|sign|sum|mul|srand|rand|randf|abs|sqrt|cbrt|sin|cos|tan|sinh|cosh|tanh|asin|asinh|acos|acosh|atan|atan2|atanh|loge|log2|log10|exp|round|floor|ceil|pow|isINF|isNINF|isNAN|isFIN)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(GCD|LCD|prime|isPrime|next_prime|isDivisible|divRem|divQuot|divRemQuot|factorize|recip|min|max|sign|sum|mul|srand|rand|randf|abs|sqrt|cbrt|sin|cos|tan|sinh|cosh|tanh|asin|asinh|acos|acosh|atan|atan2|atanh|loge|log2|log10|exp|round|floor|ceil|pow|isINF|isNINF|isNAN|isFIN)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(save_scatter|save_scatters|save_scatter_step|save_scatter_steps|save_scatter_point|save_scatter_points|save_scatter_line|save_scatter_lines|save_complex)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(save_scatter|save_scatters|save_scatter_step|save_scatter_steps|save_scatter_point|save_scatter_points|save_scatter_line|save_scatter_lines|save_complex)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(compile|assert|strip|lstrip|rstrip|split|format|join)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(compile|assert|strip|lstrip|rstrip|split|format|join|rands)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(root|clean|sleep|paint_print|to_base64|from_base64)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(reg_escape|reg_split|reg_replace|reg_match|reg_matches)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(wiki|fetch)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(root|clean|sleep|paint_print|to_base64|from_base64)\\b"
 				},
 				{
-				"name": "entity.name.function.exmat",
-				"match": "\\b(reload_lib|reload_func|reload_base|exit|is_interactive|collect_garbage)\\b"
+					"name": "entity.name.function.exmat",
+					"match": "\\b(wiki|fetch)\\b"
+				},
+				{
+					"name": "entity.name.function.exmat",
+					"match": "\\b(reload_lib|reload_func|reload_base|exit|is_interactive|collect_garbage)\\b"
 				}
 			]
 		},
@@ -190,12 +194,12 @@
 			"patterns": 
 			[
 				{
-				"name": "variable.language.exmat",
-				"match": "\\b(init|this|base|vargs)\\b"
+					"name": "variable.language.exmat",
+					"match": "\\b(init|this|base|vargs)\\b"
 				},
 				{
-				"name": "constant.language.exmat",
-				"match": "\\b(true|false|null)\\b"
+					"name": "constant.language.exmat",
+					"match": "\\b(true|false|null)\\b"
 				}
 			]
 		},
@@ -231,6 +235,10 @@
 				{
 					"name": "constant.language.exmat",
 					"match": "\\b(INT8_MAX|INT8_MIN|UINT8_MAX|INT16_MAX|INT16_MIN|UINT16_MAX|INT32_MAX|INT32_MIN|UINT32_MAX|INT64_MAX|INT64_MIN|FLOAT64_MAX|FLOAT64_MIN|FLOAT32_MAX|FLOAT32_MIN|DEGREE|EPSILON|PI|TAU|GOLDEN|E|NAN|NINF|INF)\\b"
+				},
+				{
+					"name": "constant.language.exmat",
+					"match": "\\b(COLORS|SPACES)\\b"
 				}
 			]
 		}
