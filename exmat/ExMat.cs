@@ -45,6 +45,11 @@ namespace ExMat
         public const string VargsName = "vargs";
 
         /// <summary>
+        /// Function attribute, returns wheter the function is a delegate function
+        /// </summary>
+        public const string DelegName = "deleg";
+
+        /// <summary>
         /// INTERNAL: Used to check for some special cases
         /// </summary>
         public const int InvalidArgument = 985;
@@ -427,13 +432,25 @@ namespace ExMat
     public enum ExErrorType
     {
         /// <summary>
+        /// INTERNAL: No overrides on error type
+        /// </summary>
+        DEFAULT,
+        /// <summary>
         /// Compiler error
         /// </summary>
         COMPILE,
         /// <summary>
         /// Runtime-execution error
         /// </summary>
-        RUNTIME
+        RUNTIME,
+        /// <summary>
+        /// Interruption by CTRLC or CTRLBREAK
+        /// </summary>
+        INTERRUPT,
+        /// <summary>
+        /// Interruption of input stream by CTRLC or CTRLBREAK
+        /// </summary>
+        INTERRUPTINPUT
     }
 
     /// <summary>
@@ -456,7 +473,11 @@ namespace ExMat
         /// <summary>
         /// Is the active VM currently in the execution process ?
         /// </summary>
-        CURRENTLYEXECUTING = 1 << 3
+        CURRENTLYEXECUTING = 1 << 3,
+        /// <summary>
+        /// Has the VM just been interrupted ?
+        /// </summary>
+        RECENTLYINTERRUPTED = 1 << 4
     }
 
     /// <summary>
