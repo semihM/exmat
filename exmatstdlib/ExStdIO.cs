@@ -48,7 +48,7 @@ namespace ExMat.BaseLib
             return new();
         }
 
-        private static string Indentation = " ";
+        private static readonly string Indentation = " ";
 
         private static string IndentPrefix(string prefix)
         {
@@ -623,7 +623,10 @@ namespace ExMat.BaseLib
                             if (fname != ReloadLibFunc)
                             {
                                 ExApi.PushRootTable(vm);
-                                ExApi.ReloadNativeFunction(vm, IOFuncs, fname);
+                                if (!ExApi.ReloadNativeFunction(vm, IOFuncs, fname))
+                                {
+                                    return vm.AddToErrorMessage(string.Format("unknown IO function {0}", fname));
+                                }
                             }
                         }
                         else if (!RegisterStdIO(vm))
@@ -637,7 +640,10 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname);
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname))
+                            {
+                                return vm.AddToErrorMessage(string.Format("unknown Math function {0}", fname));
+                            }
                         }
                         else if (!ExStdMath.RegisterStdMath(vm))
                         {
@@ -650,7 +656,10 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname);
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname))
+                            {
+                                return vm.AddToErrorMessage(string.Format("unknown String function {0}", fname));
+                            }
                         }
                         else if (!ExStdString.RegisterStdString(vm))
                         {
@@ -663,7 +672,10 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname);
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname))
+                            {
+                                return vm.AddToErrorMessage(string.Format("unknown Net function {0}", fname));
+                            }
                         }
                         else if (!ExStdNet.RegisterStdNet(vm))
                         {
@@ -970,7 +982,7 @@ namespace ExMat.BaseLib
             {
                 Name = "make_dir",
                 Function = IoMkdir,
-                nParameterChecks = -2,
+                nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
@@ -1029,7 +1041,11 @@ namespace ExMat.BaseLib
                 Name = ReloadLib,
                 Function = IoReloadlib,
                 nParameterChecks = -2,
-                ParameterMask = ".ss"
+                ParameterMask = ".ss",
+                DefaultValues = new()
+                {
+                    { 2, new(string.Empty) }
+                }
             },
             new()
             {
