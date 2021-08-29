@@ -36,6 +36,20 @@ namespace ExMat.Objects
             Value._RefC = new();
         }
 
+        public ExList(string[] e)
+        {
+            Type = ExObjType.ARRAY;
+
+            Value.l_List = new(e.Length);
+
+            Value._RefC = new();
+
+            foreach (string s in e)
+            {
+                Value.l_List.Add(new(s));
+            }
+        }
+
         public ExList(List<string> e)
         {
             Type = ExObjType.ARRAY;

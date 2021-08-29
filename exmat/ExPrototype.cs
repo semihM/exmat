@@ -88,6 +88,16 @@ namespace ExMat.FuncPrototype
         public ExPrototype()
         {
             ClosureType = ExClosureType.FUNCTION;
+
+            StackSize = 0;
+            Functions = new();
+            Instructions = new();
+            Literals = new();
+            Parameters = new();
+            Outers = new();
+            LocalInfos = new();
+            LineInfos = new();
+            DefaultParameters = new();
         }
 
         public ExPrototype(ExSState ss)

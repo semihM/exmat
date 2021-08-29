@@ -396,7 +396,7 @@ namespace ExMat.VM.Tests
             );
         }
         #endregion
-    
+
         #region DoBitwiseOP
         [TestMethod()]
         public void DoBitwiseOPAnd()
@@ -414,7 +414,7 @@ namespace ExMat.VM.Tests
 
             Assert.AreEqual(res, tmp.GetInt());
         }
-        
+
         [TestMethod()]
         public void DoBitwiseOPOr()
         {
@@ -465,7 +465,7 @@ namespace ExMat.VM.Tests
 
             Assert.AreEqual(res, tmp.GetInt());
         }
-        
+
         [TestMethod()]
         public void DoBitwiseOPShiftRight()
         {
@@ -492,7 +492,7 @@ namespace ExMat.VM.Tests
                 () => ExVM.DoBitwiseOP((long)OPC.CLOSE, new(1), new(1), tmp)
             );
         }
-        
+
         [TestMethod()]
         public void DoBitwiseOPNonInteger()
         {
@@ -506,7 +506,7 @@ namespace ExMat.VM.Tests
             Assert.IsTrue(tmp.Type == ExObjType.NULL);
         }
         #endregion
-    
+
         #region InnerDoCompareOP
         [TestMethod()]
         public void InnerDoCompareOPIntegersLT()
@@ -520,7 +520,7 @@ namespace ExMat.VM.Tests
             Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
             Assert.AreEqual(res, tmp);
         }
-        
+
         [TestMethod()]
         public void InnerDoCompareOPFloatsLT()
         {
