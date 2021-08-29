@@ -55,43 +55,128 @@ namespace ExMat.VM
         /// </summary>
         public int StackTop;                    // Anlık bellek tavan indeksi
 
+        /// <summary>
+        /// Call stack for scoped instructions
+        /// </summary>
         public List<ExCallInfo> CallStack;      // Çağrı yığını
+        /// <summary>
+        /// Call stack as linked list
+        /// </summary>
         public ExNode<ExCallInfo> CallInfo;       // Çağrı bağlı listesi
+        /// <summary>
+        /// Allocated initial size for call stack
+        /// </summary>
         public int AllocatedCallSize;           // Yığının ilk boyutu
+        /// <summary>
+        /// Current size of call stack
+        /// </summary>
         public int CallStackSize;               // Yığının anlık boyutu
 
+        /// <summary>
+        /// Global(root) dictionary
+        /// </summary>
         public ExObject RootDictionary;         // Global tablo
+        /// <summary>
+        /// Temporary value
+        /// </summary>
         public ExObject TempRegistery = new();  // Geçici değer
+        /// <summary>
+        /// Outer variable information
+        /// </summary>
         public ExOuter Outers;                  // Bilinmeyen değişken takibi
 
+        /// <summary>
+        /// Error message
+        /// </summary>
         public string ErrorString;                  // Hata mesajı
+        /// <summary>
+        /// Error traces
+        /// </summary>
         public List<List<int>> ErrorTrace = new();  // Hata izi
+        /// <summary>
+        /// Error type override from external interrupts
+        /// </summary>
+        public ExErrorType ErrorOverride = ExErrorType.DEFAULT;
+        /// <summary>
+        /// Wheter to force raise error after execution
+        /// </summary>
+        public bool ForceThrow;
+
+        /// <summary>
+        /// Native call counter
+        /// </summary>
         public int nNativeCalls;                // Yerel fonksiyon çağrı sayısı
+        /// <summary>
+        /// Meta call counter
+        /// </summary>
         public int nMetaCalls;                  // Meta metot çağrı sayısı
 
+        /// <summary>
+        /// User using input functions?
+        /// </summary>
         public bool GotUserInput;               // Girdi alma fonksiyonu kullanıldı ?
+        /// <summary>
+        /// Has anything been printed?
+        /// </summary>
         public bool PrintedToConsole;           // Konsola çıktı yazıldı ?
+        /// <summary>
+        /// Is current call the root call?
+        /// </summary>
         public bool IsMainCall = true;          // İçinde bulunulan çağrı kök çağrı mı ?
+        /// <summary>
+        /// Is this VM activated in an interactive console?
+        /// </summary>
         public bool IsInteractive;              // İnteraktif konsol kullanımda mı ?
 
+        /// <summary>
+        /// Input count for interactive console
+        /// </summary>
+        public int InputCount;
+
+        /// <summary>
+        /// Must exit at the end of current call stack frame
+        /// </summary>
         public bool ExitCalled;                 // Çıkış fonksiyonu çağırıldı ?
+        /// <summary>
+        /// Exit return value
+        /// </summary>
         public int ExitCode;                    // Çıkışta dönülecek değer
 
+        /// <summary>
+        /// VM's thread
+        /// </summary>
         public Thread ActiveThread;
+
+        /// <summary>
+        /// Is VM thread currently sleeping?
+        /// </summary>
         public bool IsSleeping;
 
+        /// <summary>
+        /// Print given string without new-line at the end
+        /// </summary>
+        /// <param name="str">Message to print</param>
         public void Print(string str)
         {
             Console.Write(str);
             PrintedToConsole = true;
         }
 
+        /// <summary>
+        /// Print given string with new-line at the end
+        /// </summary>
+        /// <param name="str">Message to print</param>
         public void PrintLine(string str)
         {
             Console.WriteLine(str);
             PrintedToConsole = true;
         }
 
+        /// <summary>
+        /// Add message to current error messages
+        /// </summary>
+        /// <param name="msg">Error message</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.ERROR"/> to make the code more compact</returns>
         public ExFunctionStatus AddToErrorMessage(string msg)
         {
             if (string.IsNullOrEmpty(ErrorString))
@@ -105,6 +190,10 @@ namespace ExMat.VM
             return ExFunctionStatus.ERROR;
         }
 
+        /// <summary>
+        /// Initialize the stacks 
+        /// </summary>
+        /// <param name="stacksize">Virtual stack size</param>
         public void Initialize(int stacksize)
         {
             // Sanal belleği oluştur
@@ -118,6 +207,11 @@ namespace ExMat.VM
             ExBaseLib.RegisterStdBase(this);
         }
 
+        /// <summary>
+        /// Get <paramref name="nargs"/> values from the top of the stack and return them in a list
+        /// </summary>
+        /// <param name="args">List to put values in</param>
+        /// <param name="nargs">Amount of arguments</param>
         public void FillArgumentArray(List<ExObject> args, int nargs)
         {
             while (nargs > 1)
@@ -133,45 +227,18 @@ namespace ExMat.VM
             switch (obj.Type)
             {
                 case ExObjType.COMPLEX:
-                    {
-                        return obj.GetComplexString();
-                    }
                 case ExObjType.INTEGER:
-                    {
-                        return obj.GetInt().ToString();
-                    }
                 case ExObjType.FLOAT:
-                    {
-                        return ExApi.GetFloatString(obj);
-                    }
                 case ExObjType.STRING:
-                    {
-                        return obj.GetString();
-                    }
                 case ExObjType.BOOL:
-                    {
-                        return obj.Value.b_Bool ? "true" : "false";
-                    }
                 case ExObjType.NULL:
-                    {
-                        return obj.Value.s_String ?? "null";
-                    }
                 case ExObjType.ARRAY:
-                    {
-                        return "ARRAY";
-                    }
                 case ExObjType.DICT:
-                    {
-                        return "DICTIONARY";
-                    }
                 case ExObjType.NATIVECLOSURE:
                 case ExObjType.CLOSURE:
-                    {
-                        return "FUNCTION";
-                    }
                 case ExObjType.SPACE:
                     {
-                        return obj.Value.c_Space.GetSpaceString();
+                        return ExApi.GetSimpleString(obj);
                     }
                 default:
                     {
@@ -266,7 +333,7 @@ namespace ExMat.VM
             return s.ToString();
         }
 
-        public string GetDictString(Dictionary<string, ExObject> dict, bool beauty = false, bool isdictval = false, int maxdepth = 2, string prefix = "")
+        public string GetDictString(Dictionary<string, ExObject> dict, bool isdictval = false, int maxdepth = 2, int currentdepth = 1)
         {
             if (maxdepth == 0)
             {
@@ -274,8 +341,7 @@ namespace ExMat.VM
             }
 
             ExObject temp = new(string.Empty);
-            StringBuilder s = new("{");
-            int n = 0;
+            StringBuilder s = new();
 
             if (dict == null)
             {
@@ -283,52 +349,30 @@ namespace ExMat.VM
             }
             int c = dict.Count;
 
-            if (beauty
-                && c > 0
-                && prefix != string.Empty)
-            {
-                s = new("\n" + prefix + s);
-            }
-
             if (c > 0)
             {
-                s.Append("\n" + prefix + "\t");
+                s.Append('\n').Append('\t', currentdepth - 1).Append('{');
+            }
+            else
+            {
+                s.Append('{');
             }
 
             maxdepth--;
+
+            if (c > 0)
+            {
+                s.Append('\n').Append('\t', currentdepth - 1);
+            }
+
             foreach (KeyValuePair<string, ExObject> pair in dict)
             {
-                ToString(pair.Value, ref temp, maxdepth, true, beauty, prefix + "\t");
+                ToString(pair.Value, ref temp, maxdepth, true, true, string.Empty, currentdepth + 1);
 
-                if (beauty)
-                {
-                    s.Append(prefix).Append(pair.Key).Append(" = ").Append(temp.GetString());
-                }
-                else
-                {
-                    s.Append(pair.Key).Append(" = ").Append(temp.GetString());
-                }
+                s.Append('\t').Append(pair.Key).Append(" = ").Append(temp.GetString()).Append('\n');
 
-                n++;
-
-                if (n != c)
-                {
-                    s.Append("\n\t");
-                    if (beauty)
-                    {
-                        s.Append(prefix);
-                    }
-                }
-                else
-                {
-                    s.Append('\n');
-                    if (beauty)
-                    {
-                        s.Append(prefix);
-                    }
-                }
             }
-            s.Append('}');
+            s.Append('\t', currentdepth - 1).Append('}');
 
             return s.ToString();
         }
@@ -338,7 +382,8 @@ namespace ExMat.VM
                              int maxdepth = 2,
                              bool dval = false,
                              bool beauty = false,
-                             string prefix = "")
+                             string prefix = "",
+                             int currentdepth = 1)
         {
             switch (obj.Type)
             {
@@ -379,84 +424,17 @@ namespace ExMat.VM
                     }
                 case ExObjType.DICT:
                     {
-                        res = new(GetDictString(obj.GetDict(), beauty, dval, maxdepth, prefix));
+                        res = new(GetDictString(obj.GetDict(), dval, maxdepth, currentdepth));
                         break;
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
-                        string s = obj.Type.ToString() + "(" + obj.GetNClosure().Name.GetString() + ", ";
-                        int n = obj.GetNClosure().nParameterChecks;
-                        if (n < 0)
-                        {
-                            int tnc = obj.GetNClosure().TypeMasks.Count;
-                            if (tnc == 0)
-                            {
-                                s += "min:" + (-n - 1) + " params";
-                            }
-                            else
-                            {
-                                s += (tnc - 1) + " params (min:" + (-n - 1) + ")";
-                            }
-                        }
-                        else if (n > 0)
-                        {
-                            s += (n - 1) + " params";
-                        }
-                        else
-                        {
-                            s += "<=" + (obj.GetNClosure().TypeMasks.Count - 1) + " params";
-                        }
-
-                        s += ")";
-
-                        res = new(s);
+                        res = new(string.Format("{0}({1})", obj.Type.ToString(), obj.GetNClosure().GetInfoString()));
                         break;
                     }
                 case ExObjType.CLOSURE:
                     {
-                        ExPrototype tmp = obj.GetClosure().Function;
-                        string s = string.Empty;
-                        switch (tmp.ClosureType)
-                        {
-                            case ExClosureType.FUNCTION:
-                                {
-                                    string name = tmp.Name.GetString();
-                                    s = string.IsNullOrWhiteSpace(name) ? "LAMBDA(" : "FUNCTION(" + name + ", ";
-
-                                    if (tmp.nDefaultParameters > 0)
-                                    {
-                                        s += (tmp.nParams - 1) + " params (min:" + (tmp.nParams - tmp.nDefaultParameters - 1) + "))";
-                                    }
-                                    else if (tmp.HasVargs)
-                                    {
-                                        s += "vargs, min:" + (tmp.nParams - 2) + " params)";
-                                    }
-                                    else
-                                    {
-                                        s += (tmp.nParams - 1) + " params)";
-                                    }
-                                    break;
-                                }
-                            case ExClosureType.RULE:
-                                {
-                                    s = "RULE(" + tmp.Name.GetString() + ", ";
-                                    s += (tmp.nParams - 1) + " params)";
-                                    break;
-                                }
-                            case ExClosureType.CLUSTER:
-                                {
-                                    s = "CLUSTER(" + tmp.Name.GetString() + ", ";
-                                    s += (tmp.nParams - 1) + " params)";
-                                    break;
-                                }
-                            case ExClosureType.SEQUENCE:
-                                {
-                                    s = "SEQUENCE(" + tmp.Name.GetString() + ", 1 params)";
-                                    break;
-                                }
-                        }
-
-                        res = new(s);
+                        res = new(obj.GetClosure().GetInfoString());
                         break;
                     }
                 case ExObjType.SPACE:
@@ -482,6 +460,7 @@ namespace ExMat.VM
             }
             return true;
         }
+
         public bool ToFloat(ExObject obj, ref ExObject res)
         {
             switch (obj.Type)
@@ -868,6 +847,16 @@ namespace ExMat.VM
         public ExObject GetRootArgument()
         {
             return Stack[StackBase];
+        }
+
+        public long GetPositiveIntegerArgument(int idx, long defaultVal = 1)
+        {
+            long val = GetArgument(idx).GetInt();
+            if (val <= 0)
+            {
+                return defaultVal;
+            }
+            return val;
         }
 
         public ExObject CreateString(string s, int len = -1)
@@ -1782,6 +1771,10 @@ namespace ExMat.VM
 
         public bool FixStackAfterError()
         {
+            if (ForceThrow)
+            {
+                ForceThrow = false;
+            }
             if (ExitCalled)
             {
                 return false;
@@ -1837,12 +1830,22 @@ namespace ExMat.VM
                 if (CallInfo.Value == null
                     || CallInfo.Value.Instructions == null)
                 {
+                    if (ForceThrow)
+                    {
+                        ForceThrow = false;
+                        return false;
+                    }
                     return true;
                 }
 
                 if (CallInfo.Value.InstructionsIndex >= CallInfo.Value.Instructions.Count
                     || CallInfo.Value.InstructionsIndex < 0)
                 {
+                    if (ForceThrow)
+                    {
+                        ForceThrow = false;
+                        return false;
+                    }
                     return false;
                 }
 
@@ -2210,6 +2213,12 @@ namespace ExMat.VM
                             if (ReturnValue((int)instruction.arg0, (int)instruction.arg1, ref TempRegistery, instruction.op == OPC.RETURNBOOL, instruction.arg2 == 1))
                             {
                                 SwapObjects(resultObject, TempRegistery);
+
+                                if (ForceThrow)
+                                {
+                                    ForceThrow = false;
+                                    return false;
+                                }
                                 return true;
                             }
                             continue;
@@ -2549,6 +2558,7 @@ namespace ExMat.VM
                         }
                 }
             }
+
         }
 
         public bool RemoveObjectSlot(ExObject self, ExObject k, ref ExObject r)
@@ -2965,13 +2975,6 @@ namespace ExMat.VM
             {
                 if (a0 != ExMat.InvalidArgument || interactive)
                 {
-                    #region _
-                    /*
-                    if (mac)
-                    {
-                        p.Assign(Stack[StackBase - a0]);
-                    }else*/
-                    #endregion
                     // Kaynak değeri hedefe ata
                     p.Assign(makeBoolean ? new(Stack[StackBase + a1].GetBool()) : Stack[StackBase + a1]);
 
@@ -4197,11 +4200,16 @@ namespace ExMat.VM
             }
             #endregion
 
+            if (CallInfo.Value == null)
+            {
+                return false;
+            }
+
             CallInfo.Value.Closure.Nullify();               // Fonksiyonu sıfırla
             StackBase -= CallInfo.Value.PrevBase;           // Tabanı ayarla
             StackTop = StackBase + CallInfo.Value.PrevTop;  // Tavanı ayarla
 
-            if (css > 0)    // Varsa sıradaki çağrı yığınına geç
+            if (css > 0 && css < CallStack.Count)    // Varsa sıradaki çağrı yığınına geç
             {
                 CallInfo.Value = CallStack[css - 1];
             }
