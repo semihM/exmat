@@ -4,6 +4,8 @@ using System.Text;
 using System.Threading;
 using ExMat.API;
 using ExMat.BaseLib;
+using ExMat.Exceptions;
+using ExMat.Objects;
 using ExMat.VM;
 
 namespace ExMat
@@ -11,12 +13,60 @@ namespace ExMat
     /// <summary>
     /// Refer to docs inside this class for more information
     /// </summary>
-    internal class Program
+    internal static class Program
     {
         /// <summary>
         /// Stack size of the virtual machines. Use higher values for potentially more recursive functions 
         /// </summary>
         private static readonly int VM_STACK_SIZE = 2 << 14;
+
+        /// <summary>
+        /// Time in ms to delay output so CTRL+C doesn't mess up
+        /// </summary>
+        private static readonly int CANCELKEY_THREAD_TIMER = 50;
+
+        /// <summary>
+        /// Title of the interactive console
+        /// </summary>
+        private static readonly string ConsoleTitle = "[] ExMat Interactive";
+
+        /// <summary>
+        /// Interactive console flags
+        /// </summary>
+        public static int InteractiveConsoleFlags;
+
+        /// <summary>
+        /// Active virtual machine
+        /// </summary>
+        public static ExVM ActiveVM;
+
+        /// <summary>
+        /// Active thread for <see cref="ActiveVM"/>
+        /// </summary>
+        public static Thread ActiveThread;
+
+        /// <summary>
+        /// Value returned from <see cref="ActiveThread"/>
+        /// </summary>
+        public static ExObject ReturnValue;
+
+        /// <summary>
+        /// File contents read from console call
+        /// </summary>
+        private static string FileContents;
+
+        /// <summary>
+        /// Amount of objects to nullify after VM completes executing
+        /// </summary>
+        private static int ResetInStack;
+
+        private static void ResetAfterCompilation(ExVM vm, int n)
+        {
+            FixStackTopAfterCalls(vm, n);  // Kullanılmayan değerleri temizle
+            vm.PrintedToConsole = false;
+
+            RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
+        }
 
         /// <summary>
         /// Compile and execute given code in given virtual machine instance
@@ -26,47 +76,21 @@ namespace ExMat
         /// <returns>Value returned by <paramref name="code"/> or last statement's return value if no <see langword="return"/> was specified</returns>
         private static int CompileString(ExVM vm, string code)
         {
-            int tp = vm.StackTop - vm.StackBase;
-            int ret = 0;
+            ResetInStack = vm.StackTop - vm.StackBase;
+            int ret;
 
             SetFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
 
             if (ExApi.CompileSource(vm, code))      // Derle
             {
-                ExApi.PushRootTable(vm);            // Global tabloyu belleğe yükle
-                if (ExApi.Call(vm, 1, true, true))  // main 'i çağır
-                {
-                    if (!vm.PrintedToConsole
-                        && vm.GetAbove(-1).Type != ExObjType.NULL
-                        && ExApi.ToString(vm, -1, 2))
-                    {
-                        Console.Write(vm.GetAbove(-1).GetString());
-                    }
-                }
-                else
-                {
-                    if (vm.ExitCalled)      // Konsoldan çıkış fonksiyonu çağırıldı
-                    {
-                        ret = vm.ExitCode;
-                    }
-                    else
-                    {
-                        ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);   // İşleme hatası
-                        ret = -1;
-                    }
-                }
+                ret = ExApi.CallTop(vm);
             }
             else
             {
-                ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);            // Derleme hatası 
-                ret = -1;
+                ret = ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
             }
 
-            FixStackTopAfterCalls(vm, tp);  // Kullanılmayan değerleri temizle
-            vm.PrintedToConsole = false;
-
-            RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
-
+            ResetAfterCompilation(vm, ResetInStack);
             return ret;
         }
 
@@ -85,77 +109,6 @@ namespace ExMat
             vm.StackBase = count - 1;
             vm.StackTop = count;
         }
-
-        /// <summary>
-        /// Writes version and program info in different colors
-        /// </summary>
-        /// <param name="vm">Virtual machine to get information from</param>
-        private static void WriteVersion(ExVM vm)
-        {
-            string version = vm.RootDictionary.GetDict()["_version_"].GetString();
-            string date = DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString();
-            int width = 60;
-            int vlen = version.Length;
-            int dlen = date.Length;
-
-            Console.BackgroundColor = ConsoleColor.DarkBlue;
-
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(new string('/', width + 2));
-            Console.Write("/");
-
-            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', ((width - vlen) / 2) + (vlen % 2 == 1 ? 1 : 0)));
-            Console.WriteLine("/");
-            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', ((width - dlen) / 2) + (dlen % 2 == 1 ? 1 : 0)) + "/\n");
-
-            Console.WriteLine(new string('/', width + 2));
-
-            Console.ResetColor();
-        }
-
-        /// <summary>
-        /// Writes <c>OUT[<paramref name="line"/>]</c> for <c><paramref name="line"/></c>th output line's beginning
-        /// </summary>
-        /// <param name="line">Output line number</param>
-        private static void WriteOut(int line)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("OUT[");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(line);
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("]: ");
-            Console.ResetColor();
-        }
-
-        /// <summary>
-        /// Writes <c>IN [<paramref name="line"/>]</c> for <c><paramref name="line"/></c>th input line's beginning
-        /// </summary>
-        /// <param name="line">Input line number</param>
-        private static void WriteIn(int line)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            if (line > 0)
-            {
-                Console.Write("\n");
-            }
-            Console.Write("\nIN [");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(line);
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("]: ");
-            Console.ResetColor();
-        }
-
-        /// <summary>
-        /// Time in ms to delay output so CTRL+C doesn't mess up
-        /// </summary>
-        private static readonly int CANCELKEY_THREAD_TIMER = 50;
-
-        /// <summary>
-        /// Title of the interactive console
-        /// </summary>
-        private static readonly string ConsoleTitle = "[] ExMat Interactive";
 
         /// <summary>
         /// Reads user input, cleans it up, sets console flags
@@ -193,7 +146,7 @@ namespace ExMat
         /// Checks if interactive console has the given flag
         /// </summary>
         /// <param name="flag">Flag to check</param>
-        protected static bool HasFlag(ExInteractiveConsoleFlag flag)
+        private static bool HasFlag(ExInteractiveConsoleFlag flag)
         {
             return ((int)flag & InteractiveConsoleFlags) != 0;
         }
@@ -202,7 +155,7 @@ namespace ExMat
         /// Sets given interactive console flag
         /// </summary>
         /// <param name="flag">Flag to set</param>
-        protected static void SetFlag(ExInteractiveConsoleFlag flag)
+        private static void SetFlag(ExInteractiveConsoleFlag flag)
         {
             InteractiveConsoleFlags |= (int)flag;
         }
@@ -211,7 +164,7 @@ namespace ExMat
         /// Removes given interactive console flag
         /// </summary>
         /// <param name="flag">Flag to remove</param>
-        protected static void RemoveFlag(ExInteractiveConsoleFlag flag)
+        private static void RemoveFlag(ExInteractiveConsoleFlag flag)
         {
             InteractiveConsoleFlags &= ~(int)flag;
         }
@@ -220,31 +173,88 @@ namespace ExMat
         /// Toggles given interactive console flag
         /// </summary>
         /// <param name="flag">Flag to switch/toggle</param>
-        protected static void ToggleFlag(ExInteractiveConsoleFlag flag)
+        private static void ToggleFlag(ExInteractiveConsoleFlag flag)
         {
             InteractiveConsoleFlags ^= (int)flag;
         }
 
-        /// <summary>
-        /// Interactive console flags
-        /// </summary>
-        protected static int InteractiveConsoleFlags;
 
         /// <summary>
         /// Adds cancel event handler to the console
         /// </summary>
-        protected static void AddCancelEventHandler()
+        private static void AddCancelEventHandler()
         {
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CancelEventHandler);
         }
 
+        private static void SetupDummyInterruptFrame()
+        {
+            ActiveVM.CallStack = new(4)
+            {
+                new()
+                {
+                    Closure = new(
+                            new Closure.ExClosure()
+                            {
+                                DefaultParams = new(),
+                                Function = new(),
+                                OutersList = new(),
+                                SharedState = ActiveVM.SharedState
+                            }
+                        ),
+                    Literals = new(),
+                    Instructions = new(2) { new(ExMat.InvalidArgument, 0, 2, 0), new(ExMat.InvalidArgument, 2, 1, 0) },
+                    InstructionsIndex = 0,
+                    IsRootCall = true,
+                    PrevBase = 2,
+                    PrevTop = 3,
+                    Target = 2,
+                    nCalls = 1
+                },
+                new(),
+                new(),
+                new()
+            };
+
+            ActiveVM.CallInfo = InfoVar.ExNode<InfoVar.ExCallInfo>.BuildNodesFromList(ActiveVM.CallStack);
+        }
+
+        // TO-DO Find a way to interrupt .NET operations
         /// <summary>
         /// Handler for cancel event CTRLC and CTRLBREAK
         /// </summary>
-        protected static void CancelEventHandler(object sender, ConsoleCancelEventArgs args)
+        private static void CancelEventHandler(object sender, ConsoleCancelEventArgs args)
         {
             args.Cancel = true;
+
             SetFlag(ExInteractiveConsoleFlag.CANCELEVENT);
+
+            if (HasFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING))
+            {
+                RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
+                SetFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED);
+
+                ActiveVM.ForceThrow = true;
+                ActiveVM.ErrorOverride = ExErrorType.INTERRUPT;
+                ActiveVM.AddToErrorMessage(string.Format("Output '{0}' was interrupted by control character: '{1}'", ActiveVM.InputCount, args.SpecialKey.ToString()));
+
+                SetupDummyInterruptFrame();
+
+                if (ActiveVM.IsSleeping)
+                {
+                    ActiveVM.ActiveThread.Interrupt();
+                    ActiveVM.IsSleeping = false;
+                }
+
+                ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+                ResetAfterCompilation(ActiveVM, ResetInStack);
+            }
+            else
+            {
+                ActiveVM.AddToErrorMessage(string.Format("Input stream '{0}' was interrupted by control character: '{1}'", ActiveVM.InputCount, args.SpecialKey.ToString()));
+                ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPTINPUT);
+                ActiveVM.PrintedToConsole = false; // Hack, allow writing stack top after interruption
+            }
         }
 
         /// <summary>
@@ -264,15 +274,163 @@ namespace ExMat
             Console.Write(new string('\t', n));
         }
 
+        private static void DelayAfterInterruption()
+        {
+            if (HasFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED))
+            {
+                RemoveFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED);
+                ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+            }
+        }
+
         private static void ContinueDelayedInput(StringBuilder code)
         {
-            Thread.Sleep(CANCELKEY_THREAD_TIMER);
+            ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+
             while (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
             {
                 RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
                 code.Append(GetInput());
-                Thread.Sleep(CANCELKEY_THREAD_TIMER);
+                ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
             }
+        }
+
+        private static void Initialize()
+        {
+            ActiveVM = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
+            ActiveVM.ActiveThread = ActiveThread;
+            ExApi.PushRootTable(ActiveVM);               // Global tabloyu ekle
+
+            RegisterStdLibraries(ActiveVM);   // Standard kütüphaneler
+
+            // Event handlers
+            AddCancelEventHandler();
+
+            // Title, Version info
+            Console.Title = ConsoleTitle;
+            Console.ResetColor();
+            ExApi.WriteVersion(ActiveVM);
+        }
+
+        private static void CreateSimpleVMThread()
+        {
+            ActiveThread = new(() =>
+            {
+                Initialize();
+                try
+                {
+                    ReturnValue = new(CompileString(ActiveVM, FileContents));
+                }
+                catch (ThreadInterruptedException) { }
+                catch (ExException exp)
+                {
+                    ActiveVM.AddToErrorMessage(exp.Message);
+                    ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
+                }
+            });
+        }
+
+        private static void CreateInteractiveVMThread()
+        {
+            ActiveThread = new(() =>
+            {
+                Initialize();
+
+                bool GettingInput = true;
+                int ret = -1;
+                StringBuilder code = new();
+
+                while (GettingInput)    // Sürekli olarak girdi al
+                {
+                    try
+                    {
+                        DelayAfterInterruption();
+                        if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı kod oku
+                        {
+                            code.Append(GetInput());
+                            ContinueDelayedInput(code);
+                        }
+                        else
+                        {
+                            ExApi.WriteIn(ActiveVM.InputCount); // Girdi numarası yaz
+
+                            code = new(GetInput());
+                            ContinueDelayedInput(code);
+
+                            // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
+                            if (ActiveVM.GotUserInput && HasFlag(ExInteractiveConsoleFlag.EMPTYINPUT))
+                            {
+                                RemoveFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
+                                ActiveVM.GotUserInput = false;
+
+                                code = new(GetInput());
+                                ContinueDelayedInput(code);
+                            }
+                        }
+
+                        if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı ise okumaya devam et
+                        {
+                            Indent();
+                            code.Append("\r\n");
+                            continue;
+                        }
+
+                        ContinueDelayedInput(code);
+
+                        ret = CompileString(ActiveVM, code.ToString().TrimEnd('\\', ' ', '\t'));  // Derle ve işle
+
+                    }
+                    catch (ThreadInterruptedException) { }
+                    catch (ExException exp)
+                    {
+                        ActiveVM.AddToErrorMessage(exp.Message);
+                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
+                    }
+                    finally
+                    {
+                        if (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
+                        {
+                            RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
+                        }
+
+                        ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
+
+                        if (ActiveVM.ExitCalled)  // exit fonksiyonu çağırıldıysa bitir
+                        {
+                            ReturnValue = new(ret);
+                            GettingInput = false;
+                        }
+                    }
+                }
+            });
+        }
+
+        private static void LoopUntilThreadStops()
+        {
+            for (; ActiveThread.IsAlive;) { }
+        }
+
+        private static bool ReadFileContents(string path)
+        {
+            if (File.Exists(path))
+            {
+                FileContents = File.ReadAllText(path);
+            }
+            else
+            {
+                FileContents = string.Empty;
+            }
+            return !string.IsNullOrWhiteSpace(FileContents);
+        }
+
+        private static void SetupForInteractiveThread()
+        {
+            CreateInteractiveVMThread();
+        }
+
+        private static void SetupForFileExecuterThread()
+        {
+            CreateSimpleVMThread();
         }
 
         /// <summary>
@@ -280,107 +438,32 @@ namespace ExMat
         /// To start the interactive console, use: <code>exmat.exe</code>
         /// </summary>
         /// <param name="args">If any arguments given, first one is taken as file name</param>
-        /// <returns>If a file was given and it didn't exists: <code>-1</code>
-        /// If given file exists, returns whatever is returned from <see cref="CompileString"/><code></code>
-        /// If interactive console is used, only returns when <c>exit</c> function is called</returns>
+        /// <returns>If a file was given and it didn't exists: <c>-1</c>
+        /// <para>If given file exists, returns whatever is returned from <see cref="CompileString"/></para>
+        /// <para>If interactive console is used, only returns when <c>exit</c> function is called</para></returns>
         private static int Main(string[] args)
         {
-            #region File
+            // File
             if (args.Length >= 1)
             {
-                // Dosya kontrolü
-                string f = File.Exists(args[0]) ? File.ReadAllText(args[0]) : string.Empty;
-                if (string.IsNullOrWhiteSpace(f))
+                if (!ReadFileContents(args[0]))
                 {
                     return -1;
                 }
 
-                // Sanal makineyi başlat
-                ExVM v = ExApi.Start(VM_STACK_SIZE);
-                // Versiyon numarası
-                WriteVersion(v);
-
-                // Global tabloyu belleğe yükle
-                ExApi.PushRootTable(v);
-                // Standart kütüphaneleri tabloya kaydet
-                RegisterStdLibraries(v);
-
-                return CompileString(v, f); // Derle ve işle, sonucu dön
+                SetupForFileExecuterThread();
             }
-            #endregion
-
             // Interactive
-            #region Interactive
-            ExVM vm = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
-            ExApi.PushRootTable(vm);                    // Global tabloyu ekle
-
-            RegisterStdLibraries(vm);   // Standard kütüphaneler
-
-            int count = 0;              // Gönderilen kod dizisi sayısı
-            StringBuilder code = new(); // Kod yazı dizisi
-
-            ///////////
-            // Event handlers
-            AddCancelEventHandler();
-            // Title, Version info
-            Console.Title = ConsoleTitle;
-            Console.ResetColor();
-            WriteVersion(vm);
-            ///////////
-
-            while (true)    // Sürekli olarak girdi al
+            else
             {
-                if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı kod oku
-                {
-                    code.Append(GetInput());
-                    ContinueDelayedInput(code);
-                }
-                else
-                {
-                    if (!HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
-                    {
-                        ///////////
-                        WriteIn(count); // Girdi numarası yaz
-                        ///////////
-                    }
-
-                    code = new(GetInput());
-                    ContinueDelayedInput(code);
-
-                    // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
-                    if (vm.GotUserInput && HasFlag(ExInteractiveConsoleFlag.EMPTYINPUT))
-                    {
-                        RemoveFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
-                        vm.GotUserInput = false;
-
-                        code = new(GetInput());
-                        ContinueDelayedInput(code);
-                    }
-                }
-
-                if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı ise okumaya devam et
-                {
-                    Indent();
-                    code.Append("\r\n");
-                    continue;
-                }
-
-                ContinueDelayedInput(code);
-
-                ///////////
-                WriteOut(count++);    // Çıktı numarası yaz
-                ///////////
-
-                int ret = CompileString(vm, code.ToString().TrimEnd('\\', ' ', '\t'));  // Derle ve işle
-
-                ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
-
-                if (vm.ExitCalled)  // exit fonksiyonu çağırıldıysa bitir
-                {
-                    return ret;
-                }
+                SetupForInteractiveThread();
             }
-            #endregion
+
+            ActiveThread.Start();
+
+            LoopUntilThreadStops();
+
+            return ReturnValue != null ? (int)ReturnValue.GetInt() : -1;
         }
     }
 }
