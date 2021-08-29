@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using ExMat.API;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -10,34 +12,98 @@ namespace ExMat.BaseLib
 {
     public static class ExStdString
     {
-        public static ExFunctionStatus Strip(ExVM vm, int nargs)
+        private static string RandomString(int length)
+        {
+            Random random = new();
+            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+              .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        public static ExFunctionStatus StdStringRands(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, RandomString(nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 10) : 10));
+        }
+
+        private static ExObject GetMatch(Match match)
+        {
+            if (match.Success)
+            {
+                return new(
+                    new Dictionary<string, ExObject>()
+                    {
+                        { "start", new(match.Index)},
+                        { "end", new(match.Index + match.Length)},
+                        { "value", new(match.Value)}
+                    }
+                );
+            }
+            else
+            {
+                return new();
+            }
+        }
+        private static List<ExObject> GetMatchList(MatchCollection matches)
+        {
+            List<ExObject> list = new();
+            int count = matches.Count;
+
+            foreach (Match match in matches)
+            {
+                list.Add(GetMatch(match));
+            }
+
+            return list;
+        }
+
+        public static ExFunctionStatus StdStringRegexMatches(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, GetMatchList(Regex.Matches(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString())));
+        }
+
+        public static ExFunctionStatus StdStringRegexMatch(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, GetMatch(Regex.Match(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString())));
+        }
+
+        public static ExFunctionStatus StdStringRegexReplace(ExVM vm, int nargs)
+        {
+            int count = nargs == 4 ? (int)vm.GetPositiveIntegerArgument(4, int.MaxValue) : int.MaxValue;
+            return vm.CleanReturn(nargs + 2, new Regex(vm.GetArgument(2).GetString()).Replace(vm.GetArgument(1).GetString(), vm.GetArgument(3).GetString(), count));
+        }
+
+        public static ExFunctionStatus StdStringRegexSplit(ExVM vm, int nargs)
+        {
+            int count = nargs == 3 ? (int)vm.GetPositiveIntegerArgument(3, int.MaxValue) : int.MaxValue;
+            return vm.CleanReturn(nargs + 2, new ExList(new Regex(vm.GetArgument(1).GetString()).Split(vm.GetArgument(2).GetString(), count)));
+        }
+        public static ExFunctionStatus StdStringRegexEscape(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, Regex.Escape(vm.GetArgument(1).GetString()));
+        }
+
+        public static ExFunctionStatus StdStringStrip(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().Trim());
         }
-        public static ExFunctionStatus Lstrip(ExVM vm, int nargs)
+        public static ExFunctionStatus StdStringLstrip(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().TrimStart());
         }
 
-        public static ExFunctionStatus Rstrip(ExVM vm, int nargs)
+        public static ExFunctionStatus StdStringRstrip(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().TrimEnd());
         }
 
-        public static ExFunctionStatus Split(ExVM vm, int nargs)
+        public static ExFunctionStatus StdStringSplit(ExVM vm, int nargs)
         {
             string s = vm.GetArgument(1).GetString();
             string c = vm.GetArgument(2).GetString();
-            StringSplitOptions remove_empty;
-            if (nargs == 3)
+            StringSplitOptions remove_empty = StringSplitOptions.None;
+            if (nargs == 3 && vm.GetArgument(3).GetBool())
             {
-                remove_empty = vm.GetArgument(3).GetBool()
-                    ? StringSplitOptions.RemoveEmptyEntries
-                    : StringSplitOptions.None;
-            }
-            else
-            {
-                remove_empty = StringSplitOptions.None;
+                remove_empty = StringSplitOptions.RemoveEmptyEntries;
             }
 
             string[] arr = s.Split(c, remove_empty);
@@ -51,7 +117,7 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, new ExObject(lis));
         }
 
-        public static ExFunctionStatus Join(ExVM vm, int nargs)
+        public static ExFunctionStatus StdStringJoin(ExVM vm, int nargs)
         {
             string s = vm.GetArgument(1).GetString();
             List<ExObject> lis = vm.GetArgument(2).GetList();
@@ -103,7 +169,7 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static ExFunctionStatus Compile(ExVM vm, int nargs)
+        public static ExFunctionStatus StdStringCompile(ExVM vm, int nargs)
         {
             string code = vm.GetArgument(1).GetString();
 
@@ -115,7 +181,7 @@ namespace ExMat.BaseLib
             return ExFunctionStatus.ERROR;
         }
 
-        public static ExFunctionStatus Format(ExVM vm, int nargs)
+        public static ExFunctionStatus StdStringFormat(ExVM vm, int nargs)
         {
             string format = vm.GetArgument(1).GetString();
             object[] ps = new object[nargs - 1];
@@ -147,8 +213,56 @@ namespace ExMat.BaseLib
         {
             new()
             {
+                Name = "reg_escape",
+                Function = StdStringRegexEscape,
+                nParameterChecks = 2,
+                ParameterMask = ".s"
+            },
+
+            new()
+            {
+                Name = "reg_split",
+                Function = StdStringRegexSplit,
+                nParameterChecks = -3,
+                ParameterMask = ".ssi|f",
+                DefaultValues = new()
+                {
+                    { 3, new(int.MaxValue) }
+                }
+            },
+
+            new()
+            {
+                Name = "reg_replace",
+                Function = StdStringRegexReplace,
+                nParameterChecks = -4,
+                ParameterMask = ".sssi|f",
+                DefaultValues = new()
+                {
+                    { 4, new(int.MaxValue) }
+                }
+            },
+
+            new()
+            {
+                Name = "reg_match",
+                Function = StdStringRegexMatch,
+                nParameterChecks = 3,
+                ParameterMask = ".ss"
+            },
+
+            new()
+            {
+                Name = "reg_matches",
+                Function = StdStringRegexMatches,
+                nParameterChecks = 3,
+                ParameterMask = ".ss"
+            },
+
+            new()
+            {
                 Name = "compile",
-                Function = Compile,
+                Function = StdStringCompile,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
@@ -156,28 +270,28 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "strip",
-                Function = Strip,
+                Function = StdStringStrip,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "lstrip",
-                Function = Lstrip,
+                Function = StdStringLstrip,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "rstrip",
-                Function = Rstrip,
+                Function = StdStringRstrip,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
             },
             new()
             {
                 Name = "split",
-                Function = Split,
+                Function = StdStringSplit,
                 nParameterChecks = -3,
                 ParameterMask = ".ssb",
                 DefaultValues = new()
@@ -188,7 +302,7 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "join",
-                Function = Join,
+                Function = StdStringJoin,
                 nParameterChecks = -3,
                 ParameterMask = ".sai",
                 DefaultValues = new()
@@ -199,9 +313,20 @@ namespace ExMat.BaseLib
             new()
             {
                 Name = "format",
-                Function = Format,
+                Function = StdStringFormat,
                 nParameterChecks = -2,
                 ParameterMask = null
+            },
+            new()
+            {
+                Name = "rands",
+                Function = StdStringRands,
+                nParameterChecks = -1,
+                ParameterMask = ".i",
+                DefaultValues = new()
+                {
+                    { 1, new(10) }
+                }
             }
         };
         public static List<ExRegFunc> StringFuncs => _stdstrfuncs;
