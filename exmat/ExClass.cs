@@ -134,10 +134,10 @@ namespace ExMat.Class
 
             string k = key.GetString();
             ExObject tmp;
-            
+
             if (Members.ContainsKey(k))
             {
-                if(Members[k].IsField())
+                if (Members[k].IsField())
                 {
                     DefaultValues[Members[k].GetMemberID()].Value.Assign(val);
                     return true;

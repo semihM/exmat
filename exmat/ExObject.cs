@@ -358,9 +358,12 @@ namespace ExMat.Objects
         ///////////////////////////////
         public ExObject(Dictionary<string, ExObject> dict)
         {
-            Type = ExObjType.DICT;
-            Value._RefC = new();
-            Value.d_Dict = dict;
+            if (dict != null)
+            {
+                Type = ExObjType.DICT;
+                Value._RefC = new();
+                Value.d_Dict = dict;
+            }
         }
         public void Assign(Dictionary<string, ExObject> dict)
         {

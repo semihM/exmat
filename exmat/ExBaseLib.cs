@@ -4,10 +4,9 @@ using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using ExMat.Exceptions;
 using ExMat.API;
 using ExMat.Class;
+using ExMat.Exceptions;
 using ExMat.Objects;
 using ExMat.Utils;
 using ExMat.VM;
@@ -31,7 +30,7 @@ namespace ExMat.BaseLib
 
             if (time >= 0)
             {
-                Thread.Sleep(time);
+                ExApi.SleepVM(vm, time);
             }
 
             return vm.CleanReturn(nargs + 2, true);
@@ -404,6 +403,10 @@ namespace ExMat.BaseLib
                                 }
 
                                 return vm.CleanReturn(nargs + 2, ((char)val).ToString());
+                            }
+                            else
+                            {
+                                return vm.AddToErrorMessage("expected INTEGER or ARRAY when 2nd parameter of 'string' is true");
                             }
                         }
                         else if (!ExApi.ToString(vm, 2, depth, nargs + 2))
@@ -2642,6 +2645,34 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, res);
         }
 
+        public static ExFunctionStatus StdArrayShuffle(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, ExUtils.ShuffleList(vm.GetRootArgument().GetList()));
+        }
+
+        public static ExFunctionStatus StdArrayRandom(ExVM vm, int nargs)
+        {
+            List<ExObject> lis = vm.GetRootArgument().GetList();
+            int count = nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 1) : 1;
+
+            if (count > lis.Count)
+            {
+                return vm.AddToErrorMessage(string.Format("can't pick {0} values from list with length {1}", count, lis.Count));
+            }
+            else if (count == lis.Count)
+            {
+                return vm.CleanReturn(nargs + 2, ExUtils.ShuffleList(lis));
+            }
+            else if (count == 1)
+            {
+                return vm.CleanReturn(nargs + 2, new ExObject(lis[new Random().Next(lis.Count)]));
+            }
+            else
+            {
+                return vm.CleanReturn(nargs + 2, ExUtils.GetNRandomObjectsFrom(lis, count));
+            }
+        }
+
         public static ExFunctionStatus StdArrayReverse(ExVM vm, int nargs)
         {
             ExObject obj = vm.GetRootArgument();
@@ -2656,14 +2687,7 @@ namespace ExMat.BaseLib
 
         public static ExFunctionStatus StdArrayCopy(ExVM vm, int nargs)
         {
-            ExObject obj = vm.GetRootArgument();
-            List<ExObject> lis = obj.GetList();
-            List<ExObject> res = new(lis.Count);
-            for (int i = 0; i < lis.Count; i++)
-            {
-                res.Add(new(lis[i]));
-            }
-            return vm.CleanReturn(nargs + 2, res);
+            return vm.CleanReturn(nargs + 2, ExUtils.GetACopyOf(vm.GetRootArgument().GetList()));
         }
 
         public static ExFunctionStatus StdArrayTranspose(ExVM vm, int nargs)
@@ -2941,7 +2965,10 @@ namespace ExMat.BaseLib
                 }
 
                 ExApi.PushRootTable(vm);
-                ExApi.ReloadNativeFunction(vm, BaseFuncs, name);
+                if (!ExApi.ReloadNativeFunction(vm, BaseFuncs, name))
+                {
+                    return vm.AddToErrorMessage(string.Format("unknown Std function {0}", name));
+                }
 
             }
             else
@@ -3099,7 +3126,6 @@ namespace ExMat.BaseLib
                 ParameterMask = "..s",
                 DefaultValues = new()
                 {
-                    { 1, new(true) },
                     { 2, new("") }
                 }
             },
@@ -3255,7 +3281,6 @@ namespace ExMat.BaseLib
                 ParameterMask = ".nnn",
                 DefaultValues = new()
                 {
-                    { 1, new(0) },
                     { 2, new(0) },
                     { 3, new(1) }
                 }
@@ -3268,7 +3293,6 @@ namespace ExMat.BaseLib
                 ParameterMask = ".nnn",
                 DefaultValues = new()
                 {
-                    { 1, new(0) },
                     { 2, new(0) },
                     { 3, new(1) }
                 }
@@ -3277,12 +3301,11 @@ namespace ExMat.BaseLib
             {
                 Name = "matrix",
                 Function = StdMatrix,
-                nParameterChecks = -3,
+                nParameterChecks = -2,
                 ParameterMask = ".ii.",
                 DefaultValues = new()
                 {
-                    { 1, new(0) },
-                    { 2, new(0) },
+                    { 2, new(1) },
                     { 3, new() }
                 }
             },
@@ -3292,7 +3315,11 @@ namespace ExMat.BaseLib
                 Name = "map",
                 Function = StdMap,
                 nParameterChecks = -3,
-                ParameterMask = ".c|yaa"
+                ParameterMask = ".c|yaa",
+                DefaultValues = new()
+                {
+                    { 3, new ExList() }
+                }
             },
             new()
             {
@@ -3349,7 +3376,11 @@ namespace ExMat.BaseLib
                 Name = "exit",
                 Function = StdExit,
                 nParameterChecks = -1,
-                ParameterMask = ".i|f"
+                ParameterMask = ".i|f",
+                DefaultValues = new()
+                {
+                    { 1, new(0) }
+                }
             },
             new()
             {
@@ -3371,17 +3402,22 @@ namespace ExMat.BaseLib
                 Name = ReloadBaseFunc,
                 Function = StdReloadBase,
                 nParameterChecks = -1,
-                ParameterMask = ".s"
+                ParameterMask = ".s",
+                DefaultValues = new()
+                {
+                    { 1, new(ReloadBaseFunc) }
+                }
             }
         };
+
         public static List<ExRegFunc> BaseFuncs => _exStdFuncs;
 
-        private const string _reloadbase = "reload_base";
+        private const string _reloadbase = "reload_base"; // TO-DO Tokenize
         public static string ReloadBaseFunc => _reloadbase;
 
-        private const string __version__ = "ExMat v0.0.6";
+        private const string __version__ = "ExMat v0.0.7";
 
-        private const int __versionnumber__ = 6;
+        private const int __versionnumber__ = 7;
 
         public static bool RegisterStdBase(ExVM vm)
         {
@@ -3394,6 +3430,21 @@ namespace ExMat.BaseLib
             ExApi.CreateConstantInt(vm, "_versionnumber_", __versionnumber__);
             ExApi.CreateConstantString(vm, "_version_", __version__);
 
+            ExApi.CreateConstantDict(vm, "COLORS", new()
+            {
+                { "RED", new("red") },
+                { "DARKRED", new("darkred") },
+                { "GREEN", new("green") },
+                { "DARKGREEN", new("darkgreen") },
+                { "BLUE", new("blue") },
+                { "DARKBLUE", new("darkblue") },
+                { "YELLOW", new("yellow") },
+                { "DARKYELLOW", new("darkyellow") },
+                { "MAGENTA", new("magenta") },
+                { "DARKMAGENTA", new("darkmagenta") },
+                { "CYAN", new("cyan") },
+                { "DARKCYAN", new("darkcyan") },
+            });
             // Kayıtları yaptıktan sonra global tabloyu bellekten kaldır
             vm.Pop(1);
 

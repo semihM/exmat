@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using ExMat.Closure;
 using ExMat.Compiler;
 using ExMat.Exceptions;
@@ -9,6 +10,7 @@ using ExMat.Interfaces;
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.VM;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace ExMat.API
 {
@@ -100,7 +102,7 @@ namespace ExMat.API
             vm.CleanReturn(pop, res);
             return true;
         }
-        
+
         /// <summary>
         /// Returns string format of a float
         /// </summary>
@@ -573,6 +575,19 @@ namespace ExMat.API
         }
 
         /// <summary>
+        /// Create a constant list
+        /// </summary>
+        /// <param name="vm">Virtual machine to use the stack of</param>
+        /// <param name="name">Name of the constant</param>
+        /// <param name="lis">List</param>
+        public static void CreateConstantList(ExVM vm, string name, List<ExObject> lis)
+        {
+            PushString(vm, name, -1);
+            vm.Push(new ExList(lis));
+            CreateNewSlot(vm, -3);
+        }
+
+        /// <summary>
         /// Push a string to a virtual machine's stack
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
@@ -713,6 +728,116 @@ namespace ExMat.API
             return true;
         }
 
+        public static string GetNClosureDefaultParamInfo(int i, int paramsleft, List<string> infos, Dictionary<string, ExObject> defs)
+        {
+            StringBuilder s = new();
+            for (; i < paramsleft; i++)
+            {
+                s.Append('[').Append(infos[i]);
+
+                if (defs.ContainsKey((i + 1).ToString()))
+                {
+                    s.Append(" = ").Append(GetSimpleString(defs[(i + 1).ToString()]));
+                }
+
+                s.Append(']');
+
+                if (i != paramsleft - 1)
+                {
+                    s.Append(',');
+                }
+            }
+            return s.ToString();
+        }
+        public static string GetSimpleString(ExObject obj)
+        {
+            switch (obj.Type)
+            {
+
+                case ExObjType.COMPLEX:
+                    {
+                        return obj.GetComplexString();
+                    }
+                case ExObjType.INTEGER:
+                    {
+                        return obj.GetInt().ToString();
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        return GetFloatString(obj);
+                    }
+                case ExObjType.STRING:
+                    {
+                        return obj.GetString();
+                    }
+                case ExObjType.BOOL:
+                    {
+                        return obj.Value.b_Bool ? "true" : "false";
+                    }
+                case ExObjType.NULL:
+                    {
+                        return obj.Value.s_String ?? "null";
+                    }
+                case ExObjType.ARRAY:
+                    {
+                        return "ARRAY";
+                    }
+                case ExObjType.DICT:
+                    {
+                        return "DICTIONARY";
+                    }
+                case ExObjType.NATIVECLOSURE:
+                case ExObjType.CLOSURE:
+                    {
+                        return "FUNCTION";
+                    }
+                case ExObjType.SPACE:
+                    {
+                        return obj.Value.c_Space.GetSpaceString();
+                    }
+                default:
+                    {
+                        return string.Empty;
+                    }
+            }
+        }
+
+        public static bool GetTypeMaskInfo(List<int> masks, List<string> info)
+        {
+            if (masks == null || info == null)
+            {
+                return false;
+            }
+
+            int n = Enum.GetNames(typeof(ExBaseType)).Length;
+
+            foreach (int mask in masks)
+            {
+                switch (mask)
+                {
+                    case -1:
+                        {
+                            info.Add("ANY");
+                            break;
+                        }
+                    default:
+                        {
+                            List<string> comb = new();
+                            for (int i = 0; i < n; i++)
+                            {
+                                if (((1 << i) & mask) > 0)
+                                {
+                                    comb.Add(((ExBaseType)(1 << i)).ToString());
+                                }
+                            }
+                            info.Add(string.Join("|", comb));
+                            break;
+                        }
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Set parameter checks for the native function on top of the stack of <paramref name="vm"/>
         /// </summary>
@@ -845,6 +970,7 @@ namespace ExMat.API
                         dest = new((string)func.GetAttribute(attr));
                         return ExGetterStatus.FOUND;
                     }
+                case ExMat.DelegName:
                 case ExMat.VargsName:
                     {
                         dest = new((bool)func.GetAttribute(attr));
@@ -1103,6 +1229,114 @@ namespace ExMat.API
             return true;
         }
 
+        public static string Escape(string str)
+        {
+            return SymbolDisplay.FormatLiteral(str, false);
+        }
+
+        private static bool ShouldPrintTop(ExVM vm)
+        {
+            return !vm.PrintedToConsole
+                    && vm.GetAbove(-1).Type != ExObjType.NULL;
+        }
+
+        /// <summary>
+        /// Writes version and program info in different colors
+        /// </summary>
+        /// <param name="vm">Virtual machine to get information from</param>
+        public static void WriteVersion(ExVM vm)
+        {
+            string version = vm.RootDictionary.GetDict()["_version_"].GetString();
+            string date = DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString();
+            int width = 60;
+            int vlen = version.Length;
+            int dlen = date.Length;
+
+            Console.BackgroundColor = ConsoleColor.DarkBlue;
+
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine(new string('/', width + 2));
+            Console.Write("/");
+
+            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', ((width - vlen) / 2) + (vlen % 2 == 1 ? 1 : 0)));
+            Console.WriteLine("/");
+            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', ((width - dlen) / 2) + (dlen % 2 == 1 ? 1 : 0)) + "/\n");
+
+            Console.WriteLine(new string('/', width + 2));
+
+            Console.ResetColor();
+        }
+
+        /// <summary>
+        /// Writes <c>OUT[<paramref name="line"/>]</c> for <c><paramref name="line"/></c>th output line's beginning
+        /// </summary>
+        /// <param name="line">Output line number</param>
+        public static void WriteOut(int line)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("OUT[");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(line);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("]: ");
+            Console.ResetColor();
+        }
+
+        /// <summary>
+        /// Writes <c>IN [<paramref name="line"/>]</c> for <c><paramref name="line"/></c>th input line's beginning
+        /// </summary>
+        /// <param name="line">Input line number</param>
+        public static void WriteIn(int line)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            if (line > 0)
+            {
+                Console.Write("\n");
+            }
+            Console.Write("\nIN [");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write(line);
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("]: ");
+            Console.ResetColor();
+        }
+
+        public static void SleepVM(ExVM vm, int time)
+        {
+            vm.IsSleeping = true;
+            Thread.Sleep(time);
+            vm.IsSleeping = false;
+        }
+
+        public static int CallTop(ExVM vm)
+        {
+            PushRootTable(vm);            // Global tabloyu belleğe yükle
+            if (Call(vm, 1, true, true))
+            {
+                bool isString = vm.GetAbove(-1).Type == ExObjType.STRING;
+
+                if (ShouldPrintTop(vm)
+                    && ToString(vm, -1, 2))
+                {
+                    WriteOut(vm.InputCount++);
+                    if (isString)
+                    {
+                        vm.Print(string.Format("\'{0}\'", Escape(vm.GetAbove(-1).GetString())));
+                    }
+                    else
+                    {
+                        vm.Print(vm.GetAbove(-1).GetString());
+                    }
+                }
+            }
+            else
+            {
+                return vm.ExitCalled ? vm.ExitCode : WriteErrorMessages(vm, ExErrorType.RUNTIME);
+            }
+
+            return 0;
+        }
+
         /// <summary>
         /// Call garbage collector
         /// </summary>
@@ -1129,6 +1363,7 @@ namespace ExMat.API
 
             vm.Initialize(stacksize);
             vm.IsInteractive = interacive;
+            vm.InputCount = 0;
             return vm;
         }
 
@@ -1140,7 +1375,7 @@ namespace ExMat.API
         {
             foreach (List<int> pair in vm.ErrorTrace)
             {
-                Console.WriteLine("[TRACE] [LINE: " + pair[0] + ", INSTRUCTION ID: " + pair[1] + "] ");
+                vm.PrintLine("[TRACE] [LINE: " + pair[0] + ", INSTRUCTION ID: " + pair[1] + "] ");
             }
         }
 
@@ -1149,36 +1384,61 @@ namespace ExMat.API
         /// </summary>
         /// <param name="vm">Virtual machine to use</param>
         /// <param name="typ">Type of error</param>
-        public static void WriteErrorMessages(ExVM vm, ExErrorType typ)
+        /// <returns>Always returns <c>-1</c></returns>
+        public static int WriteErrorMessages(ExVM vm, ExErrorType typ)
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
-            Console.WriteLine("\n\n*******************************");
+            vm.PrintLine("\n\n*******************************");
+            if (vm.ErrorOverride != ExErrorType.DEFAULT)
+            {
+                typ = vm.ErrorOverride;
+                vm.ErrorOverride = ExErrorType.DEFAULT;
+            }
+
             switch (typ)
             {
                 case ExErrorType.COMPILE:
                     {
                         Console.ForegroundColor = ConsoleColor.Cyan;
-                        Console.WriteLine("COMPILER ERROR");
+                        vm.PrintLine("COMPILER ERROR");
                         Console.ForegroundColor = ConsoleColor.White;
-                        Console.WriteLine(vm.ErrorString);
+                        vm.PrintLine(vm.ErrorString);
                         break;
                     }
                 case ExErrorType.RUNTIME:
                     {
                         Console.ForegroundColor = ConsoleColor.Blue;
-                        Console.WriteLine("RUNTIME ERROR");
+                        vm.PrintLine("RUNTIME ERROR");
                         Console.ForegroundColor = ConsoleColor.White;
                         WriteErrorTraces(vm);
-                        Console.WriteLine(vm.ErrorString);
+                        vm.PrintLine(vm.ErrorString);
+                        break;
+                    }
+                case ExErrorType.INTERRUPT:
+                    {
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        vm.PrintLine("INTERRUPTED");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        vm.PrintLine(vm.ErrorString);
+                        break;
+                    }
+                case ExErrorType.INTERRUPTINPUT:
+                    {
+                        Console.ForegroundColor = ConsoleColor.Magenta;
+                        vm.PrintLine("INPUT STREAM RESET");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        vm.PrintLine(vm.ErrorString);
                         break;
                     }
             }
 
             Console.ForegroundColor = ConsoleColor.DarkRed;
-            Console.WriteLine("*******************************");
+            vm.PrintLine("*******************************");
             Console.ResetColor();
 
             vm.ErrorString = string.Empty;
+
+            return -1;
         }
     }
 }

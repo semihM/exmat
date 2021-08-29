@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using ExMat.API;
 using ExMat.Objects;
+using ExMat.Utils;
 using ExMat.VM;
 
 namespace ExMat.BaseLib
@@ -31,16 +32,11 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        int i = (int)vm.GetArgument(1).GetInt();
-                        if (i < 0)
-                        {
-                            i = i > int.MinValue ? Math.Abs(i) : 0;
-                        }
-                        return vm.CleanReturn(3, Rand.Next(i));
+                        return vm.CleanReturn(3, Rand.Next(ExUtils.LongTo32NonNegativeIntegerRange(vm.GetArgument(1).GetInt())));
                     }
                 case 2:
                     {
-                        return vm.CleanReturn(4, Rand.Next((int)vm.GetArgument(1).GetInt(), (int)vm.GetArgument(2).GetInt()));
+                        return vm.CleanReturn(4, Rand.Next(ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(1).GetInt()), ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(2).GetInt())));
                     }
             }
         }

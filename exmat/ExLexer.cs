@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using ExMat.Objects;
 using ExMat.Token;
@@ -7,33 +8,74 @@ using ExMat.Token;
 namespace ExMat.Lexer
 {
 
+    [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExLexer : IDisposable
     {
+        /// <summary>
+        /// Source code
+        /// </summary>
         private string _source;
+        /// <summary>
+        /// Current reading index of <see cref="_source"/>
+        /// </summary>
         private int _source_idx;
+        /// <summary>
+        /// Length of source code <see cref="_source"/>
+        /// </summary>
         private readonly int _source_len;
 
+        /// <summary>
+        /// Line count
+        /// </summary>
         public int CurrentLine;
+        /// <summary>
+        /// Last line number a token was found
+        /// </summary>
         public int PrevTokenLine;
+        /// <summary>
+        /// Current column index
+        /// </summary>
         public int CurrentCol;
+        /// <summary>
+        /// Last character read
+        /// </summary>
         public char CurrentChar;
 
+        /// <summary>
+        /// Previous token found
+        /// </summary>
         public TokenType TokenPrev;
+        /// <summary>
+        /// Last token found
+        /// </summary>
         public TokenType TokenCurr;
 
 
-        // Tamsayı
+        /// <summary>
+        /// Currently read integer value
+        /// </summary>
         public long ValInteger;
-        // Ondalıklı
+        /// <summary>
+        /// Currently read float value
+        /// </summary>
         public double ValFloat;
-        // Yazı dizisi
+        /// <summary>
+        /// Currently read string value
+        /// </summary>
         public string ValString;
-        // Uzay
+        /// <summary>
+        /// Currently read space value
+        /// </summary>
         public ExSpace ValSpace;
 
-        // En son okunan karakter dizisi
+        /// <summary>
+        /// Temporary string builder while reading strings
+        /// </summary>
         public StringBuilder ValTempString;
-        // Karmaşık sayı katsayısının sembolü ( tamsayı / ondalıklı )
+
+        /// <summary>
+        /// Type of the currently read complex number's real part, either <see cref="TokenType.INTEGER"/> or <see cref="TokenType.FLOAT"/>
+        /// </summary>
         public TokenType TokenComplex;
 
         public StringBuilder MacroBlock;
@@ -42,34 +84,16 @@ namespace ExMat.Lexer
 
         public bool IsReadingMacroBlock;
 
+        /// <summary>
+        /// Error message
+        /// </summary>
         public string ErrorString;
 
         private bool disposedValue;
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    Disposer.DisposeList(ref MacroParams);
-                    Disposer.DisposeObjects(ValSpace);
-
-                    ErrorString = null;
-                    ValTempString = null;
-                    ValString = null;
-                    MacroParamName = null;
-                    MacroBlock = null;
-
-                    _source = null;
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
-            }
-        }
-
+        /// <summary>
+        /// Keywords dictionary
+        /// </summary>
         public readonly Dictionary<string, TokenType> KeyWords = new()
         {
             // Sabit değerler
@@ -195,13 +219,21 @@ namespace ExMat.Lexer
             return true;
         }
 
-        private void NextChar()
+        private void NextChar(int n = 1)
         {
-            CurrentChar = _source_idx == _source_len
-                ? ExMat.EndChar
-                : _source[_source_idx++];
-
-            CurrentCol++;
+            while (n-- > 0)
+            {
+                if (_source_idx == _source_len)
+                {
+                    CurrentChar = ExMat.EndChar;
+                    break;
+                }
+                else
+                {
+                    CurrentChar = _source[_source_idx++];
+                    CurrentCol++;
+                }
+            }
         }
 
         private TokenType SetAndReturnToken(TokenType typ)
@@ -490,7 +522,16 @@ namespace ExMat.Lexer
             }
         }
 
-        private TokenType ReadString(char curr)
+        private bool AreNextCharacters(string these)
+        {
+            if (_source_idx + these.Length <= _source_len)
+            {
+                return _source.Substring(_source_idx - 1, these.Length) == these;
+            }
+            return false;
+        }
+
+        private TokenType ReadVerboseString(char end)
         {
             ValTempString = new();
             NextChar();
@@ -499,7 +540,54 @@ namespace ExMat.Lexer
                 return TokenType.UNKNOWN;
             }
 
-            while (CurrentChar != curr)
+            string ending = new(end, 2);
+            bool reading = true;
+
+            while (reading)
+            {
+                switch (CurrentChar)
+                {
+                    case ExMat.EndChar:
+                        {
+                            ErrorString = "unfinished string";
+                            return TokenType.UNKNOWN;
+                        }
+                    case '\"':
+                        {
+                            if (AreNextCharacters(ending))
+                            {
+                                ValTempString.Append(CurrentChar);
+                                NextChar(ending.Length);
+                            }
+                            else
+                            {
+                                reading = false;
+                            }
+                            break;
+                        }
+                    default:
+                        {
+                            ValTempString.Append(CurrentChar);
+                            NextChar();
+                            break;
+                        }
+                }
+            }
+            ValString = ValTempString.ToString(); NextChar();
+            return TokenType.LITERAL;
+
+        }
+
+        private TokenType ReadString(char end)
+        {
+            ValTempString = new();
+            NextChar();
+            if (CurrentChar == ExMat.EndChar)
+            {
+                return TokenType.UNKNOWN;
+            }
+
+            while (CurrentChar != end)
             {
                 switch (CurrentChar)
                 {
@@ -546,7 +634,7 @@ namespace ExMat.Lexer
                                     {
                                         if (ReadAsHex(CurrentChar == 'u' ? 4096 : 16, out int res))
                                         {
-                                            ValTempString.Append(res);
+                                            ValTempString.Append((char)res);
                                             break;
                                         }
                                         else
@@ -1040,7 +1128,19 @@ namespace ExMat.Lexer
                     case '$':
                         {
                             NextChar();
-                            return SetAndReturnToken(TokenType.LAMBDA);
+                            if (CurrentChar == '\"')
+                            {
+                                TokenType res;
+                                if ((res = ReadVerboseString(CurrentChar)) != TokenType.UNKNOWN)
+                                {
+                                    return SetAndReturnToken(res);
+                                }
+                                return TokenType.UNKNOWN;
+                            }
+                            else
+                            {
+                                return SetAndReturnToken(TokenType.LAMBDA);
+                            }
                         }
                     case '@':
                         {
@@ -1303,11 +1403,40 @@ namespace ExMat.Lexer
             return TokenType.ENDLINE;
         }
 
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    Disposer.DisposeList(ref MacroParams);
+                    Disposer.DisposeObjects(ValSpace);
+
+                    ErrorString = null;
+                    ValTempString = null;
+                    ValString = null;
+                    MacroParamName = null;
+                    MacroBlock = null;
+
+                    _source = null;
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
+
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+
+        private object GetDebuggerDisplay()
+        {
+            return string.Format("Line: {0}, Column: {1}, Char: {2}, Token: {3}", CurrentLine, CurrentCol, CurrentChar, TokenCurr);
         }
     }
 }

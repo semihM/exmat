@@ -76,6 +76,10 @@ namespace ExMat.Closure
                     {
                         return Function.HasVargs;
                     }
+                case ExMat.DelegName:
+                    {
+                        return Base != null;
+                    }
                 case ExMat.nParams:
                     {
                         return Function.nParams - 1 - (Function.HasVargs ? 1 : 0);
@@ -134,6 +138,51 @@ namespace ExMat.Closure
         public static new ExObjType GetType()
         {
             return ExObjType.CLOSURE;
+        }
+
+        public string GetInfoString()
+        {
+            string s = string.Empty;
+            switch (Function.ClosureType)
+            {
+                case ExClosureType.FUNCTION:
+                    {
+                        string name = Function.Name.GetString();
+                        s = string.IsNullOrWhiteSpace(name) ? "LAMBDA(" : "FUNCTION(" + name + ", ";
+
+                        if (Function.nDefaultParameters > 0)
+                        {
+                            s += (Function.nParams - 1) + " params (min:" + (Function.nParams - Function.nDefaultParameters - 1) + "))";
+                        }
+                        else if (Function.HasVargs)
+                        {
+                            s += "vargs, min:" + (Function.nParams - 2) + " params)";
+                        }
+                        else
+                        {
+                            s += (Function.nParams - 1) + " params)";
+                        }
+                        break;
+                    }
+                case ExClosureType.RULE:
+                    {
+                        s = "RULE(" + Function.Name.GetString() + ", ";
+                        s += (Function.nParams - 1) + " params)";
+                        break;
+                    }
+                case ExClosureType.CLUSTER:
+                    {
+                        s = "CLUSTER(" + Function.Name.GetString() + ", ";
+                        s += (Function.nParams - 1) + " params)";
+                        break;
+                    }
+                case ExClosureType.SEQUENCE:
+                    {
+                        s = "SEQUENCE(" + Function.Name.GetString() + ", 1 params)";
+                        break;
+                    }
+            }
+            return s;
         }
 
         public new string GetDebuggerDisplay()
