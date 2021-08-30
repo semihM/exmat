@@ -532,6 +532,11 @@ namespace ExMat.API
         /// <returns>An array of zero and ones</returns>
         public static int[] GetBits(long i, int bits)
         {
+            if(bits == 32)
+            {
+                string s = Convert.ToString((int)i, 2);
+                return s.PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
+            }
             return Convert.ToString(i, 2).PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
         }
 
@@ -1165,6 +1170,18 @@ namespace ExMat.API
                 }
             }
             else if (s.StartsWith("0b")
+                    && s.Length <= 34)
+            {
+                try
+                {
+                    res = new(Convert.ToInt32(s[2..], 2));
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else if (s.StartsWith("0B")
                     && s.Length <= 66)
             {
                 try
@@ -1365,6 +1382,28 @@ namespace ExMat.API
             {
                 vm.AddToErrorMessage("empty list can't be used for transposing");
                 return false;
+            }
+            return true;
+        }
+
+
+
+        public static bool ConvertIntegerStringArrayToString(List<ExObject> lis, StringBuilder str)
+        {
+            foreach (ExObject o in lis)
+            {
+                if (o.Type == ExObjType.STRING) // && o.GetString().Length == 1)
+                {
+                    str.Append(o.GetString());
+                }
+                else if (o.Type == ExObjType.INTEGER && o.GetInt() >= 0 && o.GetInt() <= char.MaxValue)
+                {
+                    str.Append((char)o.GetInt());
+                }
+                else
+                {
+                    return false;
+                }
             }
             return true;
         }

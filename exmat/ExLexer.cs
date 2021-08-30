@@ -722,13 +722,14 @@ namespace ExMat.Lexer
             return c == '∞';
         }
 
-        private TokenType ParseNumberString(TokenType typ, bool isComplex = false)
+        private TokenType ParseNumberString(TokenType typ, bool isComplex = false, bool is32bit = false)
         {
             switch (typ)
             {
                 case TokenType.BINARY:
                     {
-                        ValInteger = Convert.ToInt64(ValTempString.ToString(), 2);
+                        ValInteger = is32bit ? Convert.ToInt32(ValTempString.ToString(), 2)
+                                             : Convert.ToInt64(ValTempString.ToString(), 2);
                         return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
                     }
                 case TokenType.HEX:
@@ -774,6 +775,7 @@ namespace ExMat.Lexer
 
         private TokenType ReadNumber(char start)
         {
+            bool is32bit = false;
             TokenType typ = TokenType.INTEGER;
             ValTempString = new(start.ToString());   // ilk karakter
 
@@ -813,8 +815,11 @@ namespace ExMat.Lexer
                         ValTempString.Insert(0, new string('0', 16 - length));
                         break;
                     }
-                case 'b':   // Binary
+                case 'B':   // 64bit Binary
+                case 'b':   // 32bit Binary
                     {
+                        is32bit = CurrentChar == 'b';
+
                         typ = TokenType.BINARY;
 
                         if (ValTempString[0] != '0')
@@ -832,13 +837,21 @@ namespace ExMat.Lexer
                         }
 
                         int length = ValTempString.Length;
-                        if (length > 64)
+                        if(is32bit)
                         {
-                            ErrorString = "binary number too long, max length is 64bits";
+                            if (length > 32)
+                            {
+                                ErrorString = "32bit binary number too long, max length is 32";
+                                return TokenType.UNKNOWN;
+                            }
+                        }
+                        else if (length > 64)
+                        {
+                            ErrorString = "64bit binary number too long, max length is 64";
                             return TokenType.UNKNOWN;
                         }
 
-                        ValTempString.Insert(0, new string('0', 64 - length));
+                        ValTempString.Insert(0, new string('0', ( is32bit ? 32 : 64 ) - length));
                         break;
                     }
                 default:
@@ -902,9 +915,9 @@ namespace ExMat.Lexer
                         }
                 }
                 NextChar();
-                return ParseNumberString(typ, true);
+                return ParseNumberString(typ, true, is32bit);
             }
-            return ParseNumberString(typ, false);
+            return ParseNumberString(typ, false, is32bit);
         }
 
         public TokenType GetTokenTypeForChar(char c)
