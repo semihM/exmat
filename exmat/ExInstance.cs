@@ -40,7 +40,7 @@ namespace ExMat.Class
                 else if (Delegate.Type == ExObjType.ARRAY)
                 {
                     int k = vm.SharedState.GetMetaIdx(vm.SharedState.MetaMethods[(int)m].GetString());
-                    if (Delegate.GetList()[k].Type != ExObjType.NULL)
+                    if (Delegate.GetList()[k].IsNotNull())
                     {
                         res.Assign(Delegate.GetList()[k]);
                         return true;
@@ -81,7 +81,7 @@ namespace ExMat.Class
 
         public bool GetMeta(int midx, ref ExObject res)
         {
-            if (Class.MetaFuncs[midx].Type != ExObjType.NULL)
+            if (Class.MetaFuncs[midx].IsNotNull())
             {
                 res = Class.MetaFuncs[midx];
                 return true;

@@ -175,7 +175,7 @@ namespace ExMat.Class
                         ReferenceCount++;
                     }
 
-                    if (tmp.Type == ExObjType.NULL)
+                    if (tmp.IsNull())
                     {
                         bool bconstr = exs.ConstructorID.GetString() == key.GetString();
 
