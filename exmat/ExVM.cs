@@ -10,7 +10,6 @@ using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.Class;
 using ExMat.Closure;
-using ExMat.Exceptions;
 using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Objects;
@@ -141,6 +140,10 @@ namespace ExMat.VM
         /// Exit return value
         /// </summary>
         public int ExitCode;                    // Çıkışta dönülecek değer
+        /// <summary>
+        /// Temporary storage for the state of force returning
+        /// </summary>
+        public bool _forcereturn;
 
         /// <summary>
         /// VM's thread
@@ -188,6 +191,11 @@ namespace ExMat.VM
                 ErrorString += "\n[ERROR]" + msg;
             }
             return ExFunctionStatus.ERROR;
+        }
+
+        public void Throw(string msg, ExVM vm = null)
+        {
+            ExApi.Throw(msg, vm ?? this);
         }
 
         /// <summary>
@@ -409,7 +417,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.BOOL:
                     {
-                        res = new(obj.Value.b_Bool ? "true" : "false");
+                        res = new(obj.GetBool() ? "true" : "false");
                         break;
                     }
                 case ExObjType.NULL:
@@ -461,107 +469,6 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool ToFloat(ExObject obj, ref ExObject res)
-        {
-            switch (obj.Type)
-            {
-                case ExObjType.COMPLEX:
-                    {
-                        if (obj.GetComplex().Imaginary != 0.0)
-                        {
-                            AddToErrorMessage("can't parse non-zero imaginary part complex number as float");
-                            return false;
-                        }
-                        res = new(obj.GetComplex().Real);
-                        break;
-                    }
-                case ExObjType.INTEGER:
-                    {
-                        res = new((double)obj.GetInt());
-                        break;
-                    }
-                case ExObjType.FLOAT:
-                    {
-                        res = new(obj.GetFloat());
-                        break;
-                    }
-                case ExObjType.STRING:
-                    {
-                        if (ExApi.ParseStringToFloat(obj.GetString(), ref res))
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            AddToErrorMessage("failed to parse string as double");
-                            return false;
-                        }
-                    }
-                case ExObjType.BOOL:
-                    {
-                        res = new(obj.Value.b_Bool ? 1.0 : 0.0);
-                        break;
-                    }
-                default:
-                    {
-                        AddToErrorMessage("failed to parse " + obj.Type.ToString() + " as double");
-                        return false;
-                    }
-            }
-            return true;
-        }
-
-
-        public bool ToInteger(ExObject obj, ref ExObject res)
-        {
-            switch (obj.Type)
-            {
-                case ExObjType.COMPLEX:
-                    {
-                        if (obj.GetComplex().Imaginary != 0.0)
-                        {
-                            AddToErrorMessage("can't parse non-zero imaginary part complex number as integer");
-                            return false;
-                        }
-                        res = new((long)obj.GetComplex().Real);
-                        break;
-                    }
-                case ExObjType.INTEGER:
-                    {
-                        res = new(obj.GetInt());
-                        break;
-                    }
-                case ExObjType.FLOAT:
-                    {
-                        res = new((long)obj.GetFloat());
-                        break;
-                    }
-                case ExObjType.STRING:
-                    {
-                        if (ExApi.ParseStringToInteger(obj.GetString(), ref res))
-                        {
-                            return true;
-                        }
-                        else
-                        {
-                            AddToErrorMessage("failed to parse string as integer");
-                            return false;
-                        }
-                    }
-                case ExObjType.BOOL:
-                    {
-                        res = new(obj.Value.b_Bool ? 1 : 0);
-                        break;
-                    }
-                default:
-                    {
-                        AddToErrorMessage("failed to parse " + obj.Type.ToString() + " as integer");
-                        return false;
-                    }
-            }
-            return true;
-        }
-
         public bool NewSlotA(ExObject self, ExObject key, ExObject val, ExObject attrs, bool bstat, bool braw)
         {
             if (self.Type != ExObjType.CLASS)
@@ -575,7 +482,7 @@ namespace ExMat.VM
             if (!braw)
             {
                 ExObject meta = cls.MetaFuncs[(int)ExMetaMethod.NEWMEMBER];
-                if (meta.Type != ExObjType.NULL)
+                if (meta.IsNotNull())
                 {
                     Push(self);
                     Push(key);
@@ -592,7 +499,7 @@ namespace ExMat.VM
                 return false;
             }
 
-            if (attrs.Type != ExObjType.NULL)
+            if (attrs.IsNotNull())
             {
                 cls.SetAttrs(key, attrs);
             }
@@ -601,7 +508,7 @@ namespace ExMat.VM
 
         public bool NewSlot(ExObject self, ExObject key, ExObject val, bool bstat)
         {
-            if (key.Type == ExObjType.NULL)
+            if (key.IsNull())
             {
                 AddToErrorMessage("'null' can't be used as index");
                 return false;
@@ -1791,7 +1698,7 @@ namespace ExMat.VM
 
                 if (!LeaveFrame())
                 {
-                    throw new ExException("something went wrong with the stack!");
+                    Throw("something went wrong with the stack!");
                 }
                 if (end)
                 {
@@ -1806,7 +1713,7 @@ namespace ExMat.VM
         {
             if (nNativeCalls++ > 100)   // Sonsuz döngüye girildi
             {
-                throw new ExException("Native stack overflow");
+                Throw("Native stack overflow");
             }
             // Fonksiyon kopyasını al
             TempRegistery = new(closure);
@@ -2339,7 +2246,8 @@ namespace ExMat.VM
                                     val.Assign(instruction.arg1 == 1); break;
                                 default:
                                     {
-                                        throw new ExException("unknown array append method");
+                                        Throw("unknown array append method");
+                                        break;
                                     }
                             }
                             GetTargetInStack(instruction.arg0).GetList().Add(val);
@@ -2554,7 +2462,8 @@ namespace ExMat.VM
                         }
                     default:
                         {
-                            throw new ExException("unknown operator " + instruction.op);
+                            Throw("unknown operator " + instruction.op);
+                            break;
                         }
                 }
             }
@@ -2667,7 +2576,7 @@ namespace ExMat.VM
         {
             for (int i = 0; i < Stack.Count; i++)
             {
-                if (Stack[i].Type == ExObjType.NULL)
+                if (Stack[i].IsNull())
                 {
                     return i;
                 }
@@ -2822,7 +2731,7 @@ namespace ExMat.VM
             target.Assign(ExClass.Create(SharedState, cb));
 
             // TO-DO meta methods!
-            if (target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT].Type != ExObjType.NULL)
+            if (target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT].IsNotNull())
             {
                 int np = 2;
                 ExObject r = new();
@@ -2879,8 +2788,7 @@ namespace ExMat.VM
                         }
                     default:
                         {
-                            //TO-DO
-                            throw new ExException("failed compare operator");
+                            return false;
                         }
                 }
 
@@ -2971,7 +2879,7 @@ namespace ExMat.VM
             }
 
             // Argüman 0'a göre değeri sıfırla ya da konsol için değeri dön
-            if (p.Type != ExObjType.NULL || _forcereturn)
+            if (p.IsNotNull() || _forcereturn)
             {
                 if (a0 != ExMat.InvalidArgument || interactive)
                 {
@@ -2990,7 +2898,7 @@ namespace ExMat.VM
 
                     if (!LeaveFrame(isSequence))
                     {
-                        throw new ExException("something went wrong with the stack!");
+                        Throw("something went wrong with the stack!");
                     }
                     return root;
                 }
@@ -3002,7 +2910,7 @@ namespace ExMat.VM
 
             if (!LeaveFrame())
             {
-                throw new ExException("something went wrong with the stack!");
+                Throw("something went wrong with the stack!");
             }
             return root;
         }
@@ -3026,7 +2934,7 @@ namespace ExMat.VM
                         res.Assign(a.GetInt() >> (int)b.GetInt()); break;
                     default:
                         {
-                            throw new ExException("unknown bitwise operation");
+                            return false;
                         }
                 }
             }
@@ -3075,7 +2983,7 @@ namespace ExMat.VM
                         }
                         break;
                     }
-                default: throw new ExException("unknown arithmetic operation");
+                default: return false;
             }
             return true;
         }
@@ -3098,7 +3006,7 @@ namespace ExMat.VM
                         res = new(b == 0 ? HandleZeroInDivision(a) : (a % b));
                         break;
                     }
-                default: throw new ExException("unknown arithmetic operation");
+                default: return false;
             }
             return true;
         }
@@ -3125,7 +3033,7 @@ namespace ExMat.VM
                         res = new(c);
                         break;
                     }
-                default: throw new ExException("unknown arithmetic operation");
+                default: return false;
             }
             return true;
         }
@@ -3153,7 +3061,7 @@ namespace ExMat.VM
                         res = new(c);
                         break;
                     }
-                default: throw new ExException("unknown arithmetic operation");
+                default: return false;
             }
             return true;
         }
@@ -3181,7 +3089,7 @@ namespace ExMat.VM
                         res = new(c);
                         break;
                     }
-                default: throw new ExException("unknown arithmetic operation");
+                default: return false;
             }
             return true;
         }
@@ -3389,7 +3297,7 @@ namespace ExMat.VM
                         {
                             goto default;
                         }
-                        res = new(a.Type == ExObjType.NULL ? ("null" + b.GetString()) : (a.GetString() + "null"));
+                        res = new(a.IsNull() ? ("null" + b.GetString()) : (a.GetString() + "null"));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGBOOL:
@@ -3510,36 +3418,9 @@ namespace ExMat.VM
             return b;
         }
 
-        public enum ArithmeticMask
-        {
-            INT = ExObjType.INTEGER,
-            INTCOMPLEX = ExObjType.COMPLEX | ExObjType.INTEGER,
-
-            FLOAT = ExObjType.FLOAT,
-            FLOATINT = ExObjType.INTEGER | ExObjType.FLOAT,
-            FLOATCOMPLEX = ExObjType.COMPLEX | ExObjType.FLOAT,
-
-            COMPLEX = ExObjType.COMPLEX,
-
-            STRING = ExObjType.STRING,
-            STRINGINT = ExObjType.STRING | ExObjType.INTEGER,
-            STRINGFLOAT = ExObjType.STRING | ExObjType.FLOAT,
-            STRINGCOMPLEX = ExObjType.STRING | ExObjType.COMPLEX,
-            STRINGBOOL = ExObjType.STRING | ExObjType.BOOL,
-            STRINGNULL = ExObjType.STRING | ExObjType.NULL
-        }
-
         public ExObject GetConditionFromInstr(ExInstr i)
         {
             return i.arg3 != 0 ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
-        }
-
-        public enum ExFallback
-        {
-            OK,
-            NOMATCH,
-            ERROR,
-            DONT = 999
         }
 
         public bool Setter(ExObject self, ExObject k, ref ExObject v, ExFallback f)
@@ -3660,6 +3541,7 @@ namespace ExMat.VM
             AddToErrorMessage("key error: " + k.GetString());
             return false;
         }
+
         public ExFallback SetterFallback(ExObject self, ExObject k, ref ExObject v)
         {
             switch (self.Type)
@@ -4097,10 +3979,12 @@ namespace ExMat.VM
         {
             return Stack[StackBase + (int)i.arg0];
         }
+
         public ExObject GetTargetInStack(int i)
         {
             return Stack[StackBase + i];
         }
+
         public ExObject GetTargetInStack(long i)
         {
             return Stack[StackBase + (int)i];
@@ -4114,11 +3998,6 @@ namespace ExMat.VM
             x.Value = y.Value;
             y.Type = t;
             y.Value = v;
-        }
-
-        private static bool IncludesType(int t1, int t2)
-        {
-            return (t1 & t2) != 0;
         }
 
         public void CloseOuters(int idx)
@@ -4166,7 +4045,7 @@ namespace ExMat.VM
             {
                 if (nMetaCalls > 0)     // meta metot içerisinde ise hata ver
                 {
-                    throw new ExException("stack overflow, cant resize while in metamethod");
+                    Throw("stack overflow, cant resize while in metamethod");
                 }
                 ExUtils.ExpandListTo(Stack, 256);   // değilse belleği genişlet
             }
@@ -4244,7 +4123,7 @@ namespace ExMat.VM
 
             if (nNativeCalls + 1 > 100)
             {
-                throw new ExException("Native stack overflow");
+                Throw("Native stack overflow");
             }
 
             // nParameterChecks > 0 => tam nParameterChecks adet argüman gerekli
@@ -4292,7 +4171,7 @@ namespace ExMat.VM
                     } // ".." sembollerini varsayılan değer kontrolü yaparak değiştir
 
                     // argumentType tipi tamsayı olarak ts[i] ile maskelendiğinde 0 oluyorsa beklenmedik bir tiptir 
-                    else if (ts[i] != -1 && !IncludesType((int)argumentType, ts[i]))
+                    else if (ts[i] != -1 && ((int)argumentType & ts[i]) == 0)
                     {
                         AddToErrorMessage("invalid parameter type for parameter " + i + ", expected one of "
                                           + ExApi.GetExpectedTypes(ts[i]) + ", got: " + Stack[newBase + i].Type.ToString());
@@ -4333,7 +4212,7 @@ namespace ExMat.VM
                     {
                         if (!LeaveFrame())  // Çerçeveyi kapat ve hata dönme sürecini başlat
                         {
-                            throw new ExException("something went wrong with the stack!");
+                            Throw("something went wrong with the stack!");
                         }
                         return false;
                     }
@@ -4358,12 +4237,10 @@ namespace ExMat.VM
             // Çerçeveden çık
             if (!LeaveFrame())
             {
-                throw new ExException("something went wrong with the stack!");
+                Throw("something went wrong with the stack!");
             }
             return true;
         }
-
-        public bool _forcereturn;
 
         public bool Call(ref ExObject cls, long nparams, long stackbase, ref ExObject o, bool forcereturn = false)
         {
@@ -4400,7 +4277,7 @@ namespace ExMat.VM
                         ExObject tmp = new();
 
                         CreateClassInst(cls.GetClass(), ref result, cn);
-                        if (cn.Type != ExObjType.NULL)
+                        if (cn.IsNotNull())
                         {
                             Stack[stackBase].Assign(result);
                             bool s = Call(ref cn, nArguments, stackBase, ref tmp);
