@@ -63,6 +63,107 @@ namespace ExMat.API
             return true;
         }
 
+        public static bool ToFloat(ExVM vm, ExObject obj, ref ExObject res)
+        {
+            switch (obj.Type)
+            {
+                case ExObjType.COMPLEX:
+                    {
+                        if (obj.GetComplex().Imaginary != 0.0)
+                        {
+                            vm.AddToErrorMessage("can't parse non-zero imaginary part complex number as float");
+                            return false;
+                        }
+                        res = new(obj.GetComplex().Real);
+                        break;
+                    }
+                case ExObjType.INTEGER:
+                    {
+                        res = new((double)obj.GetInt());
+                        break;
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        res = new(obj.GetFloat());
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        if (ParseStringToFloat(obj.GetString(), ref res))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            vm.AddToErrorMessage("failed to parse string as double");
+                            return false;
+                        }
+                    }
+                case ExObjType.BOOL:
+                    {
+                        res = new(obj.GetBool() ? 1.0 : 0.0);
+                        break;
+                    }
+                default:
+                    {
+                        vm.AddToErrorMessage("failed to parse " + obj.Type.ToString() + " as double");
+                        return false;
+                    }
+            }
+            return true;
+        }
+
+
+        public static bool ToInteger(ExVM vm, ExObject obj, ref ExObject res)
+        {
+            switch (obj.Type)
+            {
+                case ExObjType.COMPLEX:
+                    {
+                        if (obj.GetComplex().Imaginary != 0.0)
+                        {
+                            vm.AddToErrorMessage("can't parse non-zero imaginary part complex number as integer");
+                            return false;
+                        }
+                        res = new((long)obj.GetComplex().Real);
+                        break;
+                    }
+                case ExObjType.INTEGER:
+                    {
+                        res = new(obj.GetInt());
+                        break;
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        res = new((long)obj.GetFloat());
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        if (ParseStringToInteger(obj.GetString(), ref res))
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            vm.AddToErrorMessage("failed to parse string as integer");
+                            return false;
+                        }
+                    }
+                case ExObjType.BOOL:
+                    {
+                        res = new(obj.GetBool() ? 1 : 0);
+                        break;
+                    }
+                default:
+                    {
+                        vm.AddToErrorMessage("failed to parse " + obj.Type.ToString() + " as integer");
+                        return false;
+                    }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Parse an object as 64bit floating point value
         /// </summary>
@@ -71,11 +172,11 @@ namespace ExMat.API
         /// <param name="pop">Amount of objects to pop from stack, used for returning values in interactive console</param>
         /// <returns><see langword="true"/> if object was successfully parsed as float
         /// <para><see langword="false"/> if there was an error parsing the object</para></returns>
-        public static bool ToFloat(ExVM vm, int idx, int pop = 0)
+        public static bool ToFloatFromStack(ExVM vm, int idx, int pop = 0)
         {
             ExObject o = GetFromStack(vm, idx);
             ExObject res = null;
-            if (!vm.ToFloat(o, ref res))
+            if (!ToFloat(vm, o, ref res))
             {
                 return false;
             }
@@ -91,11 +192,11 @@ namespace ExMat.API
         /// <param name="pop">Amount of objects to pop from stack, used for returning values in interactive console</param>
         /// <returns><see langword="true"/> if object was successfully parsed as integer
         /// <para><see langword="false"/> if there was an error parsing the object</para></returns>
-        public static bool ToInteger(ExVM vm, int idx, int pop = 0)
+        public static bool ToIntegerFromStack(ExVM vm, int idx, int pop = 0)
         {
             ExObject o = GetFromStack(vm, idx);
             ExObject res = null;
-            if (!vm.ToInteger(o, ref res))
+            if (!ToInteger(vm, o, ref res))
             {
                 return false;
             }
@@ -860,7 +961,7 @@ namespace ExMat.API
                     List<int> r = new();
                     if (!CompileTypeMask(mask, r))
                     {
-                        throw new ExException("failed to compile type mask");
+                        Throw("failed to compile type mask", vm);
                     }
                     nc.TypeMasks = r;
                 }
@@ -886,6 +987,16 @@ namespace ExMat.API
             }
         }
 
+        public static void Throw(ExVM vm, string msg)
+        {
+            throw new ExException(vm, msg);
+        }
+
+        public static void Throw(string msg, ExVM vm)
+        {
+            throw new ExException(vm, msg);
+        }
+
         /// <summary>
         /// Creates a new key-value pair in a dictionary or a member in a class
         /// </summary>
@@ -896,16 +1007,16 @@ namespace ExMat.API
         {
             if (GetTopOfStack(vm) < 3)
             {
-                throw new ExException("not enough parameters in stack");
+                Throw(vm, "not enough parameters in stack");
             }
             ExObject self = GetFromStack(vm, idx);
             if (self.Type == ExObjType.DICT || self.Type == ExObjType.CLASS)
             {
                 ExObject k = new();
                 k.Assign(vm.GetAbove(-2));
-                if (k.Type == ExObjType.NULL)
+                if (k.IsNull())
                 {
-                    throw new ExException("'null' is not a valid key");
+                    Throw(vm, "'null' is not a valid key");
                 }
                 vm.NewSlot(self, k, vm.GetAbove(-1), false);
                 vm.Pop(2);
@@ -1237,7 +1348,7 @@ namespace ExMat.API
         private static bool ShouldPrintTop(ExVM vm)
         {
             return !vm.PrintedToConsole
-                    && vm.GetAbove(-1).Type != ExObjType.NULL;
+                    && vm.GetAbove(-1).IsNotNull();
         }
 
         /// <summary>
@@ -1426,6 +1537,14 @@ namespace ExMat.API
                     {
                         Console.ForegroundColor = ConsoleColor.Magenta;
                         vm.PrintLine("INPUT STREAM RESET");
+                        Console.ForegroundColor = ConsoleColor.White;
+                        vm.PrintLine(vm.ErrorString);
+                        break;
+                    }
+                case ExErrorType.INTERNAL:
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        vm.PrintLine("INTERNAL ERROR");
                         Console.ForegroundColor = ConsoleColor.White;
                         vm.PrintLine(vm.ErrorString);
                         break;
