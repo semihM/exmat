@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using ExMat.Closure;
@@ -19,6 +20,27 @@ namespace ExMat.API
     /// </summary>
     public static class ExApi
     {
+
+        /// <summary>
+        /// Create a cryptographically safe random string using characters from [a-zA-Z0-9]
+        /// </summary>
+        /// <param name="length">Length of the string</param>
+        /// <returns>A random string of given <paramref name="length"/></returns>
+        public static string RandomString(int length)
+        {
+            var randomGenerator = RandomNumberGenerator.Create();
+            byte[] data = new byte[length];
+            randomGenerator.GetBytes(data);
+
+            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            StringBuilder str = new(length);
+            for (int i = 0; i < length; i++)
+            {
+                str.Append(chars[data[i] % 62]);
+            }
+            return str.ToString();
+        }
+
         /// <summary>
         /// Get an object from stack and assert a certain <paramref name="type"/>
         /// </summary>
