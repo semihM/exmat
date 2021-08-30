@@ -305,7 +305,12 @@ namespace ExMat.BaseLib
             for (int l = 0; l < n; l++)
             {
                 ExObject b = new();
-                vm.ToInteger(lis.Value.l_List[l], ref b);
+
+                if (!ExApi.ToInteger(vm, lis.Value.l_List[l], ref b))
+                {
+                    return vm.AddToErrorMessage(string.Format("Failed to convert '{0}' to byte", ExApi.GetSimpleString(lis.Value.l_List[l])));
+                }
+
                 bytes[l] = Convert.ToByte(b.GetInt());
             }
 
