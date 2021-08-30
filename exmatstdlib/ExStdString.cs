@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using ExMat.API;
@@ -12,17 +11,9 @@ namespace ExMat.BaseLib
 {
     public static class ExStdString
     {
-        private static string RandomString(int length)
-        {
-            Random random = new();
-            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
-        }
-
         public static ExFunctionStatus StdStringRands(ExVM vm, int nargs)
         {
-            return vm.CleanReturn(nargs + 2, RandomString(nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 10) : 10));
+            return vm.CleanReturn(nargs + 2, ExApi.RandomString(nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 10) : 10));
         }
 
         private static ExObject GetMatch(Match match)

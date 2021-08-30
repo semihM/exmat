@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Threading;
 using ExMat.API;
 using ExMat.VM;
 
@@ -10,6 +11,8 @@ namespace ExMat.Exceptions
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExException : Exception
     {
+        public const int HoldAfterError = 20000;
+
         public ExException()
         {
         }
@@ -18,6 +21,7 @@ namespace ExMat.Exceptions
             : base(message)
         {
             Console.WriteLine(string.Format("\n\nFATAL ERROR: {0}\n\n", message));
+            Thread.Sleep(HoldAfterError);
         }
 
         public ExException(ExVM vm, string message)
@@ -33,7 +37,7 @@ namespace ExMat.Exceptions
 
         protected ExException(ExVM vm, SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            WriteErrorMessagesToVM(vm, "");
+            WriteErrorMessagesToVM(vm, "FATAL ERROR");
         }
 
         protected ExException(SerializationInfo info, StreamingContext context) : base(info, context)
@@ -48,6 +52,7 @@ namespace ExMat.Exceptions
         {
             vm.AddToErrorMessage(message);
             ExApi.WriteErrorMessages(vm, ExErrorType.INTERNAL);
+            Thread.Sleep(HoldAfterError);
         }
 
         public override IDictionary Data => base.Data;

@@ -61,13 +61,23 @@ printl(hx2)
 printl(hx3)  
 
 printl("----------")
-var bin = 0b0000101
-var bin2 = 0b101
-var bin3 = 0b1111111111111111111111111111111111111111111111111111111111111111
-printl(typeof bin)
-printl(bin) 
-printl(bin2) 
-printl(bin3)  
+var bin32_5 = 0b0000101
+var bin32_minus1 = 0b11111111111111111111111111111111 // -1
+var bin32_minimum = 0b10000000000000000000000000000000 // INT32_MIN
+var bin32_maximum = 0b01111111111111111111111111111111 // INT32_MAX
+var bin64_minus1 = 0B1111111111111111111111111111111111111111111111111111111111111111 // -1
+var bin64_minimum = 0B1000000000000000000000000000000000000000000000000000000000000000 // INT64_MIN
+var bin64_maximum = 0B0111111111111111111111111111111111111111111111111111111111111111 // INT64_MAX
+
+printl(typeof bin32_5)
+printl(bin32_5) 
+printl(bin32_minus1) 
+printl(bin32_minimum)  
+printl(bin32_maximum)  
+
+printl(bin64_minus1)  
+printl(bin64_minimum)  
+printl(bin64_maximum)  
 
 printl("----------")
 var l = [1,3,5,7]

@@ -125,7 +125,7 @@ namespace ExMat
             }
             else
             {
-                code = code.TrimEnd(' ', '\t');
+                code = TrimCode(code, false);
 
                 if (string.IsNullOrWhiteSpace(code))
                 {
@@ -138,7 +138,7 @@ namespace ExMat
                     ToggleFlag(ExInteractiveConsoleFlag.LINECARRY);
                 }
 
-                return code.TrimEnd('\\', ' ', '\t');
+                return TrimCode(code);
             }
         }
 
@@ -330,54 +330,108 @@ namespace ExMat
             });
         }
 
+        private static void HandleUserInputFunction(ref StringBuilder code)
+        {
+            // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
+            if (ActiveVM.GotUserInput && HasFlag(ExInteractiveConsoleFlag.EMPTYINPUT))
+            {
+                RemoveFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
+                ActiveVM.GotUserInput = false;
+
+                code = new(GetInput());
+                ContinueDelayedInput(code);
+            }
+        }
+        
+        private static bool HandleLineCarryInput(ref StringBuilder code)
+        {
+            if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı kod oku
+            {
+                code.Append(GetInput());
+                ContinueDelayedInput(code);
+            }
+            else
+            {
+                ExApi.WriteIn(ActiveVM.InputCount); // Girdi numarası yaz
+
+                code = new(GetInput());
+                ContinueDelayedInput(code);
+
+                HandleUserInputFunction(ref code);
+            }
+
+            if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı ise okumaya devam et
+            {
+                Indent();
+                code.Append("\r\n");
+                return true;
+            }
+
+            return false;
+        }
+
+        private static void HandlePostVMExecution(int ret)
+        {
+            if (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
+            {
+                RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
+            }
+
+            ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
+
+            if (ActiveVM.ExitCalled)  // exit fonksiyonu çağırıldıysa bitir
+            {
+                ReturnValue = new(ret);
+            }
+        }
+
+        private static string TrimCode(string code, bool includeCarry = true)
+        {
+            if (includeCarry)
+            {
+                return code.TrimEnd('\\', ' ', '\t');
+            }
+            else
+            {
+                return code.TrimEnd(' ', '\t');
+            }
+        }
+
+        private static string TrimCode(StringBuilder code, bool includeCarry = true)
+        {
+            if(includeCarry)
+            {
+                return code.ToString().TrimEnd('\\', ' ', '\t');
+            }
+            else
+            {
+                return code.ToString().TrimEnd(' ', '\t');
+            }
+        }
+
         private static void CreateInteractiveVMThread()
         {
             ActiveThread = new(() =>
             {
                 Initialize();
 
-                bool GettingInput = true;
                 int ret = -1;
                 StringBuilder code = new();
 
-                while (GettingInput)    // Sürekli olarak girdi al
+                while (!ActiveVM.ExitCalled)    // Sürekli olarak girdi al
                 {
                     try
                     {
                         DelayAfterInterruption();
-                        if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı kod oku
+                        
+                        if(HandleLineCarryInput(ref code))
                         {
-                            code.Append(GetInput());
-                            ContinueDelayedInput(code);
-                        }
-                        else
-                        {
-                            ExApi.WriteIn(ActiveVM.InputCount); // Girdi numarası yaz
-
-                            code = new(GetInput());
-                            ContinueDelayedInput(code);
-
-                            // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
-                            if (ActiveVM.GotUserInput && HasFlag(ExInteractiveConsoleFlag.EMPTYINPUT))
-                            {
-                                RemoveFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
-                                ActiveVM.GotUserInput = false;
-
-                                code = new(GetInput());
-                                ContinueDelayedInput(code);
-                            }
-                        }
-
-                        if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı ise okumaya devam et
-                        {
-                            Indent();
-                            code.Append("\r\n");
                             continue;
                         }
 
                         ContinueDelayedInput(code);
 
-                        ret = CompileString(ActiveVM, code.ToString().TrimEnd('\\', ' ', '\t'));  // Derle ve işle
+                        ret = CompileString(ActiveVM, TrimCode(code));  // Derle ve işle
 
                     }
                     catch (ThreadInterruptedException) { }
@@ -388,18 +442,7 @@ namespace ExMat
                     }
                     finally
                     {
-                        if (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
-                        {
-                            RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
-                        }
-
-                        ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
-
-                        if (ActiveVM.ExitCalled)  // exit fonksiyonu çağırıldıysa bitir
-                        {
-                            ReturnValue = new(ret);
-                            GettingInput = false;
-                        }
+                        HandlePostVMExecution(ret);
                     }
                 }
             });
@@ -407,7 +450,7 @@ namespace ExMat
 
         private static void LoopUntilThreadStops()
         {
-            for (; ActiveThread.IsAlive;) { }
+            while (ActiveThread.IsAlive) { }
         }
 
         private static bool ReadFileContents(string path)

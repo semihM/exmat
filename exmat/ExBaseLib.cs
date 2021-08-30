@@ -101,12 +101,145 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, new ExObject((DateTime.Now - vm.StartingTime).TotalMilliseconds));
         }
 
-        public static ExFunctionStatus StdDate(ExVM vm, int nargs)
+        private static void GetDateFromStringArgument(bool shrt, string[] splt, List<ExObject> res)
         {
-            bool shrt = false;
             DateTime now = DateTime.Now;
             DateTime today = DateTime.Today;
             DateTime utcnow = DateTime.UtcNow;
+
+            foreach (string arg in splt)
+            {
+                switch (arg.ToLower())
+                {
+                    case "today":
+                        {
+                            res.Add(new ExObject(shrt ? today.ToShortDateString() : today.ToLongDateString()));
+                            break;
+                        }
+                    case "now":
+                    case "time":
+                        {
+                            res.Add(new ExObject(shrt ? now.ToShortTimeString() : now.ToLongTimeString()));
+                            break;
+                        }
+                    case "year":
+                        {
+                            res.Add(new ExObject(now.Year.ToString()));
+                            break;
+                        }
+                    case "month":
+                        {
+                            res.Add(new ExObject(now.Month.ToString()));
+                            break;
+                        }
+                    case "day":
+                    case "wday":
+                        {
+                            res.Add(new ExObject(now.DayOfWeek.ToString()));
+                            break;
+                        }
+                    case "mday":
+                        {
+                            res.Add(new ExObject(now.Day.ToString()));
+                            break;
+                        }
+                    case "yday":
+                        {
+                            res.Add(new ExObject(now.DayOfYear.ToString()));
+                            break;
+                        }
+                    case "hours":
+                    case "hour":
+                    case "hh":
+                    case "h":
+                        {
+                            res.Add(new ExObject(now.Hour.ToString()));
+                            break;
+                        }
+                    case "minutes":
+                    case "minute":
+                    case "min":
+                    case "mm":
+                    case "m":
+                        {
+                            res.Add(new ExObject(now.Minute.ToString()));
+                            break;
+                        }
+                    case "seconds":
+                    case "second":
+                    case "sec":
+                    case "ss":
+                    case "s":
+                        {
+                            res.Add(new ExObject(now.Second.ToString()));
+                            break;
+                        }
+                    case "miliseconds":
+                    case "milisecond":
+                    case "ms":
+                        {
+                            res.Add(new ExObject(now.Millisecond.ToString()));
+                            break;
+                        }
+                    case "utc":
+                        {
+                            res.Add(new ExObject(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
+                            res.Add(new ExObject(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
+                            res.Add(new ExObject(utcnow.Millisecond.ToString()));
+                            break;
+                        }
+                    case "utc-today":
+                        {
+                            res.Add(new ExObject(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
+                            break;
+                        }
+                    case "utc-now":
+                    case "utc-time":
+                        {
+                            res.Add(new ExObject(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
+                            break;
+                        }
+                    case "utc-year":
+                        {
+                            res.Add(new ExObject(utcnow.Month.ToString()));
+                            break;
+                        }
+                    case "utc-month":
+                        {
+                            res.Add(new ExObject(utcnow.Month.ToString()));
+                            break;
+                        }
+                    case "utc-day":
+                    case "utc-wday":
+                        {
+                            res.Add(new ExObject(utcnow.DayOfWeek.ToString()));
+                            break;
+                        }
+                    case "utc-mday":
+                        {
+                            res.Add(new ExObject(utcnow.Day.ToString()));
+                            break;
+                        }
+                    case "utc-yday":
+                        {
+                            res.Add(new ExObject(utcnow.DayOfYear.ToString()));
+                            break;
+                        }
+                    case "utc-h":
+                    case "utc-hh":
+                    case "utc-hour":
+                    case "utc-hours":
+                        {
+                            res.Add(new ExObject(utcnow.Hour.ToString()));
+                            break;
+                        }
+                }
+            }
+        }
+
+        public static ExFunctionStatus StdDate(ExVM vm, int nargs)
+        {
+            bool shrt = false;
 
             switch (nargs)
             {
@@ -119,134 +252,9 @@ namespace ExMat.BaseLib
                     {
                         string[] splt = vm.GetArgument(1).GetString().Split("|", StringSplitOptions.RemoveEmptyEntries);
                         List<ExObject> res = new(splt.Length);
-                        foreach (string arg in splt)
-                        {
-                            switch (arg.ToLower())
-                            {
-                                case "today":
-                                    {
-                                        res.Add(new ExObject(shrt ? today.ToShortDateString() : today.ToLongDateString()));
-                                        break;
-                                    }
-                                case "now":
-                                case "time":
-                                    {
-                                        res.Add(new ExObject(shrt ? now.ToShortTimeString() : now.ToLongTimeString()));
-                                        break;
-                                    }
-                                case "year":
-                                    {
-                                        res.Add(new ExObject(now.Year.ToString()));
-                                        break;
-                                    }
-                                case "month":
-                                    {
-                                        res.Add(new ExObject(now.Month.ToString()));
-                                        break;
-                                    }
-                                case "day":
-                                case "wday":
-                                    {
-                                        res.Add(new ExObject(now.DayOfWeek.ToString()));
-                                        break;
-                                    }
-                                case "mday":
-                                    {
-                                        res.Add(new ExObject(now.Day.ToString()));
-                                        break;
-                                    }
-                                case "yday":
-                                    {
-                                        res.Add(new ExObject(now.DayOfYear.ToString()));
-                                        break;
-                                    }
-                                case "hours":
-                                case "hour":
-                                case "hh":
-                                case "h":
-                                    {
-                                        res.Add(new ExObject(now.Hour.ToString()));
-                                        break;
-                                    }
-                                case "minutes":
-                                case "minute":
-                                case "min":
-                                case "mm":
-                                case "m":
-                                    {
-                                        res.Add(new ExObject(now.Minute.ToString()));
-                                        break;
-                                    }
-                                case "seconds":
-                                case "second":
-                                case "sec":
-                                case "ss":
-                                case "s":
-                                    {
-                                        res.Add(new ExObject(now.Second.ToString()));
-                                        break;
-                                    }
-                                case "miliseconds":
-                                case "milisecond":
-                                case "ms":
-                                    {
-                                        res.Add(new ExObject(now.Millisecond.ToString()));
-                                        break;
-                                    }
-                                case "utc":
-                                    {
-                                        res.Add(new ExObject(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
-                                        res.Add(new ExObject(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
-                                        res.Add(new ExObject(utcnow.Millisecond.ToString()));
-                                        break;
-                                    }
-                                case "utc-today":
-                                    {
-                                        res.Add(new ExObject(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
-                                        break;
-                                    }
-                                case "utc-now":
-                                case "utc-time":
-                                    {
-                                        res.Add(new ExObject(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
-                                        break;
-                                    }
-                                case "utc-year":
-                                    {
-                                        res.Add(new ExObject(utcnow.Month.ToString()));
-                                        break;
-                                    }
-                                case "utc-month":
-                                    {
-                                        res.Add(new ExObject(utcnow.Month.ToString()));
-                                        break;
-                                    }
-                                case "utc-day":
-                                case "utc-wday":
-                                    {
-                                        res.Add(new ExObject(utcnow.DayOfWeek.ToString()));
-                                        break;
-                                    }
-                                case "utc-mday":
-                                    {
-                                        res.Add(new ExObject(utcnow.Day.ToString()));
-                                        break;
-                                    }
-                                case "utc-yday":
-                                    {
-                                        res.Add(new ExObject(utcnow.DayOfYear.ToString()));
-                                        break;
-                                    }
-                                case "utc-h":
-                                case "utc-hh":
-                                case "utc-hour":
-                                case "utc-hours":
-                                    {
-                                        res.Add(new ExObject(utcnow.Hour.ToString()));
-                                        break;
-                                    }
-                            }
-                        }
+
+                        GetDateFromStringArgument(shrt, splt, res);
+
                         if (res.Count == 1)
                         {
                             return vm.CleanReturn(nargs + 2, new ExObject(res[0]));
@@ -258,7 +266,14 @@ namespace ExMat.BaseLib
                     }
                 default:
                     {
-                        return vm.CleanReturn(nargs + 2, new ExObject(new List<ExObject>() { new(today.ToLongDateString()), new(now.ToLongTimeString()), new(now.Millisecond.ToString()) }));
+                        return vm.CleanReturn(nargs + 2,
+                            new ExObject(new List<ExObject>()
+                                { 
+                                    new(DateTime.Today.ToLongDateString()),
+                                    new(DateTime.Now.ToLongTimeString()),
+                                    new(DateTime.Now.Millisecond.ToString()) 
+                                })
+                            );
                     }
             }
         }
@@ -352,6 +367,38 @@ namespace ExMat.BaseLib
             }
         }
 
+        public static ExFunctionStatus HandleCharArrayToString(ExVM vm, int nargs, ExObject obj)
+        {
+            if (obj.Type == ExObjType.ARRAY)
+            {
+                StringBuilder str = new(obj.GetList().Count);
+
+                if (!ExApi.ConvertIntegerStringArrayToString(obj.GetList(), str))
+                {
+                    return vm.AddToErrorMessage("failed to create string, list must contain all positive integers within 'char' range or strings");
+                }
+                else
+                {
+                    return vm.CleanReturn(nargs + 2, str.ToString());
+                }
+            }
+            else if (obj.Type == ExObjType.INTEGER)
+            {
+                long val = obj.GetInt();
+
+                if (val < char.MinValue || val > char.MaxValue)
+                {
+                    return vm.AddToErrorMessage("integer out of range for char conversion");
+                }
+
+                return vm.CleanReturn(nargs + 2, ((char)val).ToString());
+            }
+            else
+            {
+                return vm.AddToErrorMessage("expected INTEGER or ARRAY when 2nd parameter of 'string' is true");
+            }
+        }
+
         public static ExFunctionStatus StdString(ExVM vm, int nargs)
         {
             bool carr = false;
@@ -370,44 +417,9 @@ namespace ExMat.BaseLib
                     }
                 case 1:
                     {
-                        ExObject obj = vm.GetArgument(1);
                         if (carr)
                         {
-                            if (obj.Type == ExObjType.ARRAY)
-                            {
-                                StringBuilder str = new();
-                                foreach (ExObject o in obj.GetList())
-                                {
-                                    if (o.Type == ExObjType.STRING) // && o.GetString().Length == 1)
-                                    {
-                                        str.Append(o.GetString());
-                                    }
-                                    else if (o.Type == ExObjType.INTEGER && o.GetInt() >= 0)
-                                    {
-                                        str.Append(o.GetInt());
-                                    }
-                                    else
-                                    {
-                                        return vm.AddToErrorMessage("failed to create string, list must contain all positive integers or strings");
-                                    }
-                                }
-
-                                return vm.CleanReturn(nargs + 2, str.ToString());
-                            }
-                            else if (obj.Type == ExObjType.INTEGER)
-                            {
-                                long val = obj.GetInt();
-                                if (val < char.MinValue || val > char.MaxValue)
-                                {
-                                    return vm.AddToErrorMessage("integer out of range for char conversion");
-                                }
-
-                                return vm.CleanReturn(nargs + 2, ((char)val).ToString());
-                            }
-                            else
-                            {
-                                return vm.AddToErrorMessage("expected INTEGER or ARRAY when 2nd parameter of 'string' is true");
-                            }
+                            return HandleCharArrayToString(vm, nargs, vm.GetArgument(1));
                         }
                         else if (!ExApi.ToString(vm, 2, depth, nargs + 2))
                         {
@@ -460,6 +472,39 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        public static ExFunctionStatus HandleBitConversion(int bits, ExVM vm, int nargs, long b, bool reverse)
+        {
+            if (bits == 32 && (b > int.MaxValue || b < int.MinValue))
+            {
+                return vm.AddToErrorMessage("64bit value out of range for 32bit use");
+            }
+
+            List<ExObject> l = new(bits);
+
+            foreach (int bit in ExApi.GetBits(b, bits))
+            {
+                l.Add(new(bit));
+            }
+
+            if (reverse)
+            {
+                l.Reverse();
+            }
+
+            return vm.CleanReturn(nargs + 2, l);
+        }
+
+        public static ExFunctionStatus Handle32BitConversion(ExVM vm, int nargs, long b, bool reverse)
+        {
+            return HandleBitConversion(32, vm, nargs, b, reverse);
+        }
+
+        public static ExFunctionStatus Handle64BitConversion(ExVM vm, int nargs, long b, bool reverse)
+        {
+            return HandleBitConversion(64, vm, nargs, b, reverse);
+        }
+
         public static ExFunctionStatus StdBits32(ExVM vm, int nargs)
         {
             bool reverse = false;
@@ -473,43 +518,8 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         ExObject v = vm.GetArgument(1);
-                        long b = 0;
-                        switch (v.Type)
-                        {
-                            case ExObjType.INTEGER:
-                                {
-                                    b = v.GetInt();
-                                    goto default;
-                                }
-                            case ExObjType.FLOAT:
-                                {
-                                    b = new DoubleLong() { f = v.GetFloat() }.i;
-                                    goto default;
-                                }
-                            default:
-                                {
-                                    if (b >= int.MaxValue || b <= int.MinValue)
-                                    {
-                                        vm.AddToErrorMessage("64bit '" + v.Type.ToString() + "' out of range for 32bit use");
-                                        return ExFunctionStatus.ERROR;
-                                    }
-                                    b = (int)b;
-
-                                    List<ExObject> l = new(32);
-
-                                    foreach (int bit in ExApi.GetBits(b, 32))
-                                    {
-                                        l.Add(new(bit));
-                                    }
-
-                                    if (reverse)
-                                    {
-                                        l.Reverse();
-                                    }
-
-                                    return vm.CleanReturn(nargs + 2, l);
-                                }
-                        }
+                        long b = v.Type == ExObjType.INTEGER ? v.GetInt() : new DoubleLong() { f = v.GetFloat() }.i;
+                        return Handle32BitConversion(vm, nargs, b, reverse);
                     }
                 default:
                     {
@@ -531,35 +541,8 @@ namespace ExMat.BaseLib
                 case 1:
                     {
                         ExObject v = vm.GetArgument(1);
-                        long b = 0;
-                        switch (v.Type)
-                        {
-                            case ExObjType.INTEGER:
-                                {
-                                    b = v.GetInt();
-                                    goto default;
-                                }
-                            case ExObjType.FLOAT:
-                                {
-                                    b = new DoubleLong() { f = v.GetFloat() }.i;
-                                    goto default;
-                                }
-                            default:
-                                {
-                                    List<ExObject> l = new(64);
-                                    foreach (int bit in ExApi.GetBits(b, 64))
-                                    {
-                                        l.Add(new(bit));
-                                    }
-
-                                    if (reverse)
-                                    {
-                                        l.Reverse();
-                                    }
-
-                                    return vm.CleanReturn(nargs + 2, l);
-                                }
-                        }
+                        long b = v.Type == ExObjType.INTEGER ? v.GetInt() : new DoubleLong() { f = v.GetFloat() }.i;
+                        return Handle64BitConversion(vm, nargs, b, reverse);
                     }
                 default:
                     {
@@ -660,16 +643,16 @@ namespace ExMat.BaseLib
                                 }
                             default:
                                 {
-                                    char[] chars = Convert.ToString(b, 2).ToCharArray();
-                                    List<ExObject> lis = new(chars.Length + (prefix ? 2 : 0));
+                                    List<ExObject> lis = new(prefix ? 66 : 64);
                                     if (prefix)
                                     {
                                         lis.Add(new("0"));
-                                        lis.Add(new("b"));
+                                        lis.Add(new("B"));
                                     }
-                                    foreach (char i in chars)
+
+                                    foreach (int bit in ExApi.GetBits(b, 64))
                                     {
-                                        lis.Add(new(i.ToString()));
+                                        lis.Add(new(bit.ToString()));
                                     }
 
                                     return vm.CleanReturn(nargs + 2, lis);
@@ -678,14 +661,80 @@ namespace ExMat.BaseLib
                     }
                 default:
                     {
-                        List<ExObject> lis = new(prefix ? 18 : 16);
+                        List<ExObject> lis = new(prefix ? 66 : 64);
+                        if (prefix)
+                        {
+                            lis.Add(new("0"));
+                            lis.Add(new("B"));
+                        }
+
+                        for (int i = 0; i < 64; i++)
+                        {
+                            lis.Add(new("0"));
+                        }
+                        return vm.CleanReturn(nargs + 2, lis);
+                    }
+            }
+        }
+
+        public static ExFunctionStatus StdBinary32(ExVM vm, int nargs)
+        {
+            bool prefix = true;
+            switch (nargs)
+            {
+                case 2:
+                    {
+                        prefix = vm.GetArgument(2).GetBool();
+                        goto case 1;
+                    }
+                case 1:
+                    {
+                        ExObject v = vm.GetArgument(1);
+                        long b = 0;
+                        switch (v.Type)
+                        {
+                            case ExObjType.INTEGER:
+                                {
+                                    b = v.GetInt();
+                                    goto default;
+                                }
+                            case ExObjType.FLOAT:
+                                {
+                                    b = new DoubleLong() { f = v.GetFloat() }.i;
+                                    goto default;
+                                }
+                            default:
+                                {
+                                    if (b > int.MaxValue || b < int.MinValue)
+                                    {
+                                        return vm.AddToErrorMessage("64bit value out of range for 32bit use");
+                                    }
+                                    List<ExObject> lis = new(prefix ? 34 : 32);
+                                    if (prefix)
+                                    {
+                                        lis.Add(new("0"));
+                                        lis.Add(new("b"));
+                                    }
+
+                                    foreach (int bit in ExApi.GetBits(b, 32))
+                                    {
+                                        lis.Add(new(bit.ToString()));
+                                    }
+
+                                    return vm.CleanReturn(nargs + 2, lis);
+                                }
+                        }
+                    }
+                default:
+                    {
+                        List<ExObject> lis = new(prefix ? 34 : 32);
                         if (prefix)
                         {
                             lis.Add(new("0"));
                             lis.Add(new("b"));
                         }
 
-                        for (int i = 0; i < 64; i++)
+                        for (int i = 0; i < 32; i++)
                         {
                             lis.Add(new("0"));
                         }
@@ -3252,6 +3301,18 @@ namespace ExMat.BaseLib
             {
                 Name = "binary",
                 Function = StdBinary,
+                nParameterChecks = -1,
+                ParameterMask = ".i|f.",
+                DefaultValues = new()
+                {
+                    { 1, new(0) },
+                    { 2, new(true) }
+                }
+            },
+            new()
+            {
+                Name = "binary32",
+                Function = StdBinary32,
                 nParameterChecks = -1,
                 ParameterMask = ".i|f.",
                 DefaultValues = new()

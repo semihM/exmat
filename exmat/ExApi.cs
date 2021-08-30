@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using ExMat.Closure;
@@ -9,6 +10,7 @@ using ExMat.Exceptions;
 using ExMat.Interfaces;
 using ExMat.Objects;
 using ExMat.States;
+using ExMat.Utils;
 using ExMat.VM;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -19,6 +21,27 @@ namespace ExMat.API
     /// </summary>
     public static class ExApi
     {
+
+        /// <summary>
+        /// Create a cryptographically safe random string using characters from [a-zA-Z0-9]
+        /// </summary>
+        /// <param name="length">Length of the string</param>
+        /// <returns>A random string of given <paramref name="length"/></returns>
+        public static string RandomString(int length)
+        {
+            var randomGenerator = RandomNumberGenerator.Create();
+            byte[] data = new byte[length];
+            randomGenerator.GetBytes(data);
+
+            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            StringBuilder str = new(length);
+            for (int i = 0; i < length; i++)
+            {
+                str.Append(chars[data[i] % 62]);
+            }
+            return str.ToString();
+        }
+
         /// <summary>
         /// Get an object from stack and assert a certain <paramref name="type"/>
         /// </summary>
@@ -237,6 +260,98 @@ namespace ExMat.API
             }
         }
 
+        public static bool CheckEqualFloat(double x, double y)
+        {
+            if(double.IsNaN(x))
+            {
+                return double.IsNaN(y);
+            }
+            return x == y;
+        }
+
+        public static bool CheckEqualArray(List<ExObject> x, List<ExObject> y)
+        {
+            if (x.Count != y.Count)
+            {
+                return false;
+            }
+
+            bool res = true;
+            for (int i = 0; i < x.Count; i++)
+            {
+                ExObject r = x[i];
+                if (!res)
+                {
+                    return false;
+                }
+                if (!CheckEqual(r, y[i], ref res))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static void CheckEqualForSameType(ExObject x, ExObject y, ref bool res)
+        {
+            switch (x.Type)
+            {
+                case ExObjType.BOOL:
+                    res = x.GetBool() == y.GetBool();
+                    break;
+                case ExObjType.STRING:
+                    res = x.GetString() == y.GetString();
+                    break;
+                case ExObjType.COMPLEX:
+                    res = x.GetComplex() == y.GetComplex();
+                    break;
+                case ExObjType.INTEGER:
+                    res = x.GetInt() == y.GetInt();
+                    break;
+                case ExObjType.FLOAT:
+                    res = CheckEqualFloat(x.GetFloat(), y.GetFloat());
+                    break;
+                case ExObjType.NULL:
+                    res = true;
+                    break;
+                case ExObjType.NATIVECLOSURE: // TO-DO Need better checks
+                    CheckEqual(x.GetNClosure().Name, y.GetNClosure().Name, ref res);
+                    break;
+                case ExObjType.CLOSURE:
+                    CheckEqual(x.GetClosure().Function.Name, y.GetClosure().Function.Name, ref res);
+                    break;
+                case ExObjType.ARRAY:
+                    res = CheckEqualArray(x.GetList(), y.GetList());
+                    break;
+                default:
+                    res = x == y;   // TO-DO
+                    break;
+            }
+        }
+
+        public static void CheckEqualForDifferingTypes(ExObject x, ExObject y, ref bool res)
+        {
+            bool bx = x.IsNumeric();
+            bool by = y.IsNumeric();
+            if (by && x.Type == ExObjType.COMPLEX)
+            {
+                res = x.GetComplex() == y.GetFloat();
+            }
+            else if (bx && y.Type == ExObjType.COMPLEX)
+            {
+                res = x.GetFloat() == y.GetComplex();
+            }
+            else if (bx && by)
+            {
+                res = CheckEqualFloat(x.GetFloat(), y.GetFloat());
+            }
+            else
+            {
+                res = false;
+            }
+        }
+
         /// <summary>
         /// Checks equality of given two objects
         /// </summary>
@@ -248,94 +363,11 @@ namespace ExMat.API
         {
             if (x.Type == y.Type)
             {
-                switch (x.Type)
-                {
-                    case ExObjType.BOOL:
-                        res = x.GetBool() == y.GetBool();
-                        break;
-                    case ExObjType.STRING:
-                        res = x.GetString() == y.GetString();
-                        break;
-                    case ExObjType.COMPLEX:
-                        res = x.GetComplex() == y.GetComplex();
-                        break;
-                    case ExObjType.INTEGER:
-                        res = x.GetInt() == y.GetInt();
-                        break;
-                    case ExObjType.FLOAT:
-                        {
-                            double xv = x.GetFloat();
-                            double yv = y.GetFloat();
-                            if (double.IsNaN(xv))
-                            {
-                                res = double.IsNaN(yv);
-                            }
-                            else if (double.IsNaN(yv))
-                            {
-                                res = double.IsNaN(xv);
-                            }
-                            else
-                            {
-                                res = x.GetFloat() == y.GetFloat();
-                            }
-                        }
-                        break;
-                    case ExObjType.NULL:
-                        res = true;
-                        break;
-                    case ExObjType.NATIVECLOSURE:
-                        CheckEqual(x.GetNClosure().Name, y.GetNClosure().Name, ref res);
-                        break;
-                    case ExObjType.CLOSURE:
-                        CheckEqual(x.GetClosure().Function.Name, y.GetClosure().Function.Name, ref res);
-                        break;
-                    case ExObjType.ARRAY:
-                        {
-                            if (x.GetList().Count != y.GetList().Count)
-                            {
-                                res = false;
-                                break;
-                            }
-                            res = true;
-                            for (int i = 0; i < x.GetList().Count; i++)
-                            {
-                                ExObject r = x.GetList()[i];
-                                if (!res)
-                                {
-                                    break;
-                                }
-                                if (!CheckEqual(r, y.GetList()[i], ref res))
-                                {
-                                    return false;
-                                }
-                            }
-                            break;
-                        }
-                    default:
-                        res = x == y;   // TO-DO
-                        break;
-                }
+                CheckEqualForSameType(x, y, ref res);
             }
             else
             {
-                bool bx = x.IsNumeric();
-                bool by = y.IsNumeric();
-                if (by && x.Type == ExObjType.COMPLEX)
-                {
-                    res = x.GetComplex() == y.GetFloat();
-                }
-                else if (bx && y.Type == ExObjType.COMPLEX)
-                {
-                    res = x.GetFloat() == y.GetComplex();
-                }
-                else if (bx && by)
-                {
-                    res = x.GetFloat() == y.GetFloat();
-                }
-                else
-                {
-                    res = false;
-                }
+                CheckEqualForDifferingTypes(x, y, ref res);
             }
             return true;
         }
@@ -500,6 +532,11 @@ namespace ExMat.API
         /// <returns>An array of zero and ones</returns>
         public static int[] GetBits(long i, int bits)
         {
+            if(bits == 32)
+            {
+                string s = Convert.ToString((int)i, 2);
+                return s.PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
+            }
             return Convert.ToString(i, 2).PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
         }
 
@@ -1133,6 +1170,18 @@ namespace ExMat.API
                 }
             }
             else if (s.StartsWith("0b")
+                    && s.Length <= 34)
+            {
+                try
+                {
+                    res = new(Convert.ToInt32(s[2..], 2));
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            }
+            else if (s.StartsWith("0B")
                     && s.Length <= 66)
             {
                 try
@@ -1311,13 +1360,10 @@ namespace ExMat.API
                 }
                 else
                 {
-                    foreach (ExObject num in row.GetList())
+                    if(!ExUtils.AssertNumericArray(row))
                     {
-                        if (!num.IsNumeric())
-                        {
-                            vm.AddToErrorMessage("given list have to contain lists of numeric values");
-                            return false;
-                        }
+                        vm.AddToErrorMessage("given list have to contain lists of numeric values");
+                        return false;
                     }
 
                     if (cols != 0 && row.GetList().Count != cols)
@@ -1336,6 +1382,28 @@ namespace ExMat.API
             {
                 vm.AddToErrorMessage("empty list can't be used for transposing");
                 return false;
+            }
+            return true;
+        }
+
+
+
+        public static bool ConvertIntegerStringArrayToString(List<ExObject> lis, StringBuilder str)
+        {
+            foreach (ExObject o in lis)
+            {
+                if (o.Type == ExObjType.STRING) // && o.GetString().Length == 1)
+                {
+                    str.Append(o.GetString());
+                }
+                else if (o.Type == ExObjType.INTEGER && o.GetInt() >= 0 && o.GetInt() <= char.MaxValue)
+                {
+                    str.Append((char)o.GetInt());
+                }
+                else
+                {
+                    return false;
+                }
             }
             return true;
         }

@@ -6,6 +6,17 @@ namespace ExMat.Utils
 {
     public static class ExUtils
     {
+        public static bool AssertNumericArray(ExObject lis)
+        {
+            foreach (ExObject num in lis.GetList())
+            {
+                if (!num.IsNumeric())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
 
         public static int LongTo32NonNegativeIntegerRange(long i)
         {
