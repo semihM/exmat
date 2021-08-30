@@ -432,9 +432,13 @@ namespace ExMat
     public enum ExErrorType
     {
         /// <summary>
-        /// INTERNAL: No overrides on error type
+        /// INTERNAL: No overrides on error type, used for handling post-interruption
         /// </summary>
         DEFAULT,
+        /// <summary>
+        /// INTERNAL: Duh
+        /// </summary>
+        INTERNAL,
         /// <summary>
         /// Compiler error
         /// </summary>
@@ -487,5 +491,50 @@ namespace ExMat
     {
         LOCAL,
         OUTER
+    }
+
+    /// <summary>
+    /// Arithmetic operation masks
+    /// </summary>
+    public enum ArithmeticMask
+    {
+        INT = ExObjType.INTEGER,
+        INTCOMPLEX = ExObjType.COMPLEX | ExObjType.INTEGER,
+
+        FLOAT = ExObjType.FLOAT,
+        FLOATINT = ExObjType.INTEGER | ExObjType.FLOAT,
+        FLOATCOMPLEX = ExObjType.COMPLEX | ExObjType.FLOAT,
+
+        COMPLEX = ExObjType.COMPLEX,
+
+        STRING = ExObjType.STRING,
+        STRINGINT = ExObjType.STRING | ExObjType.INTEGER,
+        STRINGFLOAT = ExObjType.STRING | ExObjType.FLOAT,
+        STRINGCOMPLEX = ExObjType.STRING | ExObjType.COMPLEX,
+        STRINGBOOL = ExObjType.STRING | ExObjType.BOOL,
+        STRINGNULL = ExObjType.STRING | ExObjType.NULL
+    }
+
+    /// <summary>
+    /// Fallback types
+    /// </summary>
+    public enum ExFallback
+    {
+        /// <summary>
+        /// Match found, no need of further search
+        /// </summary>
+        OK,
+        /// <summary>
+        /// No match found, continue search
+        /// </summary>
+        NOMATCH,
+        /// <summary>
+        /// Error during search
+        /// </summary>
+        ERROR,
+        /// <summary>
+        /// Don't search
+        /// </summary>
+        DONT = 999
     }
 }

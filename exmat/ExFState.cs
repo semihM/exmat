@@ -258,7 +258,7 @@ namespace ExMat.States
             {
                 c_s--;
                 ExLocalInfo li = LocalVariables.Last();
-                if (li.Name.Type != ExObjType.NULL)
+                if (li.Name.IsNotNull())
                 {
                     if (li.EndOPC == int.MaxValue)  //
                     {
@@ -332,7 +332,7 @@ namespace ExMat.States
         public int PopTarget() // Üstteki objeyi çıkart ve dön
         {
             int n = (int)Stack.Back().GetInt();
-            if (LocalVariables[n].Name.Type == ExObjType.NULL)
+            if (LocalVariables[n].Name.IsNull())
             {
                 LocalVariables.RemoveAt(GetLocalVariablesCount() - 1);
             }
@@ -369,11 +369,11 @@ namespace ExMat.States
 
         public bool IsLocalArg(long pos)
         {
-            return pos < GetLocalVariablesCount() && LocalVariables[(int)pos].Name.Type != ExObjType.NULL;
+            return pos < GetLocalVariablesCount() && LocalVariables[(int)pos].Name.IsNotNull();
         }
         public bool IsLocalArg(int pos)
         {
-            return pos < GetLocalVariablesCount() && LocalVariables[pos].Name.Type != ExObjType.NULL;
+            return pos < GetLocalVariablesCount() && LocalVariables[pos].Name.IsNotNull();
         }
 
         public int GetLocal(ExObject local)

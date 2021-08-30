@@ -46,7 +46,6 @@ namespace ExMat.BaseLib
         private static List<ExObject> GetMatchList(MatchCollection matches)
         {
             List<ExObject> list = new();
-            int count = matches.Count;
 
             foreach (Match match in matches)
             {

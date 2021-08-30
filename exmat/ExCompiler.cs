@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using ExMat.Exceptions;
 using ExMat.FuncPrototype;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -50,7 +49,7 @@ namespace ExMat.Compiler
             }
         }
 
-        public void AddToErrorMessage(string msg)
+        public bool AddToErrorMessage(string msg)
         {
             if (string.IsNullOrEmpty(ErrorString))
             {
@@ -60,6 +59,8 @@ namespace ExMat.Compiler
             {
                 ErrorString += "\n[ERROR] " + msg;
             }
+
+            return false;
         }
 
         public ExScope CreateScope()
@@ -2873,7 +2874,7 @@ namespace ExMat.Compiler
 
                 if (!((a_present && (a == k - 1)) || !a_present))
                 {
-                    throw new ExException("attributes present count error");
+                    return AddToErrorMessage("attributes present count error");
                 }
 
                 int flg = a_present ? (int)ExNewSlotFlag.ATTR : 0; // to-do static flag

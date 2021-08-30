@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
-using ExMat.Exceptions;
 using ExMat.Objects;
 using ExMat.OPs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -10,9 +10,7 @@ namespace ExMat.VM.Tests
     [TestClass()]
     public class ExVMTests
     {
-        public ExVMTests()
-        {
-        }
+        public ExVMTests() { }
 
         #region InnerDoArithmeticOPComplex
         [TestMethod()]
@@ -111,13 +109,13 @@ namespace ExMat.VM.Tests
         }
 
         [TestMethod()]
-        public void InnerDoArithmeticOPComplexTestThrows()
+        public void InnerDoArithmeticOPComplexTestUnknown()
         {
             ExObject tmp = null;
 
-            Assert.ThrowsException<ExException>(
-                () => ExVM.InnerDoArithmeticOPComplex(OPC.CLOSE, new Complex(), new Complex(), ref tmp)
-            );
+            Assert.IsFalse(ExVM.InnerDoArithmeticOPComplex(OPC.CLOSE, new Complex(), new Complex(), ref tmp));
+
+            Assert.IsNull(tmp);
         }
         #endregion
 
@@ -249,13 +247,13 @@ namespace ExMat.VM.Tests
         }
 
         [TestMethod()]
-        public void InnerDoArithmeticOPFloatThrows()
+        public void InnerDoArithmeticOPFloatUnknownOPC()
         {
             ExObject tmp = null;
 
-            Assert.ThrowsException<ExException>(
-                () => ExVM.InnerDoArithmeticOPFloat(OPC.CLOSE, Math.E, Math.PI, ref tmp)
-            );
+            Assert.IsFalse(ExVM.InnerDoArithmeticOPFloat(OPC.CLOSE, Math.E, Math.PI, ref tmp));
+
+            Assert.IsNull(tmp);
         }
         #endregion
 
@@ -387,13 +385,13 @@ namespace ExMat.VM.Tests
         }
 
         [TestMethod()]
-        public void InnerDoArithmeticOPIntThrows()
+        public void InnerDoArithmeticOPIntUnknownOPC()
         {
             ExObject tmp = null;
 
-            Assert.ThrowsException<ExException>(
-                () => ExVM.InnerDoArithmeticOPInt(OPC.CLOSE, 3, 4, ref tmp)
-            );
+            Assert.IsFalse(ExVM.InnerDoArithmeticOPInt(OPC.CLOSE, 3, 4, ref tmp));
+
+            Assert.IsNull(tmp);
         }
         #endregion
 
@@ -410,7 +408,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.AND, a, b, tmp));
 
-            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+            Assert.IsTrue(tmp.IsNotNull());
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -427,7 +425,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.OR, a, b, tmp));
 
-            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+            Assert.IsTrue(tmp.IsNotNull());
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -444,7 +442,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.XOR, a, b, tmp));
 
-            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+            Assert.IsTrue(tmp.IsNotNull());
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -461,7 +459,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTL, a, b, tmp));
 
-            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+            Assert.IsTrue(tmp.IsNotNull());
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -478,19 +476,19 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
 
-            Assert.IsTrue(tmp.Type != ExObjType.NULL);
+            Assert.IsTrue(tmp.IsNotNull());
 
             Assert.AreEqual(res, tmp.GetInt());
         }
 
         [TestMethod()]
-        public void DoBitwiseOPThrowOpc()
+        public void DoBitwiseOPUnknownOPC()
         {
             ExObject tmp = new();
 
-            Assert.ThrowsException<ExException>(
-                () => ExVM.DoBitwiseOP((long)OPC.CLOSE, new(1), new(1), tmp)
-            );
+            Assert.IsFalse(ExVM.DoBitwiseOP((long)OPC.CLOSE, new(1), new(1), tmp));
+
+            Assert.IsTrue(tmp.IsNull());
         }
 
         [TestMethod()]
@@ -503,7 +501,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsFalse(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
 
-            Assert.IsTrue(tmp.Type == ExObjType.NULL);
+            Assert.IsTrue(tmp.IsNull());
         }
         #endregion
 
@@ -516,6 +514,32 @@ namespace ExMat.VM.Tests
 
             int tmp = 999;
             int res = -1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+
+        [TestMethod()]
+        public void InnerDoCompareOPIntegersGT()
+        {
+            ExObject a = new(5);
+            ExObject b = new(-123);
+
+            int tmp = 999;
+            int res = 1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+
+        [TestMethod()]
+        public void InnerDoCompareOPIntegersGETorLET()
+        {
+            ExObject a = new(33);
+            ExObject b = new(33);
+
+            int tmp = 999;
+            int res = 0;
 
             Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
             Assert.AreEqual(res, tmp);
@@ -535,6 +559,32 @@ namespace ExMat.VM.Tests
         }
 
         [TestMethod()]
+        public void InnerDoCompareOPFloatsGT()
+        {
+            ExObject a = new(Math.PI);
+            ExObject b = new(Math.E);
+
+            int tmp = 999;
+            int res = 1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+
+        [TestMethod()]
+        public void InnerDoCompareOPFloatsGETorLET()
+        {
+            ExObject a = new(Math.E);
+            ExObject b = new(Math.E);
+
+            int tmp = 999;
+            int res = 0;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+
+        [TestMethod()]
         public void InnerDoCompareOPStringsLT()
         {
             ExObject a = new("test string");
@@ -545,6 +595,112 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
             Assert.AreEqual(res, tmp);
+        }
+        [TestMethod()]
+        public void InnerDoCompareOPStringsGT()
+        {
+            ExObject a = new("the other 1");
+            ExObject b = new("test string");
+
+            int tmp = 999;
+            int res = -1;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+
+        [TestMethod()]
+        public void InnerDoCompareOPStringsGETorLET()
+        {
+            ExObject a = new("test string");
+            ExObject b = new("test string");
+
+            int tmp = 999;
+            int res = 0;
+
+            Assert.IsTrue(ExVM.InnerDoCompareOP(a, b, ref tmp));
+            Assert.AreEqual(res, tmp);
+        }
+        #endregion
+
+        #region DoCompareOP
+        [TestMethod()]
+        public void DoCompareOP()
+        {
+            ExObject a = new(2);
+
+            long res = -2;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
+
+            Assert.IsTrue(tmp.IsNotNull());
+
+            Assert.AreEqual(res, tmp.GetInt());
+        }
+
+        #endregion
+
+        #region DoNegateOP
+        [TestMethod()]
+        public void DoNegateOPInt()
+        {
+            ExObject a = new(2);
+
+            long res = -2;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
+
+            Assert.IsTrue(tmp.IsNotNull());
+
+            Assert.AreEqual(res, tmp.GetInt());
+        }
+
+        [TestMethod()]
+        public void DoNegateOPFloat()
+        {
+            ExObject a = new(Math.PI);
+
+            double res = -Math.PI;
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
+
+            Assert.IsTrue(tmp.IsNotNull());
+
+            Assert.AreEqual(res, tmp.GetFloat());
+        }
+
+        [TestMethod()]
+        public void DoNegateOPComplex()
+        {
+            ExObject a = new(new Complex(3, 4.123));
+
+            Complex res = -new Complex(3, 4.123);
+
+            ExObject tmp = new();
+
+            Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
+
+            Assert.IsTrue(tmp.IsNotNull());
+
+            Assert.AreEqual(res, tmp.GetComplex());
+        }
+
+        [TestMethod()]
+        public void DoNegateOPUnknown()
+        {
+            ExObject a = new(new Dictionary<string, ExObject>());
+
+            ExObject tmp = new();
+
+            Assert.IsFalse(ExVM.DoNegateOP(tmp, a));
+
+            Assert.IsFalse(tmp.IsNotNull());
         }
         #endregion
     }

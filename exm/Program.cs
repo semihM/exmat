@@ -33,22 +33,22 @@ namespace ExMat
         /// <summary>
         /// Interactive console flags
         /// </summary>
-        public static int InteractiveConsoleFlags;
+        private static int InteractiveConsoleFlags;
 
         /// <summary>
         /// Active virtual machine
         /// </summary>
-        public static ExVM ActiveVM;
+        private static ExVM ActiveVM;
 
         /// <summary>
         /// Active thread for <see cref="ActiveVM"/>
         /// </summary>
-        public static Thread ActiveThread;
+        private static Thread ActiveThread;
 
         /// <summary>
         /// Value returned from <see cref="ActiveThread"/>
         /// </summary>
-        public static ExObject ReturnValue;
+        private static ExObject ReturnValue;
 
         /// <summary>
         /// File contents read from console call

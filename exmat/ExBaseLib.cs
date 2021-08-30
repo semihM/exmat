@@ -428,7 +428,7 @@ namespace ExMat.BaseLib
             {
                 case 1:
                     {
-                        if (!ExApi.ToFloat(vm, 2, 3))
+                        if (!ExApi.ToFloatFromStack(vm, 2, 3))
                         {
                             return ExFunctionStatus.ERROR;
                         }
@@ -447,7 +447,7 @@ namespace ExMat.BaseLib
             {
                 case 1:
                     {
-                        if (!ExApi.ToInteger(vm, 2, 3))
+                        if (!ExApi.ToIntegerFromStack(vm, 2, 3))
                         {
                             return ExFunctionStatus.ERROR;
                         }
@@ -1076,7 +1076,7 @@ namespace ExMat.BaseLib
                 {
                     if (args.Count != 1)
                     {
-                        throw new ExException("args count were not 1");
+                        throw new ExException(vm, "args count were not 1");
                     }
                     vm.Push(args[0]);
                 }

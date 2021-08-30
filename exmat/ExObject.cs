@@ -17,6 +17,16 @@ namespace ExMat.Objects
 
         private bool disposedValue;
 
+        public bool IsNull()
+        {
+            return Type == ExObjType.NULL;
+        }
+
+        public bool IsNotNull()
+        {
+            return Type != ExObjType.NULL;
+        }
+
         public bool IsDelegable()
         {
             return ((int)Type & (int)ExObjFlag.DELEGABLE) != 0;
