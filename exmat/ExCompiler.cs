@@ -2372,7 +2372,7 @@ namespace ExMat.Compiler
                     }
                 case TokenType.SQUAREOPEN:
                     {
-                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, 0, (int)ExNOT.ARRAY);
+                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, 0, (int)ExNewObjectType.ARRAY);
                         int p = FunctionState.GetCurrPos();
                         int k = 0;
 
@@ -2406,7 +2406,7 @@ namespace ExMat.Compiler
                     }
                 case TokenType.CURLYOPEN:
                     {
-                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
+                        FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNewObjectType.DICT, 0);
 
                         if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.CURLYCLOSE))
                         {
@@ -2773,7 +2773,7 @@ namespace ExMat.Compiler
                 if (sep == TokenType.SMC
                     && CurrentToken == TokenType.ATTRIBUTEBEGIN)
                 {
-                    FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
+                    FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNewObjectType.DICT, 0);
 
                     if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
                     {
@@ -2978,7 +2978,7 @@ namespace ExMat.Compiler
                 {
                     return false;
                 }
-                FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNOT.DICT, 0);
+                FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNewObjectType.DICT, 0);
 
                 if (!ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
                 {
@@ -2998,7 +2998,7 @@ namespace ExMat.Compiler
                 FunctionState.PopTarget();
             }
 
-            FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), -1, at, (int)ExNOT.CLASS);
+            FunctionState.AddInstr(OPC.NEWOBJECT, FunctionState.PushTarget(), -1, at, (int)ExNewObjectType.CLASS);
 
             return ParseDictClusterOrClass(TokenType.SMC, TokenType.CURLYCLOSE);
         }

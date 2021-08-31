@@ -26,16 +26,6 @@ namespace ExMat
         private static readonly int CANCELKEY_THREAD_TIMER = 50;
 
         /// <summary>
-        /// Title of the interactive console
-        /// </summary>
-        private static readonly string ConsoleTitle = "[] ExMat Interactive";
-
-        /// <summary>
-        /// Interactive console flags
-        /// </summary>
-        private static int InteractiveConsoleFlags;
-
-        /// <summary>
         /// Active virtual machine
         /// </summary>
         private static ExVM ActiveVM;
@@ -65,7 +55,7 @@ namespace ExMat
             FixStackTopAfterCalls(vm, n);  // Kullanılmayan değerleri temizle
             vm.PrintedToConsole = false;
 
-            RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
+            ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
         }
 
         /// <summary>
@@ -79,7 +69,7 @@ namespace ExMat
             ResetInStack = vm.StackTop - vm.StackBase;
             int ret;
 
-            SetFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
+            ActiveVM.SetFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
 
             if (ExApi.CompileSource(vm, code))      // Derle
             {
@@ -120,7 +110,7 @@ namespace ExMat
 
             if (string.IsNullOrWhiteSpace(code))
             {
-                SetFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
+                ActiveVM.SetFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
                 return string.Empty;
             }
             else
@@ -129,55 +119,18 @@ namespace ExMat
 
                 if (string.IsNullOrWhiteSpace(code))
                 {
-                    SetFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
+                    ActiveVM.SetFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
                     code = string.Empty;
                 }
 
                 if (code.EndsWith('\\'))
                 {
-                    ToggleFlag(ExInteractiveConsoleFlag.LINECARRY);
+                    ActiveVM.ToggleFlag(ExInteractiveConsoleFlag.LINECARRY);
                 }
 
                 return TrimCode(code);
             }
         }
-
-        /// <summary>
-        /// Checks if interactive console has the given flag
-        /// </summary>
-        /// <param name="flag">Flag to check</param>
-        private static bool HasFlag(ExInteractiveConsoleFlag flag)
-        {
-            return ((int)flag & InteractiveConsoleFlags) != 0;
-        }
-
-        /// <summary>
-        /// Sets given interactive console flag
-        /// </summary>
-        /// <param name="flag">Flag to set</param>
-        private static void SetFlag(ExInteractiveConsoleFlag flag)
-        {
-            InteractiveConsoleFlags |= (int)flag;
-        }
-
-        /// <summary>
-        /// Removes given interactive console flag
-        /// </summary>
-        /// <param name="flag">Flag to remove</param>
-        private static void RemoveFlag(ExInteractiveConsoleFlag flag)
-        {
-            InteractiveConsoleFlags &= ~(int)flag;
-        }
-
-        /// <summary>
-        /// Toggles given interactive console flag
-        /// </summary>
-        /// <param name="flag">Flag to switch/toggle</param>
-        private static void ToggleFlag(ExInteractiveConsoleFlag flag)
-        {
-            InteractiveConsoleFlags ^= (int)flag;
-        }
-
 
         /// <summary>
         /// Adds cancel event handler to the console
@@ -227,12 +180,12 @@ namespace ExMat
         {
             args.Cancel = true;
 
-            SetFlag(ExInteractiveConsoleFlag.CANCELEVENT);
+            ActiveVM.SetFlag(ExInteractiveConsoleFlag.CANCELEVENT);
 
-            if (HasFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING))
+            if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING))
             {
-                RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
-                SetFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED);
+                ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
+                ActiveVM.SetFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED);
 
                 ActiveVM.ForceThrow = true;
                 ActiveVM.ErrorOverride = ExErrorType.INTERRUPT;
@@ -276,9 +229,9 @@ namespace ExMat
 
         private static void DelayAfterInterruption()
         {
-            if (HasFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED))
+            if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED))
             {
-                RemoveFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED);
+                ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED);
                 ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
             }
         }
@@ -287,9 +240,9 @@ namespace ExMat
         {
             ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
 
-            while (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
+            while (ActiveVM.HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
             {
-                RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
+                ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
                 code.Append(GetInput());
                 ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
             }
@@ -307,9 +260,19 @@ namespace ExMat
             AddCancelEventHandler();
 
             // Title, Version info
-            Console.Title = ConsoleTitle;
+            Console.Title = ExMat.ConsoleTitle;
             Console.ResetColor();
             ExApi.WriteVersion(ActiveVM);
+        }
+
+        private static void KeepConsoleUpAtEnd(string msg = "")
+        {
+            if (!string.IsNullOrWhiteSpace(msg))
+            {
+                Console.WriteLine("Error: " + msg);
+            }
+            Console.WriteLine("Press any key to close the console...");
+            Console.ReadKey(false);
         }
 
         private static void CreateSimpleVMThread()
@@ -317,35 +280,38 @@ namespace ExMat
             ActiveThread = new(() =>
             {
                 Initialize();
+
                 try
                 {
                     ReturnValue = new(CompileString(ActiveVM, FileContents));
                 }
-                catch (ThreadInterruptedException) { }
+                catch (ThreadInterruptedException) { } //lgtm [cs/empty-catch-block]
                 catch (ExException exp)
                 {
                     ActiveVM.AddToErrorMessage(exp.Message);
                     ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
                 }
+
+                KeepConsoleUpAtEnd();
             });
         }
 
         private static void HandleUserInputFunction(ref StringBuilder code)
         {
             // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
-            if (ActiveVM.GotUserInput && HasFlag(ExInteractiveConsoleFlag.EMPTYINPUT))
+            if (ActiveVM.GotUserInput && ActiveVM.HasFlag(ExInteractiveConsoleFlag.EMPTYINPUT))
             {
-                RemoveFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
+                ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.EMPTYINPUT);
                 ActiveVM.GotUserInput = false;
 
                 code = new(GetInput());
                 ContinueDelayedInput(code);
             }
         }
-        
+
         private static bool HandleLineCarryInput(ref StringBuilder code)
         {
-            if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı kod oku
+            if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı kod oku
             {
                 code.Append(GetInput());
                 ContinueDelayedInput(code);
@@ -360,7 +326,7 @@ namespace ExMat
                 HandleUserInputFunction(ref code);
             }
 
-            if (HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı ise okumaya devam et
+            if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.LINECARRY))  // Çok satırlı ise okumaya devam et
             {
                 Indent();
                 code.Append("\r\n");
@@ -372,9 +338,9 @@ namespace ExMat
 
         private static void HandlePostVMExecution(int ret)
         {
-            if (HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
+            if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
             {
-                RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
+                ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
             }
 
             ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
@@ -399,7 +365,7 @@ namespace ExMat
 
         private static string TrimCode(StringBuilder code, bool includeCarry = true)
         {
-            if(includeCarry)
+            if (includeCarry)
             {
                 return code.ToString().TrimEnd('\\', ' ', '\t');
             }
@@ -423,8 +389,8 @@ namespace ExMat
                     try
                     {
                         DelayAfterInterruption();
-                        
-                        if(HandleLineCarryInput(ref code))
+
+                        if (HandleLineCarryInput(ref code))
                         {
                             continue;
                         }
@@ -434,7 +400,7 @@ namespace ExMat
                         ret = CompileString(ActiveVM, TrimCode(code));  // Derle ve işle
 
                     }
-                    catch (ThreadInterruptedException) { }
+                    catch (ThreadInterruptedException) { } //lgtm [cs/empty-catch-block]
                     catch (ExException exp)
                     {
                         ActiveVM.AddToErrorMessage(exp.Message);
@@ -489,8 +455,9 @@ namespace ExMat
             // File
             if (args.Length >= 1)
             {
-                if (!ReadFileContents(args[0]))
+                if (!ReadFileContents(args[0])) // start exm.exe SCRIPT_PATH
                 {
+                    KeepConsoleUpAtEnd(string.Format("File '{0}' doesn't exist!", args[0]));
                     return -1;
                 }
 

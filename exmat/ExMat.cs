@@ -73,6 +73,12 @@ namespace ExMat
         /// Function attribute, returns dictionary of default values for parameters
         /// </summary>
         public const string DefParams = "defparams";
+
+        /// <summary>
+        /// Title of the interactive console
+        /// </summary>
+        public const string ConsoleTitle = "[] ExMat Interactive";
+
     }
 
     /// <summary>

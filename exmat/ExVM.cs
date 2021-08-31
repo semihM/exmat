@@ -156,6 +156,11 @@ namespace ExMat.VM
         public bool IsSleeping;
 
         /// <summary>
+        /// Interactive console flags using <see cref="ExInteractiveConsoleFlag"/>
+        /// </summary>
+        public int Flags;
+
+        /// <summary>
         /// Print given string without new-line at the end
         /// </summary>
         /// <param name="str">Message to print</param>
@@ -196,6 +201,42 @@ namespace ExMat.VM
         public void Throw(string msg, ExVM vm = null)
         {
             ExApi.Throw(msg, vm ?? this);
+        }
+
+        /// <summary>
+        /// Checks if interactive console has the given flag
+        /// </summary>
+        /// <param name="flag">Flag to check</param>
+        public bool HasFlag(ExInteractiveConsoleFlag flag)
+        {
+            return ((int)flag & Flags) != 0;
+        }
+
+        /// <summary>
+        /// Sets given interactive console flag
+        /// </summary>
+        /// <param name="flag">Flag to set</param>
+        public void SetFlag(ExInteractiveConsoleFlag flag)
+        {
+            Flags |= (int)flag;
+        }
+
+        /// <summary>
+        /// Removes given interactive console flag
+        /// </summary>
+        /// <param name="flag">Flag to remove</param>
+        public void RemoveFlag(ExInteractiveConsoleFlag flag)
+        {
+            Flags &= ~(int)flag;
+        }
+
+        /// <summary>
+        /// Toggles given interactive console flag
+        /// </summary>
+        /// <param name="flag">Flag to switch/toggle</param>
+        public void ToggleFlag(ExInteractiveConsoleFlag flag)
+        {
+            Flags ^= (int)flag;
         }
 
         /// <summary>
@@ -2203,17 +2244,17 @@ namespace ExMat.VM
                         {
                             switch (instruction.arg3)
                             {
-                                case (int)ExNOT.DICT:
+                                case (int)ExNewObjectType.DICT:
                                     {
                                         GetTargetInStack(instruction).Assign(new Dictionary<string, ExObject>());
                                         continue;
                                     }
-                                case (int)ExNOT.ARRAY:
+                                case (int)ExNewObjectType.ARRAY:
                                     {
                                         GetTargetInStack(instruction).Assign(new List<ExObject>((int)instruction.arg1));
                                         continue;
                                     }
-                                case (int)ExNOT.CLASS:
+                                case (int)ExNewObjectType.CLASS:
                                     {
                                         if (!DoClassOP(GetTargetInStack(instruction), (int)instruction.arg1, (int)instruction.arg2))
                                         {
