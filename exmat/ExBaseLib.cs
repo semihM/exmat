@@ -268,10 +268,10 @@ namespace ExMat.BaseLib
                     {
                         return vm.CleanReturn(nargs + 2,
                             new ExObject(new List<ExObject>()
-                                { 
+                                {
                                     new(DateTime.Today.ToLongDateString()),
                                     new(DateTime.Now.ToLongTimeString()),
-                                    new(DateTime.Now.Millisecond.ToString()) 
+                                    new(DateTime.Now.Millisecond.ToString())
                                 })
                             );
                     }

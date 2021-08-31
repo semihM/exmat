@@ -837,7 +837,7 @@ namespace ExMat.Lexer
                         }
 
                         int length = ValTempString.Length;
-                        if(is32bit)
+                        if (is32bit)
                         {
                             if (length > 32)
                             {
@@ -851,7 +851,7 @@ namespace ExMat.Lexer
                             return TokenType.UNKNOWN;
                         }
 
-                        ValTempString.Insert(0, new string('0', ( is32bit ? 32 : 64 ) - length));
+                        ValTempString.Insert(0, new string('0', (is32bit ? 32 : 64) - length));
                         break;
                     }
                 default:

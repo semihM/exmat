@@ -29,7 +29,7 @@ namespace ExMat.API
         /// <returns>A random string of given <paramref name="length"/></returns>
         public static string RandomString(int length)
         {
-            var randomGenerator = RandomNumberGenerator.Create();
+            using RandomNumberGenerator randomGenerator = RandomNumberGenerator.Create();
             byte[] data = new byte[length];
             randomGenerator.GetBytes(data);
 
@@ -262,7 +262,7 @@ namespace ExMat.API
 
         public static bool CheckEqualFloat(double x, double y)
         {
-            if(double.IsNaN(x))
+            if (double.IsNaN(x))
             {
                 return double.IsNaN(y);
             }
@@ -532,7 +532,7 @@ namespace ExMat.API
         /// <returns>An array of zero and ones</returns>
         public static int[] GetBits(long i, int bits)
         {
-            if(bits == 32)
+            if (bits == 32)
             {
                 string s = Convert.ToString((int)i, 2);
                 return s.PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
@@ -1360,7 +1360,7 @@ namespace ExMat.API
                 }
                 else
                 {
-                    if(!ExUtils.AssertNumericArray(row))
+                    if (!ExUtils.AssertNumericArray(row))
                     {
                         vm.AddToErrorMessage("given list have to contain lists of numeric values");
                         return false;
