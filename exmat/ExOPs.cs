@@ -114,7 +114,7 @@
         CLOSE = 984
     }
 
-    public enum ExNOT
+    public enum ExNewObjectType
     {
         DICT,
         ARRAY,
