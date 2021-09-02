@@ -91,7 +91,7 @@ namespace ExMat
         /// <param name="count">Amount of objects to skip</param>
         private static void FixStackTopAfterCalls(ExVM vm, int count)
         {
-            for (int idx = vm.Stack.Count - 1; idx >= count; idx--)
+            for (int idx = vm.Stack.Allocated - 1; idx >= count; idx--)
             {
                 vm.Stack[idx].Nullify();
                 vm.Stack[idx] = new();
@@ -156,7 +156,7 @@ namespace ExMat
                             }
                         ),
                     Literals = new(),
-                    Instructions = new(2) { new(ExMat.InvalidArgument, 0, 2, 0), new(ExMat.InvalidArgument, 2, 1, 0) },
+                    Instructions = new(2) { new(OPs.OPC.RETURN, ExMat.InvalidArgument, 0, 2, 0), new(OPs.OPC.RETURN, ExMat.InvalidArgument, 2, 1, 0) },
                     InstructionsIndex = 0,
                     IsRootCall = true,
                     PrevBase = 2,
@@ -216,10 +216,11 @@ namespace ExMat
         /// <param name="vm">Virtual machine to register libraries for</param>
         private static void RegisterStdLibraries(ExVM vm)
         {
-            ExStdMath.RegisterStdMath(vm);          // Matematik kütüphanesi
-            ExStdIO.RegisterStdIO(vm);              // Girdi/çıktı, dosya kütüphanesi
-            ExStdString.RegisterStdString(vm);      // Yazı dizisi işleme kütüphanesi
-            ExStdNet.RegisterStdNet(vm);            // Ağ işlemleri kütüphanesi
+            ExStdMath.RegisterStdMath(vm);      // Matematik kütüphanesi
+            ExStdIO.RegisterStdIO(vm);          // Girdi/çıktı, dosya kütüphanesi
+            ExStdString.RegisterStdString(vm);  // Yazı dizisi işleme kütüphanesi
+            ExStdNet.RegisterStdNet(vm);        // Ağ işlemleri kütüphanesi
+            ExStdSys.RegisterStdSys(vm);          // Arayüz kütüphanesi
         }
 
         private static void Indent(int n = 1)

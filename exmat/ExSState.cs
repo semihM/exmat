@@ -100,6 +100,20 @@ namespace ExMat.States
             },
             new()
             {
+                Name = "random_key",
+                Function = ExBaseLib.StdDictRandomKey,
+                nParameterChecks = 1,
+                ParameterMask = "d"
+            },
+            new()
+            {
+                Name = "random_val",
+                Function = ExBaseLib.StdDictRandomVal,
+                nParameterChecks = 1,
+                ParameterMask = "d"
+            },
+            new()
+            {
                 Name = "weakref",
                 Function = ExBaseLib.StdWeakRef,
                 nParameterChecks = 1,

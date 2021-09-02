@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using ClosedXML.Excel;
@@ -486,37 +485,6 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, true);
         }
 
-        public static ExFunctionStatus IoOpendir(ExVM vm, int nargs)
-        {
-            string dir = vm.GetArgument(1).GetString();
-
-            try
-            {
-                if (!Directory.Exists(dir))
-                {
-                    if (nargs == 2 && vm.GetArgument(2).GetBool())
-                    {
-                        Directory.CreateDirectory(dir);
-                        Directory.SetCurrentDirectory(dir);
-                        Process.Start(Environment.GetEnvironmentVariable("WINDIR") + @"\explorer.exe", "./");
-
-                        return vm.CleanReturn(nargs + 2, true);
-                    }
-
-                    return vm.CleanReturn(nargs + 2, false);
-                }
-
-                Directory.SetCurrentDirectory(dir);
-                Process.Start(Environment.GetEnvironmentVariable("WINDIR") + @"\explorer.exe", "./");
-
-                return vm.CleanReturn(nargs + 2, Directory.GetCurrentDirectory());
-            }
-            catch (Exception e)
-            {
-                return vm.AddToErrorMessage("Error: " + e.Message);
-            }
-        }
-
         public static ExFunctionStatus IoShowdir(ExVM vm, int nargs)
         {
             string cd;
@@ -667,6 +635,22 @@ namespace ExMat.BaseLib
                             }
                         }
                         else if (!ExStdString.RegisterStdString(vm))
+                        {
+                            return vm.AddToErrorMessage("something went wrong...");
+                        }
+                        break;
+                    }
+                case "sys":
+                    {
+                        if (nargs == 2)
+                        {
+                            ExApi.PushRootTable(vm);
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname))
+                            {
+                                return vm.AddToErrorMessage(string.Format("unknown Sys function {0}", fname));
+                            }
+                        }
+                        else if (!ExStdSys.RegisterStdSys(vm))
                         {
                             return vm.AddToErrorMessage("something went wrong...");
                         }
@@ -989,17 +973,6 @@ namespace ExMat.BaseLib
                 Function = IoMkdir,
                 nParameterChecks = 2,
                 ParameterMask = ".s"
-            },
-            new()
-            {
-                Name = "open_dir",
-                Function = IoOpendir,
-                nParameterChecks = -2,
-                ParameterMask = ".sb",
-                DefaultValues = new()
-                {
-                    { 2, new(false) }
-                }
             },
 
             new()
