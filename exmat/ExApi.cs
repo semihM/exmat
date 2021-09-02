@@ -42,6 +42,16 @@ namespace ExMat.API
             return str.ToString();
         }
 
+        public static List<ExObject> ListObjFromStringArray(IEnumerable<string> arr)
+        {
+            List<ExObject> lis = new();
+            foreach (string s in arr)
+            {
+                lis.Add(new(s));
+            }
+            return lis;
+        }
+
         public static List<ExObject> ListObjFromStringArray(string[] arr)
         {
             List<ExObject> lis = new(arr.Length);

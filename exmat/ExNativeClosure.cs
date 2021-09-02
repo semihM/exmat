@@ -155,7 +155,7 @@ namespace ExMat.Closure
 
             if (s.Length == 0)
             {
-                return "delegate, params: 0, minargs: 0";
+                return $"{(IsDelegateFunction ? "delegate, " : string.Empty)}params: 0, minargs: 0";
             }
 
             return s.ToString();

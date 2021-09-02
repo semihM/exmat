@@ -386,7 +386,7 @@ namespace ExMat
         SET,    // []
         GET,    // []
         TYPEOF,    // typeof
-        NEXT,
+        NEXT,       // TO-DO Add remaining methods
         COMPARE,
         CALL,
         NEWSLOT,
