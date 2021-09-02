@@ -79,6 +79,15 @@ namespace ExMat
         /// </summary>
         public const string ConsoleTitle = "[] ExMat Interactive";
 
+        /// <summary>
+        /// Maximum length of the echo'd string, used for native functions which calls 'echo' in external terminals
+        /// </summary>
+        public const int ECHOLIMIT = 8000;
+
+        /// <summary>
+        /// Garbage collection run count after execution
+        /// </summary>
+        public const int GCCOLLECTCOUNT = 1 << 3;
     }
 
     /// <summary>

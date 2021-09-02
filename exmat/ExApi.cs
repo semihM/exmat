@@ -42,6 +42,16 @@ namespace ExMat.API
             return str.ToString();
         }
 
+        public static List<ExObject> ListObjFromStringArray(string[] arr)
+        {
+            List<ExObject> lis = new(arr.Length);
+            foreach (string s in arr)
+            {
+                lis.Add(new(s));
+            }
+            return lis;
+        }
+
         /// <summary>
         /// Get an object from stack and assert a certain <paramref name="type"/>
         /// </summary>
@@ -59,6 +69,72 @@ namespace ExMat.API
                 vm.AddToErrorMessage("wrong argument type, expected " + type.ToString() + " got " + res.Type.ToString());
                 return false;
             }
+            return true;
+        }
+
+        /// <summary>
+        /// Attempt to convert an argument passed to a native function to string and return it as given string
+        /// </summary>
+        /// <param name="vm">Virtual machine to use the stack of</param>
+        /// <param name="idx">Argument index</param>
+        /// <param name="maxdepth">Stringification maximum depth</param>
+        /// <param name="output">Output string</param>
+        /// <returns><see langword="true"/> if stringfied successfully and assigned to <paramref name="output"/>, otherwise <see langword="false"/></returns>
+        public static bool ConvertAndGetString(ExVM vm, int idx, int maxdepth, out string output)
+        {
+            output = string.Empty;
+            if (!ToString(vm, idx + 1, maxdepth) || !GetString(vm, -1, ref output))
+            {
+                return false;
+            }
+            return true;
+        }
+
+        private static Thread Beeper;
+
+        public static bool CanBeep()
+        {
+            return Beeper == null || !Beeper.IsAlive;
+        }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+        public static bool BeepAsync(int freq, int dur)
+        {
+            if (!CanBeep())
+            {
+                return false;
+            }
+            Beeper = new(() =>
+            {
+                Console.Beep(freq, dur);
+                Thread.Sleep((int)(dur * 0.9));
+            });
+
+            Beeper.Start();
+            return true;
+        }
+
+        public static bool BeepAsync()
+        {
+            Beeper = new(() =>
+            {
+                Console.Beep();
+            });
+
+            Beeper.Start();
+            return true;
+        }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
+        public static bool Beep(int freq, int dur)
+        {
+            Console.Beep(freq, dur);
+            return true;
+        }
+
+        public static bool Beep()
+        {
+            Console.Beep();
             return true;
         }
 
@@ -1413,6 +1489,24 @@ namespace ExMat.API
             return SymbolDisplay.FormatLiteral(str, false);
         }
 
+        public static string EscapeCmdEchoString(string str)
+        {
+            return str.Replace("%", "%%")
+                    .Replace("^", "^^")
+                    .Replace("&", "^&")
+                    .Replace("<", "^<")
+                    .Replace(">", "^>")
+                    .Replace("|", "^|")
+                    .Replace("'", "^'")
+                    .Replace(",", "^,")
+                    .Replace(";", "^;")
+                    .Replace("=", "^=")
+                    .Replace("(", "^(")
+                    .Replace(")", "^)")
+                    .Replace("!", "^!")
+                    .Replace("\"", "^\"");
+        }
+
         private static bool ShouldPrintTop(ExVM vm)
         {
             return !vm.PrintedToConsole
@@ -1516,14 +1610,36 @@ namespace ExMat.API
             return 0;
         }
 
+        private static Thread GarbageCollector;
         /// <summary>
         /// Call garbage collector
         /// </summary>
         public static void CollectGarbage()
         {
-            GC.Collect(); //lgtm [cs/call-to-gc]
-            GC.WaitForPendingFinalizers();
-            GC.Collect(); //lgtm [cs/call-to-gc]
+            if (GarbageCollector != null && GarbageCollector.IsAlive)
+            {
+                return;
+            }
+
+            GarbageCollector = new(() =>
+            {
+                for (int i = 0; i < ExMat.GCCOLLECTCOUNT; i++)
+                {
+                    GC.Collect(); //lgtm [cs/call-to-gc]
+                    GC.WaitForPendingFinalizers();
+                    GC.Collect(); //lgtm [cs/call-to-gc]
+                    if (i != ExMat.GCCOLLECTCOUNT - 1)
+                    {
+                        GC.WaitForPendingFinalizers();
+                        Thread.Sleep(200);
+                    }
+                }
+            });
+
+            GarbageCollector.Start();
+
+
+
         }
 
         /// <summary>
