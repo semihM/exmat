@@ -3568,9 +3568,9 @@ namespace ExMat.BaseLib
         private const string _reloadbase = "reload_base"; // TO-DO Tokenize
         public static string ReloadBaseFunc => _reloadbase;
 
-        private const string __version__ = "ExMat v0.0.7";
+        private const string __version__ = "ExMat v0.0.8";
 
-        private const int __versionnumber__ = 7;
+        private const int __versionnumber__ = 8;
 
         public static bool RegisterStdBase(ExVM vm)
         {
