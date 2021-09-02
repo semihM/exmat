@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using ExMat.API;
 using ExMat.Objects;
@@ -73,7 +74,7 @@ namespace ExMat.BaseLib
 
         public static ExFunctionStatus StdSysPrintOut(ExVM vm, int nargs)
         {
-            if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return vm.AddToErrorMessage($"'{nameof(StdSysPrintOut)}' function is only available for Windows operating systems");
             }
@@ -124,13 +125,19 @@ namespace ExMat.BaseLib
                 { "cmd_line", new(Environment.CommandLine) },
                 { "curr_dir", new(Environment.CurrentDirectory) },
                 { "sys_dir", new(Environment.SystemDirectory) },
+                { "is_64bit", new(Environment.Is64BitOperatingSystem) },
                 { "machine_name", new(Environment.MachineName) },
                 { "user_name", new(Environment.UserName) },
                 { "user_domain", new(Environment.UserDomainName) },
                 { "os", new(Environment.OSVersion.VersionString) },
+                { "os_description", new(RuntimeInformation.OSDescription) },
+                { "os_architecture", new(RuntimeInformation.OSArchitecture.ToString()) },
                 { "os_version", new(Environment.OSVersion.Version.ToString()) },
-                { "clr_version", new(Environment.Version.ToString()) },
-                { "is_64bit", new(Environment.Is64BitOperatingSystem) },
+                { "platform", new(RuntimeInformation.RuntimeIdentifier) },
+                { "framework", new(RuntimeInformation.FrameworkDescription) },
+                { "framework_version", new(Environment.Version.ToString()) },
+                { "clr_dir", new(RuntimeEnvironment.GetRuntimeDirectory()) },
+                { "clr_version", new(RuntimeEnvironment.GetSystemVersion()) },
                 { "logic_drives", new(ExApi.ListObjFromStringArray(Environment.GetLogicalDrives())) }
             };
             return vm.CleanReturn(nargs + 2, info);
@@ -199,7 +206,7 @@ namespace ExMat.BaseLib
 
         public static ExFunctionStatus StdSysConsoleBeep(ExVM vm, int nargs)
         {
-            if (nargs != 0 && Environment.OSVersion.Platform != PlatformID.Win32NT)
+            if (nargs != 0 && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return vm.AddToErrorMessage($"'{nameof(StdSysConsoleBeep)}(int, int)' function is only available for Windows operating systems");
             }
@@ -223,7 +230,7 @@ namespace ExMat.BaseLib
 
         public static ExFunctionStatus StdSysConsoleBeepAsync(ExVM vm, int nargs)
         {
-            if (nargs != 0 && Environment.OSVersion.Platform != PlatformID.Win32NT)
+            if (nargs != 0 && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 return vm.AddToErrorMessage($"'{nameof(StdSysConsoleBeepAsync)}(int, int)' function is only available for Windows operating systems");
             }
