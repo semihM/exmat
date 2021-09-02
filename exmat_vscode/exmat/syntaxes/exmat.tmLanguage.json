@@ -181,7 +181,7 @@
 				},
 				{
 					"name": "entity.name.function.exmat",
-					"match": "\\b(wiki|fetch)\\b"
+					"match": "\\b(wiki|fetch|has_network|ip_config)\\b"
 				},
 				{
 					"name": "entity.name.function.exmat",
@@ -222,8 +222,7 @@
 		},
 		"numbers": 
 		{
-			"patterns": 
-			[
+			"patterns": [
 				{
 					"name": "constant.numeric.exmat",
 					"match": "\\b(\\d+(\\.\\d+)?((E|e)(\\+|\\-)\\d+)?(i)?)\\b"
@@ -243,6 +242,10 @@
 				{
 					"name": "constant.language.exmat",
 					"match": "\\b(COLORS|SPACES)\\b"
+				},
+				{
+					"name": "constant.language.exmat",
+					"match": "\\b(_version_|_versionnumber_|_config_)\\b"
 				}
 			]
 		}
