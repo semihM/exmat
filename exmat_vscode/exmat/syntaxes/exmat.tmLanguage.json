@@ -157,7 +157,7 @@
 				},
 				{
 					"name": "entity.name.function.exmat",
-					"match": "\\b(write_json|read_json|write_excel|read_excel|read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input|raw_key|open_dir|make_dir)\\b"
+					"match": "\\b(write_json|read_json|write_excel|read_excel|read_bytes|read_text|read_lines|write_bytes|write_text|write_lines|append_text|append_lines|file_exists|include_file|current_dir|dir_content|change_dir|raw_input|raw_key|make_dir)\\b"
 				},
 				{
 					"name": "entity.name.function.exmat",
@@ -186,6 +186,10 @@
 				{
 					"name": "entity.name.function.exmat",
 					"match": "\\b(reload_lib|reload_func|reload_base|exit|is_interactive|collect_garbage)\\b"
+				},
+				{
+					"name": "entity.name.function.exmat",
+					"match": "\\b(process|print_out|env_info|env_var|env_vars|set_env_var|env_exit|can_beep|beep|beep_async|open_dir)\\b"
 				}
 			]
 		},

@@ -19,17 +19,17 @@ namespace ExMat.Objects
             return "STACK(" + Allocated + "): " + Size + (Values == null ? " null" : " " + Values.Count);
         }
 
-        public ExStack() { Size = 0; Allocated = 0; Values = new(); }
+        public ExStack() { Size = 0; Allocated = 0; Values = null; }
 
-        public ExStack(int size)
-        {
-            Values = new(size);
-            Size = 0;
-            Allocated = size;
-        }
         public ExStack(ExStack stc)
         {
             CopyFrom(stc);
+        }
+
+        public ExObject this[int i]
+        {
+            get => i >= 0 ? Values[i] : Values[0];
+            set => Values[i >= 0 ? i : 0] = value;
         }
 
         public void Release()
@@ -54,10 +54,19 @@ namespace ExMat.Objects
 
             if (n > Size)
             {
-                while (Size < n)
+                if (filler == null)
                 {
-                    Values[Size] = new(filler);
-                    Size++;
+                    while (Size < n)
+                    {
+                        Values[Size++] = new();
+                    }
+                }
+                else
+                {
+                    while (Size < n)
+                    {
+                        Values[Size++] = new(filler);
+                    }
                 }
             }
             else
@@ -71,7 +80,7 @@ namespace ExMat.Objects
             }
         }
 
-        public void ReAlloc(int n)
+        private void ReAlloc(int n)
         {
             n = n > 0 ? n : 4;
             if (Values == null)
@@ -79,7 +88,7 @@ namespace ExMat.Objects
                 Values = new(n);
                 for (int i = 0; i < n; i++)
                 {
-                    Values.Add(new());
+                    Values.Add(null);
                 }
             }
             else
@@ -97,7 +106,7 @@ namespace ExMat.Objects
                 {
                     for (int i = 0; i < dif; i++)
                     {
-                        Values.Add(new());
+                        Values.Add(null);
                     }
                 }
             }
@@ -161,8 +170,6 @@ namespace ExMat.Objects
             Values.RemoveAt(i);
             Size--;
         }
-
-
 
         protected virtual void Dispose(bool disposing)
         {

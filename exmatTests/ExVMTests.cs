@@ -623,25 +623,6 @@ namespace ExMat.VM.Tests
         }
         #endregion
 
-        #region DoCompareOP
-        [TestMethod()]
-        public void DoCompareOP()
-        {
-            ExObject a = new(2);
-
-            long res = -2;
-
-            ExObject tmp = new();
-
-            Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
-
-            Assert.IsTrue(tmp.IsNotNull());
-
-            Assert.AreEqual(res, tmp.GetInt());
-        }
-
-        #endregion
-
         #region DoNegateOP
         [TestMethod()]
         public void DoNegateOPInt()

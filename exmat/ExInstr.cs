@@ -12,8 +12,10 @@ namespace ExMat.OPs
         public long arg3;
 
         public ExInstr() { }
-        public ExInstr(long a0, long a1, long a2, long a3)
+
+        public ExInstr(OPC o, long a0, long a1, long a2, long a3)
         {
+            op = o;
             arg0 = a0;
             arg1 = a1;
             arg2 = a2;

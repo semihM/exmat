@@ -44,7 +44,7 @@ namespace ExMat.VM
         /// <summary>
         /// Virtual memory stack to do push and pop operations with objects
         /// </summary>
-        public List<ExObject> Stack;            // Sanal bellek
+        public ExStack Stack;            // Sanal bellek
         /// <summary>
         /// Virtual memory stack's base index used by the current scope
         /// </summary>
@@ -246,7 +246,9 @@ namespace ExMat.VM
         public void Initialize(int stacksize)
         {
             // Sanal belleği oluştur
-            ExUtils.InitList(ref Stack, stacksize);
+            Stack = new();
+            Stack.Resize(stacksize);
+
             // Çağrı yığınını oluştur
             AllocatedCallSize = 4;
             ExUtils.InitList(ref CallStack, AllocatedCallSize);
@@ -654,6 +656,12 @@ namespace ExMat.VM
             return ExFunctionStatus.SUCCESS;
         }
 
+        public ExFunctionStatus CleanReturn(long n, string[] o)
+        {
+            Pop(n); Push(o);
+            return ExFunctionStatus.SUCCESS;
+        }
+
         public ExFunctionStatus CleanReturn(long n, List<ExObject> o)
         {
             Pop(n); Push(o);
@@ -690,6 +698,7 @@ namespace ExMat.VM
                 Push(ob);
             }
         }
+
         public void Push(string o)
         {
             Stack[StackTop++].Assign(o);
@@ -733,6 +742,10 @@ namespace ExMat.VM
         public void Push(List<ExObject> o)
         {
             Stack[StackTop++].Assign(o);
+        }
+        public void Push(string[] o)
+        {
+            Push(ExApi.ListObjFromStringArray(o));
         }
 
         public void Push(ExInstance o)
@@ -807,6 +820,15 @@ namespace ExMat.VM
             return val;
         }
 
+        public long GetPositiveRangedIntegerArgument(int idx, long min = 1, long max = long.MaxValue)
+        {
+            long val = GetArgument(idx).GetInt();
+            if (val <= min)
+            {
+                return min;
+            }
+            return val >= max ? max : val;
+        }
         public ExObject CreateString(string s, int len = -1)
         {
             if (!SharedState.Strings.ContainsKey(s))
@@ -2615,7 +2637,7 @@ namespace ExMat.VM
 
         public int FindFirstNullInStack()
         {
-            for (int i = 0; i < Stack.Count; i++)
+            for (int i = 0; i < Stack.Allocated; i++)
             {
                 if (Stack[i].IsNull())
                 {
@@ -4082,13 +4104,13 @@ namespace ExMat.VM
             StackBase = newBase;        // yeni tabanı ata
             StackTop = newTop;          // yeni tavanı ata
 
-            if (newTop > Stack.Count)   // bellek yetersiz
+            if (newTop > Stack.Allocated)   // bellek yetersiz
             {
                 if (nMetaCalls > 0)     // meta metot içerisinde ise hata ver
                 {
                     Throw("stack overflow, cant resize while in metamethod");
                 }
-                ExUtils.ExpandListTo(Stack, 256);   // değilse belleği genişlet
+                Stack.Resize(Stack.Allocated + 256);
             }
             return true;
         }
@@ -4143,7 +4165,7 @@ namespace ExMat.VM
                 CloseOuters(last_base);
             }
 
-            if (last_top >= Stack.Count)
+            if (last_top >= Stack.Allocated)
             {
                 AddToErrorMessage("stack overflow! Allocate more stack room for these operations");
                 return false;
