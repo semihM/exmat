@@ -207,9 +207,7 @@ namespace ExMat.BaseLib
             try
             {
                 File.WriteAllText(i.EndsWith(".json") ? i : (i + ".json"), js, e);
-                vm.Pop(nargs + 2);
-
-                return ExFunctionStatus.VOID;
+                return vm.CleanReturn(nargs + 2, true);
             }
             catch (Exception err)
             {
@@ -220,8 +218,7 @@ namespace ExMat.BaseLib
         public static ExFunctionStatus IoClear(ExVM vm, int nargs)
         {
             Console.Clear();
-            vm.Pop(nargs + 2);
-            return ExFunctionStatus.VOID;
+            return vm.CleanReturn(nargs + 2, true);
         }
 
         public static ExFunctionStatus IoPaint(ExVM vm, int nargs)
@@ -260,10 +257,15 @@ namespace ExMat.BaseLib
 
             Encoding e = ExApi.DecideEncodingFromString(enc);
 
-            vm.Pop(nargs + 2);
-            File.WriteAllText(i, code, e);
-
-            return ExFunctionStatus.VOID;
+            try
+            {
+                File.WriteAllText(i, code, e);
+                return vm.CleanReturn(nargs + 2, true);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error writing file: " + err.Message);
+            }
         }
         public static ExFunctionStatus IoWritefilelines(ExVM vm, int nargs)
         {
@@ -289,9 +291,15 @@ namespace ExMat.BaseLib
                 lines[l] = line.GetString();
             }
 
-            vm.Pop(nargs + 2);
-            File.WriteAllLines(i, lines, e);
-            return ExFunctionStatus.VOID;
+            try
+            {
+                File.WriteAllLines(i, lines, e);
+                return vm.CleanReturn(nargs + 2, true);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error writing file: " + err.Message);
+            }
         }
         public static ExFunctionStatus IoWritefilebytes(ExVM vm, int nargs)
         {
@@ -313,10 +321,15 @@ namespace ExMat.BaseLib
                 bytes[l] = Convert.ToByte(b.GetInt());
             }
 
-            vm.Pop(nargs + 2);
-            File.WriteAllBytes(i, bytes);
-
-            return ExFunctionStatus.VOID;
+            try
+            {
+                File.WriteAllBytes(i, bytes);
+                return vm.CleanReturn(nargs + 2, true);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error writing file: " + err.Message);
+            }
         }
 
         public static ExFunctionStatus IoAppendfile(ExVM vm, int nargs)
@@ -335,10 +348,15 @@ namespace ExMat.BaseLib
 
             Encoding e = ExApi.DecideEncodingFromString(enc);
 
-            vm.Pop(nargs + 2);
-            File.AppendAllText(i, code, e);
-
-            return ExFunctionStatus.VOID;
+            try
+            {
+                File.AppendAllText(i, code, e);
+                return vm.CleanReturn(nargs + 2, true);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error writing file: " + err.Message);
+            }
         }
         public static ExFunctionStatus IoAppendfilelines(ExVM vm, int nargs)
         {
@@ -364,10 +382,15 @@ namespace ExMat.BaseLib
                 lines[l] = line.GetString();
             }
 
-            vm.Pop(nargs + 2);
-            File.AppendAllLines(f, lines, e);
-
-            return ExFunctionStatus.VOID;
+            try
+            {
+                File.AppendAllLines(f, lines, e);
+                return vm.CleanReturn(nargs + 2, true);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error writing file: " + err.Message);
+            }
         }
 
         public static ExFunctionStatus IoReadfile(ExVM vm, int nargs)
@@ -459,17 +482,12 @@ namespace ExMat.BaseLib
 
             if (!Directory.Exists(dir))
             {
-                if (nargs == 2 && vm.GetArgument(2).GetBool())
-                {
-                    Directory.CreateDirectory(dir);
-                    return vm.CleanReturn(nargs + 2, true);
-                }
                 return vm.CleanReturn(nargs + 2, false);
             }
 
             Directory.SetCurrentDirectory(dir);
 
-            return vm.CleanReturn(nargs + 2, Directory.GetCurrentDirectory());
+            return vm.CleanReturn(nargs + 2, true);
         }
 
         public static ExFunctionStatus IoMkdir(ExVM vm, int nargs)
@@ -587,16 +605,16 @@ namespace ExMat.BaseLib
             {
                 case "std":
                     {
-                        return vm.AddToErrorMessage("use 'reload_base' function to reload the std base functions");
+                        return vm.AddToErrorMessage("use '" + ExMat.ReloadBaseLib + "' function to reload the std base functions");
                     }
                 case "io":
                     {
                         if (nargs == 2)
                         {
-                            if (fname != ReloadLibFunc)
+                            if (fname != ExMat.ReloadLibFunc)
                             {
                                 ExApi.PushRootTable(vm);
-                                if (!ExApi.ReloadNativeFunction(vm, IOFuncs, fname))
+                                if (!ExApi.ReloadNativeFunction(vm, IOFuncs, fname, ExStdLibType.IO))
                                 {
                                     return vm.AddToErrorMessage(string.Format("unknown IO function {0}", fname));
                                 }
@@ -604,93 +622,102 @@ namespace ExMat.BaseLib
                         }
                         else if (!RegisterStdIO(vm))
                         {
-                            return vm.AddToErrorMessage("something went wrong...");
+                            break;
                         }
-                        break;
+                        return vm.CleanReturn(nargs + 2, true);
                     }
                 case "math":
                     {
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, ExStdLibType.MATH))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown Math function {0}", fname));
                             }
                         }
                         else if (!ExStdMath.RegisterStdMath(vm))
                         {
-                            return vm.AddToErrorMessage("something went wrong...");
+                            break;
                         }
-                        break;
+                        return vm.CleanReturn(nargs + 2, true);
                     }
                 case "string":
                     {
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, ExStdLibType.STRING))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown String function {0}", fname));
                             }
                         }
                         else if (!ExStdString.RegisterStdString(vm))
                         {
-                            return vm.AddToErrorMessage("something went wrong...");
+                            break;
                         }
-                        break;
+                        return vm.CleanReturn(nargs + 2, true);
                     }
                 case "sys":
                     {
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname, ExStdLibType.SYSTEM))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown Sys function {0}", fname));
                             }
                         }
                         else if (!ExStdSys.RegisterStdSys(vm))
                         {
-                            return vm.AddToErrorMessage("something went wrong...");
+                            break;
                         }
-                        break;
+                        return vm.CleanReturn(nargs + 2, true);
                     }
                 case "net":
                     {
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname, ExStdLibType.NETWORK))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown Net function {0}", fname));
                             }
                         }
                         else if (!ExStdNet.RegisterStdNet(vm))
                         {
-                            return vm.AddToErrorMessage("something went wrong...");
+                            break;
                         }
-                        break;
+                        return vm.CleanReturn(nargs + 2, true);
                     }
             }
-            return 0;
+
+            return vm.AddToErrorMessage("something went wrong...");
         }
 
         public static ExFunctionStatus IoReloadlibfunc(ExVM vm, int nargs)
         {
             string fname = vm.GetArgument(1).GetString();
 
-            if (fname != ReloadLibFunc
-                && fname != ReloadLib
-                && ExApi.ReloadNativeFunction(vm, IOFuncs, fname))
+            if (fname != ExMat.ReloadLibFunc
+                && fname != ExMat.ReloadLib
+                && ExApi.ReloadNativeFunction(vm, IOFuncs, fname, ExStdLibType.IO))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, ExStdLibType.STRING))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, ExStdLibType.MATH))
+            {
+                return ExFunctionStatus.VOID;
+            }
+            else if (ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname, ExStdLibType.NETWORK))
+            {
+                return ExFunctionStatus.VOID;
+            }
+            else if (ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname, ExStdLibType.SYSTEM))
             {
                 return ExFunctionStatus.VOID;
             }
@@ -727,30 +754,36 @@ namespace ExMat.BaseLib
             string path = vm.GetArgument(1).GetString();
             ExcelReaderConfig.Password = nargs > 1 ? vm.GetArgument(2).GetString() : string.Empty;
 
-            using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read);
-            using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream, ExcelReaderConfig);
-
-            // The result of each spreadsheet is in result.Tables
-            DataSet result = reader.AsDataSet();
-
-            Dictionary<string, ExObject> res = new(result.Tables.Count);
-
-            foreach (DataTable table in result.Tables)
+            try
             {
-                List<ExObject> rows = new(table.Rows.Count);
-                foreach (DataRow row in table.Rows)
-                {
-                    List<ExObject> rowcontent = new(table.Columns.Count);
-                    foreach (DataColumn column in table.Columns)
-                    {
-                        rowcontent.Add(new(row[column].ToString()));
-                    }
-                    rows.Add(new(rowcontent));
-                }
-                res.Add(table.TableName, new(rows));
-            }
+                using FileStream stream = File.Open(path, FileMode.Open, FileAccess.Read);
+                using IExcelDataReader reader = ExcelReaderFactory.CreateReader(stream, ExcelReaderConfig);
+                // The result of each spreadsheet is in result.Tables
+                DataSet result = reader.AsDataSet();
 
-            return vm.CleanReturn(nargs + 2, res);
+                Dictionary<string, ExObject> res = new(result.Tables.Count);
+
+                foreach (DataTable table in result.Tables)
+                {
+                    List<ExObject> rows = new(table.Rows.Count);
+                    foreach (DataRow row in table.Rows)
+                    {
+                        List<ExObject> rowcontent = new(table.Columns.Count);
+                        foreach (DataColumn column in table.Columns)
+                        {
+                            rowcontent.Add(new(row[column].ToString()));
+                        }
+                        rows.Add(new(rowcontent));
+                    }
+                    res.Add(table.TableName, new(rows));
+                }
+
+                return vm.CleanReturn(nargs + 2, res);
+            }
+            catch (Exception e)
+            {
+                return vm.AddToErrorMessage("Error reading .xslx: " + e.Message);
+            }
         }
 
         public static ExFunctionStatus IoWriteExcel(ExVM vm, int nargs)
@@ -764,27 +797,34 @@ namespace ExMat.BaseLib
             rowoffset = rowoffset < 0 ? 0 : rowoffset;
             coloffset = coloffset < 0 ? 0 : coloffset;
 
-            using XLWorkbook workbook = File.Exists(file) ? new XLWorkbook(file, new LoadOptions() { }) : new XLWorkbook();
-
-            IXLWorksheet worksheet = workbook.Worksheets.Contains(sheet) ? workbook.Worksheet(sheet) : workbook.Worksheets.Add(sheet);
-
-            for (int i = 1; i <= rows.Count; i++)
+            try
             {
-                switch (rows[i - 1].Type)
+                using XLWorkbook workbook = File.Exists(file) ? new XLWorkbook(file, new LoadOptions() { }) : new XLWorkbook();
+
+                IXLWorksheet worksheet = workbook.Worksheets.Contains(sheet) ? workbook.Worksheet(sheet) : workbook.Worksheets.Add(sheet);
+
+                for (int i = 1; i <= rows.Count; i++)
                 {
-                    case ExObjType.ARRAY:
-                        {
-                            List<ExObject> row = rows[i - 1].GetList();
-                            for (int j = 1; j <= row.Count; j++)
+                    switch (rows[i - 1].Type)
+                    {
+                        case ExObjType.ARRAY:
                             {
-                                worksheet.Cell(i + rowoffset, j + coloffset).Value = vm.GetSimpleString(row[j - 1]);
+                                List<ExObject> row = rows[i - 1].GetList();
+                                for (int j = 1; j <= row.Count; j++)
+                                {
+                                    worksheet.Cell(i + rowoffset, j + coloffset).Value = vm.GetSimpleString(row[j - 1]);
+                                }
+                                break;
                             }
-                            break;
-                        }
+                    }
                 }
+                workbook.SaveAs(file);
+                return vm.CleanReturn(nargs + 2, true);
             }
-            workbook.SaveAs(file);
-            return vm.CleanReturn(nargs + 2, true);
+            catch (Exception e)
+            {
+                return vm.AddToErrorMessage("Error writing .xslx: " + e.Message);
+            }
         }
 
         public static List<ExRegFunc> IOFuncs => _stdiofuncs;
@@ -795,250 +835,300 @@ namespace ExMat.BaseLib
             {
                 Name = "clear",
                 Function = IoClear,
-                nParameterChecks = 1,
-                ParameterMask = "."
+                Parameters = new(),
+                Returns = ExObjType.BOOL,
+                Safe = true,
+                Description = "Clear the interactive console"
             },
             new()
             {
                 Name = "paint_print",
                 Function = IoPaint,
-                nParameterChecks = -2,
-                ParameterMask = ".sss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new("black") },
-                    { 3, new("white") }
-                }
+                    new("message", "s", "Message to print"),
+                    new("background", "s", "Background color, one of console color values present in 'COLORS' dictionary", new("black")),
+                    new("foreground", "s", "Foreground color, one of console color values present in 'COLORS' dictionary", new("white"))
+                },
+                Safe = true,
+                Description = "Prints given string with given background and foreground colors"
             },
             new()
             {
                 Name = "read_excel",
                 Function = IoReadExcel,
-                nParameterChecks = -2,
-                ParameterMask = ".ss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new(string.Empty) }
-                }
+                    new("path", "s", "File path to read"),
+                    new("password", "s", "Password to use for reading, if there is any", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Read an '.xslx' worksheet into a list of dictionaries with sheet names and list of lists"
             },
             new()
             {
                 Name = "write_excel",
                 Function = IoWriteExcel,
-                nParameterChecks = -4,
-                ParameterMask = ".ssaii",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 4, new(0) },
-                    { 5, new(0) }
-                }
+                    new("path", "s", "File path to write to"),
+                    new("sheet_name", "s", "Sheet name in the file. If it already exists, it will get overwritten unless offset."),
+                    new("rows_of_cols", "a", "List of lists to write as an excel sheet"),
+                    new("rowoffset", "i", "File path to write to", new(0)),
+                    new("coloffset", "i", "File path to write to", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Write a list lists to/as an '.xslx' worksheet. Starting row and column can be offset"
             },
             new()
             {
                 Name = "read_json",
                 Function = IoReadjson,
-                nParameterChecks = -2,
-                ParameterMask = ".ss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new("") }
-                }
+                    new("path", "s", "File path to read"),
+                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
+                },
+                Returns = ExObjType.DICT | ExObjType.ARRAY,
+                Description = "Read a json file into dictionaries and lists"
             },
             new()
             {
                 Name = "write_json",
                 Function = IoWritejson,
-                nParameterChecks = -3,
-                ParameterMask = ".s.s",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new("") }
-                }
+                    new("path", "s", "File path to write to"),
+                    new("object", ".", "Object to convert to json"),
+                    new("encoding", "s", "Encoding to use while writing", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Write an object as a json file"
             },
             new()
             {
                 Name = "read_bytes",
                 Function = IoReadfilebytes,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("path", "s", "File path to read")
+                },
+                Safe = true,
+                Returns = ExObjType.ARRAY | ExObjType.NULL,
+                Description = "Read a file's contents as a bytes list"
             },
             new()
             {
                 Name = "read_text",
                 Function = IoReadfile,
-                nParameterChecks = -2,
-                ParameterMask = ".ss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new("") }
-                }
+                    new("path", "s", "File path to read"),
+                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
+                },
+                Safe = true,
+                Returns = ExObjType.STRING | ExObjType.NULL,
+                Description = "Read a file's contents"
             },
             new()
             {
                 Name = "read_lines",
                 Function = IoReadfilelines,
-                nParameterChecks = -2,
-                ParameterMask = ".ss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new("") }
-                }
+                    new("path", "s", "File path to read"),
+                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
+                },
+                Safe = true,
+                Returns = ExObjType.ARRAY | ExObjType.NULL,
+                Description = "Read a file's contents line by line into a list"
             },
 
             new()
             {
                 Name = "write_bytes",
                 Function = IoWritefilebytes,
-                nParameterChecks = 3,
-                ParameterMask = ".sa"
+                Parameters = new()
+                {
+                    new("path", "s", "File path to write"),
+                    new("byte_list", "a", "Byte list to use")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Write a byte list into a file"
             },
             new()
             {
                 Name = "write_text",
                 Function = IoWritefile,
-                nParameterChecks = -3,
-                ParameterMask = ".sss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new("") }
-                }
+                    new("path", "s", "File path to write"),
+                    new("content", "s", "File content"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Write a string into a file"
             },
             new()
             {
                 Name = "write_lines",
                 Function = IoWritefilelines,
-                nParameterChecks = -3,
-                ParameterMask = ".sas",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new("") }
-                }
+                    new("path", "s", "File path to write"),
+                    new("lines", "a", "File content lines list"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Write a list of strings into a file as individual lines"
             },
 
             new()
             {
                 Name = "append_text",
                 Function = IoAppendfile,
-                nParameterChecks = -3,
-                ParameterMask = ".sss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new("") }
-                }
+                    new("path", "s", "File path to write"),
+                    new("content", "s", "File content to append"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Append a string into an existing file"
             },
             new()
             {
                 Name = "append_lines",
                 Function = IoAppendfilelines,
-                nParameterChecks = -3,
-                ParameterMask = ".sas",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new("") }
-                }
+                    new("path", "s", "File path to append"),
+                    new("lines", "a", "File content lines list"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Append a list of strings to an existing file as individual lines"
             },
 
             new()
             {
                 Name = "current_dir",
                 Function = IoCurrentdir,
-                nParameterChecks = 1,
-                ParameterMask = "."
+                Parameters = new(),
+                Safe = true,
+                Returns = ExObjType.STRING,
+                Description = "Get current working directory"
             },
             new()
             {
                 Name = "dir_content",
                 Function = IoShowdir,
-                nParameterChecks = -1,
-                ParameterMask = ".s",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new("") }
-                }
+                    new("directory", "s", "Directory to get contents of", new(string.Empty))
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Get a list of directories and files present in the given directory. If nothing given, current directory is used"
             },
             new()
             {
                 Name = "change_dir",
                 Function = IoChangedir,
-                nParameterChecks = -2,
-                ParameterMask = ".sb",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new(false) }
-                }
+                    new("directory", "s", "Directory to change into")
+                },
+                Safe = true,
+                Returns = ExObjType.BOOL,
+                Description = "Change directory into given directory."
             },
             new()
             {
                 Name = "make_dir",
                 Function = IoMkdir,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("directory", "s", "Directory to create")
+                },
+                Safe = true,
+                Returns = ExObjType.BOOL,
+                Description = "Create a new directory. If directory already exists, returns false."
             },
 
             new()
             {
                 Name = "raw_input",
                 Function = IoRawinput,
-                nParameterChecks = -1,
-                ParameterMask = ".s",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new("") }
-                }
+                    new("message", "s", "Message to print before input starts", new(string.Empty))
+                },
+                Safe = true,
+                Returns = ExObjType.STRING,
+                Description = "Start getting the user input, stops until user pressed ENTER"
             },
 
             new()
             {
                 Name = "raw_key",
                 Function = IoRawinputkey,
-                nParameterChecks = -1,
-                ParameterMask = ".s.",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new("") },
-                    { 2, new(true) }
-                }
+                    new("message", "s", "Message to print before input starts", new(string.Empty)),
+                    new("hide_key", ".", "Hide the key pressed", new(true))
+                },
+                Safe = true,
+                Returns = ExObjType.STRING,
+                Description = "Read the next key pressed by the user"
             },
 
             new()
             {
                 Name = "file_exists",
                 Function = IoFileexists,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("file", "s", "File path to check")
+                },
+                Safe = true,
+                Returns = ExObjType.BOOL,
+                Description = "Check if a file exists"
             },
             new()
             {
                 Name = "include_file",
                 Function = IoIncludefile,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
-            },
-            new()
-            {
-                Name = ReloadLib,
-                Function = IoReloadlib,
-                nParameterChecks = -2,
-                ParameterMask = ".ss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new(string.Empty) }
-                }
+                    new("file", "s", "Script file with '.exmat' extension")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Compile and execute an external '.exmat' file using the current VM"
             },
             new()
             {
-                Name = ReloadLibFunc,
+                Name = ExMat.ReloadLib,
+                Function = IoReloadlib,
+                Parameters = new()
+                {
+                    new("library", "s", "Library to reload: io, math, string, net, system"),
+                    new("function_name", "s", "A specific function from the library to reload alone", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Reload a standard library or a function of a standard library"
+            },
+            new()
+            {
+                Name = ExMat.ReloadLibFunc,
                 Function = IoReloadlibfunc,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("library", "s", "Library to reload: io, math, string, net, system")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Reload a standard library"
             }
         };
-
-        private const string _reloadlib = "reload_lib";
-        public static string ReloadLib => _reloadlib;
-
-        private const string _reloadlibfunc = "reload_func";
-        public static string ReloadLibFunc => _reloadlibfunc;
 
         private static void GetUserInput(ref string res, bool single = false, bool intercept = false)
         {
@@ -1104,7 +1194,7 @@ namespace ExMat.BaseLib
             // For read_excel
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            ExApi.RegisterNativeFunctions(vm, IOFuncs);
+            ExApi.RegisterNativeFunctions(vm, IOFuncs, ExStdLibType.IO);
 
             return true;
         }
