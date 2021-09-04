@@ -197,11 +197,11 @@ namespace ExMat.BaseLib
                     foreach (dynamic item in deserializedResponse.items)
                     {
                         Results.Add(new(
-                            new List<ExObject>()
+                            new Dictionary<string, ExObject>()
                             {
-                                new(item.link.ToString()),
-                                new(item.title.ToString()),
-                                new(item.snippet.ToString())
+                                { "link", new(item.link.ToString()) },
+                                { "title", new(item.title.ToString()) },
+                                { "summary", new(item.snippet.ToString()) }
                             })
                         );
                     }
@@ -311,43 +311,50 @@ namespace ExMat.BaseLib
             {
                 Name = "wiki",
                 Function = StdNetWiki,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("subject", "s", "Subject to search for")
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Get a list of maximum 10 dictionaries of wiki page link, title, and summary of a given subject. Requires an API key to use, call the function for more information."
             },
 
             new()
             {
                 Name = "fetch",
                 Function = StdNetFetch,
-                nParameterChecks = -2,
-                ParameterMask = ".s.",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new(false) }
-                }
+                    new("url", "s", "Url to fetch information from. JSON and HTML files are parsed accordingly unless 'raw' parameter is set to true."),
+                    new("raw", ".", "Wheter to return raw response content. Use false to parse json and html responses.", new(false))
+                },
+                Returns = ExObjType.STRING | ExObjType.DICT | ExObjType.ARRAY,
+                Description = "Fetch contents of the given url. Response is parsed if it was a json or html response by default, use 'raw' to change it."
             },
 
             new()
             {
                 Name = "has_network",
                 Function = StdNetHasNetwork,
-                nParameterChecks = 1,
-                ParameterMask = "."
+                Parameters = new(),
+                Returns = ExObjType.BOOL,
+                Description = "Check if there is any network connection currently 'up'."
             },
 
             new()
             {
                 Name = "ip_config",
                 Function = StdNetIPConfig,
-                nParameterChecks = 1,
-                ParameterMask = "."
+                Parameters = new(),
+                Returns = ExObjType.BOOL,
+                Description = "Get a list of dictionaries containing adapter and network information"
             }
         };
         public static List<ExRegFunc> NetFuncs => _stdnetfuncs;
 
         public static bool RegisterStdNet(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, NetFuncs);
+            ExApi.RegisterNativeFunctions(vm, NetFuncs, ExStdLibType.NETWORK);
             return true;
         }
     }
