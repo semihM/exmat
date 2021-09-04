@@ -3688,7 +3688,6 @@ namespace ExMat.VM
                     }
                 case ExObjType.INTEGER:
                 case ExObjType.FLOAT:
-                case ExObjType.BOOL:
                     {
                         del = SharedState.NumberDelegate.GetDict();
                         break;
@@ -3990,6 +3989,8 @@ namespace ExMat.VM
                     }
                 case ExObjType.WEAKREF:
                 case ExObjType.COMPLEX:
+                case ExObjType.FLOAT:
+                case ExObjType.INTEGER:
                     {
                         break;
                     }
