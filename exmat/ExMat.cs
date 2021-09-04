@@ -263,7 +263,6 @@ utc-hours = utc-hour = utc-hh = utc-h";
     /// <summary>
     /// Available object types for <see cref="ExObject"/> objects
     /// </summary>
-    [Flags]
     public enum ExObjType
     {
         /// <summary>
