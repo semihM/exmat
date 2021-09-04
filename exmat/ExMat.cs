@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using ExMat.Class;
 using ExMat.Closure;
@@ -155,6 +156,7 @@ utc-hours = utc-hour = utc-hh = utc-h";
     /// <summary>
     /// Base/raw object types, use one of these to create <see cref="ExObjType"/> types with <see cref="ExObjFlag"/> flags
     /// </summary>
+    [Flags]
     public enum ExBaseType
     {
         /// <summary>
@@ -237,6 +239,7 @@ utc-hours = utc-hour = utc-hh = utc-h";
     /// <summary>
     /// Object type flags for <see cref="ExObjType"/> types, used to define how a type should be treated
     /// </summary>
+    [Flags]
     public enum ExObjFlag
     {
         /// <summary>
@@ -260,6 +263,7 @@ utc-hours = utc-hour = utc-hh = utc-h";
     /// <summary>
     /// Available object types for <see cref="ExObject"/> objects
     /// </summary>
+    [Flags]
     public enum ExObjType
     {
         /// <summary>
@@ -350,6 +354,7 @@ utc-hours = utc-hour = utc-hh = utc-h";
         [FieldOffset(0)] public long i;
     }
 
+    [Flags]
     public enum ExMemberFlag
     {
         METHOD = 0x01000000,

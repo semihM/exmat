@@ -271,8 +271,8 @@ namespace ExMat.BaseLib
                 {
                     gateway = string.Join(".", properties.GatewayAddresses
                                 .Select(g => g?.Address)
-                                .Where(a => a != null)
-                                .FirstOrDefault().GetAddressBytes()
+                                .FirstOrDefault(a => a != null)
+                                .GetAddressBytes()
                                 .Select(x => x.ToString()));
                 }
 

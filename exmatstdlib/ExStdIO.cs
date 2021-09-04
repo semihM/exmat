@@ -487,7 +487,7 @@ namespace ExMat.BaseLib
 
             Directory.SetCurrentDirectory(dir);
 
-            return vm.CleanReturn(nargs + 2, true);
+            return vm.CleanReturn(nargs + 2, Directory.GetCurrentDirectory());
         }
 
         public static ExFunctionStatus IoMkdir(ExVM vm, int nargs)
@@ -1039,7 +1039,7 @@ namespace ExMat.BaseLib
                     new("directory", "s", "Directory to change into")
                 },
                 Safe = true,
-                Returns = ExObjType.BOOL,
+                Returns = ExObjType.BOOL | ExObjType.STRING,
                 Description = "Change directory into given directory."
             },
             new()
