@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using ExMat.API;
 using ExMat.BaseLib;
 using ExMat.Closure;
-using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.VM;
 
@@ -25,10 +25,34 @@ namespace ExMat.States
         // Kullanılan yazı dizileri ve değişken isimleri
         public Dictionary<string, ExObject> Strings = new();
 
-        #region _
-        public Dictionary<string, ExObject> Macros = new();
-        public Dictionary<string, ExMacro> BlockMacros = new();
-        #endregion
+        private static ExRegFunc CreateWeakReferenceDelegate(char basemask)
+        {
+            return new()
+            {
+                Name = "weakref",
+                Function = ExBaseLib.StdWeakRef,
+                Parameters = new(),
+                BaseTypeMask = basemask,
+                Returns = ExObjType.WEAKREF,
+                Description = "Returns a weak reference of the object"
+            };
+        }
+        private static ExRegFunc CreateLengthDelegate(char basemask)
+        {
+            return new()
+            {
+                Name = "len",
+                Function = ExBaseLib.StdDefaultLength,
+                Parameters = new(),
+                BaseTypeMask = basemask,
+                Returns = ExObjType.INTEGER,
+                Description = "Returns the 'length' of the object"
+            };
+        }
+        private static ExRegFunc EndDelegateList()
+        {
+            return new() { Name = string.Empty };
+        }
 
         // Sınıf temisili metotları
         public ExObject ClassDelegate = new(new Dictionary<string, ExObject>());
@@ -37,210 +61,287 @@ namespace ExMat.States
             new()
             {
                 Name = "has_attr",
-                nParameterChecks = 3,
-                ParameterMask = "yss",
-                Function = ExBaseLib.StdClassHasAttr
+                Function = ExBaseLib.StdClassHasAttr,
+                BaseTypeMask = 'y',
+                Parameters = new()
+                {
+                    new("member_or_method", "s", "Member or method name"),
+                    new("attribute", "s", "Attribute name to check")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if an attribute exists for a member or a method"
             },
             new()
             {
                 Name = "get_attr",
-                nParameterChecks = 3,
-                ParameterMask = "yss",
-                Function = ExBaseLib.StdClassGetAttr
+                Function = ExBaseLib.StdClassGetAttr,
+                BaseTypeMask = 'y',
+                Parameters = new()
+                {
+                    new("member_or_method", "s", "Member or method name"),
+                    new("attribute", "s", "Attribute name to get")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Get an attribute of a member or a method"
             },
             new()
             {
                 Name = "set_attr",
-                nParameterChecks = 4,
-                ParameterMask = "yss.",
-                Function = ExBaseLib.StdClassSetAttr
-            },
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "y"
+                Function = ExBaseLib.StdClassSetAttr,
+                BaseTypeMask = 'y',
+                Parameters = new()
+                {
+                    new("member_or_method", "s", "Member or method name"),
+                    new("attribute", "s", "Attribute name to get"),
+                    new("new_value", ".", "New attribute value")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Set an attribute of a member or a method"
             },
 
-            new() { Name = string.Empty }
+            CreateWeakReferenceDelegate('y'),
+
+            EndDelegateList()
         };
 
         // Tablo temisili metotları
         public ExObject DictDelegate = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> DictDelegateFuncs = new()
         {
-            new()
-            {
-                Name = "len",
-                nParameterChecks = 1,
-                ParameterMask = "d",
-                Function = ExBaseLib.StdDefaultLength
-            },
+            CreateLengthDelegate('d'),
+
             new()
             {
                 Name = "has_key",
-                nParameterChecks = 2,
-                ParameterMask = "ds",
-                Function = ExBaseLib.StdDictHasKey
+                Function = ExBaseLib.StdDictHasKey,
+                BaseTypeMask = 'd',
+                Parameters = new()
+                {
+                    new("key", "s", "Key to check")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if given key exists"
             },
             new()
             {
                 Name = "get_keys",
-                nParameterChecks = 1,
-                ParameterMask = "d",
-                Function = ExBaseLib.StdDictKeys
+                Function = ExBaseLib.StdDictKeys,
+                BaseTypeMask = 'd',
+                Parameters = new(),
+                Returns = ExObjType.ARRAY,
+                Description = "Get a list of the keys"
             },
             new()
             {
                 Name = "get_values",
-                nParameterChecks = 1,
-                ParameterMask = "d",
-                Function = ExBaseLib.StdDictValues
+                Function = ExBaseLib.StdDictValues,
+                BaseTypeMask = 'd',
+                Parameters = new(),
+                Returns = ExObjType.ARRAY,
+                Description = "Get a list of the values"
             },
             new()
             {
                 Name = "random_key",
                 Function = ExBaseLib.StdDictRandomKey,
-                nParameterChecks = 1,
-                ParameterMask = "d"
+                BaseTypeMask = 'd',
+                Parameters = new(),
+                Returns = ExObjType.STRING,
+                Description = "Get a random key"
             },
             new()
             {
                 Name = "random_val",
                 Function = ExBaseLib.StdDictRandomVal,
-                nParameterChecks = 1,
-                ParameterMask = "d"
+                BaseTypeMask = 'd',
+                Parameters = new(),
+                Returns = -1,
+                Description = "Get a random value"
             },
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "d"
-            },
-            new() { Name = string.Empty }
+            CreateWeakReferenceDelegate('d'),
+
+            EndDelegateList()
         };
 
         // Liste temisili metotları
         public ExObject ListDelegate = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> ListDelegateFuncs = new()
         {
-            new()
-            {
-                Name = "len",
-                nParameterChecks = 1,
-                ParameterMask = "a",
-                Function = ExBaseLib.StdDefaultLength
-            },
+            CreateLengthDelegate('a'),
             new()
             {
                 Name = "append",
-                nParameterChecks = 2,
-                ParameterMask = "a.",
-                Function = ExBaseLib.StdArrayAppend
+                Function = ExBaseLib.StdArrayAppend,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("object", ".", "Object to append")
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return a new list with given item appended"
             },
             new()
             {
-                Name = "extend",
-                nParameterChecks = 2,
-                ParameterMask = "aa",
-                Function = ExBaseLib.StdArrayExtend
+                Name = "remove_at",
+                Function = ExBaseLib.StdArrayRemoveAt,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("index", "r", "Index of the item to remove")
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return a new list with the item at given index removed"
+            },
+            new()
+            {
+                Name = "expand",
+                Function = ExBaseLib.StdArrayExpand,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("list", "a", "List of items to append")
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return a new list with given list of objects appended"
             },
             new()
             {
                 Name = "push",
-                nParameterChecks = 2,
-                ParameterMask = "a.",
-                Function = ExBaseLib.StdArrayAppend
+                Function = ExBaseLib.StdArrayPush,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("object", ".", "Object to push to end")
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return the original list with given item appended"
             },
             new()
             {
                 Name = "pop",
-                nParameterChecks = 1,
-                ParameterMask = "a",
-                Function = ExBaseLib.StdArrayPop
+                Function = ExBaseLib.StdArrayPop,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("count", "r", "Amount of items to pop", new(1))
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return the original list with given amount of items popped"
+            },
+            new()
+            {
+                Name = "extend",
+                Function = ExBaseLib.StdArrayExtend,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("list", "a", "List of items to append")
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return the original list with given list of objects appended"
             },
             new()
             {
                 Name = "resize",
-                nParameterChecks = 2,
-                ParameterMask = "ai",
-                Function = ExBaseLib.StdArrayResize
+                Function = ExBaseLib.StdArrayResize,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("new_size", "r", "New size for the list"),
+                    new("filler", ".", "Filler object if new size is bigger than current size", new())
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return the original list resized"
             },
             new()
             {
                 Name = "index_of",
-                nParameterChecks = 2,
-                ParameterMask = "a.",
-                Function = ExBaseLib.StdArrayIndexOf
+                Function = ExBaseLib.StdArrayIndexOf,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("object", ".", "Object to search for")
+                },
+                Returns = ExObjType.INTEGER,
+                Description = "Return the index of an object or -1 if nothing found"
             },
             new()
             {
                 Name = "count",
-                nParameterChecks = 2,
-                ParameterMask = "a.",
-                Function = ExBaseLib.StdArrayCount
+                Function = ExBaseLib.StdArrayCount,
+                BaseTypeMask = 'a',
+                Parameters = new()
+                {
+                    new("object", ".", "Object to search for")
+                },
+                Returns = ExObjType.INTEGER,
+                Description = "Count how many times given object appears in the list"
             },
             new()
             {
                 Name = "reverse",
-                nParameterChecks = 1,
-                ParameterMask = "a",
-                Function = ExBaseLib.StdArrayReverse
+                Function = ExBaseLib.StdArrayReverse,
+                BaseTypeMask = 'a',
+                Parameters = new(),
+                Returns = ExObjType.ARRAY,
+                Description = "Return a new list with the order of items reversed"
             },
             new()
             {
                 Name = "slice",
-                nParameterChecks = -2,
-                ParameterMask = "aii",
                 Function = ExBaseLib.StdArraySlice,
-                DefaultValues = new()
+                BaseTypeMask = 'a',
+                Parameters = new()
                 {
-                    { 2, new(-1) }
-                }
+                    new("index1", "r", "If used alone: [0,index1), otherwise: [index1,index2)"),
+                    new("index2", "r", "Ending index, returned list length == index2 - index1", new(-1))
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return a new list with items picked from given range. Negative indices gets incremented by list length"
             },
             new()
             {
                 Name = "copy",
-                nParameterChecks = 1,
-                ParameterMask = "a",
-                Function = ExBaseLib.StdArrayCopy
+                Function = ExBaseLib.StdArrayCopy,
+                BaseTypeMask = 'a',
+                Parameters = new(),
+                Returns = ExObjType.ARRAY,
+                Description = "Return a copy of the list."
             },
             new()
             {
                 Name = "transpose",
-                nParameterChecks = 1,
-                ParameterMask = "a",
-                Function = ExBaseLib.StdArrayTranspose
-            },
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "a"
+                Function = ExBaseLib.StdArrayTranspose,
+                BaseTypeMask = 'a',
+                Parameters = new(),
+                Returns = ExObjType.ARRAY,
+                Description = "Return the transposed form of given matrix. Not usable for non-matrix formats."
             },
             new()
             {
                 Name = "random",
                 Function = ExBaseLib.StdArrayRandom,
-                nParameterChecks = -1,
-                ParameterMask = "an",
-                DefaultValues = new()
+                BaseTypeMask = 'a',
+                Parameters = new()
                 {
-                    { 1, new(1) }
-                }
+                    new("count", "n", "Amount of random values to return", new(1))
+                },
+                Returns = -1,
+                Description = "Return a random item or a list of given amount of random items. If 'count' > 1, a list of unique item picks is returned."
             },
             new()
             {
                 Name = "shuffle",
                 Function = ExBaseLib.StdArrayShuffle,
-                nParameterChecks = 1,
-                ParameterMask = "a"
+                BaseTypeMask = 'a',
+                Parameters = new(),
+                Returns = ExObjType.ARRAY,
+                Description = "Return a new shuffled list"
             },
 
-            new() { Name = string.Empty }
+            CreateWeakReferenceDelegate('a'),
+
+            EndDelegateList()
         };
 
         // Kompleks sayı temisili metotları
@@ -250,47 +351,51 @@ namespace ExMat.States
             new()
             {
                 Name = "abs",
-                nParameterChecks = 1,
-                ParameterMask = "C",
-                Function = ExBaseLib.StdComplexMagnitude
+                Function = ExBaseLib.StdComplexMagnitude,
+                BaseTypeMask = 'C',
+                Parameters = new(),
+                Returns = ExObjType.FLOAT,
+                Description = "Return the magnitute of the value"
             },
             new()
             {
                 Name = "phase",
-                nParameterChecks = 1,
-                ParameterMask = "C",
-                Function = ExBaseLib.StdComplexPhase
+                Function = ExBaseLib.StdComplexPhase,
+                BaseTypeMask = 'C',
+                Parameters = new(),
+                Returns = ExObjType.FLOAT,
+                Description = "Return the phase of the value"
             },
             new()
             {
                 Name = "img",
-                nParameterChecks = 1,
-                ParameterMask = "C",
-                Function = ExBaseLib.StdComplexImg
+                Function = ExBaseLib.StdComplexImg,
+                BaseTypeMask = 'C',
+                Parameters = new(),
+                Returns = ExObjType.FLOAT,
+                Description = "Return the imaginary part of the value"
             },
             new()
             {
                 Name = "real",
-                nParameterChecks = 1,
-                ParameterMask = "C",
-                Function = ExBaseLib.StdComplexReal
+                Function = ExBaseLib.StdComplexReal,
+                BaseTypeMask = 'C',
+                Parameters = new(),
+                Returns = ExObjType.FLOAT,
+                Description = "Return the real part of the value"
             },
             new()
             {
                 Name = "conj",
-                nParameterChecks = 1,
-                ParameterMask = "C",
-                Function = ExBaseLib.StdComplexConjugate
+                Function = ExBaseLib.StdComplexConjugate,
+                BaseTypeMask = 'C',
+                Parameters = new(),
+                Returns = ExObjType.COMPLEX,
+                Description = "Return the complex conjugate of the value"
             },
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "C"
-            },
+            CreateWeakReferenceDelegate('C'),
 
-            new() { Name = string.Empty }
+            EndDelegateList()
         };
 
         // Gerçek sayı temisili metotları
@@ -299,179 +404,205 @@ namespace ExMat.States
         {
             new()
             {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "n"
+                Name = "real",
+                Function = ExBaseLib.StdNumericReal,
+                BaseTypeMask = 'r',
+                Parameters = new(),
+                Returns = ExObjType.INTEGER | ExObjType.FLOAT,
+                Description = "Return the real part of the value. This delegate always returns the value itself"
             },
-            new() { Name = string.Empty }
+            new()
+            {
+                Name = "img",
+                Function = ExBaseLib.StdNumericImage,
+                BaseTypeMask = 'r',
+                Parameters = new(),
+                Returns = ExObjType.INTEGER | ExObjType.FLOAT,
+                Description = "Return the imaginary part of the value. This delegate always returns 0"
+            },
+            CreateWeakReferenceDelegate('r'),
+
+            EndDelegateList()
         };
 
         // Yazı dizisi temisili metotları
         public ExObject StringDelegate = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> StringDelegateFuncs = new()
         {
-            new()
-            {
-                Name = "len",
-                nParameterChecks = 1,
-                ParameterMask = "s",
-                Function = ExBaseLib.StdDefaultLength
-            },
+            CreateLengthDelegate('s'),
             new()
             {
                 Name = "index_of",
-                nParameterChecks = 2,
-                ParameterMask = "ss",
-                Function = ExBaseLib.StdStringIndexOf
+                Function = ExBaseLib.StdStringIndexOf,
+                BaseTypeMask = 's',
+                Parameters = new()
+                {
+                    new("substring", "s", "Substring to search for")
+                },
+                Returns = ExObjType.INTEGER,
+                Description = "Return the index of given substring or -1"
             },
             new()
             {
                 Name = "to_upper",
-                nParameterChecks = 1,
-                ParameterMask = "s",
-                Function = ExBaseLib.StdStringToUpper
+                Function = ExBaseLib.StdStringToUpper,
+                BaseTypeMask = 's',
+                Parameters = new(),
+                Returns = ExObjType.STRING,
+                Description = "Return a new string with characters capitalized"
             },
             new()
             {
                 Name = "to_lower",
-                nParameterChecks = 1,
-                ParameterMask = "s",
-                Function = ExBaseLib.StdStringToLower
+                Function = ExBaseLib.StdStringToLower,
+                BaseTypeMask = 's',
+                Parameters = new(),
+                Returns = ExObjType.STRING,
+                Description = "Return a new string with characters uncapitalized"
             },
             new()
             {
                 Name = "reverse",
-                nParameterChecks = 1,
-                ParameterMask = "s",
-                Function = ExBaseLib.StdStringReverse
+                Function = ExBaseLib.StdStringReverse,
+                BaseTypeMask = 's',
+                Parameters = new(),
+                Returns = ExObjType.STRING,
+                Description = "Return a new string with character order reversed"
             },
             new()
             {
                 Name = "replace",
-                nParameterChecks = 3,
-                ParameterMask = "sss",
-                Function = ExBaseLib.StdStringReplace
+                Function = ExBaseLib.StdStringReplace,
+                BaseTypeMask = 's',
+                Parameters = new()
+                {
+                    new("old", "s", "Value to be replaced"),
+                    new("new", "s", "Value to use for replacing")
+                },
+                Returns = ExObjType.STRING,
+                Description = "Return a new string with given substrings replaced with given new string"
             },
             new()
             {
                 Name = "repeat",
-                nParameterChecks = 2,
-                ParameterMask = "si",
-                Function = ExBaseLib.StdStringRepeat
+                Function = ExBaseLib.StdStringRepeat,
+                BaseTypeMask = 's',
+                Parameters = new()
+                {
+                    new("repeat", "r", "Times to repeat the string")
+                },
+                Returns = ExObjType.STRING,
+                Description = "Return a new string with the original string repeat given times"
             },
 
             new()
             {
                 Name = "isAlphabetic",
-                nParameterChecks = -1,
-                ParameterMask = "si",
                 Function = ExBaseLib.StdStringAlphabetic,
-                DefaultValues = new()
+                BaseTypeMask = 's',
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("index", "r", "Character index to check instead of the whole string", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if the string or a character at given index is alphabetic"
             },
             new()
             {
                 Name = "isNumeric",
-                nParameterChecks = -1,
-                ParameterMask = "si",
                 Function = ExBaseLib.StdStringNumeric,
-                DefaultValues = new()
+                BaseTypeMask = 's',
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("index", "r", "Character index to check instead of the whole string", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if the string or a character at given index is numeric"
             },
             new()
             {
                 Name = "isAlphaNumeric",
-                nParameterChecks = -1,
-                ParameterMask = "si",
                 Function = ExBaseLib.StdStringAlphaNumeric,
-                DefaultValues = new()
+                BaseTypeMask = 's',
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("index", "r", "Character index to check instead of the whole string", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if the string or a character at given index is alphabetic or numeric"
             },
             new()
             {
                 Name = "isLower",
-                nParameterChecks = -1,
-                ParameterMask = "si",
                 Function = ExBaseLib.StdStringLower,
-                DefaultValues = new()
+                BaseTypeMask = 's',
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("index", "r", "Character index to check instead of the whole string", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if the string or a character at given index is lower case"
             },
             new()
             {
                 Name = "isUpper",
-                nParameterChecks = -1,
-                ParameterMask = "si",
                 Function = ExBaseLib.StdStringUpper,
-                DefaultValues = new()
+                BaseTypeMask = 's',
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("index", "r", "Character index to check instead of the whole string", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if the string or a character at given index is upper case"
             },
             new()
             {
                 Name = "isWhitespace",
-                nParameterChecks = -1,
-                ParameterMask = "si",
                 Function = ExBaseLib.StdStringWhitespace,
-                DefaultValues = new()
+                BaseTypeMask = 's',
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("index", "r", "Character index to check instead of the whole string", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if the string or a character at given index is whitespace"
             },
             new()
             {
                 Name = "isSymbol",
-                nParameterChecks = -1,
-                ParameterMask = "si",
                 Function = ExBaseLib.StdStringSymbol,
-                DefaultValues = new()
+                BaseTypeMask = 's',
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("index", "r", "Character index to check instead of the whole string", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if the string or a character at given index is symbolic"
             },
             new()
             {
                 Name = "slice",
-                nParameterChecks = -2,
-                ParameterMask = "sii",
                 Function = ExBaseLib.StdStringSlice,
-                DefaultValues = new()
+                BaseTypeMask = 'a',
+                Parameters = new()
                 {
-                    { 2, new(-1) }
-                }
+                    new("index1", "r", "If used alone: [0,index1), otherwise: [index1,index2)"),
+                    new("index2", "r", "Ending index, returned list length == index2 - index1", new(-1))
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Return a new string with characters picked from given range. Negative indices gets incremented by string length"
             },
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "s"
-            },
+            CreateWeakReferenceDelegate('s'),
 
-            new() { Name = string.Empty }
+            EndDelegateList()
         };
 
         // Fonksiyon/kod bloğu temisili metotları
         public ExObject ClosureDelegate = new(new Dictionary<string, ExObject>());
         public List<ExRegFunc> ClosureDelegateFuncs = new()
         {
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "c"
-            },
-            new() { Name = string.Empty }
+            CreateWeakReferenceDelegate('c'),
+            EndDelegateList()
         };
 
         // Sınıfa ait obje temisili metotları
@@ -481,33 +612,46 @@ namespace ExMat.States
             new()
             {
                 Name = "has_attr",
-                nParameterChecks = 3,
-                ParameterMask = "xss",
-                Function = ExBaseLib.StdInstanceHasAttr
+                Function = ExBaseLib.StdInstanceHasAttr,
+                BaseTypeMask = 'x',
+                Parameters = new()
+                {
+                    new("member_or_method", "s", "Member or method name"),
+                    new("attribute", "s", "Attribute name to check")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Check if an attribute exists for a member or a method"
             },
             new()
             {
                 Name = "get_attr",
-                nParameterChecks = 3,
-                ParameterMask = "xss",
-                Function = ExBaseLib.StdInstanceGetAttr
+                Function = ExBaseLib.StdInstanceGetAttr,
+                BaseTypeMask = 'x',
+                Parameters = new()
+                {
+                    new("member_or_method", "s", "Member or method name"),
+                    new("attribute", "s", "Attribute name to get")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Get an attribute of a member or a method"
             },
             new()
             {
                 Name = "set_attr",
-                nParameterChecks = 4,
-                ParameterMask = "xss.",
-                Function = ExBaseLib.StdInstanceSetAttr
+                Function = ExBaseLib.StdInstanceSetAttr,
+                BaseTypeMask = 'x',
+                Parameters = new()
+                {
+                    new("member_or_method", "s", "Member or method name"),
+                    new("attribute", "s", "Attribute name to get"),
+                    new("new_value", ".", "New attribute value")
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Set an attribute of a member or a method"
             },
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "x"
-            },
+            CreateWeakReferenceDelegate('x'),
 
-            new() { Name = string.Empty }
+            EndDelegateList()
         };
 
         // Zayıf referans temisili metotları
@@ -518,20 +662,24 @@ namespace ExMat.States
             {
                 Name = "ref",
                 Function = ExBaseLib.StdWeakRefValue,
-                nParameterChecks = 1,
-                ParameterMask = "w"
+                BaseTypeMask = 'w',
+                Parameters = new(),
+                Returns = -1,
+                Description = "Return the referenced object"
             },
-            new()
-            {
-                Name = "weakref",
-                Function = ExBaseLib.StdWeakRef,
-                nParameterChecks = 1,
-                ParameterMask = "w"
-            },
-            new() { Name = string.Empty }
+            CreateWeakReferenceDelegate('w'),
+            EndDelegateList()
         };
 
         private bool disposedValue;
+
+        private void CreateMetaMethod(int i)
+        {
+            string mname = "_" + ((ExMetaMethod)i).ToString();
+
+            MetaMethods.Add(new(mname));
+            MetaMethodsMap.GetDict().Add(mname, new(i));
+        }
 
         public void Initialize()
         {
@@ -539,10 +687,7 @@ namespace ExMat.States
 
             for (int i = 0; i < (int)ExMetaMethod.LAST; i++)
             {
-                string mname = "_" + ((ExMetaMethod)i).ToString();
-
-                MetaMethods.Add(new(mname));
-                MetaMethodsMap.Value.d_Dict.Add(mname, new(i));
+                CreateMetaMethod(i);
             }
 
             DictDelegate.Assign(CreateDefDel(this, DictDelegateFuncs));
@@ -556,6 +701,17 @@ namespace ExMat.States
             WeakRefDelegate.Assign(CreateDefDel(this, WeakRefDelegateFuncs));
         }
 
+        private static void SetNativeClosureDelegateSettings(ExNativeClosure cls, ExRegFunc f)
+        {
+            cls.Name = new(f.Name);
+            cls.nParameterChecks = f.NumberOfParameters;
+            cls.DefaultValues = ExApi.GetDefaultValuesFromParameters(f.Parameters);
+            cls.IsDelegateFunction = true;
+            cls.Documentation = ExApi.CreateDocStringFromRegFunc(f, false); // TO-DO : Hack, what happens if we want vargs in delegates ?
+            cls.Summary = f.Description;
+            cls.Returns = f.Returns;
+        }
+
         public static ExObject CreateDefDel(ExSState exs, List<ExRegFunc> f)
         {
             int i = 0;
@@ -565,19 +721,18 @@ namespace ExMat.States
                 f[i].IsDelegateFunction = true;
 
                 ExNativeClosure cls = ExNativeClosure.Create(exs, f[i].Function, 0);
-                cls.Name = new(f[i].Name);
-                cls.nParameterChecks = f[i].nParameterChecks;
-                cls.DefaultValues = f[i].DefaultValues;
-                cls.IsDelegateFunction = true;
+
+                if (!string.IsNullOrEmpty(f[i].ParameterMask)
+                    && !ExApi.CompileTypeMask(f[i].ParameterMask, cls.TypeMasks))
+                {
+                    return new(); // Shouldn't happen
+                }
+
+                SetNativeClosureDelegateSettings(cls, f[i]);
 
                 if (!exs.Strings.ContainsKey(f[i].Name))
                 {
                     exs.Strings.Add(f[i].Name, new(f[i].Name));
-                }
-
-                if (!string.IsNullOrEmpty(f[i].ParameterMask) && !API.ExApi.CompileTypeMask(f[i].ParameterMask, cls.TypeMasks))
-                {
-                    return new();
                 }
 
                 d.Add(f[i++].Name, new(cls));
@@ -610,8 +765,6 @@ namespace ExMat.States
                                             DictDelegate,
                                             ClassDelegate);
 
-                    Disposer.DisposeDict(ref BlockMacros);
-                    Disposer.DisposeDict(ref Macros);
                     Disposer.DisposeDict(ref Strings);
 
                     Disposer.DisposeList(ref MetaMethods);
