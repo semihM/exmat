@@ -205,125 +205,165 @@ namespace ExMat.BaseLib
             {
                 Name = "reg_escape",
                 Function = StdStringRegexEscape,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("string", "s", "String to escape regex characters")
+                },
+                Returns = ExObjType.STRING,
+                Description = "Escape regex characters in given string"
             },
 
             new()
             {
                 Name = "reg_split",
                 Function = StdStringRegexSplit,
-                nParameterChecks = -3,
-                ParameterMask = ".ssi|f",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new(int.MaxValue) }
-                }
+                    new("string", "s", "String to split"),
+                    new("pattern", "s", "Splitting pattern"),
+                    new("max_count", "r", "Maximum count of splitting", new(int.MaxValue))
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Split given string with a pattern given amount of maximum splits"
             },
 
             new()
             {
                 Name = "reg_replace",
                 Function = StdStringRegexReplace,
-                nParameterChecks = -4,
-                ParameterMask = ".sssi|f",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 4, new(int.MaxValue) }
-                }
+                    new("string", "s", "String to search through"),
+                    new("old", "s", "Old value pattern"),
+                    new("new", "s", "Replacement value"),
+                    new("max_count", "r", "Maximum count of replacements", new(int.MaxValue))
+                },
+                Returns = ExObjType.STRING,
+                Description = "Replace parts which matches given pattern in a string with a given value maximum given times"
             },
 
             new()
             {
                 Name = "reg_match",
                 Function = StdStringRegexMatch,
-                nParameterChecks = 3,
-                ParameterMask = ".ss"
+                Parameters = new()
+                {
+                    new("string", "s", "String to search through"),
+                    new("pattern", "s", "Pattern to match")
+                },
+                Returns = ExObjType.DICT | ExObjType.NULL,
+                Description = "Find a match of given pattern in given string. Returns first match information as dictionary or null if nothing matches."
             },
 
             new()
             {
                 Name = "reg_matches",
                 Function = StdStringRegexMatches,
-                nParameterChecks = 3,
-                ParameterMask = ".ss"
+                Parameters = new()
+                {
+                    new("string", "s", "String to search through"),
+                    new("pattern", "s", "Pattern to match")
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Find all matches of given pattern in given string. Returns match informations as dictionaries."
             },
 
             new()
             {
                 Name = "compile",
                 Function = StdStringCompile,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("code", "s", "Code to compile")
+                },
+                Returns = ExObjType.CLOSURE,
+                Description = "Compile given code into a callable function"
             },
 
             new()
             {
                 Name = "strip",
                 Function = StdStringStrip,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("string", "s", "String to strip")
+                },
+                Returns = ExObjType.STRING,
+                Description = "Return a new string of given string stripped from both at the begining and the end."
             },
             new()
             {
                 Name = "lstrip",
                 Function = StdStringLstrip,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("string", "s", "String to strip")
+                },
+                Returns = ExObjType.STRING,
+                Description = "Return a new string of given string stripped from the begining."
             },
             new()
             {
                 Name = "rstrip",
                 Function = StdStringRstrip,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("string", "s", "String to strip")
+                },
+                Returns = ExObjType.STRING,
+                Description = "Return a new string of given string stripped from the end."
             },
             new()
             {
                 Name = "split",
                 Function = StdStringSplit,
-                nParameterChecks = -3,
-                ParameterMask = ".ssb",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new(false) }
-                }
+                    new("string", "s", "String to split"),
+                    new("splitter", "s", "Splitting string"),
+                    new("remove_empty", ".", "Wheter to remove empty strings", new(false))
+                },
+                Returns = ExObjType.ARRAY,
+                Description = "Split given string with given splitter."
             },
             new()
             {
                 Name = "join",
                 Function = StdStringJoin,
-                nParameterChecks = -3,
-                ParameterMask = ".sai",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new(2) }
-                }
+                    new("seperator", "s", "String to use between strings"),
+                    new("list", "a", "List of objects"),
+                    new("depth", "r", "Depth to stringify objects to", new(2))
+                },
+                Returns = ExObjType.STRING,
+                Description = "Join a list of objects with given seperators into a string, using given depth of stringification for the objects."
             },
             new()
             {
                 Name = "format",
                 Function = StdStringFormat,
-                nParameterChecks = -2,
-                ParameterMask = null
+                NumberOfParameters = -2,
+                Returns = ExObjType.STRING,
+                Description = "Replace given {x} patterns in the first string with the (x+2)th argument passed.\n\tExample: format(\"{0}, {1}\", \"first\", \"second\") == \"first, second\""
             },
             new()
             {
                 Name = "rands",
                 Function = StdStringRands,
-                nParameterChecks = -1,
-                ParameterMask = ".i",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new(10) }
-                }
+                    new("length", "r", "Length of the string", new(10))
+                },
+                Returns = ExObjType.STRING,
+                Description = "Create a cryptographically safe random string using characters from [a-zA-Z0-9] with given length."
             }
         };
         public static List<ExRegFunc> StringFuncs => _stdstrfuncs;
 
         public static bool RegisterStdString(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, StringFuncs);
+            ExApi.RegisterNativeFunctions(vm, StringFuncs, ExStdLibType.STRING);
             return true;
         }
     }
