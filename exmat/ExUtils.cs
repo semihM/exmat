@@ -40,6 +40,25 @@ namespace ExMat.Utils
             }
         }
 
+        public static List<ExObject> AppendFillerNTimes(List<ExObject> list, ExObject filler, int n)
+        {
+            if (filler == null)
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    list.Add(new());
+                }
+            }
+            else
+            {
+                for (int i = 0; i < n; i++)
+                {
+                    list.Add(new(filler));
+                }
+            }
+            return list;
+        }
+
         public static List<ExObject> ShuffleList(List<ExObject> list)
         {
             System.Random rand = new();
