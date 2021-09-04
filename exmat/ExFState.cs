@@ -4,7 +4,6 @@ using System.Linq;
 using ExMat.Exceptions;
 using ExMat.FuncPrototype;
 using ExMat.InfoVar;
-using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.OPs;
 
@@ -158,45 +157,6 @@ namespace ExMat.States
                         Instructions[pos].arg3 = val;
                         break;
                     }
-            }
-        }
-
-        public bool IsBlockMacro(string name)
-        {
-            return SharedState.BlockMacros.ContainsKey(name);
-        }
-
-        public bool AddBlockMacro(string name, ExMacro mac)
-        {
-            SharedState.BlockMacros.Add(name, mac);
-            return true;
-        }
-
-        public bool IsMacro(ExObject o)
-        {
-            return SharedState.Macros.ContainsKey(o.GetString());
-        }
-
-        public bool IsFuncMacro(ExObject o)
-        {
-            return SharedState.Macros[o.GetString()].GetBool();
-        }
-
-        public bool AddMacro(ExObject o, bool isfunc, bool forced = false)
-        {
-            if (SharedState.Macros.ContainsKey(o.GetString()))
-            {
-                if (forced)
-                {
-                    SharedState.Macros[o.GetString()].Assign(isfunc);
-                    return true;
-                }
-                return false;
-            }
-            else
-            {
-                SharedState.Macros.Add(o.GetString(), new(isfunc));
-                return true;
             }
         }
 

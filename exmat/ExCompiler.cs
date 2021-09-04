@@ -3138,17 +3138,6 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (FunctionState.IsBlockMacro(idx.GetString()))
-            {
-                AddToErrorMessage("macro '" + idx.GetString() + "' already exists!");
-                FixAfterMacro(old_lex, old_currToken, old_src);
-                return false;
-            }
-            else
-            {
-                FunctionState.AddBlockMacro(idx.GetString(), new() { Name = idx.GetString(), Source = Lexer.MacroBlock.ToString(), Parameters = Lexer.MacroParams });
-            }
-
             FunctionState.AddInstr(OPC.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
 
             AddBasicDerefInstr(OPC.NEWSLOT);
@@ -3179,12 +3168,6 @@ namespace ExMat.Compiler
             bool isfunc = CurrentToken == TokenType.ROUNDOPEN;
             if (!ExMacroCreate(idx, isfunc))
             {
-                return false;
-            }
-
-            if (!FunctionState.AddMacro(idx, isfunc, true))   // TO-DO stop using forced param
-            {
-                AddToErrorMessage("macro " + idx.GetString() + " already exists");
                 return false;
             }
 
