@@ -13,6 +13,10 @@ namespace ExMat
     /// </summary>
     public static class ExMat
     {
+        public const string Version = "ExMat v0.0.9";
+
+        public const int VersionNumber = 9;
+
         /// <summary>
         /// String and file terminator character
         /// </summary>
@@ -37,6 +41,23 @@ namespace ExMat
         /// Function attribute, returns name of the function
         /// </summary>
         public const string FuncName = "name";
+
+        /// <summary>
+        /// Function attribute, returns the documentation about the function
+        /// </summary>
+        public const string HelpName = "help";
+
+        /// <summary>
+        /// Function attribute, returns the summary of the function
+        /// </summary>
+        public const string DocsName = "docs";
+
+        /// <summary>
+        /// Function attribute, returns the return type information string
+        /// </summary>
+        public const string ReturnsName = "returns";
+
+        //TO-DO Add function attribute for parameter info
 
         /// <summary>
         /// Variable parameter count functions' argument list keyword name
@@ -75,6 +96,21 @@ namespace ExMat
         public const string DefParams = "defparams";
 
         /// <summary>
+        /// Function name, reload a standard library specific function
+        /// </summary>
+        public const string ReloadLibFunc = "reload_func";
+
+        /// <summary>
+        /// Function name, reload a standard library or a standard library specific function
+        /// </summary>
+        public const string ReloadLib = "reload_lib";
+
+        /// <summary>
+        /// Function name, reload the standard base library
+        /// </summary>
+        public const string ReloadBaseLib = "reload_base";
+
+        /// <summary>
         /// Title of the interactive console
         /// </summary>
         public const string ConsoleTitle = "[] ExMat Interactive";
@@ -88,6 +124,32 @@ namespace ExMat
         /// Garbage collection run count after execution
         /// </summary>
         public const int GCCOLLECTCOUNT = 1 << 3;
+
+        /// <summary>
+        /// Informational multi-line string about available types for 'date' function
+        /// </summary>
+        public const string DateTypeInfoString = @"
+today
+now = time,
+year,
+month,
+day = wday,
+mday,
+yday,
+hours = hour = hh = h,
+minutes = minute = min = mm = m,
+seconds = second = sec = ss = s,
+miliseconds = milisecond = ms,
+utc,
+utc-today,
+utc-time = utc-now,
+utc-year,
+utc-month,
+utc-day = utc-wday,
+utc-mday,
+utc-yday,
+utc-hours = utc-hour = utc-hh = utc-h";
+
     }
 
     /// <summary>
@@ -551,5 +613,36 @@ namespace ExMat
         /// Don't search
         /// </summary>
         DONT = 999
+    }
+
+    /// <summary>
+    /// Types for standard libraries
+    /// </summary>
+    public enum ExStdLibType
+    {
+        /// <summary>
+        /// Base library
+        /// </summary>
+        BASE,
+        /// <summary>
+        /// Math library
+        /// </summary>
+        MATH,
+        /// <summary>
+        /// Input-output library
+        /// </summary>
+        IO,
+        /// <summary>
+        /// String library
+        /// </summary>
+        STRING,
+        /// <summary>
+        /// Networking library
+        /// </summary>
+        NETWORK,
+        /// <summary>
+        /// System library
+        /// </summary>
+        SYSTEM
     }
 }
