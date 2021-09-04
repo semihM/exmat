@@ -269,10 +269,10 @@ namespace ExMat.States
                 ExInstr instr = Instructions[s - 1];
                 switch (instr.op)
                 {
-                    case OPC.SET:
-                    case OPC.NEWSLOT:
-                    case OPC.SETOUTER:
-                    case OPC.CALL:
+                    case ExOperationCode.SET:
+                    case ExOperationCode.NEWSLOT:
+                    case ExOperationCode.SETOUTER:
+                    case ExOperationCode.CALL:
                         {
                             if (instr.arg0 == dissed)
                             {
@@ -409,31 +409,31 @@ namespace ExMat.States
                 ExInstr prev = Instructions[size - 1];
                 switch (curr.op)
                 {
-                    case OPC.MOVE:
+                    case ExOperationCode.MOVE:
                         {
                             switch (prev.op)
                             {
-                                case OPC.ADD:       // Toplama işlemi
+                                case ExOperationCode.ADD:       // Toplama işlemi
                                 #region Diğer aritmetik komutlar
-                                case OPC.SUB:
-                                case OPC.MLT:
-                                case OPC.EXP:
-                                case OPC.DIV:
-                                case OPC.MOD:
-                                case OPC.MMLT:
-                                case OPC.TRANSPOSE:
-                                case OPC.CARTESIAN:
-                                case OPC.BITWISE:
+                                case ExOperationCode.SUB:
+                                case ExOperationCode.MLT:
+                                case ExOperationCode.EXP:
+                                case ExOperationCode.DIV:
+                                case ExOperationCode.MOD:
+                                case ExOperationCode.MMLT:
+                                case ExOperationCode.TRANSPOSE:
+                                case ExOperationCode.CARTESIAN:
+                                case ExOperationCode.BITWISE:
                                 #endregion
-                                case OPC.LOAD:      // Yazı dizisi ata
+                                case ExOperationCode.LOAD:      // Yazı dizisi ata
                                 #region Diğer temel veri tipi yükleme komutları
-                                case OPC.LOADINTEGER:
-                                case OPC.LOADFLOAT:
-                                case OPC.LOADBOOLEAN:
-                                case OPC.LOADCOMPLEX:
-                                case OPC.LOADSPACE:
+                                case ExOperationCode.LOADINTEGER:
+                                case ExOperationCode.LOADFLOAT:
+                                case ExOperationCode.LOADBOOLEAN:
+                                case ExOperationCode.LOADCOMPLEX:
+                                case ExOperationCode.LOADSPACE:
                                 #endregion
-                                case OPC.GET:       // Objeye ait özelliği ata
+                                case ExOperationCode.GET:       // Objeye ait özelliği ata
                                     {
                                         if (prev.arg0 == curr.arg1) // Önceki hedef == şimdiki kaynak
                                         {
@@ -444,9 +444,9 @@ namespace ExMat.States
                                         }
                                         break;
                                     }
-                                case OPC.MOVE:
+                                case ExOperationCode.MOVE:
                                     {
-                                        prev.op = OPC.DMOVE;
+                                        prev.op = ExOperationCode.DMOVE;
                                         prev.arg2 = curr.arg0;
                                         prev.arg3 = curr.arg1;
                                         Instructions[size - 1] = prev;
@@ -456,11 +456,11 @@ namespace ExMat.States
                             break;
                         }
                     #region Diğer işlem kodları
-                    case OPC.LOAD:
+                    case ExOperationCode.LOAD:
                         {
-                            if (prev.op == OPC.LOAD && curr.arg1 <= ExMat.InvalidArgument)
+                            if (prev.op == ExOperationCode.LOAD && curr.arg1 <= ExMat.InvalidArgument)
                             {
-                                prev.op = OPC.DLOAD;
+                                prev.op = ExOperationCode.DLOAD;
                                 prev.arg2 = curr.arg0;
                                 prev.arg3 = curr.arg1;
                                 Instructions[size - 1] = prev;
@@ -468,19 +468,19 @@ namespace ExMat.States
                             }
                             break;
                         }
-                    case OPC.JZ:
+                    case ExOperationCode.JZ:
                         {
-                            if (prev.op == OPC.CMP && prev.arg1 < ExMat.InvalidArgument)
+                            if (prev.op == ExOperationCode.CMP && prev.arg1 < ExMat.InvalidArgument)
                             {
-                                prev.op = OPC.JCMP;
+                                prev.op = ExOperationCode.JCMP;
                                 prev.arg0 = prev.arg1;
                                 prev.arg1 = curr.arg1;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
-                            goto case OPC.SET;
+                            goto case ExOperationCode.SET;
                         }
-                    case OPC.SET:
+                    case ExOperationCode.SET:
                         {
                             if (curr.arg0 == curr.arg3)
                             {
@@ -488,7 +488,7 @@ namespace ExMat.States
                             }
                             break;
                         }
-                    case OPC.SETOUTER:
+                    case ExOperationCode.SETOUTER:
                         {
                             if (curr.arg0 == curr.arg2)
                             {
@@ -496,37 +496,37 @@ namespace ExMat.States
                             }
                             break;
                         }
-                    case OPC.RETURN:
+                    case ExOperationCode.RETURN:
                         {
-                            if (ParentFState != null && curr.arg0 != ExMat.InvalidArgument && prev.op == OPC.CALL && ReturnExpressionTarget < size - 1)
+                            if (ParentFState != null && curr.arg0 != ExMat.InvalidArgument && prev.op == ExOperationCode.CALL && ReturnExpressionTarget < size - 1)
                             {
-                                prev.op = OPC.CALLTAIL;
+                                prev.op = ExOperationCode.CALLTAIL;
                                 Instructions[size - 1] = prev;
                             }
-                            else if (prev.op == OPC.CLOSE)
+                            else if (prev.op == ExOperationCode.CLOSE)
                             {
                                 Instructions[size - 1] = curr;
                                 return;
                             }
                             break;
                         }
-                    case OPC.GET:
+                    case ExOperationCode.GET:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0 == curr.arg2 && (!IsLocalArg((int)prev.arg0)))
+                            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg2 && (!IsLocalArg((int)prev.arg0)))
                             {
                                 prev.arg2 = curr.arg1;
-                                prev.op = OPC.GETK;
+                                prev.op = ExOperationCode.GETK;
                                 prev.arg0 = curr.arg0;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
                             break;
                         }
-                    case OPC.PREPCALL:
+                    case ExOperationCode.PREPCALL:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
+                            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
                             {
-                                prev.op = OPC.PREPCALLK;
+                                prev.op = ExOperationCode.PREPCALLK;
                                 prev.arg0 = curr.arg0;
                                 prev.arg2 = curr.arg2;
                                 prev.arg3 = curr.arg3;
@@ -535,27 +535,27 @@ namespace ExMat.States
                             }
                             break;
                         }
-                    case OPC.APPENDTOARRAY:
+                    case ExOperationCode.APPENDTOARRAY:
                         {
                             ArrayAType idx = ArrayAType.INVALID;
                             switch (prev.op)
                             {
-                                case OPC.LOAD:
+                                case ExOperationCode.LOAD:
                                     {
                                         idx = ArrayAType.LITERAL;
                                         break;
                                     }
-                                case OPC.LOADINTEGER:
+                                case ExOperationCode.LOADINTEGER:
                                     {
                                         idx = ArrayAType.INTEGER;
                                         break;
                                     }
-                                case OPC.LOADFLOAT:
+                                case ExOperationCode.LOADFLOAT:
                                     {
                                         idx = ArrayAType.FLOAT;
                                         break;
                                     }
-                                case OPC.LOADBOOLEAN:
+                                case ExOperationCode.LOADBOOLEAN:
                                     {
                                         idx = ArrayAType.BOOL;
                                         break;
@@ -566,7 +566,7 @@ namespace ExMat.States
 
                             if (idx != ArrayAType.INVALID && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
                             {
-                                prev.op = OPC.APPENDTOARRAY;
+                                prev.op = ExOperationCode.APPENDTOARRAY;
                                 prev.arg0 = curr.arg0;
                                 prev.arg2 = (int)idx;
                                 prev.arg3 = ExMat.InvalidArgument;
@@ -575,10 +575,10 @@ namespace ExMat.States
                             }
                             break;
                         }
-                    case OPC.EQ:
-                    case OPC.NEQ:
+                    case ExOperationCode.EQ:
+                    case ExOperationCode.NEQ:
                         {
-                            if (prev.op == OPC.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
+                            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
                             {
                                 prev.op = curr.op;
                                 prev.arg0 = curr.arg0;
@@ -589,12 +589,12 @@ namespace ExMat.States
                             }
                             break;
                         }
-                    case OPC.LOADNULL:
+                    case ExOperationCode.LOADNULL:
                         {
-                            if (prev.op == OPC.LOADNULL && (prev.arg0 + prev.arg1 == curr.arg0))
+                            if (prev.op == ExOperationCode.LOADNULL && (prev.arg0 + prev.arg1 == curr.arg0))
                             {
                                 prev.arg1++;
-                                prev.op = OPC.LOADNULL;
+                                prev.op = ExOperationCode.LOADNULL;
                                 Instructions[size - 1] = prev;
                                 return;
                             }
@@ -608,7 +608,7 @@ namespace ExMat.States
         }
 
         // Komut listesinin sonuna yeni bir komut ekler
-        public void AddInstr(OPC op, int arg0, long arg1, int arg2, int arg3)
+        public void AddInstr(ExOperationCode op, int arg0, long arg1, int arg2, int arg3)
         {
             ExInstr instr = new() { op = op, arg0 = arg0, arg1 = arg1, arg2 = arg2, arg3 = arg3 };
             AddInstr(instr);

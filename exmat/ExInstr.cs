@@ -5,7 +5,7 @@ namespace ExMat.OPs
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExInstr
     {
-        public OPC op;
+        public ExOperationCode op;
         public long arg0;
         public long arg1;
         public long arg2;
@@ -13,7 +13,7 @@ namespace ExMat.OPs
 
         public ExInstr() { }
 
-        public ExInstr(OPC o, long a0, long a1, long a2, long a3)
+        public ExInstr(ExOperationCode o, long a0, long a1, long a2, long a3)
         {
             op = o;
             arg0 = a0;

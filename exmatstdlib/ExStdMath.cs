@@ -1196,7 +1196,7 @@ namespace ExMat.BaseLib
 
             for (int i = 0; i < count; i++)
             {
-                if (vm.DoArithmeticOP(OPs.OPC.ADD, args[i], sum, ref res))
+                if (vm.DoArithmeticOP(OPs.ExOperationCode.ADD, args[i], sum, ref res))
                 {
                     sum.Value.f_Float = res.Value.f_Float;
                     sum.Value.c_Float = res.Value.c_Float;
@@ -1229,7 +1229,7 @@ namespace ExMat.BaseLib
 
             for (int i = 0; i < count; i++)
             {
-                if (vm.DoArithmeticOP(OPs.OPC.MLT, args[i], mul, ref res))
+                if (vm.DoArithmeticOP(OPs.ExOperationCode.MLT, args[i], mul, ref res))
                 {
                     mul.Value.f_Float = res.Value.f_Float;
                     mul.Value.c_Float = res.Value.c_Float;

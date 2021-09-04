@@ -156,7 +156,7 @@ namespace ExMat
                             }
                         ),
                     Literals = new(),
-                    Instructions = new(2) { new(OPs.OPC.RETURN, ExMat.InvalidArgument, 0, 2, 0), new(OPs.OPC.RETURN, ExMat.InvalidArgument, 2, 1, 0) },
+                    Instructions = new(2) { new(OPs.ExOperationCode.RETURN, ExMat.InvalidArgument, 0, 2, 0), new(OPs.ExOperationCode.RETURN, ExMat.InvalidArgument, 2, 1, 0) },
                     InstructionsIndex = 0,
                     IsRootCall = true,
                     PrevBase = 2,
