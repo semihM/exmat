@@ -143,56 +143,88 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, info);
         }
 
+        private static EnvironmentVariableTarget GetEnviromentTargetFromString(string target)
+        {
+            switch (target)
+            {
+                case "user":
+                    {
+                        return EnvironmentVariableTarget.User;
+                    }
+                case "machine":
+                    {
+                        return EnvironmentVariableTarget.Machine;
+                    }
+                default:
+                    {
+                        return EnvironmentVariableTarget.Process;
+                    }
+            }
+        }
+
         public static ExFunctionStatus StdSysGetEnvVars(ExVM vm, int nargs)
         {
             Dictionary<string, ExObject> vars = new();
-            foreach (DictionaryEntry d in Environment.GetEnvironmentVariables())
-            {
-                vars.Add(d.Key.ToString(), new(d.Value.ToString()));
-            }
 
-            return vm.CleanReturn(nargs + 2, vars);
+            EnvironmentVariableTarget target = nargs == 1
+                ? GetEnviromentTargetFromString(vm.GetArgument(1).GetString())
+                : EnvironmentVariableTarget.Process;
+
+            try
+            {
+                foreach (DictionaryEntry d in Environment.GetEnvironmentVariables(target))
+                {
+                    vars.Add(d.Key.ToString(), new(d.Value.ToString()));
+                }
+                return vm.CleanReturn(nargs + 2, vars);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error getting variables: " + err.Message);
+            }
         }
 
         public static ExFunctionStatus StdSysGetEnvVar(ExVM vm, int nargs)
         {
-            string var = Environment.GetEnvironmentVariable(vm.GetArgument(1).GetString());
-            if (string.IsNullOrEmpty(var))
-            {
-                return vm.CleanReturn(nargs + 2, new ExObject());
-            }
+            EnvironmentVariableTarget target = nargs == 2
+                ? GetEnviromentTargetFromString(vm.GetArgument(2).GetString())
+                : EnvironmentVariableTarget.Process;
 
-            return vm.CleanReturn(nargs + 2, var);
+            try
+            {
+                string var = Environment.GetEnvironmentVariable(vm.GetArgument(1).GetString(), target);
+
+                if (string.IsNullOrEmpty(var))
+                {
+                    return vm.CleanReturn(nargs + 2, new ExObject());
+                }
+
+                return vm.CleanReturn(nargs + 2, var);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error getting variable: " + err.Message);
+            }
         }
 
         public static ExFunctionStatus StdSysSetEnvVar(ExVM vm, int nargs)
         {
-            string target = nargs == 3 ? vm.GetArgument(3).GetString() : "user";
-            switch (target)
+            EnvironmentVariableTarget target = nargs == 3
+                ? GetEnviromentTargetFromString(vm.GetArgument(3).GetString())
+                : EnvironmentVariableTarget.Process;
+
+            try
             {
-                case "machine":
-                    {
-                        Environment.SetEnvironmentVariable(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString(), EnvironmentVariableTarget.Machine);
-                        break;
-                    }
-                case "user":
-                    {
-                        Environment.SetEnvironmentVariable(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString(), EnvironmentVariableTarget.User);
-                        break;
-                    }
-                case "process":
-                    {
-                        Environment.SetEnvironmentVariable(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString(), EnvironmentVariableTarget.Process);
-                        break;
-                    }
-                default:
-                    {
-                        return vm.CleanReturn(nargs + 2, false);
-                    }
+                Environment.SetEnvironmentVariable(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString(), target);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error setting variable: " + err.Message);
             }
 
             return vm.CleanReturn(nargs + 2, true);
         }
+
         public static ExFunctionStatus StdSysEnvExit(ExVM vm, int nargs)
         {
             Environment.Exit((int)vm.GetArgument(1).GetInt());
@@ -258,109 +290,123 @@ namespace ExMat.BaseLib
             {
                 Name = "process",
                 Function = StdSysProcess,
-                nParameterChecks = -1,
-                ParameterMask = ".ss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new(".") },
-                    { 2, new(string.Empty) }
-                }
+                    new("filename", "s", "File to execute", new(".")),
+                    new("arguments", "s", "Arguments for the file", new(string.Empty))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Execute a file with given arguments"
             },
             new()
             {
                 Name = "open_dir",
                 Function = StdSysOpendir,
-                nParameterChecks = -2,
-                ParameterMask = ".sb",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new(false) }
-                }
+                    new("directory", "s", "Directory to open", new(".")),
+                    new("force_create", ".", "Wheter to create the directory if it doesn't exist", new(false))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Open a directory in the explorer"
             },
             new()
             {
                 Name = "print_out",
                 Function = StdSysPrintOut,
-                nParameterChecks = -2,
-                ParameterMask = "..n",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 2, new(2) }
-                }
+                    new("message", ".", "Message or object to print"),
+                    new("depth", "n", "Depth of stringification for objects", new(2))
+                },
+                Description = "Print a message or an object to a new external terminal instead of the immediate terminal"
             },
             new()
             {
                 Name = "env_info",
                 Function = StdSysEnvInfo,
-                nParameterChecks = 1,
-                ParameterMask = "."
+                Parameters = new(),
+                Returns = ExObjType.DICT,
+                Description = "Get information about the runtime and the current enviroment in a dictionary"
             },
             new()
             {
                 Name = "env_vars",
                 Function = StdSysGetEnvVars,
-                nParameterChecks = 1,
-                ParameterMask = "."
+                Parameters = new()
+                {
+                    new("target", "s", "Target enviroment: user, machine or process", new("process"))
+                },
+                Returns = ExObjType.DICT,
+                Description = "Get a dictionary of enviroment variables of given target."
             },
             new()
             {
                 Name = "env_var",
                 Function = StdSysGetEnvVar,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Parameters = new()
+                {
+                    new("variable", "s", "Variable name"),
+                    new("target", "s", "Target enviroment: user, machine or process", new("process"))
+                },
+                Returns = ExObjType.STRING,
+                Description = "Get the value of an enviroment variables of given target."
             },
             new()
             {
                 Name = "set_env_var",
                 Function = StdSysSetEnvVar,
-                nParameterChecks = -3,
-                ParameterMask = ".sss",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 3, new("user") }
-                }
+                    new("variable", "s", "Variable name"),
+                    new("new_value", "s", "New value"),
+                    new("target", "s", "Target enviroment: user, machine or process", new("process"))
+                },
+                Returns = ExObjType.STRING,
+                Description = "Set the value of an enviroment variables of given target to given value."
             },
             new()
             {
                 Name = "env_exit",
                 Function = StdSysEnvExit,
-                nParameterChecks = -1,
-                ParameterMask = ".i|f",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new(0) }
-                }
+                    new("exit_code", "r", "Exit code to return while exiting", new(0))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Exit from the current enviroment immediately. Works similarly but faster than the 'exit' function."
             },
             new()
             {
                 Name = "can_beep",
                 Function = StdSysConsoleCanBeep,
-                nParameterChecks = 1,
-                ParameterMask = "."
+                Parameters = new(),
+                Returns = ExObjType.BOOL,
+                Description = "Check if the console beep function is available."
             },
             new()
             {
                 Name = "beep",
                 Function = StdSysConsoleBeep,
-                nParameterChecks = -1,
-                ParameterMask = ".i|fi|f",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new(800) },
-                    { 2, new(200) }
-                }
+                    new("frequency", "r", "Frequency to beep at in range [37, 32767]", new(800)),
+                    new("duration", "r", "Beeping duration in miliseconds", new(200))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Beep the console for the given duration. This function is not async and stops the flow for the given 'duration'."
             },
             new()
             {
                 Name = "beep_async",
                 Function = StdSysConsoleBeepAsync,
-                nParameterChecks = -1,
-                ParameterMask = ".i|fi|f",
-                DefaultValues = new()
+                Parameters = new()
                 {
-                    { 1, new(800) },
-                    { 2, new(200) }
-                }
+                    new("frequency", "r", "Frequency to beep at in range [37, 32767]", new(800)),
+                    new("duration", "r", "Beeping duration in miliseconds", new(200))
+                },
+                Returns = ExObjType.BOOL,
+                Description = "Beep the console for the given duration async. This function doesn't stop the flow."
             }
         };
 
@@ -368,7 +414,7 @@ namespace ExMat.BaseLib
 
         public static bool RegisterStdSys(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, SysFuncs);
+            ExApi.RegisterNativeFunctions(vm, SysFuncs, ExStdLibType.SYSTEM);
 
             return true;
         }
