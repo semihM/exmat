@@ -2083,7 +2083,7 @@ namespace ExMat.BaseLib
                     new("bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", new(0)),
                     new("bound2", "n", "Upper bound for number range", new(int.MaxValue))
                 },
-                Returns = ExObjType.INTEGER,
+                Returns = ExBaseType.INTEGER,
                 Description = $"Get a random integer in given range: [0, {int.MaxValue}) , [0, bound1) or [bound1, bound2)"
             },
             new()
@@ -2095,7 +2095,7 @@ namespace ExMat.BaseLib
                     new("bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", new(0.0)),
                     new("bound2", "n", "Upper bound for number range", new(1.0))
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Get a random float in given range: [0, 1) , [0, bound1) or [bound1, bound2)"
             },
 
@@ -2108,7 +2108,7 @@ namespace ExMat.BaseLib
                     new("numerator", "i", "Numerator"),
                     new("denominator", "i", "Denominator")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check divisibility of (numerator / denominator)"
             },
             new()
@@ -2120,7 +2120,7 @@ namespace ExMat.BaseLib
                     new("numerator", "i", "Numerator"),
                     new("denominator", "i", "Denominator")
                 },
-                Returns = ExObjType.INTEGER,
+                Returns = ExBaseType.INTEGER,
                 Description = "Get the remainder from (numerator / denominator)"
             },
             new()
@@ -2132,7 +2132,7 @@ namespace ExMat.BaseLib
                     new("numerator", "i", "Numerator"),
                     new("denominator", "i", "Denominator")
                 },
-                Returns = ExObjType.INTEGER,
+                Returns = ExBaseType.INTEGER,
                 Description = "Get the quotient from (numerator / denominator)"
             },
             new()
@@ -2144,7 +2144,7 @@ namespace ExMat.BaseLib
                     new("numerator", "i", "Numerator"),
                     new("denominator", "i", "Denominator")
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Get the remainder and the quotient from (numerator / denominator) in a list."
             },
             new()
@@ -2155,7 +2155,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "i", "Value to get 1/value of"),
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Get the reciprocal of a value, that is 1/value."
             },
             new()
@@ -2167,7 +2167,7 @@ namespace ExMat.BaseLib
                     new("num1", "r", "Value 1"),
                     new("num2", "r", "Value 2")
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Get the greatest common divisor(GCD) of 2 numbers"
             },
             new()
@@ -2179,7 +2179,7 @@ namespace ExMat.BaseLib
                     new("num1", "r", "Value 1"),
                     new("num2", "r", "Value 2")
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Get the least common denominator(LCD) of 2 numbers"
             },
             new()
@@ -2190,7 +2190,7 @@ namespace ExMat.BaseLib
                 {
                     new("positive_num", "r", "A positive value to factorize")
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Get the prime factorization of a positive number. An empty list is returned for negative values."
             },
             new()
@@ -2201,7 +2201,7 @@ namespace ExMat.BaseLib
                 {
                     new("start", "i", "Starting value to get next closest prime of")
                 },
-                Returns = ExObjType.INTEGER,
+                Returns = ExBaseType.INTEGER,
                 Description = "Get the next closest prime bigger than the given value"
             },
             new()
@@ -2212,7 +2212,7 @@ namespace ExMat.BaseLib
                 {
                     new("n", "i", "Index of the prime, that is n'th prime.")
                 },
-                Returns = ExObjType.INTEGER,
+                Returns = ExBaseType.INTEGER,
                 Description = "Get the n'th prime number"
             },
             new()
@@ -2223,7 +2223,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "i", "Value to check")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check wheter the given number is a prime number."
             },
             new()
@@ -2235,7 +2235,7 @@ namespace ExMat.BaseLib
                     new("num1", "r", "Value 1"),
                     new("num2", "r", "Value 2")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if given 2 values are coprimes."
             },
             new()
@@ -2246,7 +2246,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "i", "Value to get digits of")
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Get the digits of an integer value in a list."
             },
             new()
@@ -2257,7 +2257,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.INTEGER,
+                Returns = ExBaseType.FLOAT | ExBaseType.INTEGER,
                 Description = "Get the absolute value of a number or the magnitute of a complex number."
             },
             new()
@@ -2268,7 +2268,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.INTEGER | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.INTEGER | ExBaseType.COMPLEX,
                 Description = "Get the square root of a number."
             },
             new()
@@ -2279,7 +2279,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.INTEGER | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.INTEGER | ExBaseType.COMPLEX,
                 Description = "Get the cube root of a number."
             },
 
@@ -2291,7 +2291,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Radians to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the sin of a number. Uses radians."
             },
             new()
@@ -2302,7 +2302,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Radians to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the cos of a number. Uses radians."
             },
             new()
@@ -2313,7 +2313,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Radians to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the tan of a number. Uses radians."
             },
             new()
@@ -2324,7 +2324,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Radians to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the sinh of a number. Uses radians."
             },
             new()
@@ -2335,7 +2335,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Radians to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the cosh of a number. Uses radians."
             },
             new()
@@ -2346,7 +2346,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Radians to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the tanh of a number. Uses radians."
             },
 
@@ -2358,7 +2358,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the arcsin of a number."
             },
             new()
@@ -2369,7 +2369,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the arccos of a number."
             },
             new()
@@ -2380,7 +2380,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the arctan of a number."
             },
             new()
@@ -2392,7 +2392,7 @@ namespace ExMat.BaseLib
                     new("y", "n", "Cartesian plane x coordinate"),
                     new("x", "n", "Cartesian plane y coordinate")
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Return the angle whose tangent is the quotient of two specified numbers. An angle, θ, measured in radians, such that -π ≤ θ ≤ π, and tan(θ) = y / x, where (x, y) is a point in the Cartesian plane."
             },
             new()
@@ -2403,7 +2403,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Get the arcsinh of a number."
             },
             new()
@@ -2414,7 +2414,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Get the arccosh of a number."
             },
             new()
@@ -2425,7 +2425,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Get the arctanh of a number."
             },
 
@@ -2437,7 +2437,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = $"Get the base e ({Math.E}) logarithm, that is the natural logarithm, of a number."
             },
             new()
@@ -2448,7 +2448,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the base 2 logarithm of a number."
             },
             new()
@@ -2459,7 +2459,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to use")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the base 10 logarithm of a number."
             },
             new()
@@ -2471,7 +2471,7 @@ namespace ExMat.BaseLib
                     new("a", "n", "Argument"),
                     new("b", "n", "Base", new(Math.E))
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the base 'b' logarithm of 'a', that is log'b'('a') == log(a,b). If 'b' is not given, works same as 'loge' function, that is loge('a') == log(a) == log(a,E) == ln(a)"
             },
             new()
@@ -2482,7 +2482,7 @@ namespace ExMat.BaseLib
                 {
                     new("x", "n", "Value to raise E to")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the natural exponential function's value at 'x', that is E raised to the power of 'x'"
             },
             new()
@@ -2494,7 +2494,7 @@ namespace ExMat.BaseLib
                     new("value", "n", "Value to round"),
                     new("digits", "n", "Digits to round to", new(0))
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Round a number to given digits"
             },
             new()
@@ -2505,7 +2505,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to round")
                 },
-                Returns = ExObjType.INTEGER | ExObjType.COMPLEX,
+                Returns = ExBaseType.INTEGER | ExBaseType.COMPLEX,
                 Description = "Round a number to closest integer which is lower than the value."
             },
             new()
@@ -2516,7 +2516,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to round")
                 },
-                Returns = ExObjType.INTEGER | ExObjType.COMPLEX,
+                Returns = ExBaseType.INTEGER | ExBaseType.COMPLEX,
                 Description = "Round a number to closest integer which is higher than the value."
             },
             new()
@@ -2528,7 +2528,7 @@ namespace ExMat.BaseLib
                     new("value", "n", "Value to raise"),
                     new("power", "n", "Power to raise to")
                 },
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Raise a number to the given power"
             },
 
@@ -2536,14 +2536,14 @@ namespace ExMat.BaseLib
             {
                 Name = "sum",
                 Function = MathSum,
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Return the sum of given arguments or the sum of items of the given list."
             },
             new()
             {
                 Name = "mul",
                 Function = MathMul,
-                Returns = ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Return the product of given arguments or the product of items of the given list."
             },
 
@@ -2556,7 +2556,7 @@ namespace ExMat.BaseLib
                     new("value1", "n", "Value 1"),
                     new("value2", "n", "Value 2")
                 },
-                Returns = ExObjType.INTEGER | ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.INTEGER | ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the minimum of two given values"
             },
             new()
@@ -2568,7 +2568,7 @@ namespace ExMat.BaseLib
                     new("value1", "n", "Value 1"),
                     new("value2", "n", "Value 2")
                 },
-                Returns = ExObjType.INTEGER | ExObjType.FLOAT | ExObjType.COMPLEX,
+                Returns = ExBaseType.INTEGER | ExBaseType.FLOAT | ExBaseType.COMPLEX,
                 Description = "Get the maximum of two given values"
             },
             new()
@@ -2579,7 +2579,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to get the sign of")
                 },
-                Returns = ExObjType.INTEGER,
+                Returns = ExBaseType.INTEGER,
                 Description = "Get the sign of the given value. Returns -1: Negative, 0: Zero, 1: Positive"
             },
 
@@ -2591,7 +2591,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to check")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if given value is finite"
             },
             new()
@@ -2602,7 +2602,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to check")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if given value is positive infinity (INF)"
             },
             new()
@@ -2613,7 +2613,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to check")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if given value is negative infinity (NINF)"
             },
             new()
@@ -2624,7 +2624,7 @@ namespace ExMat.BaseLib
                 {
                     new("value", "n", "Value to check")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if given value is NaN (NAN)"
             },
             new()
@@ -2641,7 +2641,7 @@ namespace ExMat.BaseLib
                     new("color", "s", "Plot data point color name", new("blue")),
                     new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save a plot of data points and lines connecting them, using given data lists and plot information as an image"
             },
             new()
@@ -2655,7 +2655,7 @@ namespace ExMat.BaseLib
                     new("width", "n", "Width of the image", new(1200)),
                     new("height", "n", "Height of the image", new(800))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save multiple plots of data points and lines connecting them in a single plot, using given data lists and plot information as an image"
             },
             new()
@@ -2672,7 +2672,7 @@ namespace ExMat.BaseLib
                     new("color", "s", "Plot data point color name", new("blue")),
                     new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save a step plot using given data lists and plot information as an image"
             },
             new()
@@ -2686,7 +2686,7 @@ namespace ExMat.BaseLib
                     new("width", "n", "Width of the image", new(1200)),
                     new("height", "n", "Height of the image", new(800))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save multiple step plots in a single plot, using given data lists and plot information as an image"
             },
             new()
@@ -2703,7 +2703,7 @@ namespace ExMat.BaseLib
                     new("color", "s", "Plot data point color name", new("blue")),
                     new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save a scatter plot with data points only, using given data lists and plot information as an image"
             },
             new()
@@ -2717,7 +2717,7 @@ namespace ExMat.BaseLib
                     new("width", "n", "Width of the image", new(1200)),
                     new("height", "n", "Height of the image", new(800))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save multiple scatter plots in a single plot, using given data lists and plot information as an image"
             },
             new()
@@ -2734,7 +2734,7 @@ namespace ExMat.BaseLib
                     new("color", "s", "Plot data point color name", new("blue")),
                     new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save a plot of line plot connecting data points, using given data lists and plot information as an image"
             },
             new()
@@ -2748,7 +2748,7 @@ namespace ExMat.BaseLib
                     new("width", "n", "Width of the image", new(1200)),
                     new("height", "n", "Height of the image", new(800))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save multiple plots of line plots in a single plot, using given data lists and plot information as an image"
             },
             new()
@@ -2764,7 +2764,7 @@ namespace ExMat.BaseLib
                     new("color", "s", "Plot data point color name", new("blue")),
                     new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Save a scatter plot of complex numbers, using given plot information as an image"
             }
         };

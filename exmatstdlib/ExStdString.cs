@@ -209,7 +209,7 @@ namespace ExMat.BaseLib
                 {
                     new("string", "s", "String to escape regex characters")
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Escape regex characters in given string"
             },
 
@@ -223,7 +223,7 @@ namespace ExMat.BaseLib
                     new("pattern", "s", "Splitting pattern"),
                     new("max_count", "r", "Maximum count of splitting", new(int.MaxValue))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Split given string with a pattern given amount of maximum splits"
             },
 
@@ -238,7 +238,7 @@ namespace ExMat.BaseLib
                     new("new", "s", "Replacement value"),
                     new("max_count", "r", "Maximum count of replacements", new(int.MaxValue))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Replace parts which matches given pattern in a string with a given value maximum given times"
             },
 
@@ -251,7 +251,7 @@ namespace ExMat.BaseLib
                     new("string", "s", "String to search through"),
                     new("pattern", "s", "Pattern to match")
                 },
-                Returns = ExObjType.DICT | ExObjType.NULL,
+                Returns = ExBaseType.DICT | ExBaseType.NULL,
                 Description = "Find a match of given pattern in given string. Returns first match information as dictionary or null if nothing matches."
             },
 
@@ -264,7 +264,7 @@ namespace ExMat.BaseLib
                     new("string", "s", "String to search through"),
                     new("pattern", "s", "Pattern to match")
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Find all matches of given pattern in given string. Returns match informations as dictionaries."
             },
 
@@ -276,7 +276,7 @@ namespace ExMat.BaseLib
                 {
                     new("code", "s", "Code to compile")
                 },
-                Returns = ExObjType.CLOSURE,
+                Returns = ExBaseType.CLOSURE,
                 Description = "Compile given code into a callable function"
             },
 
@@ -288,7 +288,7 @@ namespace ExMat.BaseLib
                 {
                     new("string", "s", "String to strip")
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Return a new string of given string stripped from both at the begining and the end."
             },
             new()
@@ -299,7 +299,7 @@ namespace ExMat.BaseLib
                 {
                     new("string", "s", "String to strip")
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Return a new string of given string stripped from the begining."
             },
             new()
@@ -310,7 +310,7 @@ namespace ExMat.BaseLib
                 {
                     new("string", "s", "String to strip")
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Return a new string of given string stripped from the end."
             },
             new()
@@ -323,7 +323,7 @@ namespace ExMat.BaseLib
                     new("splitter", "s", "Splitting string"),
                     new("remove_empty", ".", "Wheter to remove empty strings", new(false))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Split given string with given splitter."
             },
             new()
@@ -336,7 +336,7 @@ namespace ExMat.BaseLib
                     new("list", "a", "List of objects"),
                     new("depth", "r", "Depth to stringify objects to", new(2))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Join a list of objects with given seperators into a string, using given depth of stringification for the objects."
             },
             new()
@@ -344,7 +344,7 @@ namespace ExMat.BaseLib
                 Name = "format",
                 Function = StdStringFormat,
                 NumberOfParameters = -2,
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Replace given {x} patterns in the first string with the (x+2)th argument passed.\n\tExample: format(\"{0}, {1}\", \"first\", \"second\") == \"first, second\""
             },
             new()
@@ -355,7 +355,7 @@ namespace ExMat.BaseLib
                 {
                     new("length", "r", "Length of the string", new(10))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Create a cryptographically safe random string using characters from [a-zA-Z0-9] with given length."
             }
         };

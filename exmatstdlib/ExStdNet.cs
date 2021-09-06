@@ -315,7 +315,7 @@ namespace ExMat.BaseLib
                 {
                     new("subject", "s", "Subject to search for")
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Get a list of maximum 10 dictionaries of wiki page link, title, and summary of a given subject. Requires an API key to use, call the function for more information."
             },
 
@@ -328,7 +328,7 @@ namespace ExMat.BaseLib
                     new("url", "s", "Url to fetch information from. JSON and HTML files are parsed accordingly unless 'raw' parameter is set to true."),
                     new("raw", ".", "Wheter to return raw response content. Use false to parse json and html responses.", new(false))
                 },
-                Returns = ExObjType.STRING | ExObjType.DICT | ExObjType.ARRAY,
+                Returns = ExBaseType.STRING | ExBaseType.DICT | ExBaseType.ARRAY,
                 Description = "Fetch contents of the given url. Response is parsed if it was a json or html response by default, use 'raw' to change it."
             },
 
@@ -337,7 +337,7 @@ namespace ExMat.BaseLib
                 Name = "has_network",
                 Function = StdNetHasNetwork,
                 Parameters = new(),
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if there is any network connection currently 'up'."
             },
 
@@ -346,7 +346,7 @@ namespace ExMat.BaseLib
                 Name = "ip_config",
                 Function = StdNetIPConfig,
                 Parameters = new(),
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Get a list of dictionaries containing adapter and network information"
             }
         };

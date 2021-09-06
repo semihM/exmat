@@ -3240,14 +3240,14 @@ namespace ExMat.BaseLib
                     new("func_or_name", "s|Y", "Native function itself or the name of the native function", new("help")),
                     new("print", ".", "Wheter to print the information", new(true))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Get and print the built-in help information of a native function. Printing can be disabled with the 2nd parameter."
             },
             new()
             {
                 Name = "root",
                 Function = StdRoot,
-                Returns = ExObjType.DICT,
+                Returns = ExBaseType.DICT,
                 Parameters = new(),
                 Safe = true,
                 Description = "Get the root table."
@@ -3260,7 +3260,7 @@ namespace ExMat.BaseLib
                 {
                     new("miliseconds", "r")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Safe = true,
                 Description = "Sleeps main thread given amount of time. Returns 'true' when thread wakes up."
             },
@@ -3273,7 +3273,7 @@ namespace ExMat.BaseLib
                     new("source", "s", "Source string to convert"),
                     new("encoding", "s", "Encoding of the 'source'", new("utf-8"))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Safe = true,
                 Description = "Convert given string to it's base64 representation."
             },
@@ -3286,7 +3286,7 @@ namespace ExMat.BaseLib
                     new("source", "s", "Source string to convert"),
                     new("encoding", "s", "Encoding of the 'source'", new("utf-8"))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Safe = true,
                 Description = "Convert given string from it's base64 representation to original."
             },
@@ -3318,7 +3318,7 @@ namespace ExMat.BaseLib
             {
                 Name = "time",
                 Function = StdTime,
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Parameters = new(),
                 Safe = true,
                 Description = "Get how long the VM has been alive in miliseconds."
@@ -3332,7 +3332,7 @@ namespace ExMat.BaseLib
                     new("type", "s", "Type(s) of date. Use '|' to combine and get a list. Available types:" + string.Join("\n\t\t", ExMat.DateTypeInfoString.Split('\n')), new("today")),
                     new("short_format", ".", "Get the shorter format of date values", new(false))
                 },
-                Returns = ExObjType.STRING | ExObjType.ARRAY,
+                Returns = ExBaseType.STRING | ExBaseType.ARRAY,
                 Safe = true,
                 Description = "Get current date information."
             },
@@ -3345,7 +3345,7 @@ namespace ExMat.BaseLib
                 {
                     new("object", ".", "Object to get the type of")
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Safe = true,
                 Description = "Get the type of an object as a string."
             },
@@ -3372,7 +3372,7 @@ namespace ExMat.BaseLib
                     new("is_char_array", ".", "Assertion error message", new(false)),
                     new("depth", "n", "Depth for objects to stringify", new(2))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Convert given object to a string. Allows character/integer lists to string conversion via 'is_char_array'."
             },
             new()
@@ -3384,7 +3384,7 @@ namespace ExMat.BaseLib
                     new("real_part", "n", "Real part of the number", new(0.0)),
                     new("img_part", "n", "Imaginary part of the number", new(0.0))
                 },
-                Returns = ExObjType.COMPLEX,
+                Returns = ExBaseType.COMPLEX,
                 Safe = true,
                 Description = "Create a complex number with given real and imaginary parts"
             },
@@ -3397,7 +3397,7 @@ namespace ExMat.BaseLib
                     new("magnitute", "r", "Magnitute of the number", new(0.0)),
                     new("phase", "r", "Phase of the number", new(0.0))
                 },
-                Returns = ExObjType.COMPLEX,
+                Returns = ExBaseType.COMPLEX,
                 Safe = true,
                 Description = "Create a complex number with given magnitute and phase"
             },
@@ -3409,7 +3409,7 @@ namespace ExMat.BaseLib
                 {
                     new("object", ".", "Object to parse as float", new(0.0))
                 },
-                Returns = ExObjType.FLOAT,
+                Returns = ExBaseType.FLOAT,
                 Description = "Parse given object as a float"
             },
             new()
@@ -3420,7 +3420,7 @@ namespace ExMat.BaseLib
                 {
                     new("object", ".", "Object to parse as integer", new(0))
                 },
-                Returns = ExObjType.INTEGER,
+                Returns = ExBaseType.INTEGER,
                 Description = "Parse given object as an integer"
             },
             new()
@@ -3431,7 +3431,7 @@ namespace ExMat.BaseLib
                 {
                     new("object", ".", "Object to bool value of", new(true))
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Safe = true,
                 Description = "Get bool value of given object"
             },
@@ -3444,7 +3444,7 @@ namespace ExMat.BaseLib
                     new("number", "r", "64bit number", new(0)),
                     new("reverse", ".", "Reverse bit order", new(false))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Safe = true,
                 Description = "Get the 64bit representation of a real number"
             },
@@ -3457,7 +3457,7 @@ namespace ExMat.BaseLib
                     new("number", "r", "32bit number", new(0)),
                     new("reverse", ".", "Reverse bit order", new(false))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Get the 32bit representation of a real number"
             },
             new()
@@ -3469,7 +3469,7 @@ namespace ExMat.BaseLib
                     new("object", "r|s", "64bit number or string to get bytes of", new(0)),
                     new("reverse", ".", "Reverse byte order", new(false))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Get the 8 byte representation of a real number or all bytes of a string in a list"
             },
             new()
@@ -3481,7 +3481,7 @@ namespace ExMat.BaseLib
                     new("number", "r", "64bit number", new(0)),
                     new("add_0x_prefix", ".", "Wheter to add '0' and 'x' as first 2 elements of the list", new(true))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Safe = true,
                 Description = "Get a list of characters which represent given 64bit number in hexadecimal format"
             },
@@ -3494,7 +3494,7 @@ namespace ExMat.BaseLib
                     new("number", "r", "64bit number", new(0)),
                     new("add_0B_prefix", ".", "Wheter to add '0' and 'B' as first 2 elements of the list", new(true))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Safe = true,
                 Description = "Get a list of zeros and ones which represent given 64bit number in binary format"
             },
@@ -3507,7 +3507,7 @@ namespace ExMat.BaseLib
                     new("number", "r", "32bit number", new(0)),
                     new("add_0b_prefix", ".", "Wheter to add '0' and 'b' as first 2 elements of the list", new(true))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Get a list of zeros and ones which represent given 32bit number in binary format"
             },
 
@@ -3520,7 +3520,7 @@ namespace ExMat.BaseLib
                     new("length", "n|s", "Length of the list or string to get the character list of", new(0)),
                     new("filler", ".", "Filler object to use while initializing the list", new())
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Safe = true,
                 Description = "Initialize an empty list or convert a string into a list of characters"
             },
@@ -3534,7 +3534,7 @@ namespace ExMat.BaseLib
                     new("end", "n", "Exclusive end value", new(0)),
                     new("step", "n", "Step size between values", new(1))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Initialize a number range series with given inclusive start and exclusive end values and step information."
             },
             new()
@@ -3547,7 +3547,7 @@ namespace ExMat.BaseLib
                     new("end", "n", "Inclusive end value", new(0)),
                     new("step", "n", "Step size between values", new(1))
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Initialize a number range series with given inclusive start and end values and step information."
             },
             new()
@@ -3560,7 +3560,7 @@ namespace ExMat.BaseLib
                     new("cols", "i", "Column dimension", new(1)),
                     new("filler", ".", "Filler object", new())
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Initialize a matrix with 'rows'x'cols' dimensions."
             },
 
@@ -3574,7 +3574,7 @@ namespace ExMat.BaseLib
                     new("list", "a", "List to iterate over"),
                     new("alt_list", "a", "A secondary optional list to iterate with 'list'.", new ExList())
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Map a list to a new list with a function. A secondary list can be given to iterate over simultaneously to pass a 2nd parameter to mapping function"
             },
             new()
@@ -3586,7 +3586,7 @@ namespace ExMat.BaseLib
                     new("func", "c", "Filter function, single parameter"),
                     new("list", "a", "List to iterate over")
                 },
-                Returns = ExObjType.ARRAY,
+                Returns = ExBaseType.ARRAY,
                 Description = "Filter a list with a filtering function and return a new list"
             },
             new()
@@ -3643,7 +3643,7 @@ namespace ExMat.BaseLib
                     new("func", "c", "Condition to be met. Single parameter function, gets passed list elements to it"),
                     new("list", "a", "List to iterate through")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if any element in a list meets the given condition"
             },
             new()
@@ -3655,7 +3655,7 @@ namespace ExMat.BaseLib
                     new("func", "c", "Condition to be met. Single parameter function, gets passed list elements to it"),
                     new("list", "a", "List to iterate through")
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if all elements of a list meet the given condition"
             },
 
@@ -3674,7 +3674,7 @@ namespace ExMat.BaseLib
             {
                 Name = "is_interactive",
                 Function = StdInteractive,
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Parameters = new(),
                 Safe = true,
                 Description = "Check if current script is running inside an interactive console"
@@ -3695,7 +3695,7 @@ namespace ExMat.BaseLib
                 {
                     new("func_name", "s", "Name of the base library function to reload", new(ExMat.ReloadBaseLib))
                 },
-                Returns = ExObjType.DICT
+                Returns = ExBaseType.DICT
             }
         };
 

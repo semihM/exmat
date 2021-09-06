@@ -834,308 +834,6 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static List<ExRegFunc> IOFuncs => _stdiofuncs;
-
-        private static readonly List<ExRegFunc> _stdiofuncs = new()
-        {
-            new()
-            {
-                Name = "clear",
-                Function = IoClear,
-                Parameters = new(),
-                Safe = true,
-                Description = "Clear the interactive console"
-            },
-            new()
-            {
-                Name = "paint_print",
-                Function = IoPaint,
-                Parameters = new()
-                {
-                    new("message", "s", "Message to print"),
-                    new("background", "s", "Background color, one of console color values present in 'COLORS' dictionary", new("black")),
-                    new("foreground", "s", "Foreground color, one of console color values present in 'COLORS' dictionary", new("white"))
-                },
-                Safe = true,
-                Description = "Prints given string with given background and foreground colors"
-            },
-            new()
-            {
-                Name = "read_excel",
-                Function = IoReadExcel,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to read"),
-                    new("password", "s", "Password to use for reading, if there is any", new(string.Empty))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Read an '.xslx' worksheet into a list of dictionaries with sheet names and list of lists"
-            },
-            new()
-            {
-                Name = "write_excel",
-                Function = IoWriteExcel,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to write to"),
-                    new("sheet_name", "s", "Sheet name in the file. If it already exists, it will get overwritten unless offset."),
-                    new("rows_of_cols", "a", "List of lists to write as an excel sheet"),
-                    new("rowoffset", "i", "File path to write to", new(0)),
-                    new("coloffset", "i", "File path to write to", new(0))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Write a list lists to/as an '.xslx' worksheet. Starting row and column can be offset"
-            },
-            new()
-            {
-                Name = "read_json",
-                Function = IoReadjson,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to read"),
-                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
-                },
-                Returns = ExObjType.DICT | ExObjType.ARRAY,
-                Description = "Read a json file into dictionaries and lists"
-            },
-            new()
-            {
-                Name = "write_json",
-                Function = IoWritejson,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to write to"),
-                    new("object", ".", "Object to convert to json"),
-                    new("encoding", "s", "Encoding to use while writing", new(string.Empty))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Write an object as a json file"
-            },
-            new()
-            {
-                Name = "read_bytes",
-                Function = IoReadfilebytes,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to read")
-                },
-                Safe = true,
-                Returns = ExObjType.ARRAY | ExObjType.NULL,
-                Description = "Read a file's contents as a bytes list"
-            },
-            new()
-            {
-                Name = "read_text",
-                Function = IoReadfile,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to read"),
-                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
-                },
-                Safe = true,
-                Returns = ExObjType.STRING | ExObjType.NULL,
-                Description = "Read a file's contents"
-            },
-            new()
-            {
-                Name = "read_lines",
-                Function = IoReadfilelines,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to read"),
-                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
-                },
-                Safe = true,
-                Returns = ExObjType.ARRAY | ExObjType.NULL,
-                Description = "Read a file's contents line by line into a list"
-            },
-
-            new()
-            {
-                Name = "write_bytes",
-                Function = IoWritefilebytes,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to write"),
-                    new("byte_list", "a", "Byte list to use")
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Write a byte list into a file"
-            },
-            new()
-            {
-                Name = "write_text",
-                Function = IoWritefile,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to write"),
-                    new("content", "s", "File content"),
-                    new("encoding", "s", "Encoding of the content", new(string.Empty))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Write a string into a file"
-            },
-            new()
-            {
-                Name = "write_lines",
-                Function = IoWritefilelines,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to write"),
-                    new("lines", "a", "File content lines list"),
-                    new("encoding", "s", "Encoding of the content", new(string.Empty))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Write a list of strings into a file as individual lines"
-            },
-
-            new()
-            {
-                Name = "append_text",
-                Function = IoAppendfile,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to write"),
-                    new("content", "s", "File content to append"),
-                    new("encoding", "s", "Encoding of the content", new(string.Empty))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Append a string into an existing file"
-            },
-            new()
-            {
-                Name = "append_lines",
-                Function = IoAppendfilelines,
-                Parameters = new()
-                {
-                    new("path", "s", "File path to append"),
-                    new("lines", "a", "File content lines list"),
-                    new("encoding", "s", "Encoding of the content", new(string.Empty))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Append a list of strings to an existing file as individual lines"
-            },
-
-            new()
-            {
-                Name = "current_dir",
-                Function = IoCurrentdir,
-                Parameters = new(),
-                Safe = true,
-                Returns = ExObjType.STRING,
-                Description = "Get current working directory"
-            },
-            new()
-            {
-                Name = "dir_content",
-                Function = IoShowdir,
-                Parameters = new()
-                {
-                    new("directory", "s", "Directory to get contents of", new(string.Empty))
-                },
-                Returns = ExObjType.ARRAY,
-                Description = "Get a list of directories and files present in the given directory. If nothing given, current directory is used"
-            },
-            new()
-            {
-                Name = "change_dir",
-                Function = IoChangedir,
-                Parameters = new()
-                {
-                    new("directory", "s", "Directory to change into")
-                },
-                Safe = true,
-                Returns = ExObjType.BOOL | ExObjType.STRING,
-                Description = "Change directory into given directory."
-            },
-            new()
-            {
-                Name = "make_dir",
-                Function = IoMkdir,
-                Parameters = new()
-                {
-                    new("directory", "s", "Directory to create")
-                },
-                Safe = true,
-                Returns = ExObjType.BOOL,
-                Description = "Create a new directory. If directory already exists, returns false."
-            },
-
-            new()
-            {
-                Name = "raw_input",
-                Function = IoRawinput,
-                Parameters = new()
-                {
-                    new("message", "s", "Message to print before input starts", new(string.Empty))
-                },
-                Safe = true,
-                Returns = ExObjType.STRING,
-                Description = "Start getting the user input, stops until user pressed ENTER"
-            },
-
-            new()
-            {
-                Name = "raw_key",
-                Function = IoRawinputkey,
-                Parameters = new()
-                {
-                    new("message", "s", "Message to print before input starts", new(string.Empty)),
-                    new("hide_key", ".", "Hide the key pressed", new(true))
-                },
-                Safe = true,
-                Returns = ExObjType.STRING,
-                Description = "Read the next key pressed by the user"
-            },
-
-            new()
-            {
-                Name = "file_exists",
-                Function = IoFileexists,
-                Parameters = new()
-                {
-                    new("file", "s", "File path to check")
-                },
-                Safe = true,
-                Returns = ExObjType.BOOL,
-                Description = "Check if a file exists"
-            },
-            new()
-            {
-                Name = "include_file",
-                Function = IoIncludefile,
-                Parameters = new()
-                {
-                    new("file", "s", "Script file with '.exmat' extension")
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Compile and execute an external '.exmat' file using the current VM"
-            },
-            new()
-            {
-                Name = ExMat.ReloadLib,
-                Function = IoReloadlib,
-                Parameters = new()
-                {
-                    new("library", "s", "Library to reload: io, math, string, net, system"),
-                    new("function_name", "s", "A specific function from the library to reload alone", new(string.Empty))
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Reload a standard library or a function of a standard library"
-            },
-            new()
-            {
-                Name = ExMat.ReloadLibFunc,
-                Function = IoReloadlibfunc,
-                Parameters = new()
-                {
-                    new("library", "s", "Library to reload: io, math, string, net, system")
-                },
-                Returns = ExObjType.BOOL,
-                Description = "Reload a standard library"
-            }
-        };
-
         private static void GetUserInput(ref string res, bool single = false, bool intercept = false)
         {
             char ch;
@@ -1194,6 +892,308 @@ namespace ExMat.BaseLib
 
             return vm.CleanReturn(nargs + 2, new ExObject(input.ToString()));
         }
+
+        public static List<ExRegFunc> IOFuncs => _stdiofuncs;
+
+        private static readonly List<ExRegFunc> _stdiofuncs = new()
+        {
+            new()
+            {
+                Name = "clear",
+                Function = IoClear,
+                Parameters = new(),
+                Safe = true,
+                Description = "Clear the interactive console"
+            },
+            new()
+            {
+                Name = "paint_print",
+                Function = IoPaint,
+                Parameters = new()
+                {
+                    new("message", "s", "Message to print"),
+                    new("background", "s", "Background color, one of console color values present in 'COLORS' dictionary", new("black")),
+                    new("foreground", "s", "Foreground color, one of console color values present in 'COLORS' dictionary", new("white"))
+                },
+                Safe = true,
+                Description = "Prints given string with given background and foreground colors"
+            },
+            new()
+            {
+                Name = "read_excel",
+                Function = IoReadExcel,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to read"),
+                    new("password", "s", "Password to use for reading, if there is any", new(string.Empty))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Read an '.xslx' worksheet into a list of dictionaries with sheet names and list of lists"
+            },
+            new()
+            {
+                Name = "write_excel",
+                Function = IoWriteExcel,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to write to"),
+                    new("sheet_name", "s", "Sheet name in the file. If it already exists, it will get overwritten unless offset."),
+                    new("rows_of_cols", "a", "List of lists to write as an excel sheet"),
+                    new("rowoffset", "i", "File path to write to", new(0)),
+                    new("coloffset", "i", "File path to write to", new(0))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Write a list lists to/as an '.xslx' worksheet. Starting row and column can be offset"
+            },
+            new()
+            {
+                Name = "read_json",
+                Function = IoReadjson,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to read"),
+                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
+                },
+                Returns = ExBaseType.DICT | ExBaseType.ARRAY,
+                Description = "Read a json file into dictionaries and lists"
+            },
+            new()
+            {
+                Name = "write_json",
+                Function = IoWritejson,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to write to"),
+                    new("object", ".", "Object to convert to json"),
+                    new("encoding", "s", "Encoding to use while writing", new(string.Empty))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Write an object as a json file"
+            },
+            new()
+            {
+                Name = "read_bytes",
+                Function = IoReadfilebytes,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to read")
+                },
+                Safe = true,
+                Returns = ExBaseType.ARRAY | ExBaseType.NULL,
+                Description = "Read a file's contents as a bytes list"
+            },
+            new()
+            {
+                Name = "read_text",
+                Function = IoReadfile,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to read"),
+                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
+                },
+                Safe = true,
+                Returns = ExBaseType.STRING | ExBaseType.NULL,
+                Description = "Read a file's contents"
+            },
+            new()
+            {
+                Name = "read_lines",
+                Function = IoReadfilelines,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to read"),
+                    new("encoding", "s", "Encoding to use while reading", new(string.Empty))
+                },
+                Safe = true,
+                Returns = ExBaseType.ARRAY | ExBaseType.NULL,
+                Description = "Read a file's contents line by line into a list"
+            },
+
+            new()
+            {
+                Name = "write_bytes",
+                Function = IoWritefilebytes,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to write"),
+                    new("byte_list", "a", "Byte list to use")
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Write a byte list into a file"
+            },
+            new()
+            {
+                Name = "write_text",
+                Function = IoWritefile,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to write"),
+                    new("content", "s", "File content"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Write a string into a file"
+            },
+            new()
+            {
+                Name = "write_lines",
+                Function = IoWritefilelines,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to write"),
+                    new("lines", "a", "File content lines list"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Write a list of strings into a file as individual lines"
+            },
+
+            new()
+            {
+                Name = "append_text",
+                Function = IoAppendfile,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to write"),
+                    new("content", "s", "File content to append"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Append a string into an existing file"
+            },
+            new()
+            {
+                Name = "append_lines",
+                Function = IoAppendfilelines,
+                Parameters = new()
+                {
+                    new("path", "s", "File path to append"),
+                    new("lines", "a", "File content lines list"),
+                    new("encoding", "s", "Encoding of the content", new(string.Empty))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Append a list of strings to an existing file as individual lines"
+            },
+
+            new()
+            {
+                Name = "current_dir",
+                Function = IoCurrentdir,
+                Parameters = new(),
+                Safe = true,
+                Returns = ExBaseType.STRING,
+                Description = "Get current working directory"
+            },
+            new()
+            {
+                Name = "dir_content",
+                Function = IoShowdir,
+                Parameters = new()
+                {
+                    new("directory", "s", "Directory to get contents of", new(string.Empty))
+                },
+                Returns = ExBaseType.ARRAY,
+                Description = "Get a list of directories and files present in the given directory. If nothing given, current directory is used"
+            },
+            new()
+            {
+                Name = "change_dir",
+                Function = IoChangedir,
+                Parameters = new()
+                {
+                    new("directory", "s", "Directory to change into")
+                },
+                Safe = true,
+                Returns = ExBaseType.BOOL | ExBaseType.STRING,
+                Description = "Change directory into given directory."
+            },
+            new()
+            {
+                Name = "make_dir",
+                Function = IoMkdir,
+                Parameters = new()
+                {
+                    new("directory", "s", "Directory to create")
+                },
+                Safe = true,
+                Returns = ExBaseType.BOOL,
+                Description = "Create a new directory. If directory already exists, returns false."
+            },
+
+            new()
+            {
+                Name = "raw_input",
+                Function = IoRawinput,
+                Parameters = new()
+                {
+                    new("message", "s", "Message to print before input starts", new(string.Empty))
+                },
+                Safe = true,
+                Returns = ExBaseType.STRING,
+                Description = "Start getting the user input, stops until user pressed ENTER"
+            },
+
+            new()
+            {
+                Name = "raw_key",
+                Function = IoRawinputkey,
+                Parameters = new()
+                {
+                    new("message", "s", "Message to print before input starts", new(string.Empty)),
+                    new("hide_key", ".", "Hide the key pressed", new(true))
+                },
+                Safe = true,
+                Returns = ExBaseType.STRING,
+                Description = "Read the next key pressed by the user"
+            },
+
+            new()
+            {
+                Name = "file_exists",
+                Function = IoFileexists,
+                Parameters = new()
+                {
+                    new("file", "s", "File path to check")
+                },
+                Safe = true,
+                Returns = ExBaseType.BOOL,
+                Description = "Check if a file exists"
+            },
+            new()
+            {
+                Name = "include_file",
+                Function = IoIncludefile,
+                Parameters = new()
+                {
+                    new("file", "s", "Script file with '.exmat' extension")
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Compile and execute an external '.exmat' file using the current VM"
+            },
+            new()
+            {
+                Name = ExMat.ReloadLib,
+                Function = IoReloadlib,
+                Parameters = new()
+                {
+                    new("library", "s", "Library to reload: io, math, string, net, system"),
+                    new("function_name", "s", "A specific function from the library to reload alone", new(string.Empty))
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Reload a standard library or a function of a standard library"
+            },
+            new()
+            {
+                Name = ExMat.ReloadLibFunc,
+                Function = IoReloadlibfunc,
+                Parameters = new()
+                {
+                    new("library", "s", "Library to reload: io, math, string, net, system")
+                },
+                Returns = ExBaseType.BOOL,
+                Description = "Reload a standard library"
+            }
+        };
 
         public static bool RegisterStdIO(ExVM vm)
         {

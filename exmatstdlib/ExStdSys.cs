@@ -295,7 +295,7 @@ namespace ExMat.BaseLib
                     new("filename", "s", "File to execute", new(".")),
                     new("arguments", "s", "Arguments for the file", new(string.Empty))
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Execute a file with given arguments"
             },
             new()
@@ -307,7 +307,7 @@ namespace ExMat.BaseLib
                     new("directory", "s", "Directory to open", new(".")),
                     new("force_create", ".", "Wheter to create the directory if it doesn't exist", new(false))
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Open a directory in the explorer"
             },
             new()
@@ -326,7 +326,7 @@ namespace ExMat.BaseLib
                 Name = "env_info",
                 Function = StdSysEnvInfo,
                 Parameters = new(),
-                Returns = ExObjType.DICT,
+                Returns = ExBaseType.DICT,
                 Description = "Get information about the runtime and the current enviroment in a dictionary"
             },
             new()
@@ -337,7 +337,7 @@ namespace ExMat.BaseLib
                 {
                     new("target", "s", "Target enviroment: user, machine or process", new("process"))
                 },
-                Returns = ExObjType.DICT,
+                Returns = ExBaseType.DICT,
                 Description = "Get a dictionary of enviroment variables of given target."
             },
             new()
@@ -349,7 +349,7 @@ namespace ExMat.BaseLib
                     new("variable", "s", "Variable name"),
                     new("target", "s", "Target enviroment: user, machine or process", new("process"))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Get the value of an enviroment variables of given target."
             },
             new()
@@ -362,7 +362,7 @@ namespace ExMat.BaseLib
                     new("new_value", "s", "New value"),
                     new("target", "s", "Target enviroment: user, machine or process", new("process"))
                 },
-                Returns = ExObjType.STRING,
+                Returns = ExBaseType.STRING,
                 Description = "Set the value of an enviroment variables of given target to given value."
             },
             new()
@@ -373,7 +373,7 @@ namespace ExMat.BaseLib
                 {
                     new("exit_code", "r", "Exit code to return while exiting", new(0))
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Exit from the current enviroment immediately. Works similarly but faster than the 'exit' function."
             },
             new()
@@ -381,7 +381,7 @@ namespace ExMat.BaseLib
                 Name = "can_beep",
                 Function = StdSysConsoleCanBeep,
                 Parameters = new(),
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Check if the console beep function is available."
             },
             new()
@@ -393,7 +393,7 @@ namespace ExMat.BaseLib
                     new("frequency", "r", "Frequency to beep at in range [37, 32767]", new(800)),
                     new("duration", "r", "Beeping duration in miliseconds", new(200))
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Beep the console for the given duration. This function is not async and stops the flow for the given 'duration'."
             },
             new()
@@ -405,7 +405,7 @@ namespace ExMat.BaseLib
                     new("frequency", "r", "Frequency to beep at in range [37, 32767]", new(800)),
                     new("duration", "r", "Beeping duration in miliseconds", new(200))
                 },
-                Returns = ExObjType.BOOL,
+                Returns = ExBaseType.BOOL,
                 Description = "Beep the console for the given duration async. This function doesn't stop the flow."
             }
         };
