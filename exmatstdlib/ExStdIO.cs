@@ -218,7 +218,7 @@ namespace ExMat.BaseLib
         public static ExFunctionStatus IoClear(ExVM vm, int nargs)
         {
             Console.Clear();
-            return vm.CleanReturn(nargs + 2, true);
+            return ExFunctionStatus.VOID;
         }
 
         public static ExFunctionStatus IoPaint(ExVM vm, int nargs)
@@ -614,7 +614,7 @@ namespace ExMat.BaseLib
                             if (fname != ExMat.ReloadLibFunc)
                             {
                                 ExApi.PushRootTable(vm);
-                                if (!ExApi.ReloadNativeFunction(vm, IOFuncs, fname, ExStdLibType.IO))
+                                if (!ExApi.ReloadNativeFunction(vm, IOFuncs, fname, ExStdLibType.IO, true))
                                 {
                                     return vm.AddToErrorMessage(string.Format("unknown IO function {0}", fname));
                                 }
@@ -631,7 +631,7 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, ExStdLibType.MATH))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, ExStdLibType.MATH, true))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown Math function {0}", fname));
                             }
@@ -647,7 +647,7 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, ExStdLibType.STRING))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, ExStdLibType.STRING, true))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown String function {0}", fname));
                             }
@@ -663,7 +663,7 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname, ExStdLibType.SYSTEM))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname, ExStdLibType.SYSTEM, true))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown Sys function {0}", fname));
                             }
@@ -679,7 +679,7 @@ namespace ExMat.BaseLib
                         if (nargs == 2)
                         {
                             ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname, ExStdLibType.NETWORK))
+                            if (!ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname, ExStdLibType.NETWORK, true))
                             {
                                 return vm.AddToErrorMessage(string.Format("unknown Net function {0}", fname));
                             }
@@ -690,6 +690,11 @@ namespace ExMat.BaseLib
                         }
                         return vm.CleanReturn(nargs + 2, true);
                     }
+
+                default:
+                    {
+                        return vm.AddToErrorMessage("Unknown library: " + lname);
+                    }
             }
 
             return vm.AddToErrorMessage("something went wrong...");
@@ -699,25 +704,27 @@ namespace ExMat.BaseLib
         {
             string fname = vm.GetArgument(1).GetString();
 
+            ExApi.PushRootTable(vm);
+
             if (fname != ExMat.ReloadLibFunc
                 && fname != ExMat.ReloadLib
-                && ExApi.ReloadNativeFunction(vm, IOFuncs, fname, ExStdLibType.IO))
+                && ExApi.ReloadNativeFunction(vm, IOFuncs, fname, ExStdLibType.IO, true))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, ExStdLibType.STRING))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdString.StringFuncs, fname, ExStdLibType.STRING, true))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, ExStdLibType.MATH))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdMath.MathFuncs, fname, ExStdLibType.MATH, true))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname, ExStdLibType.NETWORK))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdNet.NetFuncs, fname, ExStdLibType.NETWORK, true))
             {
                 return ExFunctionStatus.VOID;
             }
-            else if (ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname, ExStdLibType.SYSTEM))
+            else if (ExApi.ReloadNativeFunction(vm, ExStdSys.SysFuncs, fname, ExStdLibType.SYSTEM, true))
             {
                 return ExFunctionStatus.VOID;
             }
@@ -836,7 +843,6 @@ namespace ExMat.BaseLib
                 Name = "clear",
                 Function = IoClear,
                 Parameters = new(),
-                Returns = ExObjType.BOOL,
                 Safe = true,
                 Description = "Clear the interactive console"
             },

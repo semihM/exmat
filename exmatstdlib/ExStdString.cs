@@ -364,6 +364,7 @@ namespace ExMat.BaseLib
         public static bool RegisterStdString(ExVM vm)
         {
             ExApi.RegisterNativeFunctions(vm, StringFuncs, ExStdLibType.STRING);
+
             return true;
         }
     }

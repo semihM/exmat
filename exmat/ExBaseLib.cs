@@ -3166,7 +3166,7 @@ namespace ExMat.BaseLib
                 }
 
                 ExApi.PushRootTable(vm);
-                if (!ExApi.ReloadNativeFunction(vm, BaseFuncs, name, ExStdLibType.BASE))
+                if (!ExApi.ReloadNativeFunction(vm, BaseFuncs, name, ExStdLibType.BASE, true))
                 {
                     return vm.AddToErrorMessage(string.Format("unknown Std function {0}", name));
                 }
@@ -3701,12 +3701,10 @@ namespace ExMat.BaseLib
 
         public static List<ExRegFunc> BaseFuncs => _exStdFuncs;
 
-        public static bool RegisterStdBase(ExVM vm)
+        public static void RegisterStdBaseConstants(ExVM vm)
         {
             // Global tabloyu sanal belleğe ata
             ExApi.PushRootTable(vm);
-            // Yerli fonksiyonları global tabloya kaydet
-            ExApi.RegisterNativeFunctions(vm, BaseFuncs, ExStdLibType.BASE);
 
             // Sabit değerleri tabloya ekle
             ExApi.CreateConstantInt(vm, "_versionnumber_", ExMat.VersionNumber);
@@ -3737,6 +3735,14 @@ namespace ExMat.BaseLib
             });
             // Kayıtları yaptıktan sonra global tabloyu bellekten kaldır
             vm.Pop(1);
+        }
+
+        public static bool RegisterStdBase(ExVM vm)
+        {
+            // Yerli fonksiyonları global tabloya kaydet
+            ExApi.RegisterNativeFunctions(vm, BaseFuncs, ExStdLibType.BASE);
+
+            RegisterStdBaseConstants(vm);
 
             return true;
         }

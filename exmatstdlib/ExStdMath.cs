@@ -2773,9 +2773,9 @@ namespace ExMat.BaseLib
         public static List<ExRegFunc> MathFuncs => _stdmathfuncs;
         public static Random Rand { get => rand; set => rand = value; }
 
-        public static bool RegisterStdMath(ExVM vm)
+        public static void RegisterStdMathConstants(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, MathFuncs, ExStdLibType.MATH);
+            ExApi.PushRootTable(vm);
 
             ExApi.CreateConstantInt(vm, "INT8_MAX", sbyte.MaxValue);
             ExApi.CreateConstantInt(vm, "INT8_MIN", sbyte.MinValue);
@@ -2842,6 +2842,15 @@ namespace ExMat.BaseLib
                 { "An", ExSpace.Create("A", '\\', -1) },
                 { "Amn", ExSpace.Create("A", '\\', -1, -1) },
             });
+
+            vm.Pop(1);
+        }
+
+        public static bool RegisterStdMath(ExVM vm)
+        {
+            ExApi.RegisterNativeFunctions(vm, MathFuncs, ExStdLibType.MATH);
+
+            RegisterStdMathConstants(vm);
 
             return true;
         }

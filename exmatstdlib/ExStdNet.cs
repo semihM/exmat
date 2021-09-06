@@ -355,6 +355,7 @@ namespace ExMat.BaseLib
         public static bool RegisterStdNet(ExVM vm)
         {
             ExApi.RegisterNativeFunctions(vm, NetFuncs, ExStdLibType.NETWORK);
+
             return true;
         }
     }
