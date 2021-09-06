@@ -57,11 +57,6 @@ namespace ExMat.Objects
 
         public ExFuncParameter() { }
 
-        public static ExFuncParameter Create(string name, string type = ".", string info = "", ExObject def = null, int idx = 0)
-        {
-            ExFuncParameter fp = new(name, type, info, def, idx);
-            return fp.Valid ? fp : null;
-        }
         public ExFuncParameter(string name, string type = ".", string info = "", ExObject def = null, int idx = 0)
         {
             List<int> types = new(1);
@@ -83,6 +78,12 @@ namespace ExMat.Objects
 
                 Valid = true;
             }
+        }
+
+        public static ExFuncParameter Create(string name, string type = ".", string info = "", ExObject def = null, int idx = 0)
+        {
+            ExFuncParameter fp = new(name, type, info, def, idx);
+            return fp.Valid ? fp : null;
         }
 
         protected virtual void Dispose(bool disposing)
