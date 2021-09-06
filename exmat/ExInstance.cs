@@ -13,10 +13,13 @@ namespace ExMat.Class
         public ExSState SharedState;
         public ExClass Class;
         public List<ExObject> MemberValues;
+        public readonly ulong Hash;
 
         public ExInstance()
         {
             MemberValues = new();
+            System.DateTime dt = System.DateTime.Now;
+            Hash = (((ulong)(int)dt.Kind) << 62) | ((ulong)dt.Ticks);
         }
 
         public static new ExObjType GetType()

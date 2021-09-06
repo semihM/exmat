@@ -21,26 +21,34 @@ namespace ExMat.Class
         public int ConstructorID;           // İnşa metotunun metotlar listesindeki indeksi 
         public ExSState SharedState;        // Ortak değerler
 
-        public readonly int LengthReprestation;
+        public readonly ulong Hash;
 
         public ExClass()
         {
+            System.DateTime dt = System.DateTime.Now;
+            Hash = (((ulong)(int)dt.Kind) << 62) | ((ulong)dt.Ticks);
+
+            GotInstanced = false;
+            ConstructorID = -1;
+
             ExUtils.InitList(ref MetaFuncs, (int)ExMetaMethod.LAST);
         }
+
         public ExClass(ExSState exS, ExClass b)
         {
+            System.DateTime dt = System.DateTime.Now;
+            Hash = (((ulong)(int)dt.Kind) << 62) | ((ulong)dt.Ticks);
+
             SharedState = exS;
             Base = b;
 
             GotInstanced = false;
             ConstructorID = -1;
-            LengthReprestation = 0;
             ExUtils.InitList(ref MetaFuncs, (int)ExMetaMethod.LAST);
 
             if (b != null)
             {
                 ConstructorID = b.ConstructorID;
-                LengthReprestation = b.LengthReprestation;
                 DefaultValues = new(b.DefaultValues.Count);
                 for (int i = 0; i < b.DefaultValues.Count; i++)
                 {
