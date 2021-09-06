@@ -1197,7 +1197,7 @@ namespace ExMat.API
 
             if (reg.IsDelegateFunction)
             {
-                s.AppendFormat("Base: {0}", ((ExObjType)CompileTypeChar(reg.BaseTypeMask)).ToString());
+                s.AppendFormat("Base: {0}", ((ExBaseType)CompileTypeChar(reg.BaseTypeMask)).ToString());
             }
             else
             {
