@@ -91,9 +91,6 @@ namespace ExMat.Objects
             switch (Type)
             {
                 case ExObjType.STRING:
-                    {
-                        return Value.s_String;
-                    }
                 case ExObjType.NULL:
                     {
                         return Value.s_String ?? string.Empty;

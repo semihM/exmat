@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
@@ -122,7 +125,7 @@ namespace ExMat.BaseLib
             }
         }
 
-        private static object CreateWebRequest(string link)
+        private static object CreateWebRequest(string link, bool raw = false)
         {
             WebRequest request = WebRequest.Create(new UriBuilder(link).Uri);
             HttpWebResponse response = (HttpWebResponse)request.GetResponse();
@@ -131,6 +134,11 @@ namespace ExMat.BaseLib
 
             int idx = response.ContentType.IndexOf(';');
             string type = idx == -1 ? response.ContentType : response.ContentType.Substring(0, idx);
+
+            if (raw)
+            {
+                return responseText;
+            }
 
             switch (type)
             {
@@ -155,7 +163,7 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static ExFunctionStatus Wiki(ExVM vm, int nargs)
+        public static ExFunctionStatus StdNetWiki(ExVM vm, int nargs)
         {
             if (!File.Exists(APIFiles["Wiki"]))
             {
@@ -189,11 +197,11 @@ namespace ExMat.BaseLib
                     foreach (dynamic item in deserializedResponse.items)
                     {
                         Results.Add(new(
-                            new List<ExObject>()
+                            new Dictionary<string, ExObject>()
                             {
-                                new(item.link.ToString()),
-                                new(item.title.ToString()),
-                                new(item.snippet.ToString())
+                                { "link", new(item.link.ToString()) },
+                                { "title", new(item.title.ToString()) },
+                                { "summary", new(item.snippet.ToString()) }
                             })
                         );
                     }
@@ -206,9 +214,10 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static ExFunctionStatus Fetch(ExVM vm, int nargs)
+        public static ExFunctionStatus StdNetFetch(ExVM vm, int nargs)
         {
             string link = vm.GetArgument(1).GetString().Trim();
+            bool raw = nargs == 2 && vm.GetArgument(2).GetBool();
 
             if (string.IsNullOrWhiteSpace(link))
             {
@@ -217,7 +226,7 @@ namespace ExMat.BaseLib
 
             try
             {
-                dynamic deserializedResponse = CreateWebRequest(link);
+                dynamic deserializedResponse = CreateWebRequest(link, raw);
 
                 if (deserializedResponse is string res)
                 {
@@ -234,29 +243,119 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("FETCH ERROR: " + e.Message);
             }
         }
+
+        public static ExFunctionStatus StdNetHasNetwork(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, NetworkInterface.GetIsNetworkAvailable());
+        }
+
+        public static ExFunctionStatus StdNetIPConfig(ExVM vm, int nargs)
+        {
+            NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
+            List<ExObject> adapts = new(adapters.Length);
+
+            foreach (NetworkInterface adapter in adapters)
+            {
+                IPInterfaceProperties properties = adapter.GetIPProperties();
+                IPInterfaceStatistics statistics = adapter.GetIPStatistics();
+
+                string macbytes = string.Join("-", adapter
+                                    .GetPhysicalAddress()
+                                    .GetAddressBytes()
+                                    .Select(x => x.ToString("X2")));
+
+                string gateway = string.Empty;
+
+                if (adapter.OperationalStatus == OperationalStatus.Up
+                    && adapter.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                {
+                    gateway = string.Join(".", properties.GatewayAddresses
+                                .Select(g => g?.Address)
+                                .FirstOrDefault(a => a != null)
+                                .GetAddressBytes()
+                                .Select(x => x.ToString()));
+                }
+
+                UnicastIPAddressInformation ipv4 = properties.UnicastAddresses
+                            .FirstOrDefault(u => u.Address.AddressFamily == AddressFamily.InterNetwork);
+
+                Dictionary<string, ExObject> props = new()
+                {
+                    { "name", new(adapter.Name) },
+                    { "description", new(adapter.Description) },
+                    { "status", new(adapter.OperationalStatus.ToString()) },
+                    { "speed", new(adapter.Speed) },
+                    { "bytes_sent", new(statistics.BytesSent) },
+                    { "bytes_received", new(statistics.BytesReceived) },
+
+                    { "IPV4", new(ipv4.Address.ToString()) },
+                    { "IPV4_mask", new(ipv4.IPv4Mask.ToString()) },
+                    { "IPV4_gateway", new(gateway) },
+
+                    { "MAC", new(macbytes) },
+
+                    { "DNS_enabled", new(properties.IsDnsEnabled) },
+                    { "dynamic_DNS_enabled", new(properties.IsDynamicDnsEnabled) },
+                    { "DNS_suffix", new(properties.DnsSuffix) },
+                };
+
+                adapts.Add(new(props));
+            }
+
+            return vm.CleanReturn(nargs + 2, adapts);
+        }
+
         private static readonly List<ExRegFunc> _stdnetfuncs = new()
         {
             new()
             {
                 Name = "wiki",
-                Function = Wiki,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Function = StdNetWiki,
+                Parameters = new()
+                {
+                    new("subject", "s", "Subject to search for")
+                },
+                Returns = ExBaseType.ARRAY,
+                Description = "Get a list of maximum 10 dictionaries of wiki page link, title, and summary of a given subject. Requires an API key to use, call the function for more information."
             },
 
             new()
             {
                 Name = "fetch",
-                Function = Fetch,
-                nParameterChecks = 2,
-                ParameterMask = ".s"
+                Function = StdNetFetch,
+                Parameters = new()
+                {
+                    new("url", "s", "Url to fetch information from. JSON and HTML files are parsed accordingly unless 'raw' parameter is set to true."),
+                    new("raw", ".", "Wheter to return raw response content. Use false to parse json and html responses.", new(false))
+                },
+                Returns = ExBaseType.STRING | ExBaseType.DICT | ExBaseType.ARRAY,
+                Description = "Fetch contents of the given url. Response is parsed if it was a json or html response by default, use 'raw' to change it."
+            },
+
+            new()
+            {
+                Name = "has_network",
+                Function = StdNetHasNetwork,
+                Parameters = new(),
+                Returns = ExBaseType.BOOL,
+                Description = "Check if there is any network connection currently 'up'."
+            },
+
+            new()
+            {
+                Name = "ip_config",
+                Function = StdNetIPConfig,
+                Parameters = new(),
+                Returns = ExBaseType.BOOL,
+                Description = "Get a list of dictionaries containing adapter and network information"
             }
         };
         public static List<ExRegFunc> NetFuncs => _stdnetfuncs;
 
         public static bool RegisterStdNet(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, NetFuncs);
+            ExApi.RegisterNativeFunctions(vm, NetFuncs, ExStdLibType.NETWORK);
+
             return true;
         }
     }

@@ -42,6 +42,16 @@ namespace ExMat.API
             return str.ToString();
         }
 
+        public static List<ExObject> ListObjFromStringArray(IEnumerable<string> arr)
+        {
+            List<ExObject> lis = new();
+            foreach (string s in arr)
+            {
+                lis.Add(new(s));
+            }
+            return lis;
+        }
+
         public static List<ExObject> ListObjFromStringArray(string[] arr)
         {
             List<ExObject> lis = new(arr.Length);
@@ -373,35 +383,51 @@ namespace ExMat.API
         {
             switch (x.Type)
             {
-                case ExObjType.BOOL:
-                    res = x.GetBool() == y.GetBool();
-                    break;
-                case ExObjType.STRING:
-                    res = x.GetString() == y.GetString();
-                    break;
-                case ExObjType.COMPLEX:
-                    res = x.GetComplex() == y.GetComplex();
-                    break;
                 case ExObjType.INTEGER:
                     res = x.GetInt() == y.GetInt();
                     break;
                 case ExObjType.FLOAT:
                     res = CheckEqualFloat(x.GetFloat(), y.GetFloat());
                     break;
-                case ExObjType.NULL:
-                    res = true;
+                case ExObjType.COMPLEX:
+                    res = x.GetComplex() == y.GetComplex();
+                    break;
+                case ExObjType.BOOL:
+                    res = x.GetBool() == y.GetBool();
+                    break;
+                case ExObjType.STRING:
+                    res = x.GetString() == y.GetString();
                     break;
                 case ExObjType.NATIVECLOSURE: // TO-DO Need better checks
-                    CheckEqual(x.GetNClosure().Name, y.GetNClosure().Name, ref res);
+                    res = x.GetNClosure().GetHashCode() == y.GetNClosure().GetHashCode();
                     break;
                 case ExObjType.CLOSURE:
-                    CheckEqual(x.GetClosure().Function.Name, y.GetClosure().Function.Name, ref res);
+                    res = x.GetClosure().GetHashCode() == y.GetClosure().GetHashCode();
                     break;
                 case ExObjType.ARRAY:
                     res = CheckEqualArray(x.GetList(), y.GetList());
                     break;
+                case ExObjType.DICT:
+                    res = x.GetDict().GetHashCode() == y.GetDict().GetHashCode();
+                    break;
+                case ExObjType.SPACE:
+                    res = string.Equals(x.Value.c_Space.GetSpaceString(), y.Value.c_Space.GetSpaceString());
+                    break;
+                case ExObjType.CLASS:
+                    res = x.GetClass().Hash == y.GetClass().Hash;
+                    break;
+                case ExObjType.INSTANCE:
+                    res = x.GetInstance().Class.Hash == y.GetInstance().Class.Hash && x.GetInstance().Hash == y.GetInstance().Hash;
+                    break;
+                case ExObjType.WEAKREF:
+                    CheckEqual(x.GetWeakRef().ReferencedObject, y.GetWeakRef().ReferencedObject, ref res);
+                    break;
+                case ExObjType.NULL:
+                case ExObjType.DEFAULT:
+                    res = true;
+                    break;
                 default:
-                    res = x == y;   // TO-DO
+                    res = false;
                     break;
             }
         }
@@ -681,15 +707,21 @@ namespace ExMat.API
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="fs">List of native functions</param>
         /// <param name="name">Name of the function to reload</param>
+        /// <param name="libtype">Library the <paramref name="name"/> function is based on</param>
+        /// <param name="pop">Wheter to pop the root from stack after searching</param>
         /// <returns><see langword="true"/> if <paramref name="name"/> was found in <paramref name="fs"/> and reloaded
         /// <para><see langword="false"/> if there was no function named <paramref name="name"/> in <paramref name="fs"/></para></returns>
-        public static bool ReloadNativeFunction(ExVM vm, List<ExRegFunc> fs, string name)
+        public static bool ReloadNativeFunction(ExVM vm, List<ExRegFunc> fs, string name, ExStdLibType libtype, bool pop = false)
         {
             ExRegFunc r;
             if ((r = FindNativeFunction(vm, fs, name)) != null)
             {
-                RegisterNativeFunction(vm, r);
+                RegisterNativeFunction(vm, r, libtype);
                 return true;
+            }
+            if (pop)
+            {
+                vm.Pop();
             }
             return false;
         }
@@ -699,14 +731,17 @@ namespace ExMat.API
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="func">Native function</param>
-        /// <param name="force">Used to determine if call was a reload call or first call from program's execution</param>
-        public static void RegisterNativeFunction(ExVM vm, ExRegFunc func)
+        /// <param name="libtype">Library the <paramref name="func"/> is based on</param>
+        public static void RegisterNativeFunction(ExVM vm, ExRegFunc func, ExStdLibType libtype)
         {
+            func.Base = libtype;
+
             PushString(vm, func.Name, -1);              // Fonksiyon ismi
             CreateClosure(vm, func.Function);           // Fonksiyonun temeli
             SetNativeClosureName(vm, -1, func.Name);    // İsmi fonksiyon temeline ekle
-            SetParamCheck(vm, func.nParameterChecks, func.ParameterMask);   // Parametre kontrolü
-            SetDefaultValues(vm, func.DefaultValues);   // Varsayılan parametre değerleri
+            SetParamCheck(vm, func.NumberOfParameters, func.ParameterMask);   // Parametre kontrolü
+            SetDefaultValues(vm, func.Parameters);   // Varsayılan parametre değerleri
+            SetDocumentation(vm, func);
             CreateNewSlot(vm, -3);                      // Tabloya kaydet
         }
 
@@ -715,12 +750,14 @@ namespace ExMat.API
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="funcs">List of native functions</param>
-        public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs)
+        public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs, ExStdLibType libtype)
         {
+            PushRootTable(vm);
             foreach (ExRegFunc func in funcs)
             {
-                RegisterNativeFunction(vm, func);    // Yerli fonksiyonları oluştur ve kaydet
+                RegisterNativeFunction(vm, func, libtype);    // Yerli fonksiyonları oluştur ve kaydet
             }
+            vm.Pop();
         }
 
         /// <summary>
@@ -876,6 +913,30 @@ namespace ExMat.API
             return "(" + string.Join(", ", names) + ")";
         }
 
+        private static int CompileTypeChar(char c)
+        {
+            switch (c)    // Her bir karakteri incele
+            {
+                case '.': return -1;
+                case 'e': return (int)ExBaseType.NULL;
+                case 'i': return (int)ExBaseType.INTEGER;
+                case 'f': return (int)ExBaseType.FLOAT;
+                case 'C': return (int)ExBaseType.COMPLEX;
+                case 'b': return (int)ExBaseType.BOOL;
+                case 'r': return (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT;
+                case 'n': return (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT | (int)ExBaseType.COMPLEX;
+                case 's': return (int)ExBaseType.STRING;
+                case 'd': return (int)ExBaseType.DICT;
+                case 'a': return (int)ExBaseType.ARRAY;
+                case 'Y': return (int)ExBaseType.NATIVECLOSURE;
+                case 'c': return (int)ExBaseType.CLOSURE | (int)ExBaseType.NATIVECLOSURE;
+                case 'x': return (int)ExBaseType.INSTANCE;
+                case 'y': return (int)ExBaseType.CLASS;
+                case 'w': return (int)ExBaseType.WEAKREF;
+                default: return int.MaxValue;  // bilinmeyen maske
+            }
+        }
+
         /// <summary>
         /// Compile a string mask into list of parameter masks for expected types
         /// </summary>
@@ -891,6 +952,7 @@ namespace ExMat.API
         /// <para>    C       |   COMPLEX     (Capital c)</para>
         /// <para>    b       |   BOOL</para>
         /// <para>    n       |   INTEGER|FLOAT|COMPLEX</para>
+        /// <para>    r       |   INTEGER|FLOAT</para>
         /// <para>    s       |   STRING</para>
         /// <para>    d       |   DICT</para>
         /// <para>    a       |   ARRAY</para>
@@ -907,23 +969,21 @@ namespace ExMat.API
 
             while (i < l)
             {
-                switch (mask[i])    // Her bir karakteri incele
+                int _mask = CompileTypeChar(mask[i]);
+                if (_mask == int.MaxValue)
                 {
-                    case '.': m = -1; results.Add(m); i++; m = 0; continue;
-                    case 'e': m |= (int)ExBaseType.NULL; break;
-                    case 'i': m |= (int)ExBaseType.INTEGER; break;
-                    case 'f': m |= (int)ExBaseType.FLOAT; break;
-                    case 'C': m |= (int)ExBaseType.COMPLEX; break;
-                    case 'b': m |= (int)ExBaseType.BOOL; break;
-                    case 'n': m |= (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT | (int)ExBaseType.COMPLEX; break;
-                    case 's': m |= (int)ExBaseType.STRING; break;
-                    case 'd': m |= (int)ExBaseType.DICT; break;
-                    case 'a': m |= (int)ExBaseType.ARRAY; break;
-                    case 'c': m |= (int)ExBaseType.CLOSURE | (int)ExBaseType.NATIVECLOSURE; break;
-                    case 'x': m |= (int)ExBaseType.INSTANCE; break;
-                    case 'y': m |= (int)ExBaseType.CLASS; break;
-                    case 'w': m |= (int)ExBaseType.WEAKREF; break;
-                    default: return false;  // bilinmeyen maske
+                    return false;   // bilinmeyen maske
+                }
+                else if (_mask == -1)
+                {
+                    results.Add(-1);
+                    i++;
+                    m = 0;
+                    continue;
+                }
+                else
+                {
+                    m |= _mask;
                 }
 
                 i++;
@@ -947,11 +1007,11 @@ namespace ExMat.API
             StringBuilder s = new();
             for (; i < paramsleft; i++)
             {
-                s.Append('[').Append(infos[i]);
+                s.AppendFormat("[{0}", infos[i]);
 
                 if (defs.ContainsKey((i + 1).ToString()))
                 {
-                    s.Append(" = ").Append(GetSimpleString(defs[(i + 1).ToString()]));
+                    s.AppendFormat(" = {0}", GetSimpleString(defs[(i + 1).ToString()]));
                 }
 
                 s.Append(']');
@@ -1016,38 +1076,41 @@ namespace ExMat.API
             }
         }
 
-        public static bool GetTypeMaskInfo(List<int> masks, List<string> info)
+        public static string GetTypeMaskInfo(int mask)
+        {
+            switch (mask)
+            {
+                case -1:
+                    {
+                        return "ANY";
+                    }
+                default:
+                    {
+                        int n = Enum.GetNames(typeof(ExBaseType)).Length;
+                        List<string> comb = new();
+
+                        for (int i = 0; i < n; i++)
+                        {
+                            if (((1 << i) & mask) > 0)
+                            {
+                                comb.Add(((ExBaseType)(1 << i)).ToString());
+                            }
+                        }
+                        return string.Join("|", comb);
+                    }
+            }
+        }
+
+        public static bool GetTypeMaskInfos(List<int> masks, List<string> info)
         {
             if (masks == null || info == null)
             {
                 return false;
             }
 
-            int n = Enum.GetNames(typeof(ExBaseType)).Length;
-
             foreach (int mask in masks)
             {
-                switch (mask)
-                {
-                    case -1:
-                        {
-                            info.Add("ANY");
-                            break;
-                        }
-                    default:
-                        {
-                            List<string> comb = new();
-                            for (int i = 0; i < n; i++)
-                            {
-                                if (((1 << i) & mask) > 0)
-                                {
-                                    comb.Add(((ExBaseType)(1 << i)).ToString());
-                                }
-                            }
-                            info.Add(string.Join("|", comb));
-                            break;
-                        }
-                }
+                info.Add(GetTypeMaskInfo(mask));
             }
             return true;
         }
@@ -1069,20 +1132,37 @@ namespace ExMat.API
                 ExNativeClosure nc = o.GetNClosure();
                 nc.nParameterChecks = n;
 
-                if (!string.IsNullOrEmpty(mask))
+                List<int> r = new();
+                if (!string.IsNullOrEmpty(mask)
+                    && !CompileTypeMask(mask, r))
                 {
-                    List<int> r = new();
-                    if (!CompileTypeMask(mask, r))
-                    {
-                        Throw("failed to compile type mask", vm);
-                    }
-                    nc.TypeMasks = r;
+                    Throw("failed to compile type mask", vm);
                 }
-                else
+                nc.TypeMasks = r;
+            }
+        }
+
+        /// <summary>
+        /// Create a dictionary of parameter indices and default values from a given parameter list
+        /// </summary>
+        /// <param name="ps">List of parameters</param>
+        /// <returns>Parameter index and default value filled dictionary</returns>
+        public static Dictionary<int, ExObject> GetDefaultValuesFromParameters(List<ExFuncParameter> ps)
+        {
+            Dictionary<int, ExObject> d = new();    // TO-DO change how default values are handled
+            if (ps == null)
+            {
+                return d;
+            }
+
+            for (int i = 0; i < ps.Count; i++)
+            {
+                if (ps[i].HasDefaultValue)
                 {
-                    nc.TypeMasks = new();
+                    d.Add(i + 1, new(ps[i].DefaultValue));
                 }
             }
+            return d;
         }
 
         /// <summary>
@@ -1090,14 +1170,88 @@ namespace ExMat.API
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="d">Dictionary of integer keys for parameter numbers and <see cref="ExObject"/> values for default values</param>
-        public static void SetDefaultValues(ExVM vm, Dictionary<int, ExObject> d)
+        public static void SetDefaultValues(ExVM vm, List<ExFuncParameter> ps)
         {
             ExObject o = GetFromStack(vm, -1);
-
             if (o.Type == ExObjType.NATIVECLOSURE)
             {
-                o.GetNClosure().DefaultValues = d;
+                o.GetNClosure().DefaultValues = GetDefaultValuesFromParameters(ps);
             }
+        }
+
+        public static void SetDocumentation(ExVM vm, ExRegFunc reg)
+        {
+            ExObject o = GetFromStack(vm, -1);
+            if (o.Type == ExObjType.NATIVECLOSURE)
+            {
+                o.GetNClosure().Documentation = CreateDocStringFromRegFunc(reg, o.GetNClosure().TypeMasks.Count == 0);
+                o.GetNClosure().Summary = reg.Description;
+                o.GetNClosure().Returns = reg.Returns;
+                // TO-DO Maybe add reference to 'reg' instead of doing this ?
+            }
+        }
+
+        public static string CreateDocStringFromRegFunc(ExRegFunc reg, bool hasVargs)
+        {
+            StringBuilder s = new();
+
+            if (reg.IsDelegateFunction)
+            {
+                s.AppendFormat("Base: {0}", ((ExBaseType)CompileTypeChar(reg.BaseTypeMask)).ToString());
+            }
+            else
+            {
+                s.AppendFormat("Library: {0}", reg.Base.ToString().ToLower());
+            }
+
+            s.AppendFormat("\nFunction: <{0}> {1}", (string)reg.Returns, reg.Name);
+
+            int i = 0, j = 0;
+
+            s.Append("\nParameters:");
+
+            if (hasVargs && reg.NumberOfParameters != -1)
+            {
+                while (j < -reg.NumberOfParameters - 1)
+                {
+                    s.AppendFormat("\n\t{0}. <ANY> unknown", ++j);
+                }
+            }
+
+            while (reg.Parameters != null
+                && i < reg.Parameters.Count)
+            {
+                ExFuncParameter param = reg.Parameters[i];
+                if (param.HasDefaultValue)
+                {
+                    s.AppendFormat("\n\t{0}. [<{1}> {2} = {3}] : {4}",
+                        j + ++i,
+                        GetTypeMaskInfo(param.Type),
+                        param.Name,
+                        param.DefaultValue.Type == ExObjType.STRING
+                            ? GetEscapedFormattedString(param.DefaultValue.GetString())
+                            : GetSimpleString(param.DefaultValue),
+                        param.Description);
+                }
+                else
+                {
+                    s.AppendFormat("\n\t{0}. <{1}> {2} : {3}", j + ++i, GetTypeMaskInfo(param.Type), param.Name, param.Description);
+                }
+            }
+
+            if (hasVargs)
+            {
+                s.AppendFormat("\n\t{0}. <...> vargs", j + i + 1);
+            }
+            else if (i + j == 0)
+            {
+                s.Append(" No parameters");
+            }
+
+            s.AppendFormat("\nSummary: {0}", reg.Description);
+            s.AppendFormat("\nSafety: {0}", reg.Safe ? "Never throws" : "Can throw");
+
+            return s.ToString();
         }
 
         public static void Throw(ExVM vm, string msg)
@@ -1189,6 +1343,9 @@ namespace ExMat.API
         {
             switch (attr)
             {
+                case ExMat.DocsName:
+                case ExMat.ReturnsName:
+                case ExMat.HelpName:
                 case ExMat.FuncName:
                     {
                         dest = new((string)func.GetAttribute(attr));
@@ -1581,6 +1738,11 @@ namespace ExMat.API
             vm.IsSleeping = false;
         }
 
+        public static string GetEscapedFormattedString(string raw)
+        {
+            return string.Format("\'{0}\'", Escape(raw));
+        }
+
         public static int CallTop(ExVM vm)
         {
             PushRootTable(vm);            // Global tabloyu belleğe yükle
@@ -1594,7 +1756,7 @@ namespace ExMat.API
                     WriteOut(vm.InputCount++);
                     if (isString)
                     {
-                        vm.Print(string.Format("\'{0}\'", Escape(vm.GetAbove(-1).GetString())));
+                        vm.Print(GetEscapedFormattedString(vm.GetAbove(-1).GetString()));
                     }
                     else
                     {

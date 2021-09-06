@@ -17,7 +17,7 @@
         LET
     }
 
-    public enum OPC
+    public enum ExOperationCode
     {
         LOADINTEGER,    // Tamsayı atama
         LOADFLOAT,      // Ondalıklı sayı atama

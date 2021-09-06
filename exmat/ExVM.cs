@@ -21,10 +21,10 @@ using ExMat.Utils;
 namespace ExMat.VM
 {
     /// <summary>
-    /// A virtual machine model to execute instructions which use <see cref="OPC"/>
+    /// A virtual machine model to execute instructions which use <see cref="ExOperationCode"/>
     /// </summary>
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExVM
+    public class ExVM : IDisposable
     {
         /// <summary>
         /// Time when the virtual machine was first initialized
@@ -159,6 +159,39 @@ namespace ExMat.VM
         /// Interactive console flags using <see cref="ExInteractiveConsoleFlag"/>
         /// </summary>
         public int Flags;
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    ErrorTrace.Clear();
+                    ErrorTrace = null;
+
+                    ErrorString = null;
+
+                    Disposer.DisposeObjects(RootDictionary, TempRegistery);
+                    RootDictionary = null;
+                    TempRegistery = null;
+                    Disposer.DisposeObjects(Outers);
+                    Outers = null;
+                    Disposer.DisposeObjects(SharedState);
+                    SharedState = null;
+                    Disposer.DisposeObjects(CallInfo);
+                    CallInfo = null;
+                    Disposer.DisposeObjects(Stack);
+                    Stack = null;
+
+                    Disposer.DisposeList(ref CallStack);
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
 
         /// <summary>
         /// Print given string without new-line at the end
@@ -351,7 +384,7 @@ namespace ExMat.VM
                     {
                         ts = (new string(' ', 8 - ts.Length)) + ts;
                     }
-                    s.Append(prefix).Append(ts);
+                    s.AppendFormat("{0}{1}", prefix, ts);
                 }
                 else
                 {
@@ -373,7 +406,7 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    s.Append(prefix).Append(']');
+                    s.AppendFormat("{0}{1}", prefix, ']');
                 }
             }
             else
@@ -420,7 +453,7 @@ namespace ExMat.VM
             {
                 ToString(pair.Value, ref temp, maxdepth, true, true, string.Empty, currentdepth + 1);
 
-                s.Append('\t').Append(pair.Key).Append(" = ").Append(temp.GetString()).Append('\n');
+                s.AppendFormat("\t{0} = {1}\n", pair.Key, temp.GetString());
 
             }
             s.Append('\t', currentdepth - 1).Append('}');
@@ -1824,17 +1857,17 @@ namespace ExMat.VM
 
                 switch (instruction.op)
                 {
-                    case OPC.LOADINTEGER:   // Tamsayı yükle
+                    case ExOperationCode.LOADINTEGER:   // Tamsayı yükle
                         {
                             GetTargetInStack(instruction).Assign(instruction.arg1);
                             continue;
                         }
-                    case OPC.LOADFLOAT:     // Ondalıklı sayı yükle
+                    case ExOperationCode.LOADFLOAT:     // Ondalıklı sayı yükle
                         {
                             GetTargetInStack(instruction).Assign(new DoubleLong() { i = instruction.arg1 }.f);
                             continue;
                         }
-                    case OPC.LOADCOMPLEX:   // Kompleks sayı yükle
+                    case ExOperationCode.LOADCOMPLEX:   // Kompleks sayı yükle
                         {
                             if (instruction.arg2 == 1)  // Argüman 2, argüman 1'in ondalıklı olup olmadığını belirtir
                             {
@@ -1846,29 +1879,29 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.LOADBOOLEAN:   // Boolean yükle
+                    case ExOperationCode.LOADBOOLEAN:   // Boolean yükle
                         {
                             // Derleyicide hazırlanırken 'true' isteniyorsa arg1 = 1, 'false' isteniyorsa arg1 = 0 kullanıldı
                             GetTargetInStack(instruction).Assign(instruction.arg1 == 1);
                             continue;
                         }
-                    case OPC.LOADSPACE:     // Uzay yükle
+                    case ExOperationCode.LOADSPACE:     // Uzay yükle
                         {
                             GetTargetInStack(instruction).Assign(FindSpaceObject((int)instruction.arg1));
                             continue;
                         }
-                    case OPC.LOAD:          // Yazı dizisi, değişken ismi vb. değer yükle
+                    case ExOperationCode.LOAD:          // Yazı dizisi, değişken ismi vb. değer yükle
                         {
                             GetTargetInStack(instruction).Assign(CallInfo.Value.Literals[(int)instruction.arg1]);
                             continue;
                         }
-                    case OPC.DLOAD:
+                    case ExOperationCode.DLOAD:
                         {
                             GetTargetInStack(instruction).Assign(CallInfo.Value.Literals[(int)instruction.arg1]);
                             GetTargetInStack(instruction.arg2).Assign(CallInfo.Value.Literals[(int)instruction.arg3]);
                             continue;
                         }
-                    case OPC.CALLTAIL:
+                    case ExOperationCode.CALLTAIL:
                         {
                             ExObject tmp = GetTargetInStack(instruction.arg1);
                             if (tmp.Type == ExObjType.CLOSURE)
@@ -1888,9 +1921,9 @@ namespace ExMat.VM
                                 }
                                 continue;
                             }
-                            goto case OPC.CALL;
+                            goto case ExOperationCode.CALL;
                         }
-                    case OPC.CALL:  // Fonksiyon veya başka bir obje çağrısı
+                    case ExOperationCode.CALL:  // Fonksiyon veya başka bir obje çağrısı
                         {
                             ExObject obj = new(GetTargetInStack(instruction.arg1));
                             switch (obj.Type)
@@ -2028,11 +2061,11 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.PREPCALL:
-                    case OPC.PREPCALLK: // Fonksiyonun bir sonraki komutlar için bulunup hazırlanması
+                    case ExOperationCode.PREPCALL:
+                    case ExOperationCode.PREPCALLK: // Fonksiyonun bir sonraki komutlar için bulunup hazırlanması
                         {
                             // Aranan metot/fonksiyon veya özellik ismi
-                            ExObject name = instruction.op == OPC.PREPCALLK ? CallInfo.Value.Literals[(int)instruction.arg1] : GetTargetInStack(instruction.arg1);
+                            ExObject name = instruction.op == ExOperationCode.PREPCALLK ? CallInfo.Value.Literals[(int)instruction.arg1] : GetTargetInStack(instruction.arg1);
                             // İçinde ismin aranacağı obje ( tablo veya sınıf gibi )
                             ExObject lookUp = GetTargetInStack(instruction.arg2);
                             // 'lookUp' objesi 'name' in taşıdığı isimli bir değere sahipse 'TempRegistery' içine yükler
@@ -2046,20 +2079,20 @@ namespace ExMat.VM
                             SwapObjects(GetTargetInStack(instruction), TempRegistery);  // Fonksiyon indeks hedefine ata
                             continue;
                         }
-                    case OPC.DMOVE:
+                    case ExOperationCode.DMOVE:
                         {
                             GetTargetInStack(instruction.arg0).Assign(GetTargetInStack(instruction.arg1));
                             GetTargetInStack(instruction.arg2).Assign(GetTargetInStack(instruction.arg3));
                             continue;
                         }
-                    case OPC.MOVE:  // Bir objeyi/değişkeni başka bir objeye/değişkene atama işlemi
+                    case ExOperationCode.MOVE:  // Bir objeyi/değişkeni başka bir objeye/değişkene atama işlemi
                         {
                             // GetTargetInStack(instruction) çağrısı arg0'ı kullanır : Hedef indeks
                             // arg1 : Kaynak indeks
                             GetTargetInStack(instruction).Assign(GetTargetInStack(instruction.arg1));
                             continue;
                         }
-                    case OPC.NEWSLOT:   // Yeni slot oluşturma işlemi
+                    case ExOperationCode.NEWSLOT:   // Yeni slot oluşturma işlemi
                         {
                             // Komut argümanları:
                             //  arg0 = hedef indeks, ExMat.InvalidArgument ise slota atanan değeri dönmez
@@ -2076,7 +2109,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.DELETE:
+                    case ExOperationCode.DELETE:
                         {
                             ExObject r = new(GetTargetInStack(instruction));
                             if (!RemoveObjectSlot(GetTargetInStack(instruction.arg1), GetTargetInStack(instruction.arg2), ref r))
@@ -2086,7 +2119,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.SET:
+                    case ExOperationCode.SET:
                         {
                             ExObject t = new(GetTargetInStack(instruction.arg3));
                             if (!Setter(GetTargetInStack(instruction.arg1), GetTargetInStack(instruction.arg2), ref t, ExFallback.OK))
@@ -2099,7 +2132,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.GET:
+                    case ExOperationCode.GET:
                         {
                             if (!Getter(new(GetTargetInStack(instruction.arg1)), new(GetTargetInStack(instruction.arg2)), ref TempRegistery, false, (ExFallback)instruction.arg1))
                             {
@@ -2108,7 +2141,7 @@ namespace ExMat.VM
                             SwapObjects(GetTargetInStack(instruction), TempRegistery);
                             continue;
                         }
-                    case OPC.GETK:
+                    case ExOperationCode.GETK:
                         {
                             if (!Getter(GetTargetInStack(instruction.arg2), CallInfo.Value.Literals[(int)instruction.arg1], ref TempRegistery, false, (ExFallback)instruction.arg2))
                             {
@@ -2118,8 +2151,8 @@ namespace ExMat.VM
                             SwapObjects(GetTargetInStack(instruction), TempRegistery);
                             continue;
                         }
-                    case OPC.EQ:
-                    case OPC.NEQ:
+                    case ExOperationCode.EQ:
+                    case ExOperationCode.NEQ:
                         {
                             bool res = false;
                             if (!ExApi.CheckEqual(GetTargetInStack(instruction.arg2), GetConditionFromInstr(instruction), ref res))
@@ -2127,15 +2160,15 @@ namespace ExMat.VM
                                 AddToErrorMessage("equal op failed");
                                 return FixStackAfterError();
                             }
-                            GetTargetInStack(instruction).Assign(instruction.op == OPC.EQ ? res : !res);
+                            GetTargetInStack(instruction).Assign(instruction.op == ExOperationCode.EQ ? res : !res);
                             continue;
                         }
-                    case OPC.ADD:
-                    case OPC.SUB:
-                    case OPC.MLT:
-                    case OPC.EXP:
-                    case OPC.DIV:
-                    case OPC.MOD:
+                    case ExOperationCode.ADD:
+                    case ExOperationCode.SUB:
+                    case ExOperationCode.MLT:
+                    case ExOperationCode.EXP:
+                    case ExOperationCode.DIV:
+                    case ExOperationCode.MOD:
                         {
                             // arg1 = sağ tarafın indeksi
                             // arg2 = sol tarafın indeksi
@@ -2147,17 +2180,17 @@ namespace ExMat.VM
                             GetTargetInStack(instruction).Assign(res);  // arg0 hedef indeksi
                             continue;
                         }
-                    case OPC.MMLT:
+                    case ExOperationCode.MMLT:
                         {
                             ExObject res = new();
-                            if (!DoMatrixMltOP(OPC.MMLT, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
+                            if (!DoMatrixMltOP(ExOperationCode.MMLT, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
                             {
                                 return FixStackAfterError();
                             }
                             GetTargetInStack(instruction).Assign(res);
                             continue;
                         }
-                    case OPC.CARTESIAN:
+                    case ExOperationCode.CARTESIAN:
                         {
                             ExObject res = new();
                             if (!DoCartesianProductOP(GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
@@ -2167,7 +2200,7 @@ namespace ExMat.VM
                             GetTargetInStack(instruction).Assign(res);
                             continue;
                         }
-                    case OPC.BITWISE:
+                    case ExOperationCode.BITWISE:
                         {
                             if (!DoBitwiseOP(instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), GetTargetInStack(instruction)))
                             {
@@ -2177,10 +2210,10 @@ namespace ExMat.VM
 
                             continue;
                         }
-                    case OPC.RETURNBOOL:
-                    case OPC.RETURN:
+                    case ExOperationCode.RETURNBOOL:
+                    case ExOperationCode.RETURN:
                         {
-                            if (ReturnValue((int)instruction.arg0, (int)instruction.arg1, ref TempRegistery, instruction.op == OPC.RETURNBOOL, instruction.arg2 == 1))
+                            if (ReturnValue((int)instruction.arg0, (int)instruction.arg1, ref TempRegistery, instruction.op == ExOperationCode.RETURNBOOL, instruction.arg2 == 1))
                             {
                                 SwapObjects(resultObject, TempRegistery);
 
@@ -2193,7 +2226,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.LOADNULL:
+                    case ExOperationCode.LOADNULL:
                         {
                             if (instruction.arg2 == 1)
                             {
@@ -2212,19 +2245,19 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.LOADROOT:
+                    case ExOperationCode.LOADROOT:
                         {
                             GetTargetInStack(instruction).Assign(RootDictionary);
                             continue;
                         }
-                    case OPC.JMP:   // arg1 adet komutu atla
+                    case ExOperationCode.JMP:   // arg1 adet komutu atla
                         {
                             CallInfo.Value.InstructionsIndex += (int)instruction.arg1;
                             continue;
                         }
 
-                    case OPC.JZS:
-                    case OPC.JZ:    // Hedef(arg0 indeksli) boolean olarak 'false' ise arg1 adet komutu atla
+                    case ExOperationCode.JZS:
+                    case ExOperationCode.JZ:    // Hedef(arg0 indeksli) boolean olarak 'false' ise arg1 adet komutu atla
                         {
                             if (!GetTargetInStack(instruction.arg0).GetBool())
                             {
@@ -2232,7 +2265,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.JCMP:
+                    case ExOperationCode.JCMP:
                         {
                             if (!DoCompareOP((CmpOP)instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg0), TempRegistery))
                             {
@@ -2244,14 +2277,14 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.GETOUTER:
+                    case ExOperationCode.GETOUTER:
                         {
                             ExClosure currcls = CallInfo.Value.Closure.GetClosure();
                             ExOuter outr = currcls.OutersList[(int)instruction.arg1].Value._Outer;
                             GetTargetInStack(instruction).Assign(outr.ValueRef);
                             continue;
                         }
-                    case OPC.SETOUTER:
+                    case ExOperationCode.SETOUTER:
                         {
                             ExClosure currcls = CallInfo.Value.Closure.GetClosure();
                             ExOuter outr = currcls.OutersList[(int)instruction.arg1].Value._Outer;
@@ -2262,7 +2295,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.NEWOBJECT:
+                    case ExOperationCode.NEWOBJECT:
                         {
                             switch (instruction.arg3)
                             {
@@ -2292,7 +2325,7 @@ namespace ExMat.VM
                                     }
                             }
                         }
-                    case OPC.APPENDTOARRAY:
+                    case ExOperationCode.APPENDTOARRAY:
                         {
                             ExObject val = new();
                             switch (instruction.arg2)
@@ -2316,7 +2349,7 @@ namespace ExMat.VM
                             GetTargetInStack(instruction.arg0).GetList().Add(val);
                             continue;
                         }
-                    case OPC.TRANSPOSE:
+                    case ExOperationCode.TRANSPOSE:
                         {
                             ExObject s1 = new(GetTargetInStack(instruction.arg1));
                             if (!DoMatrixTranspose(GetTargetInStack(instruction), ref s1, (ExFallback)instruction.arg1))
@@ -2325,21 +2358,21 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.INC:
-                    case OPC.PINC:
+                    case ExOperationCode.INC:
+                    case ExOperationCode.PINC:
                         {
                             ExObject ob = new(instruction.arg3);
 
                             ExObject s1 = new(GetTargetInStack(instruction.arg1));
                             ExObject s2 = new(GetTargetInStack(instruction.arg2));
-                            if (!DoDerefInc(OPC.ADD, GetTargetInStack(instruction), ref s1, ref s2, ob, instruction.op == OPC.PINC, (ExFallback)instruction.arg1))
+                            if (!DoDerefInc(ExOperationCode.ADD, GetTargetInStack(instruction), ref s1, ref s2, ob, instruction.op == ExOperationCode.PINC, (ExFallback)instruction.arg1))
                             {
                                 return FixStackAfterError();
                             }
                             continue;
                         }
-                    case OPC.INCL:
-                    case OPC.PINCL:
+                    case ExOperationCode.INCL:
+                    case ExOperationCode.PINCL:
                         {
                             ExObject ob = GetTargetInStack(instruction.arg1);
                             if (ob.Type == ExObjType.INTEGER)
@@ -2350,10 +2383,10 @@ namespace ExMat.VM
                             else
                             {
                                 ob = new(instruction.arg3);
-                                if (instruction.op == OPC.INCL)
+                                if (instruction.op == ExOperationCode.INCL)
                                 {
                                     ExObject res = new();
-                                    if (!DoArithmeticOP(OPC.ADD, ob, resultObject, ref res))
+                                    if (!DoArithmeticOP(ExOperationCode.ADD, ob, resultObject, ref res))
                                     {
                                         return FixStackAfterError();
                                     }
@@ -2363,7 +2396,7 @@ namespace ExMat.VM
                                 {
                                     ExObject targ = new(GetTargetInStack(instruction));
                                     ExObject val = new(GetTargetInStack(instruction.arg1));
-                                    if (!DoVarInc(OPC.ADD, ref targ, ref val, ob))
+                                    if (!DoVarInc(ExOperationCode.ADD, ref targ, ref val, ob))
                                     {
                                         return FixStackAfterError();
                                     }
@@ -2371,7 +2404,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.EXISTS:
+                    case ExOperationCode.EXISTS:
                         {
                             bool b = Getter(new(GetTargetInStack(instruction.arg1)), new(GetTargetInStack(instruction.arg2)), ref TempRegistery, true, ExFallback.DONT, true);
 
@@ -2379,7 +2412,7 @@ namespace ExMat.VM
 
                             continue;
                         }
-                    case OPC.CMP:
+                    case ExOperationCode.CMP:
                         {
                             if (!DoCompareOP((CmpOP)instruction.arg3, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), GetTargetInStack(instruction)))
                             {
@@ -2387,7 +2420,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.CLOSE:
+                    case ExOperationCode.CLOSE:
                         {
                             if (Outers != null)
                             {
@@ -2395,7 +2428,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.AND:
+                    case ExOperationCode.AND:
                         {
                             if (!GetTargetInStack(instruction.arg2).GetBool())
                             {
@@ -2404,7 +2437,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.OR:
+                    case ExOperationCode.OR:
                         {
                             if (GetTargetInStack(instruction.arg2).GetBool())
                             {
@@ -2413,12 +2446,12 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.NOT:
+                    case ExOperationCode.NOT:
                         {
                             GetTargetInStack(instruction).Assign(!GetTargetInStack(instruction.arg1).GetBool());
                             continue;
                         }
-                    case OPC.NEGATE:
+                    case ExOperationCode.NEGATE:
                         {
                             if (!DoNegateOP(GetTargetInStack(instruction), GetTargetInStack(instruction.arg1)))
                             {
@@ -2427,7 +2460,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.CLOSURE:
+                    case ExOperationCode.CLOSURE:
                         {
                             ExClosure cl = CallInfo.Value.Closure.GetClosure();
                             ExPrototype fp = cl.Function;
@@ -2437,7 +2470,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.NEWSLOTA:
+                    case ExOperationCode.NEWSLOTA:
                         {
                             if (!NewSlotA(GetTargetInStack(instruction.arg1),
                                          GetTargetInStack(instruction.arg2),
@@ -2450,7 +2483,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.COMPOUNDARITH:
+                    case ExOperationCode.COMPOUNDARITH:
                         {
                             // TO-DO somethings wrong here
                             int idx = (int)((instruction.arg1 & 0xFFFF0000) >> 16);
@@ -2459,13 +2492,13 @@ namespace ExMat.VM
                             ExObject s2 = GetTargetInStack(instruction.arg2);
                             ExObject s1v = GetTargetInStack(instruction.arg1 & 0x0000FFFF);
 
-                            if (!DoDerefInc((OPC)instruction.arg3, GetTargetInStack(instruction), ref si, ref s2, s1v, false, (ExFallback)idx))
+                            if (!DoDerefInc((ExOperationCode)instruction.arg3, GetTargetInStack(instruction), ref si, ref s2, s1v, false, (ExFallback)idx))
                             {
                                 return FixStackAfterError();
                             }
                             continue;
                         }
-                    case OPC.TYPEOF:
+                    case ExOperationCode.TYPEOF:
                         {
                             ExObject obj = GetTargetInStack(instruction.arg1);
                             ExObject res = new();
@@ -2489,7 +2522,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.INSTANCEOF:
+                    case ExOperationCode.INSTANCEOF:
                         {
                             if (GetTargetInStack(instruction.arg1).Type != ExObjType.CLASS)
                             {
@@ -2501,7 +2534,7 @@ namespace ExMat.VM
                                 && GetTargetInStack(instruction.arg2).GetInstance().IsInstanceOf(GetTargetInStack(instruction.arg1).GetClass()));
                             continue;
                         }
-                    case OPC.RETURNMACRO:   // TO-DO
+                    case ExOperationCode.RETURNMACRO:   // TO-DO
                         {
                             if (ReturnValue((int)instruction.arg0, (int)instruction.arg1, ref TempRegistery, false, true))
                             {
@@ -2510,7 +2543,7 @@ namespace ExMat.VM
                             }
                             continue;
                         }
-                    case OPC.GETBASE:
+                    case ExOperationCode.GETBASE:
                         {
                             ExClosure c = CallInfo.Value.Closure.GetClosure();
                             if (c.Base != null)
@@ -2738,7 +2771,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoDerefInc(OPC op, ExObject t, ref ExObject self, ref ExObject k, ExObject inc, bool post, ExFallback idx)
+        public bool DoDerefInc(ExOperationCode op, ExObject t, ref ExObject self, ref ExObject k, ExObject inc, bool post, ExFallback idx)
         {
             ExObject tmp = new();
             ExObject tmpk = k;
@@ -2764,7 +2797,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoVarInc(OPC op, ref ExObject t, ref ExObject o, ExObject diff)
+        public bool DoVarInc(ExOperationCode op, ref ExObject t, ref ExObject o, ExObject diff)
         {
             ExObject res = new();
             if (!DoArithmeticOP(op, o, diff, ref res))
@@ -3025,16 +3058,16 @@ namespace ExMat.VM
             }
         }
 
-        public static bool InnerDoArithmeticOPInt(OPC op, long a, long b, ref ExObject res)
+        public static bool InnerDoArithmeticOPInt(ExOperationCode op, long a, long b, ref ExObject res)
         {
             switch (op)
             {
-                case OPC.ADD: res = new(a + b); break;
-                case OPC.SUB: res = new(a - b); break;
-                case OPC.MLT: res = new(a * b); break;
-                case OPC.EXP: res = new(Math.Pow(a, b)); break;
-                case OPC.MOD:
-                case OPC.DIV:
+                case ExOperationCode.ADD: res = new(a + b); break;
+                case ExOperationCode.SUB: res = new(a - b); break;
+                case ExOperationCode.MLT: res = new(a * b); break;
+                case ExOperationCode.EXP: res = new(Math.Pow(a, b)); break;
+                case ExOperationCode.MOD:
+                case ExOperationCode.DIV:
                     {
                         if (b == 0)
                         {
@@ -3042,7 +3075,7 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            res = new(op == OPC.DIV ? (a / b) : (a % b));
+                            res = new(op == ExOperationCode.DIV ? (a / b) : (a % b));
                         }
                         break;
                     }
@@ -3051,20 +3084,20 @@ namespace ExMat.VM
             return true;
         }
 
-        public static bool InnerDoArithmeticOPFloat(OPC op, double a, double b, ref ExObject res)
+        public static bool InnerDoArithmeticOPFloat(ExOperationCode op, double a, double b, ref ExObject res)
         {
             switch (op)
             {
-                case OPC.ADD: res = new(a + b); break;
-                case OPC.SUB: res = new(a - b); break;
-                case OPC.MLT: res = new(a * b); break;
-                case OPC.EXP: res = new(Math.Pow(a, b)); break;
-                case OPC.DIV:
+                case ExOperationCode.ADD: res = new(a + b); break;
+                case ExOperationCode.SUB: res = new(a - b); break;
+                case ExOperationCode.MLT: res = new(a * b); break;
+                case ExOperationCode.EXP: res = new(Math.Pow(a, b)); break;
+                case ExOperationCode.DIV:
                     {
                         res = new(b == 0 ? HandleZeroInDivision(a) : (a / b));
                         break;
                     }
-                case OPC.MOD:
+                case ExOperationCode.MOD:
                     {
                         res = new(b == 0 ? HandleZeroInDivision(a) : (a % b));
                         break;
@@ -3074,22 +3107,22 @@ namespace ExMat.VM
             return true;
         }
 
-        public static bool InnerDoArithmeticOPComplex(OPC op, Complex a, Complex b, ref ExObject res)
+        public static bool InnerDoArithmeticOPComplex(ExOperationCode op, Complex a, Complex b, ref ExObject res)
         {
             switch (op)
             {
-                case OPC.ADD: res = new(a + b); break;
-                case OPC.SUB: res = new(a - b); break;
-                case OPC.MLT: res = new(a * b); break;
-                case OPC.MOD: return false;
-                case OPC.DIV:
+                case ExOperationCode.ADD: res = new(a + b); break;
+                case ExOperationCode.SUB: res = new(a - b); break;
+                case ExOperationCode.MLT: res = new(a * b); break;
+                case ExOperationCode.MOD: return false;
+                case ExOperationCode.DIV:
                     {
                         Complex c = Complex.Divide(a, b);
                         c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
                         res = new(c);
                         break;
                     }
-                case OPC.EXP:
+                case ExOperationCode.EXP:
                     {
                         Complex c = Complex.Pow(a, b);
                         c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
@@ -3102,22 +3135,22 @@ namespace ExMat.VM
         }
 
         [ExcludeFromCodeCoverage]
-        private static bool InnerDoArithmeticOPComplex(OPC op, Complex a, double b, ref ExObject res)
+        private static bool InnerDoArithmeticOPComplex(ExOperationCode op, Complex a, double b, ref ExObject res)
         {
             switch (op)
             {
-                case OPC.ADD: res = new(a + b); break;
-                case OPC.SUB: res = new(a - b); break;
-                case OPC.MLT: res = new(a * b); break;
-                case OPC.MOD: return false;
-                case OPC.DIV:
+                case ExOperationCode.ADD: res = new(a + b); break;
+                case ExOperationCode.SUB: res = new(a - b); break;
+                case ExOperationCode.MLT: res = new(a * b); break;
+                case ExOperationCode.MOD: return false;
+                case ExOperationCode.DIV:
                     {
                         Complex c = Complex.Divide(a, b);
                         c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
                         res = new(c);
                         break;
                     }
-                case OPC.EXP:
+                case ExOperationCode.EXP:
                     {
                         Complex c = Complex.Pow(a, b);
                         c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
@@ -3130,22 +3163,22 @@ namespace ExMat.VM
         }
 
         [ExcludeFromCodeCoverage]
-        private static bool InnerDoArithmeticOPComplex(OPC op, double a, Complex b, ref ExObject res)
+        private static bool InnerDoArithmeticOPComplex(ExOperationCode op, double a, Complex b, ref ExObject res)
         {
             switch (op)
             {
-                case OPC.ADD: res = new(a + b); break;
-                case OPC.SUB: res = new(a - b); break;
-                case OPC.MLT: res = new(a * b); break;
-                case OPC.MOD: return false;
-                case OPC.DIV:
+                case ExOperationCode.ADD: res = new(a + b); break;
+                case ExOperationCode.SUB: res = new(a - b); break;
+                case ExOperationCode.MLT: res = new(a * b); break;
+                case ExOperationCode.MOD: return false;
+                case ExOperationCode.DIV:
                     {
                         Complex c = Complex.Divide(a, b);
                         c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
                         res = new(c);
                         break;
                     }
-                case OPC.EXP:
+                case ExOperationCode.EXP:
                     {
                         Complex c = Complex.Pow(a, b);
                         c = new Complex(Math.Round(c.Real, 15), Math.Round(c.Imaginary, 15));
@@ -3241,7 +3274,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoMatrixMltOP(OPC op, ExObject a, ExObject b, ref ExObject res)
+        public bool DoMatrixMltOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
         {
             if (a.Type != ExObjType.ARRAY || b.Type != ExObjType.ARRAY)
             {
@@ -3277,7 +3310,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoArithmeticOP(OPC op, ExObject a, ExObject b, ref ExObject res)
+        public bool DoArithmeticOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
         {
             // Veri tiplerini maskeleyerek işlemler basitleştirilir
             int a_mask = (int)a.Type | (int)b.Type;
@@ -3347,7 +3380,7 @@ namespace ExMat.VM
                     }
                 case (int)ArithmeticMask.STRING:
                     {
-                        if (op != OPC.ADD)
+                        if (op != ExOperationCode.ADD)
                         {
                             goto default;
                         }
@@ -3356,7 +3389,7 @@ namespace ExMat.VM
                     }
                 case (int)ArithmeticMask.STRINGNULL:
                     {
-                        if (op != OPC.ADD)
+                        if (op != ExOperationCode.ADD)
                         {
                             goto default;
                         }
@@ -3365,7 +3398,7 @@ namespace ExMat.VM
                     }
                 case (int)ArithmeticMask.STRINGBOOL:
                     {
-                        if (op != OPC.ADD)
+                        if (op != ExOperationCode.ADD)
                         {
                             goto default;
                         }
@@ -3374,7 +3407,7 @@ namespace ExMat.VM
                     }
                 case (int)ArithmeticMask.STRINGCOMPLEX:
                     {
-                        if (op != OPC.ADD)
+                        if (op != ExOperationCode.ADD)
                         {
                             goto default;
                         }
@@ -3391,7 +3424,7 @@ namespace ExMat.VM
                 case (int)ArithmeticMask.STRINGINT:
                 case (int)ArithmeticMask.STRINGFLOAT:
                     {
-                        if (op != OPC.ADD)
+                        if (op != ExOperationCode.ADD)
                         {
                             goto default;
                         }
@@ -3417,37 +3450,37 @@ namespace ExMat.VM
             }
             return true;
         }
-        public bool DoArithmeticMetaOP(OPC op, ExObject a, ExObject b, ref ExObject res)
+        public bool DoArithmeticMetaOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
         {
             ExMetaMethod meta;
             switch (op)
             {
-                case OPC.ADD:
+                case ExOperationCode.ADD:
                     {
                         meta = ExMetaMethod.ADD;
                         break;
                     }
-                case OPC.SUB:
+                case ExOperationCode.SUB:
                     {
                         meta = ExMetaMethod.SUB;
                         break;
                     }
-                case OPC.DIV:
+                case ExOperationCode.DIV:
                     {
                         meta = ExMetaMethod.DIV;
                         break;
                     }
-                case OPC.MLT:
+                case ExOperationCode.MLT:
                     {
                         meta = ExMetaMethod.MLT;
                         break;
                     }
-                case OPC.MOD:
+                case ExOperationCode.MOD:
                     {
                         meta = ExMetaMethod.MOD;
                         break;
                     }
-                case OPC.EXP:
+                case ExOperationCode.EXP:
                     {
                         meta = ExMetaMethod.EXP;
                         break;
@@ -3688,7 +3721,6 @@ namespace ExMat.VM
                     }
                 case ExObjType.INTEGER:
                 case ExObjType.FLOAT:
-                case ExObjType.BOOL:
                     {
                         del = SharedState.NumberDelegate.GetDict();
                         break;
@@ -3990,6 +4022,8 @@ namespace ExMat.VM
                     }
                 case ExObjType.WEAKREF:
                 case ExObjType.COMPLEX:
+                case ExObjType.FLOAT:
+                case ExObjType.INTEGER:
                     {
                         break;
                     }
@@ -4359,6 +4393,13 @@ namespace ExMat.VM
         private object GetDebuggerDisplay()
         {
             return "VM" + (IsMainCall ? "<main>" : "<inner>") + "(Base: " + StackBase + ", Top: " + StackTop + ")";
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }

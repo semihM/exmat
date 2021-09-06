@@ -23,7 +23,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(OPC.ADD, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(ExOperationCode.ADD, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -40,7 +40,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(OPC.SUB, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(ExOperationCode.SUB, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -57,7 +57,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(OPC.MLT, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(ExOperationCode.MLT, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -74,7 +74,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(OPC.DIV, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(ExOperationCode.DIV, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -91,7 +91,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(OPC.EXP, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPComplex(ExOperationCode.EXP, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -103,7 +103,7 @@ namespace ExMat.VM.Tests
         {
             ExObject tmp = null;
 
-            Assert.IsFalse(ExVM.InnerDoArithmeticOPComplex(OPC.MOD, new Complex(), new Complex(), ref tmp));
+            Assert.IsFalse(ExVM.InnerDoArithmeticOPComplex(ExOperationCode.MOD, new Complex(), new Complex(), ref tmp));
 
             Assert.IsNull(tmp);
         }
@@ -113,7 +113,7 @@ namespace ExMat.VM.Tests
         {
             ExObject tmp = null;
 
-            Assert.IsFalse(ExVM.InnerDoArithmeticOPComplex(OPC.CLOSE, new Complex(), new Complex(), ref tmp));
+            Assert.IsFalse(ExVM.InnerDoArithmeticOPComplex(ExOperationCode.CLOSE, new Complex(), new Complex(), ref tmp));
 
             Assert.IsNull(tmp);
         }
@@ -130,7 +130,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.ADD, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.ADD, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -147,7 +147,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.SUB, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.SUB, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -164,7 +164,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.MLT, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.MLT, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -180,22 +180,22 @@ namespace ExMat.VM.Tests
             double res = a / b;
 
             ExObject tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.DIV, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.DIV, a, b, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(res, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.DIV, Math.E, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.DIV, Math.E, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.PositiveInfinity, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.DIV, 0, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.DIV, 0, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NaN, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.DIV, -Math.E, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.DIV, -Math.E, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NegativeInfinity, tmp.GetFloat());
         }
@@ -210,7 +210,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.EXP, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.EXP, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -226,22 +226,22 @@ namespace ExMat.VM.Tests
             double res = a % b;
 
             ExObject tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.MOD, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.MOD, a, b, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(res, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.MOD, Math.E, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.MOD, Math.E, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.PositiveInfinity, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.MOD, 0, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.MOD, 0, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NaN, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(OPC.MOD, -Math.E, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.MOD, -Math.E, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NegativeInfinity, tmp.GetFloat());
         }
@@ -251,7 +251,7 @@ namespace ExMat.VM.Tests
         {
             ExObject tmp = null;
 
-            Assert.IsFalse(ExVM.InnerDoArithmeticOPFloat(OPC.CLOSE, Math.E, Math.PI, ref tmp));
+            Assert.IsFalse(ExVM.InnerDoArithmeticOPFloat(ExOperationCode.CLOSE, Math.E, Math.PI, ref tmp));
 
             Assert.IsNull(tmp);
         }
@@ -268,7 +268,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.ADD, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.ADD, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -285,7 +285,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.SUB, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.SUB, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -302,7 +302,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.MLT, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.MLT, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -318,22 +318,22 @@ namespace ExMat.VM.Tests
             long res = a / b;
 
             ExObject tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.DIV, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.DIV, a, b, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(res, tmp.GetInt());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.DIV, 3, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.DIV, 3, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.PositiveInfinity, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.DIV, 0, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.DIV, 0, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NaN, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.DIV, -3, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.DIV, -3, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NegativeInfinity, tmp.GetFloat());
         }
@@ -348,7 +348,7 @@ namespace ExMat.VM.Tests
 
             ExObject tmp = null;
 
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.EXP, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.EXP, a, b, ref tmp));
 
             Assert.IsNotNull(tmp);
 
@@ -364,22 +364,22 @@ namespace ExMat.VM.Tests
             long res = a % b;
 
             ExObject tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.MOD, a, b, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.MOD, a, b, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(res, tmp.GetInt());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.MOD, 3, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.MOD, 3, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.PositiveInfinity, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.MOD, 0, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.MOD, 0, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NaN, tmp.GetFloat());
 
             tmp = null;
-            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(OPC.MOD, -3, 0, ref tmp));
+            Assert.IsTrue(ExVM.InnerDoArithmeticOPInt(ExOperationCode.MOD, -3, 0, ref tmp));
             Assert.IsNotNull(tmp);
             Assert.AreEqual(double.NegativeInfinity, tmp.GetFloat());
         }
@@ -389,7 +389,7 @@ namespace ExMat.VM.Tests
         {
             ExObject tmp = null;
 
-            Assert.IsFalse(ExVM.InnerDoArithmeticOPInt(OPC.CLOSE, 3, 4, ref tmp));
+            Assert.IsFalse(ExVM.InnerDoArithmeticOPInt(ExOperationCode.CLOSE, 3, 4, ref tmp));
 
             Assert.IsNull(tmp);
         }
@@ -486,7 +486,7 @@ namespace ExMat.VM.Tests
         {
             ExObject tmp = new();
 
-            Assert.IsFalse(ExVM.DoBitwiseOP((long)OPC.CLOSE, new(1), new(1), tmp));
+            Assert.IsFalse(ExVM.DoBitwiseOP((long)ExOperationCode.CLOSE, new(1), new(1), tmp));
 
             Assert.IsTrue(tmp.IsNull());
         }

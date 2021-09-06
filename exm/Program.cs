@@ -156,7 +156,7 @@ namespace ExMat
                             }
                         ),
                     Literals = new(),
-                    Instructions = new(2) { new(OPs.OPC.RETURN, ExMat.InvalidArgument, 0, 2, 0), new(OPs.OPC.RETURN, ExMat.InvalidArgument, 2, 1, 0) },
+                    Instructions = new(2) { new(OPs.ExOperationCode.RETURN, ExMat.InvalidArgument, 0, 2, 0), new(OPs.ExOperationCode.RETURN, ExMat.InvalidArgument, 2, 1, 0) },
                     InstructionsIndex = 0,
                     IsRootCall = true,
                     PrevBase = 2,
@@ -220,7 +220,7 @@ namespace ExMat
             ExStdIO.RegisterStdIO(vm);          // Girdi/çıktı, dosya kütüphanesi
             ExStdString.RegisterStdString(vm);  // Yazı dizisi işleme kütüphanesi
             ExStdNet.RegisterStdNet(vm);        // Ağ işlemleri kütüphanesi
-            ExStdSys.RegisterStdSys(vm);          // Arayüz kütüphanesi
+            ExStdSys.RegisterStdSys(vm);        // Sistem kütüphanesi
         }
 
         private static void Indent(int n = 1)
@@ -253,7 +253,6 @@ namespace ExMat
         {
             ActiveVM = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
             ActiveVM.ActiveThread = ActiveThread;
-            ExApi.PushRootTable(ActiveVM);               // Global tabloyu ekle
 
             RegisterStdLibraries(ActiveVM);   // Standard kütüphaneler
 

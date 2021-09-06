@@ -24,6 +24,12 @@ namespace ExMat.Closure
 
         public Dictionary<int, ExObject> DefaultValues = new(); // Varsayılan değerler
 
+        public string Documentation = string.Empty;
+
+        public string Summary = string.Empty;
+
+        public string Returns = string.Empty;
+
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -45,6 +51,18 @@ namespace ExMat.Closure
                 case ExMat.FuncName:
                     {
                         return Name.GetString();
+                    }
+                case ExMat.HelpName:
+                    {
+                        return Documentation;
+                    }
+                case ExMat.DocsName:
+                    {
+                        return Summary;
+                    }
+                case ExMat.ReturnsName:
+                    {
+                        return Returns;
                     }
                 case ExMat.VargsName:
                     {
@@ -125,7 +143,7 @@ namespace ExMat.Closure
             List<string> infos = new();
 
             if (!(bool)GetAttribute(ExMat.VargsName)
-                && API.ExApi.GetTypeMaskInfo(TypeMasks, infos))
+                && API.ExApi.GetTypeMaskInfos(TypeMasks, infos))
             {
                 int min = (int)GetAttribute(ExMat.nMinArgs);
                 int paramsleft = (int)GetAttribute(ExMat.nDefParams);
@@ -155,7 +173,7 @@ namespace ExMat.Closure
 
             if (s.Length == 0)
             {
-                return "delegate, params: 0, minargs: 0";
+                return $"{(IsDelegateFunction ? "delegate, " : string.Empty)}params: 0, minargs: 0";
             }
 
             return s.ToString();
