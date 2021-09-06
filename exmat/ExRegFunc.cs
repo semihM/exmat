@@ -172,6 +172,10 @@ namespace ExMat.Objects
                     Name = null;
                     Function = null;
                     Description = null;
+
+                    Disposer.DisposeList(ref _Parameters);
+                    _parameterMask = null;
+
                     Returns = null;
                 }
 
