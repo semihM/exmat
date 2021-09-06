@@ -24,7 +24,7 @@ namespace ExMat.VM
     /// A virtual machine model to execute instructions which use <see cref="ExOperationCode"/>
     /// </summary>
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExVM
+    public class ExVM : IDisposable
     {
         /// <summary>
         /// Time when the virtual machine was first initialized
@@ -159,6 +159,39 @@ namespace ExMat.VM
         /// Interactive console flags using <see cref="ExInteractiveConsoleFlag"/>
         /// </summary>
         public int Flags;
+        private bool disposedValue;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    ErrorTrace.Clear();
+                    ErrorTrace = null;
+
+                    ErrorString = null;
+
+                    Disposer.DisposeObjects(RootDictionary, TempRegistery);
+                    RootDictionary = null;
+                    TempRegistery = null;
+                    Disposer.DisposeObjects(Outers);
+                    Outers = null;
+                    Disposer.DisposeObjects(SharedState);
+                    SharedState = null;
+                    Disposer.DisposeObjects(CallInfo);
+                    CallInfo = null;
+                    Disposer.DisposeObjects(Stack);
+                    Stack = null;
+
+                    Disposer.DisposeList(ref CallStack);
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                disposedValue = true;
+            }
+        }
 
         /// <summary>
         /// Print given string without new-line at the end
@@ -351,7 +384,7 @@ namespace ExMat.VM
                     {
                         ts = (new string(' ', 8 - ts.Length)) + ts;
                     }
-                    s.Append(prefix).Append(ts);
+                    s.AppendFormat("{0}{1}", prefix, ts);
                 }
                 else
                 {
@@ -373,7 +406,7 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    s.Append(prefix).Append(']');
+                    s.AppendFormat("{0}{1}", prefix, ']');
                 }
             }
             else
@@ -420,7 +453,7 @@ namespace ExMat.VM
             {
                 ToString(pair.Value, ref temp, maxdepth, true, true, string.Empty, currentdepth + 1);
 
-                s.Append('\t').Append(pair.Key).Append(" = ").Append(temp.GetString()).Append('\n');
+                s.AppendFormat("\t{0} = {1}\n", pair.Key, temp.GetString());
 
             }
             s.Append('\t', currentdepth - 1).Append('}');
@@ -4360,6 +4393,13 @@ namespace ExMat.VM
         private object GetDebuggerDisplay()
         {
             return "VM" + (IsMainCall ? "<main>" : "<inner>") + "(Base: " + StackBase + ", Top: " + StackTop + ")";
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
     }
 }
