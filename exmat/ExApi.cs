@@ -383,35 +383,51 @@ namespace ExMat.API
         {
             switch (x.Type)
             {
-                case ExObjType.BOOL:
-                    res = x.GetBool() == y.GetBool();
-                    break;
-                case ExObjType.STRING:
-                    res = x.GetString() == y.GetString();
-                    break;
-                case ExObjType.COMPLEX:
-                    res = x.GetComplex() == y.GetComplex();
-                    break;
                 case ExObjType.INTEGER:
                     res = x.GetInt() == y.GetInt();
                     break;
                 case ExObjType.FLOAT:
                     res = CheckEqualFloat(x.GetFloat(), y.GetFloat());
                     break;
-                case ExObjType.NULL:
-                    res = true;
+                case ExObjType.COMPLEX:
+                    res = x.GetComplex() == y.GetComplex();
+                    break;
+                case ExObjType.BOOL:
+                    res = x.GetBool() == y.GetBool();
+                    break;
+                case ExObjType.STRING:
+                    res = x.GetString() == y.GetString();
                     break;
                 case ExObjType.NATIVECLOSURE: // TO-DO Need better checks
-                    CheckEqual(x.GetNClosure().Name, y.GetNClosure().Name, ref res);
+                    res = x.GetNClosure().GetHashCode() == y.GetNClosure().GetHashCode();
                     break;
                 case ExObjType.CLOSURE:
-                    CheckEqual(x.GetClosure().Function.Name, y.GetClosure().Function.Name, ref res);
+                    res = x.GetClosure().GetHashCode() == y.GetClosure().GetHashCode();
                     break;
                 case ExObjType.ARRAY:
                     res = CheckEqualArray(x.GetList(), y.GetList());
                     break;
+                case ExObjType.DICT:
+                    res = x.GetDict().GetHashCode() == y.GetDict().GetHashCode();
+                    break;
+                case ExObjType.SPACE:
+                    res = string.Equals(x.Value.c_Space.GetSpaceString(), y.Value.c_Space.GetSpaceString());
+                    break;
+                case ExObjType.CLASS:
+                    res = x.GetClass().Hash == y.GetClass().Hash;
+                    break;
+                case ExObjType.INSTANCE:
+                    res = x.GetInstance().Class.Hash == y.GetInstance().Class.Hash && x.GetInstance().Hash == y.GetInstance().Hash;
+                    break;
+                case ExObjType.WEAKREF:
+                    CheckEqual(x.GetWeakRef().ReferencedObject, y.GetWeakRef().ReferencedObject, ref res);
+                    break;
+                case ExObjType.NULL:
+                case ExObjType.DEFAULT:
+                    res = true;
+                    break;
                 default:
-                    res = x == y;   // TO-DO
+                    res = false;
                     break;
             }
         }
@@ -692,15 +708,20 @@ namespace ExMat.API
         /// <param name="fs">List of native functions</param>
         /// <param name="name">Name of the function to reload</param>
         /// <param name="libtype">Library the <paramref name="name"/> function is based on</param>
+        /// <param name="pop">Wheter to pop the root from stack after searching</param>
         /// <returns><see langword="true"/> if <paramref name="name"/> was found in <paramref name="fs"/> and reloaded
         /// <para><see langword="false"/> if there was no function named <paramref name="name"/> in <paramref name="fs"/></para></returns>
-        public static bool ReloadNativeFunction(ExVM vm, List<ExRegFunc> fs, string name, ExStdLibType libtype)
+        public static bool ReloadNativeFunction(ExVM vm, List<ExRegFunc> fs, string name, ExStdLibType libtype, bool pop = false)
         {
             ExRegFunc r;
             if ((r = FindNativeFunction(vm, fs, name)) != null)
             {
                 RegisterNativeFunction(vm, r, libtype);
                 return true;
+            }
+            if (pop)
+            {
+                vm.Pop();
             }
             return false;
         }
@@ -731,10 +752,12 @@ namespace ExMat.API
         /// <param name="funcs">List of native functions</param>
         public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs, ExStdLibType libtype)
         {
+            PushRootTable(vm);
             foreach (ExRegFunc func in funcs)
             {
                 RegisterNativeFunction(vm, func, libtype);    // Yerli fonksiyonları oluştur ve kaydet
             }
+            vm.Pop();
         }
 
         /// <summary>
@@ -984,11 +1007,11 @@ namespace ExMat.API
             StringBuilder s = new();
             for (; i < paramsleft; i++)
             {
-                s.Append('[').Append(infos[i]);
+                s.AppendFormat("[{0}", infos[i]);
 
                 if (defs.ContainsKey((i + 1).ToString()))
                 {
-                    s.Append(" = ").Append(GetSimpleString(defs[(i + 1).ToString()]));
+                    s.AppendFormat(" = {0}", GetSimpleString(defs[(i + 1).ToString()]));
                 }
 
                 s.Append(']');
