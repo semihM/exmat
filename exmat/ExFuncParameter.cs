@@ -55,6 +55,8 @@ namespace ExMat.Objects
 
         private bool disposedValue;
 
+        public ExFuncParameter() { }
+
         public static ExFuncParameter Create(string name, string type = ".", string info = "", ExObject def = null, int idx = 0)
         {
             ExFuncParameter fp = new(name, type, info, def, idx);
@@ -90,6 +92,9 @@ namespace ExMat.Objects
                 if (disposing)
                 {
                     Disposer.DisposeObjects(DefaultValue);
+                    Name = null;
+                    Description = null;
+                    TypeString = null;
                     TypeMask = null;
                     DefaultValue = null;
                 }
