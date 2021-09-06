@@ -253,7 +253,6 @@ namespace ExMat
         {
             ActiveVM = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
             ActiveVM.ActiveThread = ActiveThread;
-            ExApi.PushRootTable(ActiveVM);               // Global tabloyu ekle
 
             RegisterStdLibraries(ActiveVM);   // Standard kütüphaneler
 
