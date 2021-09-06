@@ -220,7 +220,7 @@ namespace ExMat
             ExStdIO.RegisterStdIO(vm);          // Girdi/çıktı, dosya kütüphanesi
             ExStdString.RegisterStdString(vm);  // Yazı dizisi işleme kütüphanesi
             ExStdNet.RegisterStdNet(vm);        // Ağ işlemleri kütüphanesi
-            ExStdSys.RegisterStdSys(vm);          // Arayüz kütüphanesi
+            ExStdSys.RegisterStdSys(vm);        // Sistem kütüphanesi
         }
 
         private static void Indent(int n = 1)
