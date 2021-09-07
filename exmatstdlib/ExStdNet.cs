@@ -14,18 +14,18 @@ using Newtonsoft.Json.Linq;
 
 namespace ExMat.BaseLib
 {
+    [ExStdLib(ExStdLibType.NETWORK)]
     public static class ExStdNet
     {
+        #region UTILITY
         private static readonly Dictionary<string, string> SearchEngines = new()
         {
             { "Wiki", "https://www.googleapis.com/customsearch/v1/siterestrict?cx=21b0943ef3404ce56" }
         };
-
         private static readonly Dictionary<string, string> APIFiles = new()
         {
             { "Wiki", "wiki_api.txt" }
         };
-
         private static string ReadAPIKey(string func)
         {
             return File.ReadAllText(APIFiles[func]).TrimEnd();
@@ -162,7 +162,11 @@ namespace ExMat.BaseLib
                     }
             }
         }
+        #endregion
 
+        #region NET FUNCTIONS
+        [ExNativeFuncBase("wiki", ExBaseType.ARRAY, "Get a list of maximum 10 dictionaries of wiki page link, title, and summary of a given subject. Requires an API key to use, call the function for more information.")]
+        [ExNativeParamBase(1, "subject", "s", "Subject to search for")]
         public static ExFunctionStatus StdNetWiki(ExVM vm, int nargs)
         {
             if (!File.Exists(APIFiles["Wiki"]))
@@ -214,6 +218,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("fetch", ExBaseType.STRING | ExBaseType.DICT | ExBaseType.ARRAY, "Fetch contents of the given url. Response is parsed if it was a json or html response by default, use 'raw' to change it.")]
+        [ExNativeParamBase(1, "url", "s", "Url to fetch information from. JSON and HTML files are parsed accordingly unless 'raw' parameter is set to true.")]
+        [ExNativeParamBase(2, "raw", ".", "Wheter to return raw response content. Use false to parse json and html responses.", (false))]
         public static ExFunctionStatus StdNetFetch(ExVM vm, int nargs)
         {
             string link = vm.GetArgument(1).GetString().Trim();
@@ -244,11 +251,13 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("has_network", "Check if there is any network connection currently 'up'.")]
         public static ExFunctionStatus StdNetHasNetwork(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, NetworkInterface.GetIsNetworkAvailable());
         }
 
+        [ExNativeFuncBase("ip_config", "Get a list of dictionaries containing adapter and network information")]
         public static ExFunctionStatus StdNetIPConfig(ExVM vm, int nargs)
         {
             NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
@@ -305,56 +314,12 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, adapts);
         }
 
-        private static readonly List<ExRegFunc> _stdnetfuncs = new()
-        {
-            new()
-            {
-                Name = "wiki",
-                Function = StdNetWiki,
-                Parameters = new()
-                {
-                    new("subject", "s", "Subject to search for")
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Get a list of maximum 10 dictionaries of wiki page link, title, and summary of a given subject. Requires an API key to use, call the function for more information."
-            },
+        #endregion
 
-            new()
-            {
-                Name = "fetch",
-                Function = StdNetFetch,
-                Parameters = new()
-                {
-                    new("url", "s", "Url to fetch information from. JSON and HTML files are parsed accordingly unless 'raw' parameter is set to true."),
-                    new("raw", ".", "Wheter to return raw response content. Use false to parse json and html responses.", new(false))
-                },
-                Returns = ExBaseType.STRING | ExBaseType.DICT | ExBaseType.ARRAY,
-                Description = "Fetch contents of the given url. Response is parsed if it was a json or html response by default, use 'raw' to change it."
-            },
-
-            new()
-            {
-                Name = "has_network",
-                Function = StdNetHasNetwork,
-                Parameters = new(),
-                Returns = ExBaseType.BOOL,
-                Description = "Check if there is any network connection currently 'up'."
-            },
-
-            new()
-            {
-                Name = "ip_config",
-                Function = StdNetIPConfig,
-                Parameters = new(),
-                Returns = ExBaseType.BOOL,
-                Description = "Get a list of dictionaries containing adapter and network information"
-            }
-        };
-        public static List<ExRegFunc> NetFuncs => _stdnetfuncs;
-
+        // MAIN
         public static bool RegisterStdNet(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, NetFuncs, ExStdLibType.NETWORK);
+            ExApi.RegisterNativeFunctions(vm, typeof(ExStdNet));
 
             return true;
         }

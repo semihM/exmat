@@ -11,9 +11,151 @@ using ExMat.VM;
 
 namespace ExMat.BaseLib
 {
+    [ExStdLib(ExStdLibType.SYSTEM)]
     public static class ExStdSys
     {
-        public static ExFunctionStatus StdSysProcess(ExVM vm, int nargs)
+        #region UTILITY
+        private static string SafeGetStringProcessInfo(ref Process p, ExProcessInfo type)
+        {
+            try
+            {
+                switch (type)
+                {
+                    case ExProcessInfo.DATE:
+                        return string.Format("{0} {1}", p.StartTime.ToShortTimeString(), p.StartTime.ToShortDateString());
+                    case ExProcessInfo.MODULE:
+                        return p.MainModule.FileName;
+                    case ExProcessInfo.ARGS:
+                        return p.StartInfo.Arguments;
+                    default:
+                        return string.Empty;
+                }
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static Process GetProcessFromArgument(ExObject arg)
+        {
+            try
+            {
+                if (arg == null)
+                {
+                    return Process.GetProcessById(Environment.ProcessId, Environment.MachineName);
+                }
+                else
+                {
+                    return Process.GetProcessById((int)arg.GetInt(), Environment.MachineName);
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static Dictionary<string, ExObject> GetProcessData(Process p)
+        {
+            Dictionary<string, ExObject> dict;
+            dict = new()
+            {
+                { "name", new(p.ProcessName) },
+                { "id", new(p.Id) },
+                { "priority", new(p.BasePriority) },
+                { "session", new(p.SessionId) },
+                { "window_title", new(p.MainWindowTitle) },
+                { "is_responding", new(p.Responding) }
+            };
+
+            dict.Add("start_date", new(SafeGetStringProcessInfo(ref p, ExProcessInfo.DATE)));
+            dict.Add("start_module", new(SafeGetStringProcessInfo(ref p, ExProcessInfo.MODULE)));
+            dict.Add("start_arguments", new(SafeGetStringProcessInfo(ref p, ExProcessInfo.ARGS)));
+
+            return dict;
+        }
+
+        private static EnvironmentVariableTarget GetEnviromentTargetFromString(string target)
+        {
+            switch (target)
+            {
+                case "user":
+                    {
+                        return EnvironmentVariableTarget.User;
+                    }
+                case "machine":
+                    {
+                        return EnvironmentVariableTarget.Machine;
+                    }
+                default:
+                    {
+                        return EnvironmentVariableTarget.Process;
+                    }
+            }
+        }
+        #endregion
+
+        #region SYSTEM FUNCTIONS
+        [ExNativeFuncBase("get_process", ExBaseType.ARRAY | ExBaseType.DICT, "Get information about a process or multiple processes active on the machine, searching by process id or name. Give null to get the current process. If there are multiple processes with the same name, a list is returned.")]
+        [ExNativeParamBase(1, "id_or_name", "s|i", "Process ID or name", def: null)]
+        public static ExFunctionStatus StdSysGetProcess(ExVM vm, int nargs)
+        {
+            ExObject arg1 = nargs == 1 ? vm.GetArgument(1) : new();
+
+            try
+            {
+                if (arg1.Type == ExObjType.STRING)
+                {
+                    string name = arg1.GetString();
+                    List<ExObject> lis = new();
+
+                    foreach (Process p in Process.GetProcessesByName(name, Environment.MachineName))
+                    {
+                        lis.Add(new(GetProcessData(p)));
+                    }
+
+                    return vm.CleanReturn(nargs + 2, lis);
+                }
+                else if (arg1.Type == ExObjType.INTEGER)
+                {
+                    return vm.CleanReturn(nargs + 2, GetProcessData(GetProcessFromArgument(arg1)));
+                }
+                else
+                {
+                    return vm.CleanReturn(nargs + 2, GetProcessData(GetProcessFromArgument(null)));
+                }
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error getting process: " + err.Message);
+            }
+        }
+
+        [ExNativeFuncBase("get_processes", "Get a list of dictionaries containing information about processes currently active on the machine.")]
+        public static ExFunctionStatus StdSysGetProcesses(ExVM vm, int nargs)
+        {
+            try
+            {
+                List<ExObject> lis = new();
+
+                foreach (Process p in Process.GetProcesses(Environment.MachineName))
+                {
+                    lis.Add(new(GetProcessData(p)));
+                }
+
+                return vm.CleanReturn(nargs + 2, lis);
+            }
+            catch (Exception err)
+            {
+                return vm.AddToErrorMessage("Error getting processes: " + err.Message);
+            }
+        }
+
+        [ExNativeFuncBase("start_process", ExBaseType.BOOL, "Execute a file with given arguments")]
+        [ExNativeParamBase(1, "filename", "s", "File to execute", ".")]
+        [ExNativeParamBase(2, "arguments", "s", "Arguments for the file", def: "")]
+        public static ExFunctionStatus StdSysProcessStart(ExVM vm, int nargs)
         {
             ProcessStartInfo psi = new()
             {
@@ -33,6 +175,30 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, true);
         }
 
+        [ExNativeFuncBase("stop_process", ExBaseType.BOOL, "Stop a process immediately")]
+        [ExNativeParamBase(1, "id", "i|e", "Process ID or null to kill current process", def: null)]
+        public static ExFunctionStatus StdSysProcessStop(ExVM vm, int nargs)
+        {
+            using Process p = GetProcessFromArgument(nargs == 1 ? vm.GetArgument(1) : null);
+
+            try
+            {
+                if (p != null)
+                {
+                    p.Kill();
+                    return vm.CleanReturn(nargs + 2, true);
+                }
+            }
+            catch (Exception exp)
+            {
+                return vm.AddToErrorMessage("Error stopping process: " + exp.Message);
+            }
+            return vm.CleanReturn(nargs + 2, false);
+        }
+
+        [ExNativeFuncBase("open_dir", ExBaseType.BOOL, "Open a directory in the explorer")]
+        [ExNativeParamBase(1, "directory", "s", "Directory to open", ".")]
+        [ExNativeParamBase(2, "force_create", ".", "Wheter to create the directory if it doesn't exist", (false))]
         public static ExFunctionStatus StdSysOpendir(ExVM vm, int nargs)
         {
             string dir = vm.GetArgument(1).GetString();
@@ -72,6 +238,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("print_out", "Print a message or an object to a new external terminal instead of the immediate terminal")]
+        [ExNativeParamBase(1, "message", ".", "Message or object to print")]
+        [ExNativeParamBase(2, "depth", "n", "Depth of stringification for objects", (2))]
         public static ExFunctionStatus StdSysPrintOut(ExVM vm, int nargs)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -118,6 +287,7 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, true);
         }
 
+        [ExNativeFuncBase("env_info", "Get information about the runtime and the current enviroment in a dictionary")]
         public static ExFunctionStatus StdSysEnvInfo(ExVM vm, int nargs)
         {
             Dictionary<string, ExObject> info = new()
@@ -138,30 +308,15 @@ namespace ExMat.BaseLib
                 { "framework_version", new(Environment.Version.ToString()) },
                 { "clr_dir", new(RuntimeEnvironment.GetRuntimeDirectory()) },
                 { "clr_version", new(RuntimeEnvironment.GetSystemVersion()) },
-                { "logic_drives", new(ExApi.ListObjFromStringArray(Environment.GetLogicalDrives())) }
+                { "logic_drives", new(ExApi.ListObjFromStringArray(Environment.GetLogicalDrives())) },
+                { "process_id", new(Environment.ProcessId) },
+                { "process_count", new(Environment.ProcessorCount) },
             };
             return vm.CleanReturn(nargs + 2, info);
         }
 
-        private static EnvironmentVariableTarget GetEnviromentTargetFromString(string target)
-        {
-            switch (target)
-            {
-                case "user":
-                    {
-                        return EnvironmentVariableTarget.User;
-                    }
-                case "machine":
-                    {
-                        return EnvironmentVariableTarget.Machine;
-                    }
-                default:
-                    {
-                        return EnvironmentVariableTarget.Process;
-                    }
-            }
-        }
-
+        [ExNativeFuncBase("env_vars", ExBaseType.DICT, "Get a dictionary of enviroment variables of given target.")]
+        [ExNativeParamBase(1, "target", "s", "Target enviroment: user, machine or process", "process")]
         public static ExFunctionStatus StdSysGetEnvVars(ExVM vm, int nargs)
         {
             Dictionary<string, ExObject> vars = new();
@@ -184,6 +339,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("env_var", ExBaseType.STRING, "Get the value of an enviroment variables of given target.")]
+        [ExNativeParamBase(1, "variable", "s", "Variable name")]
+        [ExNativeParamBase(2, "target", "s", "Target enviroment: user, machine or process", "process")]
         public static ExFunctionStatus StdSysGetEnvVar(ExVM vm, int nargs)
         {
             EnvironmentVariableTarget target = nargs == 2
@@ -207,6 +365,10 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("set_env_var", ExBaseType.STRING, "Set the value of an enviroment variables of given target to given value.")]
+        [ExNativeParamBase(1, "variable", "s", "Variable name")]
+        [ExNativeParamBase(2, "new_value", "s", "New value")]
+        [ExNativeParamBase(3, "target", "s", "Target enviroment: user, machine or process", "process")]
         public static ExFunctionStatus StdSysSetEnvVar(ExVM vm, int nargs)
         {
             EnvironmentVariableTarget target = nargs == 3
@@ -225,17 +387,23 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, true);
         }
 
+        [ExNativeFuncBase("env_exit", ExBaseType.BOOL, "Exit from the current enviroment immediately. Works similarly but faster than the 'exit' function.")]
+        [ExNativeParamBase(1, "exit_code", "r", "Exit code to return while exiting", (0))]
         public static ExFunctionStatus StdSysEnvExit(ExVM vm, int nargs)
         {
             Environment.Exit((int)vm.GetArgument(1).GetInt());
             return vm.CleanReturn(nargs + 2, true);
         }
 
+        [ExNativeFuncBase("can_beep", "Check if the console beep function is available.")]
         public static ExFunctionStatus StdSysConsoleCanBeep(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, ExApi.CanBeep());
         }
 
+        [ExNativeFuncBase("beep", ExBaseType.BOOL, "Beep the console for the given duration. This function is not async and stops the flow for the given 'duration'.")]
+        [ExNativeParamBase(1, "frequency", "r", "Frequency to beep at in range [37, 32767]", (800))]
+        [ExNativeParamBase(2, "duration", "r", "Beeping duration in miliseconds", (200))]
         public static ExFunctionStatus StdSysConsoleBeep(ExVM vm, int nargs)
         {
             if (nargs != 0 && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -260,6 +428,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("beep_async", ExBaseType.BOOL, "Beep the console for the given duration async. This function doesn't stop the flow.")]
+        [ExNativeParamBase(1, "frequency", "r", "Frequency to beep at in range [37, 32767]", (800))]
+        [ExNativeParamBase(2, "duration", "r", "Beeping duration in miliseconds", (200))]
         public static ExFunctionStatus StdSysConsoleBeepAsync(ExVM vm, int nargs)
         {
             if (nargs != 0 && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -284,137 +455,13 @@ namespace ExMat.BaseLib
             }
         }
 
-        private static readonly List<ExRegFunc> _stdsysfuncs = new()
-        {
-            new()
-            {
-                Name = "process",
-                Function = StdSysProcess,
-                Parameters = new()
-                {
-                    new("filename", "s", "File to execute", new(".")),
-                    new("arguments", "s", "Arguments for the file", new(string.Empty))
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Execute a file with given arguments"
-            },
-            new()
-            {
-                Name = "open_dir",
-                Function = StdSysOpendir,
-                Parameters = new()
-                {
-                    new("directory", "s", "Directory to open", new(".")),
-                    new("force_create", ".", "Wheter to create the directory if it doesn't exist", new(false))
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Open a directory in the explorer"
-            },
-            new()
-            {
-                Name = "print_out",
-                Function = StdSysPrintOut,
-                Parameters = new()
-                {
-                    new("message", ".", "Message or object to print"),
-                    new("depth", "n", "Depth of stringification for objects", new(2))
-                },
-                Description = "Print a message or an object to a new external terminal instead of the immediate terminal"
-            },
-            new()
-            {
-                Name = "env_info",
-                Function = StdSysEnvInfo,
-                Parameters = new(),
-                Returns = ExBaseType.DICT,
-                Description = "Get information about the runtime and the current enviroment in a dictionary"
-            },
-            new()
-            {
-                Name = "env_vars",
-                Function = StdSysGetEnvVars,
-                Parameters = new()
-                {
-                    new("target", "s", "Target enviroment: user, machine or process", new("process"))
-                },
-                Returns = ExBaseType.DICT,
-                Description = "Get a dictionary of enviroment variables of given target."
-            },
-            new()
-            {
-                Name = "env_var",
-                Function = StdSysGetEnvVar,
-                Parameters = new()
-                {
-                    new("variable", "s", "Variable name"),
-                    new("target", "s", "Target enviroment: user, machine or process", new("process"))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Get the value of an enviroment variables of given target."
-            },
-            new()
-            {
-                Name = "set_env_var",
-                Function = StdSysSetEnvVar,
-                Parameters = new()
-                {
-                    new("variable", "s", "Variable name"),
-                    new("new_value", "s", "New value"),
-                    new("target", "s", "Target enviroment: user, machine or process", new("process"))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Set the value of an enviroment variables of given target to given value."
-            },
-            new()
-            {
-                Name = "env_exit",
-                Function = StdSysEnvExit,
-                Parameters = new()
-                {
-                    new("exit_code", "r", "Exit code to return while exiting", new(0))
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Exit from the current enviroment immediately. Works similarly but faster than the 'exit' function."
-            },
-            new()
-            {
-                Name = "can_beep",
-                Function = StdSysConsoleCanBeep,
-                Parameters = new(),
-                Returns = ExBaseType.BOOL,
-                Description = "Check if the console beep function is available."
-            },
-            new()
-            {
-                Name = "beep",
-                Function = StdSysConsoleBeep,
-                Parameters = new()
-                {
-                    new("frequency", "r", "Frequency to beep at in range [37, 32767]", new(800)),
-                    new("duration", "r", "Beeping duration in miliseconds", new(200))
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Beep the console for the given duration. This function is not async and stops the flow for the given 'duration'."
-            },
-            new()
-            {
-                Name = "beep_async",
-                Function = StdSysConsoleBeepAsync,
-                Parameters = new()
-                {
-                    new("frequency", "r", "Frequency to beep at in range [37, 32767]", new(800)),
-                    new("duration", "r", "Beeping duration in miliseconds", new(200))
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Beep the console for the given duration async. This function doesn't stop the flow."
-            }
-        };
+        #endregion
 
-        public static List<ExRegFunc> SysFuncs => _stdsysfuncs;
+        // MAIN
 
         public static bool RegisterStdSys(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, SysFuncs, ExStdLibType.SYSTEM);
+            ExApi.RegisterNativeFunctions(vm, typeof(ExStdSys));
 
             return true;
         }

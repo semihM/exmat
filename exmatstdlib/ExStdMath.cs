@@ -8,58 +8,19 @@ using ExMat.VM;
 
 namespace ExMat.BaseLib
 {
+    [ExStdLib(ExStdLibType.MATH)]
     public static class ExStdMath
     {
+        #region UTILITY
         private static List<int> Primes;
         private static readonly int PrimeSearchSize = int.MaxValue / 100;
         private static readonly int PrimeCacheMaxSize = 1358124 * 2;
         private static int PrimeCount = 1358124;
         private static int PrimeMax = 21474829;
 
-        public static ExFunctionStatus MathSrand(ExVM vm, int nargs)
-        {
-            Rand = new((int)vm.GetArgument(1).GetInt());
-            return ExFunctionStatus.VOID;
-        }
+        private static Random rand = new();
 
-        public static ExFunctionStatus MathRand(ExVM vm, int nargs)
-        {
-            switch (nargs)
-            {
-                default:
-                    {
-                        return vm.CleanReturn(2, Rand.Next());
-                    }
-                case 1:
-                    {
-                        return vm.CleanReturn(3, Rand.Next(ExUtils.LongTo32NonNegativeIntegerRange(vm.GetArgument(1).GetInt())));
-                    }
-                case 2:
-                    {
-                        return vm.CleanReturn(4, Rand.Next(ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(1).GetInt()), ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(2).GetInt())));
-                    }
-            }
-        }
-
-        public static ExFunctionStatus MathRandf(ExVM vm, int nargs)
-        {
-            switch (nargs)
-            {
-                default:
-                    {
-                        return vm.CleanReturn(2, Rand.NextDouble());
-                    }
-                case 1:
-                    {
-                        return vm.CleanReturn(3, Rand.NextDouble() * vm.GetArgument(1).GetFloat());
-                    }
-                case 2:
-                    {
-                        double min = vm.GetArgument(1).GetFloat();
-                        return vm.CleanReturn(4, (Rand.NextDouble() * (vm.GetArgument(2).GetFloat() - min)) + min);
-                    }
-            }
-        }
+        public static Random Rand { get => rand; set => rand = value; }
 
         private static void FindPrimes()
         {
@@ -161,6 +122,124 @@ namespace ExMat.BaseLib
             return last;
         }
 
+        private static double GetGCD(double a, double b)
+        {
+            while (b != 0)
+            {
+                double r = b;
+                b = a % b;
+                a = r;
+            }
+            return a;
+        }
+
+        private static double[] CreateNumArr(ExVM vm, List<ExObject> l)
+        {
+            double[] a = new double[l.Count];
+            for (int i = 0; i < l.Count; i++)
+            {
+                if (!l[i].IsNumeric())
+                {
+                    vm.AddToErrorMessage("cant plot non-numeric values");
+                    return Array.Empty<double>();
+                }
+                a[i] = l[i].GetFloat();
+            }
+            return a;
+        }
+
+        private static bool CheckFileName(ExVM vm, ref string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                vm.AddToErrorMessage("name can't be empty");
+                return false;
+            }
+
+            string[] fname = name.Split(".");
+            if (fname.Length > 1)
+            {
+                switch (fname[^1])
+                {
+                    case "png":
+                    case "jpg":
+                    case "jpeg":
+                    case "bmp":
+                        {
+                            break;
+                        }
+                    default:
+                        {
+                            vm.AddToErrorMessage("unsupported extension, use one of jpg|png|bmp");
+                            return false;
+                        }
+                }
+            }
+            else
+            {
+                name += ".png";
+            }
+            return true;
+        }
+
+        #endregion
+
+        #region MATH FUNCTIONS
+        [ExNativeFuncBase("srand", "Set the seed used for random number generators")]
+        [ExNativeParamBase(1, "seed", "n", "Seed to use")]
+        public static ExFunctionStatus MathSrand(ExVM vm, int nargs)
+        {
+            Rand = new((int)vm.GetArgument(1).GetInt());
+            return ExFunctionStatus.VOID;
+        }
+
+        [ExNativeFuncBase("rand", ExBaseType.INTEGER, "")]
+        [ExNativeParamBase(1, "bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", (0))]
+        [ExNativeParamBase(2, "bound2", "n", "Upper bound for number range", (int.MaxValue))]
+        public static ExFunctionStatus MathRand(ExVM vm, int nargs)
+        {
+            switch (nargs)
+            {
+                default:
+                    {
+                        return vm.CleanReturn(2, Rand.Next());
+                    }
+                case 1:
+                    {
+                        return vm.CleanReturn(3, Rand.Next(ExUtils.LongTo32NonNegativeIntegerRange(vm.GetArgument(1).GetInt())));
+                    }
+                case 2:
+                    {
+                        return vm.CleanReturn(4, Rand.Next(ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(1).GetInt()), ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(2).GetInt())));
+                    }
+            }
+        }
+
+        [ExNativeFuncBase("randf", ExBaseType.FLOAT, "Get a random float in given range: [0, 1) , [0, bound1) or [bound1, bound2)")]
+        [ExNativeParamBase(1, "bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", (0.0))]
+        [ExNativeParamBase(2, "bound2", "n", "Upper bound for number range", (1.0))]
+        public static ExFunctionStatus MathRandf(ExVM vm, int nargs)
+        {
+            switch (nargs)
+            {
+                default:
+                    {
+                        return vm.CleanReturn(2, Rand.NextDouble());
+                    }
+                case 1:
+                    {
+                        return vm.CleanReturn(3, Rand.NextDouble() * vm.GetArgument(1).GetFloat());
+                    }
+                case 2:
+                    {
+                        double min = vm.GetArgument(1).GetFloat();
+                        return vm.CleanReturn(4, (Rand.NextDouble() * (vm.GetArgument(2).GetFloat() - min)) + min);
+                    }
+            }
+        }
+
+        [ExNativeFuncBase("next_prime", ExBaseType.INTEGER, "Get the next closest prime bigger than the given value")]
+        [ExNativeParamBase(1, "start", "i", "Starting value to get next closest prime of")]
         public static ExFunctionStatus MathNextPrime(ExVM vm, int nargs)
         {
             long a = vm.GetArgument(1).GetInt();
@@ -175,6 +254,8 @@ namespace ExMat.BaseLib
                                   (a > 0 && a <= PrimeMax && (idx = Primes.BinarySearch(item: (int)a)) >= 0 && idx < PrimeCount) ? Primes[idx + 1] : NextClosestPrime(a));
         }
 
+        [ExNativeFuncBase("isPrime", ExBaseType.BOOL, "Check wheter the given number is a prime number.")]
+        [ExNativeParamBase(1, "value", "i", "Value to check")]
         public static ExFunctionStatus MathIsPrime(ExVM vm, int nargs)
         {
             long a = vm.GetArgument(1).GetInt();
@@ -182,11 +263,16 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, (Primes != null && a > 0 && a <= PrimeMax && Primes.BinarySearch(item: (int)a) >= 0) || IsPrime(a));
         }
 
+        [ExNativeFuncBase("areCoPrime", ExBaseType.BOOL, "Check if given 2 values are coprimes.")]
+        [ExNativeParamBase(1, "num1", "r", "Value 1")]
+        [ExNativeParamBase(2, "num2", "r", "Value 2")]
         public static ExFunctionStatus MathAreCoprime(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, GetGCD(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt()) == 1.0);
         }
 
+        [ExNativeFuncBase("prime", ExBaseType.INTEGER, "Get the n'th prime number")]
+        [ExNativeParamBase(1, "n", "i", "Index of the prime, that is n'th prime.")]
         public static ExFunctionStatus MathPrime(ExVM vm, int nargs)
         {
             int a = (int)vm.GetArgument(1).GetInt();
@@ -210,6 +296,8 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, Primes[a - 1]);
         }
 
+        [ExNativeFuncBase("factorize", ExBaseType.ARRAY, "Get the prime factorization of a positive number. An empty list is returned for negative values.")]
+        [ExNativeParamBase(1, "positive_num", "r", "A positive value to factorize")]
         public static ExFunctionStatus MathPrimeFactors(ExVM vm, int nargs)
         {
             long a = vm.GetArgument(1).GetInt();
@@ -244,22 +332,17 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, lis);
         }
 
-        private static double GetGCD(double a, double b)
-        {
-            while (b != 0)
-            {
-                double r = b;
-                b = a % b;
-                a = r;
-            }
-            return a;
-        }
-
+        [ExNativeFuncBase("GCD", ExBaseType.FLOAT, "Get the greatest common divisor(GCD) of 2 numbers")]
+        [ExNativeParamBase(1, "num1", "r", "Value 1")]
+        [ExNativeParamBase(2, "num2", "r", "Value 2")]
         public static ExFunctionStatus MathGcd(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, GetGCD(vm.GetArgument(1).GetFloat(), vm.GetArgument(2).GetFloat()));
         }
 
+        [ExNativeFuncBase("LCD", ExBaseType.FLOAT, "Get the least common denominator(LCD) of 2 numbers")]
+        [ExNativeParamBase(1, "num1", "r", "Value 1")]
+        [ExNativeParamBase(2, "num2", "r", "Value 2")]
         public static ExFunctionStatus MathLcd(ExVM vm, int nargs)
         {
             double a = vm.GetArgument(1).GetFloat();
@@ -267,29 +350,43 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, Math.Abs(a * b) / GetGCD(a, b));
         }
 
+        [ExNativeFuncBase("isDivisible", ExBaseType.BOOL, "Check divisibility of (numerator / denominator)")]
+        [ExNativeParamBase(1, "numerator", "i", "Numerator")]
+        [ExNativeParamBase(2, "denominator", "i", "Denominator")]
         public static ExFunctionStatus MathIsDivisible(ExVM vm, int nargs)
         {
             Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long r);
             return vm.CleanReturn(nargs + 2, r == 0);
         }
 
+        [ExNativeFuncBase("divQuot", ExBaseType.INTEGER, "Get the quotient from (numerator / denominator)")]
+        [ExNativeParamBase(1, "numerator", "i", "Numerator")]
+        [ExNativeParamBase(2, "denominator", "i", "Denominator")]
         public static ExFunctionStatus MathDivQuot(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long _));
         }
 
+        [ExNativeFuncBase("divRem", ExBaseType.INTEGER, "Get the remainder from (numerator / denominator)")]
+        [ExNativeParamBase(1, "numerator", "i", "Numerator")]
+        [ExNativeParamBase(2, "denominator", "i", "Denominator")]
         public static ExFunctionStatus MathDivRem(ExVM vm, int nargs)
         {
             Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long rem);
             return vm.CleanReturn(nargs + 2, rem);
         }
 
+        [ExNativeFuncBase("divRemQuot", ExBaseType.ARRAY, "Get the remainder and the quotient from (numerator / denominator) in a list.")]
+        [ExNativeParamBase(1, "numerator", "i", "Numerator")]
+        [ExNativeParamBase(2, "denominator", "i", "Denominator")]
         public static ExFunctionStatus MathDivRemQuot(ExVM vm, int nargs)
         {
             long quot = Math.DivRem(vm.GetArgument(1).GetInt(), vm.GetArgument(2).GetInt(), out long rem);
             return vm.CleanReturn(nargs + 2, new List<ExObject>(2) { new(rem), new(quot) });
         }
 
+        [ExNativeFuncBase("recip", ExBaseType.FLOAT, "Get the reciprocal of a value, that is 1/value.")]
+        [ExNativeParamBase(1, "value", "i", "Value to get 1/value of")]
         public static ExFunctionStatus MathRecip(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -309,6 +406,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("digits", ExBaseType.ARRAY, "Get the digits of an integer value in a list.")]
+        [ExNativeParamBase(1, "value", "i", "Value to get digits of")]
         public static ExFunctionStatus MathDigits(ExVM vm, int nargs)
         {
             long i = vm.GetArgument(1).GetInt();
@@ -343,6 +443,8 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, lis);
         }
 
+        [ExNativeFuncBase("abs", ExBaseType.FLOAT | ExBaseType.INTEGER, "Get the absolute value of a number or the magnitute of a complex number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathAbs(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -371,6 +473,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("sqrt", ExBaseType.FLOAT | ExBaseType.INTEGER | ExBaseType.COMPLEX, "Get the square root of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathSqrt(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -391,6 +495,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("cbrt", ExBaseType.FLOAT | ExBaseType.INTEGER | ExBaseType.COMPLEX, "Get the cube root of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathCbrt(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -410,6 +516,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("sin", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the sin of a number. Uses radians.")]
+        [ExNativeParamBase(1, "value", "n", "Radians to use")]
         public static ExFunctionStatus MathSin(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -429,6 +538,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("sinh", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the sinh of a number. Uses radians.")]
+        [ExNativeParamBase(1, "value", "n", "Radians to use")]
         public static ExFunctionStatus MathSinh(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -449,6 +561,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("cos", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the cos of a number. Uses radians.")]
+        [ExNativeParamBase(1, "value", "n", "Radians to use")]
         public static ExFunctionStatus MathCos(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -468,6 +582,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("cosh", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the cosh of a number. Uses radians.")]
+        [ExNativeParamBase(1, "value", "n", "Radians to use")]
         public static ExFunctionStatus MathCosh(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -488,6 +605,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("tan", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the tan of a number. Uses radians.")]
+        [ExNativeParamBase(1, "value", "n", "Radians to use")]
         public static ExFunctionStatus MathTan(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -507,6 +626,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("tanh", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the tanh of a number. Uses radians.")]
+        [ExNativeParamBase(1, "value", "n", "Radians to use")]
         public static ExFunctionStatus MathTanh(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -527,6 +649,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("acos", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the arccos of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathAcos(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -546,6 +670,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("acosh", ExBaseType.FLOAT, "Get the arccosh of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathAcosh(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -573,6 +700,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("asin", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the arcsin of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathAsin(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -592,6 +721,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("asinh", ExBaseType.FLOAT, "Get the arcsinh of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathAsinh(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -619,6 +751,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("atan", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the arctan of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathAtan(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -638,6 +772,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("atanh", ExBaseType.FLOAT, "Get the arctanh of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathAtanh(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -665,6 +802,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("atan2", ExBaseType.FLOAT, "Return the angle whose tangent is the quotient of two specified numbers. An angle, θ, measured in radians, such that -π ≤ θ ≤ π, and tan(θ) = y / x, where (x, y) is a point in the Cartesian plane.")]
+        [ExNativeParamBase(1, "y", "n", "Cartesian plane x coordinate")]
+        [ExNativeParamBase(2, "x", "n", "Cartesian plane y coordinate")]
         public static ExFunctionStatus MathAtan2(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -745,6 +885,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("loge", ExBaseType.FLOAT | ExBaseType.COMPLEX, "")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathLoge(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -765,6 +907,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("log2", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the base 2 logarithm of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathLog2(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -785,6 +929,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("log10", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the base 10 logarithm of a number.")]
+        [ExNativeParamBase(1, "value", "n", "Value to use")]
         public static ExFunctionStatus MathLog10(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -805,6 +951,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("log", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the base 'b' logarithm of 'a', that is log'b'('a') == log(a,b). If 'b' is not given, works same as 'loge' function, that is loge('a') == log(a) == log(a,E) == ln(a)")]
+        [ExNativeParamBase(1, "a", "n", "Argument")]
+        [ExNativeParamBase(2, "b", "n", "Base", (Math.E))]
         public static ExFunctionStatus MathLog(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -831,6 +980,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("exp", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the natural exponential function's value at 'x', that is E raised to the power of 'x'")]
+        [ExNativeParamBase(1, "x", "n", "Value to raise E to")]
         public static ExFunctionStatus MathExp(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -851,6 +1002,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("round", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Round a number to given digits")]
+        [ExNativeParamBase(1, "value", "n", "Value to round")]
+        [ExNativeParamBase(2, "digits", "n", "Digits to round to", (0))]
         public static ExFunctionStatus MathRound(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -878,6 +1032,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("floor", ExBaseType.INTEGER | ExBaseType.COMPLEX, "Round a number to closest integer which is lower than the value.")]
+        [ExNativeParamBase(1, "value", "n", "Value to round")]
         public static ExFunctionStatus MathFloor(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -899,6 +1055,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("ceil", ExBaseType.INTEGER | ExBaseType.COMPLEX, "Round a number to closest integer which is higher than the value.")]
+        [ExNativeParamBase(1, "value", "n", "Value to round")]
         public static ExFunctionStatus MathCeil(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -920,6 +1078,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("pow", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Raise a number to the given power")]
+        [ExNativeParamBase(1, "value", "n", "Value to raise")]
+        [ExNativeParamBase(2, "power", "n", "Power to raise to")]
         public static ExFunctionStatus MathPow(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -987,6 +1148,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("min", ExBaseType.INTEGER | ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the minimum of two given values")]
+        [ExNativeParamBase(1, "value1", "n", "Value 1")]
+        [ExNativeParamBase(2, "value2", "n", "Value 2")]
         public static ExFunctionStatus MathMin(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -1082,6 +1246,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("max", ExBaseType.INTEGER | ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the maximum of two given values")]
+        [ExNativeParamBase(1, "value1", "n", "Value 1")]
+        [ExNativeParamBase(2, "value2", "n", "Value 2")]
         public static ExFunctionStatus MathMax(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -1177,6 +1344,7 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("sum", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Return the sum of given arguments or the sum of items of the given list.", -1)]
         public static ExFunctionStatus MathSum(ExVM vm, int nargs)
         {
             ExObject sum = new(new Complex());
@@ -1210,6 +1378,7 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, sum.Value.c_Float == 0.0 ? new ExObject(sum.Value.f_Float) : sum);
         }
 
+        [ExNativeFuncBase("mul", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Return the product of given arguments or the product of items of the given list.", -1)]
         public static ExFunctionStatus MathMul(ExVM vm, int nargs)
         {
             ExObject mul = new(1.0);
@@ -1243,6 +1412,8 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, mul.Value.c_Float == 0.0 ? new ExObject(mul.Value.f_Float) : mul);
         }
 
+        [ExNativeFuncBase("sign", ExBaseType.INTEGER, "Get the sign of the given value. Returns -1: Negative, 0: Zero, 1: Positive")]
+        [ExNativeParamBase(1, "value", "n", "Value to get the sign of")]
         public static ExFunctionStatus MathSign(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -1271,80 +1442,44 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("isFIN", ExBaseType.BOOL, "Check if given value is finite")]
+        [ExNativeParamBase(1, "value", "n", "Value to check")]
         public static ExFunctionStatus MathIsFIN(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
             return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsFinite(i.GetComplex()) : double.IsFinite(i.GetFloat()));
         }
 
+        [ExNativeFuncBase("isINF", ExBaseType.BOOL, "Check if given value is positive infinity (INF)")]
+        [ExNativeParamBase(1, "value", "n", "Value to check")]
         public static ExFunctionStatus MathIsINF(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
             return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsPositiveInfinity(i.GetFloat()));
         }
 
+        [ExNativeFuncBase("isNINF", ExBaseType.BOOL, "Check if given value is negative infinity (NINF)")]
+        [ExNativeParamBase(1, "value", "n", "Value to check")]
         public static ExFunctionStatus MathIsNINF(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
             return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsInfinity(i.GetComplex()) : double.IsNegativeInfinity(i.GetFloat()));
         }
 
+        [ExNativeFuncBase("isNAN", ExBaseType.BOOL, "Check if given value is NaN (NAN)")]
+        [ExNativeParamBase(1, "value", "n", "Value to check")]
         public static ExFunctionStatus MathIsNAN(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
             return vm.CleanReturn(nargs + 2, i.Type == ExObjType.COMPLEX ? Complex.IsNaN(i.GetComplex()) : double.IsNaN(i.GetFloat()));
         }
 
-        private static double[] CreateNumArr(ExVM vm, List<ExObject> l)
-        {
-            double[] a = new double[l.Count];
-            for (int i = 0; i < l.Count; i++)
-            {
-                if (!l[i].IsNumeric())
-                {
-                    vm.AddToErrorMessage("cant plot non-numeric values");
-                    return Array.Empty<double>();
-                }
-                a[i] = l[i].GetFloat();
-            }
-            return a;
-        }
-
-        private static bool CheckFileName(ExVM vm, ref string name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                vm.AddToErrorMessage("name can't be empty");
-                return false;
-            }
-
-            string[] fname = name.Split(".");
-            if (fname.Length > 1)
-            {
-                switch (fname[^1])
-                {
-                    case "png":
-                    case "jpg":
-                    case "jpeg":
-                    case "bmp":
-                        {
-                            break;
-                        }
-                    default:
-                        {
-                            vm.AddToErrorMessage("unsupported extension, use one of jpg|png|bmp");
-                            return false;
-                        }
-                }
-            }
-            else
-            {
-                name += ".png";
-            }
-            return true;
-        }
-
         // TO-DO extremely redundant, refactor...
+        [ExNativeFuncBase("save_scatters", ExBaseType.STRING, "Save multiple plots of data points and lines connecting them in a single plot, using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
         public static ExFunctionStatus MathPlotSaveScatters(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1449,6 +1584,14 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_scatter", ExBaseType.STRING, "Save a plot of data points and lines connecting them, using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "x", "a", "X axis data")]
+        [ExNativeParamBase(3, "y", "a", "Y axis data")]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
+        [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatter(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1507,6 +1650,11 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_scatter_lines", ExBaseType.STRING, "Save multiple plots of line plots in a single plot, using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
         public static ExFunctionStatus MathPlotSaveScatterLines(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1611,6 +1759,14 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_scatter_line", ExBaseType.STRING, "Save a plot of line plot connecting data points, using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "x", "a", "X axis data")]
+        [ExNativeParamBase(3, "y", "a", "Y axis data")]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
+        [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterLine(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1669,6 +1825,11 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_scatter_points", ExBaseType.STRING, "Save multiple scatter plots in a single plot, using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
         public static ExFunctionStatus MathPlotSaveScatterPoints(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1773,6 +1934,14 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_scatter_point", ExBaseType.STRING, "Save a scatter plot with data points only, using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "x", "a", "X axis data")]
+        [ExNativeParamBase(3, "y", "a", "Y axis data")]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
+        [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterPoint(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1831,6 +2000,11 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_scatter_steps", ExBaseType.STRING, "Save multiple step plots in a single plot, using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
         public static ExFunctionStatus MathPlotSaveScatterSteps(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1935,6 +2109,14 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_scatter_step", ExBaseType.STRING, "Save a step plot using given data lists and plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "x", "a", "X axis data")]
+        [ExNativeParamBase(3, "y", "a", "Y axis data")]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
+        [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterStep(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1993,6 +2175,13 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
+        [ExNativeFuncBase("save_complex", ExBaseType.STRING, "Save a scatter plot of complex numbers, using given plot information as an image")]
+        [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
+        [ExNativeParamBase(2, "complex_nums", "a", "Complex number list to plot")]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(5, "color", "s", "Plot data point color name", "blue")]
+        [ExNativeParamBase(6, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterComplex(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -2062,717 +2251,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, name);
         }
 
-        private static readonly List<ExRegFunc> _stdmathfuncs = new()
-        {
-            new()
-            {
-                Name = "srand",
-                Function = MathSrand,
-                Parameters = new()
-                {
-                    new("seed", "n", "Seed to use")
-                },
-                Description = "Set the seed used for random number generators"
-            },
-            new()
-            {
-                Name = "rand",
-                Function = MathRand,
-                Parameters = new()
-                {
-                    new("bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", new(0)),
-                    new("bound2", "n", "Upper bound for number range", new(int.MaxValue))
-                },
-                Returns = ExBaseType.INTEGER,
-                Description = $"Get a random integer in given range: [0, {int.MaxValue}) , [0, bound1) or [bound1, bound2)"
-            },
-            new()
-            {
-                Name = "randf",
-                Function = MathRandf,
-                Parameters = new()
-                {
-                    new("bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", new(0.0)),
-                    new("bound2", "n", "Upper bound for number range", new(1.0))
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Get a random float in given range: [0, 1) , [0, bound1) or [bound1, bound2)"
-            },
+        #endregion
 
-            new()
-            {
-                Name = "isDivisible",
-                Function = MathIsDivisible,
-                Parameters = new()
-                {
-                    new("numerator", "i", "Numerator"),
-                    new("denominator", "i", "Denominator")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check divisibility of (numerator / denominator)"
-            },
-            new()
-            {
-                Name = "divRem",
-                Function = MathDivRem,
-                Parameters = new()
-                {
-                    new("numerator", "i", "Numerator"),
-                    new("denominator", "i", "Denominator")
-                },
-                Returns = ExBaseType.INTEGER,
-                Description = "Get the remainder from (numerator / denominator)"
-            },
-            new()
-            {
-                Name = "divQuot",
-                Function = MathDivQuot,
-                Parameters = new()
-                {
-                    new("numerator", "i", "Numerator"),
-                    new("denominator", "i", "Denominator")
-                },
-                Returns = ExBaseType.INTEGER,
-                Description = "Get the quotient from (numerator / denominator)"
-            },
-            new()
-            {
-                Name = "divRemQuot",
-                Function = MathDivRemQuot,
-                Parameters = new()
-                {
-                    new("numerator", "i", "Numerator"),
-                    new("denominator", "i", "Denominator")
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Get the remainder and the quotient from (numerator / denominator) in a list."
-            },
-            new()
-            {
-                Name = "recip",
-                Function = MathRecip,
-                Parameters = new()
-                {
-                    new("value", "i", "Value to get 1/value of"),
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Get the reciprocal of a value, that is 1/value."
-            },
-            new()
-            {
-                Name = "GCD",
-                Function = MathGcd,
-                Parameters = new()
-                {
-                    new("num1", "r", "Value 1"),
-                    new("num2", "r", "Value 2")
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Get the greatest common divisor(GCD) of 2 numbers"
-            },
-            new()
-            {
-                Name = "LCD",
-                Function = MathLcd,
-                Parameters = new()
-                {
-                    new("num1", "r", "Value 1"),
-                    new("num2", "r", "Value 2")
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Get the least common denominator(LCD) of 2 numbers"
-            },
-            new()
-            {
-                Name = "factorize",
-                Function = MathPrimeFactors,
-                Parameters = new()
-                {
-                    new("positive_num", "r", "A positive value to factorize")
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Get the prime factorization of a positive number. An empty list is returned for negative values."
-            },
-            new()
-            {
-                Name = "next_prime",
-                Function = MathNextPrime,
-                Parameters = new()
-                {
-                    new("start", "i", "Starting value to get next closest prime of")
-                },
-                Returns = ExBaseType.INTEGER,
-                Description = "Get the next closest prime bigger than the given value"
-            },
-            new()
-            {
-                Name = "prime",
-                Function = MathPrime,
-                Parameters = new()
-                {
-                    new("n", "i", "Index of the prime, that is n'th prime.")
-                },
-                Returns = ExBaseType.INTEGER,
-                Description = "Get the n'th prime number"
-            },
-            new()
-            {
-                Name = "isPrime",
-                Function = MathIsPrime,
-                Parameters = new()
-                {
-                    new("value", "i", "Value to check")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check wheter the given number is a prime number."
-            },
-            new()
-            {
-                Name = "areCoPrime",
-                Function = MathAreCoprime,
-                Parameters = new()
-                {
-                    new("num1", "r", "Value 1"),
-                    new("num2", "r", "Value 2")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check if given 2 values are coprimes."
-            },
-            new()
-            {
-                Name = "digits",
-                Function = MathDigits,
-                Parameters = new()
-                {
-                    new("value", "i", "Value to get digits of")
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Get the digits of an integer value in a list."
-            },
-            new()
-            {
-                Name = "abs",
-                Function = MathAbs,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.INTEGER,
-                Description = "Get the absolute value of a number or the magnitute of a complex number."
-            },
-            new()
-            {
-                Name = "sqrt",
-                Function = MathSqrt,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.INTEGER | ExBaseType.COMPLEX,
-                Description = "Get the square root of a number."
-            },
-            new()
-            {
-                Name = "cbrt",
-                Function = MathCbrt,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.INTEGER | ExBaseType.COMPLEX,
-                Description = "Get the cube root of a number."
-            },
-
-            new()
-            {
-                Name = "sin",
-                Function = MathSin,
-                Parameters = new()
-                {
-                    new("value", "n", "Radians to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the sin of a number. Uses radians."
-            },
-            new()
-            {
-                Name = "cos",
-                Function = MathCos,
-                Parameters = new()
-                {
-                    new("value", "n", "Radians to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the cos of a number. Uses radians."
-            },
-            new()
-            {
-                Name = "tan",
-                Function = MathTan,
-                Parameters = new()
-                {
-                    new("value", "n", "Radians to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the tan of a number. Uses radians."
-            },
-            new()
-            {
-                Name = "sinh",
-                Function = MathSinh,
-                Parameters = new()
-                {
-                    new("value", "n", "Radians to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the sinh of a number. Uses radians."
-            },
-            new()
-            {
-                Name = "cosh",
-                Function = MathCosh,
-                Parameters = new()
-                {
-                    new("value", "n", "Radians to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the cosh of a number. Uses radians."
-            },
-            new()
-            {
-                Name = "tanh",
-                Function = MathTanh,
-                Parameters = new()
-                {
-                    new("value", "n", "Radians to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the tanh of a number. Uses radians."
-            },
-
-            new()
-            {
-                Name = "asin",
-                Function = MathAsin,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the arcsin of a number."
-            },
-            new()
-            {
-                Name = "acos",
-                Function = MathAcos,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the arccos of a number."
-            },
-            new()
-            {
-                Name = "atan",
-                Function = MathAtan,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the arctan of a number."
-            },
-            new()
-            {
-                Name = "atan2",
-                Function = MathAtan2,
-                Parameters = new()
-                {
-                    new("y", "n", "Cartesian plane x coordinate"),
-                    new("x", "n", "Cartesian plane y coordinate")
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Return the angle whose tangent is the quotient of two specified numbers. An angle, θ, measured in radians, such that -π ≤ θ ≤ π, and tan(θ) = y / x, where (x, y) is a point in the Cartesian plane."
-            },
-            new()
-            {
-                Name = "asinh",
-                Function = MathAsinh,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Get the arcsinh of a number."
-            },
-            new()
-            {
-                Name = "acosh",
-                Function = MathAcosh,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Get the arccosh of a number."
-            },
-            new()
-            {
-                Name = "atanh",
-                Function = MathAtanh,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Get the arctanh of a number."
-            },
-
-            new()
-            {
-                Name = "loge",
-                Function = MathLoge,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = $"Get the base e ({Math.E}) logarithm, that is the natural logarithm, of a number."
-            },
-            new()
-            {
-                Name = "log2",
-                Function = MathLog2,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the base 2 logarithm of a number."
-            },
-            new()
-            {
-                Name = "log10",
-                Function = MathLog10,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to use")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the base 10 logarithm of a number."
-            },
-            new()
-            {
-                Name = "log",
-                Function = MathLog,
-                Parameters = new()
-                {
-                    new("a", "n", "Argument"),
-                    new("b", "n", "Base", new(Math.E))
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the base 'b' logarithm of 'a', that is log'b'('a') == log(a,b). If 'b' is not given, works same as 'loge' function, that is loge('a') == log(a) == log(a,E) == ln(a)"
-            },
-            new()
-            {
-                Name = "exp",
-                Function = MathExp,
-                Parameters = new()
-                {
-                    new("x", "n", "Value to raise E to")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the natural exponential function's value at 'x', that is E raised to the power of 'x'"
-            },
-            new()
-            {
-                Name = "round",
-                Function = MathRound,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to round"),
-                    new("digits", "n", "Digits to round to", new(0))
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Round a number to given digits"
-            },
-            new()
-            {
-                Name = "floor",
-                Function = MathFloor,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to round")
-                },
-                Returns = ExBaseType.INTEGER | ExBaseType.COMPLEX,
-                Description = "Round a number to closest integer which is lower than the value."
-            },
-            new()
-            {
-                Name = "ceil",
-                Function = MathCeil,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to round")
-                },
-                Returns = ExBaseType.INTEGER | ExBaseType.COMPLEX,
-                Description = "Round a number to closest integer which is higher than the value."
-            },
-            new()
-            {
-                Name = "pow",
-                Function = MathPow,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to raise"),
-                    new("power", "n", "Power to raise to")
-                },
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Raise a number to the given power"
-            },
-
-            new()
-            {
-                Name = "sum",
-                Function = MathSum,
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Return the sum of given arguments or the sum of items of the given list."
-            },
-            new()
-            {
-                Name = "mul",
-                Function = MathMul,
-                Returns = ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Return the product of given arguments or the product of items of the given list."
-            },
-
-            new()
-            {
-                Name = "min",
-                Function = MathMin,
-                Parameters = new()
-                {
-                    new("value1", "n", "Value 1"),
-                    new("value2", "n", "Value 2")
-                },
-                Returns = ExBaseType.INTEGER | ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the minimum of two given values"
-            },
-            new()
-            {
-                Name = "max",
-                Function = MathMax,
-                Parameters = new()
-                {
-                    new("value1", "n", "Value 1"),
-                    new("value2", "n", "Value 2")
-                },
-                Returns = ExBaseType.INTEGER | ExBaseType.FLOAT | ExBaseType.COMPLEX,
-                Description = "Get the maximum of two given values"
-            },
-            new()
-            {
-                Name = "sign",
-                Function = MathSign,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to get the sign of")
-                },
-                Returns = ExBaseType.INTEGER,
-                Description = "Get the sign of the given value. Returns -1: Negative, 0: Zero, 1: Positive"
-            },
-
-            new()
-            {
-                Name = "isFIN",
-                Function = MathIsFIN,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to check")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check if given value is finite"
-            },
-            new()
-            {
-                Name = "isINF",
-                Function = MathIsINF,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to check")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check if given value is positive infinity (INF)"
-            },
-            new()
-            {
-                Name = "isNINF",
-                Function = MathIsNINF,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to check")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check if given value is negative infinity (NINF)"
-            },
-            new()
-            {
-                Name = "isNAN",
-                Function = MathIsNAN,
-                Parameters = new()
-                {
-                    new("value", "n", "Value to check")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check if given value is NaN (NAN)"
-            },
-            new()
-            {
-                Name = "save_scatter",
-                Function = MathPlotSaveScatter,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("x", "a", "X axis data"),
-                    new("y", "a", "Y axis data"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800)),
-                    new("color", "s", "Plot data point color name", new("blue")),
-                    new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save a plot of data points and lines connecting them, using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_scatters",
-                Function = MathPlotSaveScatters,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save multiple plots of data points and lines connecting them in a single plot, using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_scatter_step",
-                Function = MathPlotSaveScatterStep,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("x", "a", "X axis data"),
-                    new("y", "a", "Y axis data"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800)),
-                    new("color", "s", "Plot data point color name", new("blue")),
-                    new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save a step plot using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_scatter_steps",
-                Function = MathPlotSaveScatterSteps,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save multiple step plots in a single plot, using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_scatter_point",
-                Function = MathPlotSaveScatterPoint,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("x", "a", "X axis data"),
-                    new("y", "a", "Y axis data"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800)),
-                    new("color", "s", "Plot data point color name", new("blue")),
-                    new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save a scatter plot with data points only, using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_scatter_points",
-                Function = MathPlotSaveScatterPoints,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save multiple scatter plots in a single plot, using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_scatter_line",
-                Function = MathPlotSaveScatterLine,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("x", "a", "X axis data"),
-                    new("y", "a", "Y axis data"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800)),
-                    new("color", "s", "Plot data point color name", new("blue")),
-                    new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save a plot of line plot connecting data points, using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_scatter_lines",
-                Function = MathPlotSaveScatterLines,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save multiple plots of line plots in a single plot, using given data lists and plot information as an image"
-            },
-            new()
-            {
-                Name = "save_complex",
-                Function = MathPlotSaveScatterComplex,
-                Parameters = new()
-                {
-                    new("filename", "s", "Image file name to save as"),
-                    new("complex_nums", "a", "Complex number list to plot"),
-                    new("width", "n", "Width of the image", new(1200)),
-                    new("height", "n", "Height of the image", new(800)),
-                    new("color", "s", "Plot data point color name", new("blue")),
-                    new("plot_label", "s", "Plot label, null to not use any labels", new(s: null))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Save a scatter plot of complex numbers, using given plot information as an image"
-            }
-        };
-
-        private static Random rand = new();
-        public static List<ExRegFunc> MathFuncs => _stdmathfuncs;
-        public static Random Rand { get => rand; set => rand = value; }
-
+        // MAIN
         public static void RegisterStdMathConstants(ExVM vm)
         {
             ExApi.PushRootTable(vm);
@@ -2848,7 +2329,7 @@ namespace ExMat.BaseLib
 
         public static bool RegisterStdMath(ExVM vm)
         {
-            ExApi.RegisterNativeFunctions(vm, MathFuncs, ExStdLibType.MATH);
+            ExApi.RegisterNativeFunctions(vm, typeof(ExStdMath));
 
             RegisterStdMathConstants(vm);
 

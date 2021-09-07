@@ -13,12 +13,16 @@ using ExMat.VM;
 
 namespace ExMat.BaseLib
 {
+    [ExStdLib(ExStdLibType.BASE)]
     public static class ExBaseLib
     {
-        // BASIC FUNCTIONS
+        #region FUNCTIONS
+        [ExNativeFuncBase("help", ExBaseType.STRING, "Get and print the built-in help information of a native function. Printing can be disabled with the 2nd parameter.")]
+        [ExNativeParamBase(1, "func_or_name", "s|Y", "Native function itself or the name of the native function", "help")]
+        [ExNativeParamBase(2, "print", ".", "Wheter to print the information", '\0')]
         public static ExFunctionStatus StdHelp(ExVM vm, int nargs) //TO-DO Refactor
         {
-            ExObject o = vm.GetArgument(1);
+            ExObject o = nargs >= 1 ? vm.GetArgument(1) : null;
             bool print = nargs != 2 || vm.GetArgument(2).GetBool();
             switch (o.Type)
             {
@@ -42,14 +46,27 @@ namespace ExMat.BaseLib
                     }
                 default:
                     {
+                        string docs;
+
+                        if (o == null)
+                        {
+                            docs = ((ExNativeFuncBase)MethodBase.GetCurrentMethod().GetCustomAttributes(typeof(ExNativeFuncBase), true)[0]).Description;
+                        }
+                        else
+                        {
+                            docs = o.GetNClosure().Documentation;
+                        }
+
                         if (print)
                         {
-                            vm.PrintLine(o.GetNClosure().Documentation);
+                            vm.PrintLine(docs);
                         }
-                        return vm.CleanReturn(nargs + 2, o.GetNClosure().Documentation);
+                        return vm.CleanReturn(nargs + 2, docs);
                     }
             }
         }
+
+        [ExNativeFuncBase("root", ExBaseType.DICT, "Get the root table.")]
         public static ExFunctionStatus StdRoot(ExVM vm, int nargs)
         {
             vm.Pop(nargs + 2);
@@ -57,6 +74,8 @@ namespace ExMat.BaseLib
             return ExFunctionStatus.SUCCESS;
         }
 
+        [ExNativeFuncBase("sleep", ExBaseType.BOOL, "Sleeps main thread given amount of time. Returns 'true' when thread wakes up.")]
+        [ExNativeParamBase(1, "miliseconds", "r", "Miliseconds to sleep the thread")]
         public static ExFunctionStatus StdSleep(ExVM vm, int nargs)
         {
             ExObject sleep = vm.GetArgument(1);
@@ -70,6 +89,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, true);
         }
 
+        [ExNativeFuncBase("to_base64", ExBaseType.STRING, "Convert given string to it's base64 representation.")]
+        [ExNativeParamBase(1, "source", "s", "Source string to convert")]
+        [ExNativeParamBase(2, "encoding", "s", "Encoding of the 'source'", "utf-8")]
         public static ExFunctionStatus StdToBase64(ExVM vm, int nargs)
         {
             string str = vm.GetArgument(1).GetString();
@@ -77,6 +99,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, Convert.ToBase64String(enc.GetBytes(str)));
         }
 
+        [ExNativeFuncBase("from_base64", ExBaseType.STRING, "Convert given string from it's base64 representation to original.")]
+        [ExNativeParamBase(1, "source", "s", "Source string to convert")]
+        [ExNativeParamBase(2, "encoding", "s", "Encoding of the 'source'", "utf-8")]
         public static ExFunctionStatus StdFromBase64(ExVM vm, int nargs)
         {
             string str = vm.GetArgument(1).GetString();
@@ -84,6 +109,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, enc.GetString(Convert.FromBase64String(str)));
         }
 
+        [ExNativeFuncBase("print", "Print messages or objects to immediate console.")]
+        [ExNativeParamBase(1, "message", ".", "Message or object")]
+        [ExNativeParamBase(2, "depth", "n", "Printing depth for objects, 1 = Object's string representation, 2 = Stringify first level objects inside lists/dictionaries, ...", 2)]
         public static ExFunctionStatus StdPrint(ExVM vm, int nargs)
         {
             if (!ExApi.ConvertAndGetString(vm, 1, nargs == 2 ? (int)vm.GetPositiveIntegerArgument(2, 1) : 2, out string output))
@@ -94,6 +122,10 @@ namespace ExMat.BaseLib
             vm.Print(output);   // Konsola çıktıyı yazdır
             return ExFunctionStatus.VOID;           // Dönülen değer yok ( boş değer )
         }
+
+        [ExNativeFuncBase("printl", "Print messages or objects to immediate console with a new line '\\n' at the end")]
+        [ExNativeParamBase(1, "message", ".", "Message or object")]
+        [ExNativeParamBase(2, "depth", "n", "Printing depth for objects, 1 = Object's string representation, 2 = Stringify first level objects inside lists/dictionaries, ...", 2)]
         public static ExFunctionStatus StdPrintl(ExVM vm, int nargs)
         {
             if (!ExApi.ConvertAndGetString(vm, 1, nargs == 2 ? (int)vm.GetPositiveIntegerArgument(2, 1) : 2, out string output))
@@ -105,14 +137,86 @@ namespace ExMat.BaseLib
             return ExFunctionStatus.VOID;
         }
 
+        [ExNativeFuncBase("type", ExBaseType.STRING, "Get the type of an object as a string.")]
+        [ExNativeParamBase(1, "object", ".", "Object to get the type of")]
         public static ExFunctionStatus StdType(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, new ExObject(vm.GetArgument(1).Type.ToString()));
         }
 
+        [ExNativeFuncBase("time", ExBaseType.FLOAT, "Get how long the VM has been alive in miliseconds.")]
         public static ExFunctionStatus StdTime(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, new ExObject((DateTime.Now - vm.StartingTime).TotalMilliseconds));
+        }
+
+        [ExNativeFuncBase("date", ExBaseType.STRING | ExBaseType.ARRAY, "Get current date information.")]
+        [ExNativeParamBase(1, "type", "s", ExMat.DateTypeInfoString, "today")]
+        [ExNativeParamBase(2, "short_format", ".", "Get the shorter format of date values", false)]
+        public static ExFunctionStatus StdDate(ExVM vm, int nargs)
+        {
+            bool shrt = false;
+
+            switch (nargs)
+            {
+                case 2:
+                    {
+                        shrt = vm.GetArgument(2).GetBool();
+                        goto case 1;
+                    }
+                case 1:
+                    {
+                        string[] splt = vm.GetArgument(1).GetString().Split("|", StringSplitOptions.RemoveEmptyEntries);
+                        List<ExObject> res = new(splt.Length);
+
+                        GetDateFromStringArgument(shrt, splt, res);
+
+                        if (res.Count == 1)
+                        {
+                            return vm.CleanReturn(nargs + 2, new ExObject(res[0]));
+                        }
+                        else
+                        {
+                            return vm.CleanReturn(nargs + 2, new ExObject(res));
+                        }
+                    }
+                default:
+                    {
+                        return vm.CleanReturn(nargs + 2,
+                            new ExObject(new List<ExObject>()
+                                {
+                                    new(DateTime.Today.ToLongDateString()),
+                                    new(DateTime.Now.ToLongTimeString()),
+                                    new(DateTime.Now.Millisecond.ToString())
+                                })
+                            );
+                    }
+            }
+        }
+
+        [ExNativeFuncBase("assert", "Assert given 'condition' is true as bool. Throws assertion error with given message if 'condition' is false as bool")]
+        [ExNativeParamBase(1, "condition", ".", "Condition to assert 'true'")]
+        [ExNativeParamBase(2, "message", "s", "Assertion error message", "")]
+        public static ExFunctionStatus StdAssert(ExVM vm, int nargs)
+        {
+            if (nargs == 2)
+            {
+                if (vm.GetArgument(1).GetBool())
+                {
+                    vm.Pop(4);
+                    return ExFunctionStatus.VOID;
+                }
+                else
+                {
+                    string m = vm.GetArgument(2).GetString();
+                    vm.Pop(4);
+                    return vm.AddToErrorMessage("ASSERT FAILED: " + m);
+                }
+            }
+            bool b = vm.GetArgument(1).GetBool();
+            vm.Pop(3);
+            vm.AddToErrorMessage("ASSERT FAILED!");
+            return b ? ExFunctionStatus.VOID : ExFunctionStatus.ERROR;
         }
 
         private static void GetDateFromStringArgument(bool shrt, string[] splt, List<ExObject> res)
@@ -251,70 +355,10 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static ExFunctionStatus StdDate(ExVM vm, int nargs)
-        {
-            bool shrt = false;
-
-            switch (nargs)
-            {
-                case 2:
-                    {
-                        shrt = vm.GetArgument(2).GetBool();
-                        goto case 1;
-                    }
-                case 1:
-                    {
-                        string[] splt = vm.GetArgument(1).GetString().Split("|", StringSplitOptions.RemoveEmptyEntries);
-                        List<ExObject> res = new(splt.Length);
-
-                        GetDateFromStringArgument(shrt, splt, res);
-
-                        if (res.Count == 1)
-                        {
-                            return vm.CleanReturn(nargs + 2, new ExObject(res[0]));
-                        }
-                        else
-                        {
-                            return vm.CleanReturn(nargs + 2, new ExObject(res));
-                        }
-                    }
-                default:
-                    {
-                        return vm.CleanReturn(nargs + 2,
-                            new ExObject(new List<ExObject>()
-                                {
-                                    new(DateTime.Today.ToLongDateString()),
-                                    new(DateTime.Now.ToLongTimeString()),
-                                    new(DateTime.Now.Millisecond.ToString())
-                                })
-                            );
-                    }
-            }
-        }
-
-        public static ExFunctionStatus StdAssert(ExVM vm, int nargs)
-        {
-            if (nargs == 2)
-            {
-                if (vm.GetArgument(1).GetBool())
-                {
-                    vm.Pop(4);
-                    return ExFunctionStatus.VOID;
-                }
-                else
-                {
-                    string m = vm.GetArgument(2).GetString();
-                    vm.Pop(4);
-                    return vm.AddToErrorMessage("ASSERT FAILED: " + m);
-                }
-            }
-            bool b = vm.GetArgument(1).GetBool();
-            vm.Pop(3);
-            vm.AddToErrorMessage("ASSERT FAILED!");
-            return b ? ExFunctionStatus.VOID : ExFunctionStatus.ERROR;
-        }
-
         // BASIC CLASS-LIKE FUNCTIONS
+        [ExNativeFuncBase("complex", ExBaseType.COMPLEX, "Create a complex number with given magnitute and phase")]
+        [ExNativeParamBase(1, "real_part", "n", "Real part of the number", 0.0)]
+        [ExNativeParamBase(2, "img_part", "n", "Imaginary part of the number", 0.0)]
         public static ExFunctionStatus StdComplex(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -348,6 +392,9 @@ namespace ExMat.BaseLib
 
         }
 
+        [ExNativeFuncBase("complex2", ExBaseType.COMPLEX, "Create a complex number with given real and imaginary parts")]
+        [ExNativeParamBase(1, "magnitute", "r", "Magnitute of the number", 0.0)]
+        [ExNativeParamBase(2, "phase", "r", "Phase of the number", 0.0)]
         public static ExFunctionStatus StdComplex2(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -366,6 +413,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("bool", ExBaseType.BOOL, "Get bool value of given object")]
+        [ExNativeParamBase(1, "object", ".", "Object to bool value of", true)]
         public static ExFunctionStatus StdBool(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -381,38 +431,10 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static ExFunctionStatus HandleCharArrayToString(ExVM vm, int nargs, ExObject obj)
-        {
-            if (obj.Type == ExObjType.ARRAY)
-            {
-                StringBuilder str = new(obj.GetList().Count);
-
-                if (!ExApi.ConvertIntegerStringArrayToString(obj.GetList(), str))
-                {
-                    return vm.AddToErrorMessage("failed to create string, list must contain all positive integers within 'char' range or strings");
-                }
-                else
-                {
-                    return vm.CleanReturn(nargs + 2, str.ToString());
-                }
-            }
-            else if (obj.Type == ExObjType.INTEGER)
-            {
-                long val = obj.GetInt();
-
-                if (val < char.MinValue || val > char.MaxValue)
-                {
-                    return vm.AddToErrorMessage("integer out of range for char conversion");
-                }
-
-                return vm.CleanReturn(nargs + 2, ((char)val).ToString());
-            }
-            else
-            {
-                return vm.AddToErrorMessage("expected INTEGER or ARRAY when 2nd parameter of 'string' is true");
-            }
-        }
-
+        [ExNativeFuncBase("string", ExBaseType.STRING, "Convert given object to a string. Allows character/integer lists to string conversion via 'is_char_array'.")]
+        [ExNativeParamBase(1, "object", ".", "Object to stringify", "")]
+        [ExNativeParamBase(2, "is_char_array", ".", "Wheter to treat given 'object' as list of characters and join all by using them char values", false)]
+        [ExNativeParamBase(3, "depth", "n", "Depth for objects to stringify", 2)]
         public static ExFunctionStatus StdString(ExVM vm, int nargs)
         {
             bool carr = false;
@@ -448,6 +470,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("float", ExBaseType.FLOAT, "Parse given object as a 64bit float")]
+        [ExNativeParamBase(1, "object", ".", "Object to parse as float", 0.0)]
         public static ExFunctionStatus StdFloat(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -467,6 +492,9 @@ namespace ExMat.BaseLib
                     }
             }
         }
+
+        [ExNativeFuncBase("integer", ExBaseType.INTEGER, "Parse given object as an integer")]
+        [ExNativeParamBase(1, "object", ".", "Object to parse as 64bit integer", 0)]
         public static ExFunctionStatus StdInteger(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -487,38 +515,9 @@ namespace ExMat.BaseLib
             }
         }
 
-        public static ExFunctionStatus HandleBitConversion(int bits, ExVM vm, int nargs, long b, bool reverse)
-        {
-            if (bits == 32 && (b > int.MaxValue || b < int.MinValue))
-            {
-                return vm.AddToErrorMessage("64bit value out of range for 32bit use");
-            }
-
-            List<ExObject> l = new(bits);
-
-            foreach (int bit in ExApi.GetBits(b, bits))
-            {
-                l.Add(new(bit));
-            }
-
-            if (reverse)
-            {
-                l.Reverse();
-            }
-
-            return vm.CleanReturn(nargs + 2, l);
-        }
-
-        public static ExFunctionStatus Handle32BitConversion(ExVM vm, int nargs, long b, bool reverse)
-        {
-            return HandleBitConversion(32, vm, nargs, b, reverse);
-        }
-
-        public static ExFunctionStatus Handle64BitConversion(ExVM vm, int nargs, long b, bool reverse)
-        {
-            return HandleBitConversion(64, vm, nargs, b, reverse);
-        }
-
+        [ExNativeFuncBase("bits", ExBaseType.ARRAY, "Get the 32bit representation of a real number as a list of 0 and 1 values")]
+        [ExNativeParamBase(1, "number", "r", "32bit number", 0)]
+        [ExNativeParamBase(2, "reverse", ".", "Reverse bit order", false)]
         public static ExFunctionStatus StdBits32(ExVM vm, int nargs)
         {
             bool reverse = false;
@@ -542,6 +541,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("bits", ExBaseType.ARRAY, "Get the 64bit representation of a real number as a list of 0 and 1 values")]
+        [ExNativeParamBase(1, "number", "r", "64bit number", 0)]
+        [ExNativeParamBase(2, "reverse", ".", "Reverse bit order", false)]
         public static ExFunctionStatus StdBits(ExVM vm, int nargs)
         {
             bool reverse = false;
@@ -565,6 +567,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("bytes", ExBaseType.ARRAY, "Get the 8 byte representation of a real number or all bytes of a string in a list")]
+        [ExNativeParamBase(1, "object", "r|s", "64bit number or string to get bytes of", 0)]
+        [ExNativeParamBase(2, "reverse", ".", "Reverse byte order", false)]
         public static ExFunctionStatus StdBytes(ExVM vm, int nargs)
         {
             bool reverse = true;
@@ -629,6 +634,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("binary", ExBaseType.ARRAY, "Get a list of zeros and ones which represent given 64bit number in binary format")]
+        [ExNativeParamBase(1, "number", "r", "64bit number", 0)]
+        [ExNativeParamBase(2, "add_0B_prefix", ".", "Wheter to add '0' and 'B' as first 2 elements of the list", true)]
         public static ExFunctionStatus StdBinary(ExVM vm, int nargs)
         {
             bool prefix = true;
@@ -691,6 +699,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("binary32", ExBaseType.ARRAY, "Get a list of zeros and ones which represent given 32bit number in binary format")]
+        [ExNativeParamBase(1, "number", "r", "32bit number", 0)]
+        [ExNativeParamBase(2, "add_0b_prefix", ".", "Wheter to add '0' and 'b' as first 2 elements of the list", true)]
         public static ExFunctionStatus StdBinary32(ExVM vm, int nargs)
         {
             bool prefix = true;
@@ -757,6 +768,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("hex", ExBaseType.ARRAY, "Get a list of characters which represent given 64bit number in hexadecimal format")]
+        [ExNativeParamBase(1, "number", "r", "64bit number", 0)]
+        [ExNativeParamBase(2, "add_0x_prefix", ".", "Wheter to add '0' and 'x' as first 2 elements of the list", true)]
         public static ExFunctionStatus StdHex(ExVM vm, int nargs)
         {
             bool prefix = true;
@@ -818,6 +832,11 @@ namespace ExMat.BaseLib
             }
         }
 
+        // Functional
+        [ExNativeFuncBase("map", ExBaseType.ARRAY, "Map a list to a new list with a function. A secondary list can be given to iterate over simultaneously to pass a 2nd parameter to mapping function")]
+        [ExNativeParamBase(1, "func", "c|y", "Mapping function, single parameter (2 parameters if 'alt_list' is used)")]
+        [ExNativeParamBase(2, "list", "a", "List to iterate over")]
+        [ExNativeParamBase(3, "alt_list", "a", "A secondary optional list to iterate with 'list'.", def: null)]
         public static ExFunctionStatus StdMap(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -988,6 +1007,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(n + m + 1, new ExObject(l));
         }
 
+        [ExNativeFuncBase("filter", ExBaseType.ARRAY, "Filter a list with a filtering function and return a new list")]
+        [ExNativeParamBase(1, "func", "c", "Filter function, single parameter")]
+        [ExNativeParamBase(2, "list", "a", "List to iterate over")]
         public static ExFunctionStatus StdFilter(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -1040,6 +1062,7 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(n + m + 1, new ExObject(l));
         }
 
+        [ExNativeFuncBase("call", 0, "Call the function in the first argument with other arguments passed to it", -2)]
         public static ExFunctionStatus StdCall(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -1112,41 +1135,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(3, res);
         }
 
-        private static bool PushArgsForCluster(ExVM vm, ExObject cls, List<ExObject> args, ref int nargs, bool parsing = true)
-        {
-            int req = cls.GetClosure().GetAttribute(ExMat.nParams);
-            if (req > 1)
-            {
-                if (req != args.Count)
-                {
-                    vm.AddToErrorMessage("expected " + req + " arguments for the cluster");
-                    return false;
-                }
-                else
-                {
-                    nargs = args.Count + 1;
-                    vm.PushParse(args);
-                }
-            }
-            else
-            {
-                if (parsing)
-                {
-                    nargs = args.Count;
-                    vm.Push(args);
-                }
-                else
-                {
-                    if (args.Count != 1)
-                    {
-                        throw new ExException(vm, "args count were not 1");
-                    }
-                    vm.Push(args[0]);
-                }
-            }
-            return true;
-        }
-
+        [ExNativeFuncBase("parse", 0, "Parse a list of arguments to a function or a class")]
+        [ExNativeParamBase(1, "func_or_class", "c|y", "Function or class for parsing array of arguments to")]
+        [ExNativeParamBase(2, "list", "a", "Array of arguments for the function or class")]
         public static ExFunctionStatus StdParse(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -1220,6 +1211,10 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(4, tmp);
         }
 
+        [ExNativeFuncBase("iter", 0, "Iterate through a list and reduce with given function. Each iteration gets the returned value from the function on previous iteration.")]
+        [ExNativeParamBase(1, "func_or_class", "c|y", "Function or class with 3 parameters: (<int> iteration, <var> previous_value,  <var> current_value). Returned value becomes previous_value for the next iteration")]
+        [ExNativeParamBase(2, "list", "a", "List to iterate through")]
+        [ExNativeParamBase(3, "start_value", ".", "This value is used as the 'previous_value' for the first iteration")]
         public static ExFunctionStatus StdIter(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -1272,6 +1267,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(n + m, prev);
         }
 
+        [ExNativeFuncBase("first", 0, "Find the first value meeting the given condition in a list")]
+        [ExNativeParamBase(1, "func", "c", "Condition to be met. Single parameter function, gets passed list elements to it")]
+        [ExNativeParamBase(2, "list", "a", "List to iterate through")]
         public static ExFunctionStatus StdFirst(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -1325,6 +1323,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(n + m + 1, res);
         }
 
+        [ExNativeFuncBase("all", ExBaseType.BOOL, "Check if all elements of a list meet the given condition")]
+        [ExNativeParamBase(1, "func", "c", "Condition to be met. Single parameter function, gets passed list elements to it")]
+        [ExNativeParamBase(2, "list", "a", "List to iterate through")]
         public static ExFunctionStatus StdAll(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -1381,6 +1382,9 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(n + m + 1, res);
         }
 
+        [ExNativeFuncBase("any", ExBaseType.BOOL, "Check if any element in a list meets the given condition")]
+        [ExNativeParamBase(1, "func", "c", "Condition to be met. Single parameter function, gets passed list elements to it")]
+        [ExNativeParamBase(2, "list", "a", "List to iterate through")]
         public static ExFunctionStatus StdAny(ExVM vm, int nargs)
         {
             ExObject cls = vm.GetArgument(1);
@@ -1438,7 +1442,10 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(n + m + 1, res);
         }
 
-        ///
+        // List initializer functions
+        [ExNativeFuncBase("list", ExBaseType.ARRAY, "Initialize an empty list or convert a string into a list of characters")]
+        [ExNativeParamBase(1, "length", "n|s", "Length of the list or string to get the character list of", (0))]
+        [ExNativeParamBase(2, "filler", ".", "Filler object to use while initializing the list", def: null)]
         public static ExFunctionStatus StdList(ExVM vm, int nargs)
         {
             ExObject o = vm.GetArgument(1);
@@ -1478,6 +1485,10 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncBase("rangei", ExBaseType.ARRAY, "Initialize a number range series with given inclusive start and end values and step information.")]
+        [ExNativeParamBase(1, "start", "n", "Inclusive start value")]
+        [ExNativeParamBase(2, "end", "n", "Inclusive end value", (0))]
+        [ExNativeParamBase(3, "step", "n", "Step size between values", (1))]
         public static ExFunctionStatus StdRangei(ExVM vm, int nargs)
         {
             List<ExObject> l = new();
@@ -1804,6 +1815,10 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, l);
         }
 
+        [ExNativeFuncBase("range", ExBaseType.ARRAY, "Initialize a number range series with given inclusive start and exclusive end values and step information.")]
+        [ExNativeParamBase(1, "start", "n", "Inclusive start value")]
+        [ExNativeParamBase(2, "end", "n", "Exclusive end value", (0))]
+        [ExNativeParamBase(3, "step", "n", "Step size between values", (1))]
         public static ExFunctionStatus StdRange(ExVM vm, int nargs)
         {
             List<ExObject> l = new();
@@ -2130,6 +2145,10 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, l);
         }
 
+        [ExNativeFuncBase("matrix", ExBaseType.ARRAY, "Initialize a matrix with 'rows'x'cols' dimensions.")]
+        [ExNativeParamBase(1, "rows", "i", "Row dimension")]
+        [ExNativeParamBase(2, "cols", "i", "Column dimension", (1))]
+        [ExNativeParamBase(3, "filler", ".", "Filler object", def: null)]
         public static ExFunctionStatus StdMatrix(ExVM vm, int nargs)
         {
             ExList l = new();
@@ -2246,69 +2265,221 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, l);
         }
-        // REAL NUMBERS
+
+        [ExNativeFuncBase(ExMat.ReloadBaseLib, "")]
+        [ExNativeParamBase(1, "func_name", "s", "Name of the base library function to reload", (ExMat.ReloadBaseLib))]
+        public static ExFunctionStatus StdReloadBase(ExVM vm, int nargs)
+        {
+            if (nargs == 1)
+            {
+                string name = vm.GetArgument(1).GetString();
+                if (name == ExMat.ReloadBaseLib)
+                {
+                    return vm.CleanReturn(nargs + 2, vm.RootDictionary);
+                }
+
+                ExApi.PushRootTable(vm);
+                if (!ExApi.ReloadNativeFunction(vm, typeof(ExBaseLib), name, true))
+                {
+                    return vm.AddToErrorMessage(string.Format("unknown Std function {0}", name));
+                }
+
+            }
+            else
+            {
+                if (!RegisterStdBase(vm))
+                {
+                    return vm.AddToErrorMessage("something went wrong...");
+                }
+            }
+            return vm.CleanReturn(nargs + 2, vm.RootDictionary);
+        }
+
+        [ExNativeFuncBase("exit", "Exits the virtual machine at the next possible oppurtunity")]
+        [ExNativeParamBase(1, "func", "r", "Condition to be met. Single parameter function, gets passed list elements to it", (0))]
+        public static ExFunctionStatus StdExit(ExVM vm, int nargs)
+        {
+            vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetInt());
+            return ExFunctionStatus.EXIT;
+        }
+
+        [ExNativeFuncBase("is_interactive", ExBaseType.BOOL, "Check if current script is running inside an interactive console")]
+        public static ExFunctionStatus StdInteractive(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, vm.IsInteractive);
+        }
+
+        [ExNativeFuncBase("collect_garbage", "Force run the garbage collector")]
+        public static ExFunctionStatus StdGCCollect(ExVM vm, int nargs)
+        {
+            vm.Pop(2);
+            ExApi.CollectGarbage();
+            return ExFunctionStatus.VOID;
+        }
+
+        #endregion
+
+        #region UTILITY
+        private static bool PushArgsForCluster(ExVM vm, ExObject cls, List<ExObject> args, ref int nargs, bool parsing = true)
+        {
+            int req = cls.GetClosure().GetAttribute(ExMat.nParams);
+            if (req > 1)
+            {
+                if (req != args.Count)
+                {
+                    vm.AddToErrorMessage("expected " + req + " arguments for the cluster");
+                    return false;
+                }
+                else
+                {
+                    nargs = args.Count + 1;
+                    vm.PushParse(args);
+                }
+            }
+            else
+            {
+                if (parsing)
+                {
+                    nargs = args.Count;
+                    vm.Push(args);
+                }
+                else
+                {
+                    if (args.Count != 1)
+                    {
+                        throw new ExException(vm, "args count were not 1");
+                    }
+                    vm.Push(args[0]);
+                }
+            }
+            return true;
+        }
+        public static ExFunctionStatus HandleCharArrayToString(ExVM vm, int nargs, ExObject obj)
+        {
+            if (obj.Type == ExObjType.ARRAY)
+            {
+                StringBuilder str = new(obj.GetList().Count);
+
+                if (!ExApi.ConvertIntegerStringArrayToString(obj.GetList(), str))
+                {
+                    return vm.AddToErrorMessage("failed to create string, list must contain all positive integers within 'char' range or strings");
+                }
+                else
+                {
+                    return vm.CleanReturn(nargs + 2, str.ToString());
+                }
+            }
+            else if (obj.Type == ExObjType.INTEGER)
+            {
+                long val = obj.GetInt();
+
+                if (val < char.MinValue || val > char.MaxValue)
+                {
+                    return vm.AddToErrorMessage("integer out of range for char conversion");
+                }
+
+                return vm.CleanReturn(nargs + 2, ((char)val).ToString());
+            }
+            else
+            {
+                return vm.AddToErrorMessage("expected INTEGER or ARRAY when 2nd parameter of 'string' is true");
+            }
+        }
+        public static ExFunctionStatus HandleBitConversion(int bits, ExVM vm, int nargs, long b, bool reverse)
+        {
+            if (bits == 32 && (b > int.MaxValue || b < int.MinValue))
+            {
+                return vm.AddToErrorMessage("64bit value out of range for 32bit use");
+            }
+
+            List<ExObject> l = new(bits);
+
+            foreach (int bit in ExApi.GetBits(b, bits))
+            {
+                l.Add(new(bit));
+            }
+
+            if (reverse)
+            {
+                l.Reverse();
+            }
+
+            return vm.CleanReturn(nargs + 2, l);
+        }
+        public static ExFunctionStatus Handle32BitConversion(ExVM vm, int nargs, long b, bool reverse)
+        {
+            return HandleBitConversion(32, vm, nargs, b, reverse);
+        }
+        public static ExFunctionStatus Handle64BitConversion(ExVM vm, int nargs, long b, bool reverse)
+        {
+            return HandleBitConversion(64, vm, nargs, b, reverse);
+        }
+        private static ExFunctionStatus StringIndexCheck(ExVM vm, int n, ref string s)
+        {
+            if (n < 0 || n >= s.Length)
+            {
+                return vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
+            }
+            s = s[n].ToString();
+            return ExFunctionStatus.SUCCESS;
+        }
+        #endregion
+
+        #region DELEGATES
+
+        #region INTEGER | FLOAT
+        [ExNativeFuncDelegate("real", 0, "Return the real part of the value. This delegate always returns the value itself", 'r')]
         public static ExFunctionStatus StdNumericReal(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetRootArgument().Type == ExObjType.INTEGER
                                                 ? new ExObject(vm.GetRootArgument().GetInt())
                                                 : new(vm.GetRootArgument().GetFloat()));
         }
+
+        [ExNativeFuncDelegate("img", 0, "Return the imaginary part of the value. This delegate always returns 0", 'r')]
         public static ExFunctionStatus StdNumericImage(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetRootArgument().Type == ExObjType.INTEGER
                                                 ? new ExObject(0)
                                                 : new ExObject(0.0));
         }
+        #endregion
 
-        // COMPLEX
+        #region COMPLEX
+        [ExNativeFuncDelegate("phase", 0, "Return the phase of the value", 'C')]
         public static ExFunctionStatus StdComplexPhase(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, new ExObject(vm.GetRootArgument().GetComplex().Phase));
         }
+
+        [ExNativeFuncDelegate("abs", 0, "Return the magnitute of the value", 'C')]
         public static ExFunctionStatus StdComplexMagnitude(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, new ExObject(vm.GetRootArgument().GetComplex().Magnitude));
         }
+
+        [ExNativeFuncDelegate("img", 0, "Return the imaginary part of the value", 'C')]
         public static ExFunctionStatus StdComplexImg(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, new ExObject(vm.GetRootArgument().Value.c_Float));
         }
+
+        [ExNativeFuncDelegate("real", 0, "Return the real part of the value", 'C')]
         public static ExFunctionStatus StdComplexReal(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, new ExObject(vm.GetRootArgument().Value.f_Float));
         }
+
+        [ExNativeFuncDelegate("conj", 0, "Return the complex conjugate of the value", 'C')]
         public static ExFunctionStatus StdComplexConjugate(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetComplexConj());
         }
+        #endregion
 
-        // COMMON
-        public static ExFunctionStatus StdDefaultLength(ExVM vm, int nargs)
-        {
-            int size = -1;
-            ExObject obj = vm.GetRootArgument();   // Objeyi al
-            switch (obj.Type)
-            {
-                case ExObjType.ARRAY:
-                    {
-                        size = obj.GetList().Count;
-                        break;
-                    }
-                case ExObjType.DICT:
-                    {
-                        size = obj.Value.d_Dict.Count;
-                        break;
-                    }
-                case ExObjType.STRING:
-                    {
-                        size = obj.Value.s_String.Length;
-                        break;
-                    }
-            }
-            return vm.CleanReturn(nargs + 2, new ExObject(size));
-        }
-
-        // STRING
+        #region STRING
+        [ExNativeFuncDelegate("index_of", ExBaseType.INTEGER, "Return the index of given substring or -1", 's')]
+        [ExNativeParamBase(1, "substring", "s", "Substring to search for")]
         public static ExFunctionStatus StdStringIndexOf(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2319,26 +2490,37 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(1, res.GetString().IndexOf(vm.GetArgument(1).GetString()));
         }
 
+        [ExNativeFuncDelegate("to_upper", 0, "Return a new string with characters capitalized", 's')]
         public static ExFunctionStatus StdStringToUpper(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetString().ToUpper());
         }
+
+        [ExNativeFuncDelegate("to_lower", 0, "Return a new string with characters uncapitalized", 's')]
         public static ExFunctionStatus StdStringToLower(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetString().ToLower());
         }
+
+        [ExNativeFuncDelegate("reverse", 0, "Return a new string with character order reversed", 's')]
         public static ExFunctionStatus StdStringReverse(ExVM vm, int nargs)
         {
             char[] ch = vm.GetRootArgument().GetString().ToCharArray();
             Array.Reverse(ch);
             return vm.CleanReturn(nargs + 2, new string(ch));
         }
+
+        [ExNativeFuncDelegate("replace", ExBaseType.STRING, "Return a new string with given substrings replaced with given new string", 's')]
+        [ExNativeParamBase(1, "old", "s", "Value to be replaced")]
+        [ExNativeParamBase(2, "new", "s", "Value to use for replacing")]
         public static ExFunctionStatus StdStringReplace(ExVM vm, int nargs)
         {
             string obj = vm.GetRootArgument().GetString();
             return vm.CleanReturn(nargs + 2, obj.Replace(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString()));
         }
 
+        [ExNativeFuncDelegate("repeat", ExBaseType.STRING, "Return a new string with the original string repeat given times", 's')]
+        [ExNativeParamBase(1, "repeat", "r", "Times to repeat the string")]
         public static ExFunctionStatus StdStringRepeat(ExVM vm, int nargs)
         {
             string obj = vm.GetRootArgument().GetString();
@@ -2351,15 +2533,8 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, res.ToString());
         }
 
-        private static ExFunctionStatus StringIndexCheck(ExVM vm, int n, ref string s)
-        {
-            if (n < 0 || n >= s.Length)
-            {
-                return vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
-            }
-            s = s[n].ToString();
-            return ExFunctionStatus.SUCCESS;
-        }
+        [ExNativeFuncDelegate("isAlphabetic", ExBaseType.BOOL, "Check if the string or a character at given index is alphabetic", 's')]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
         public static ExFunctionStatus StdStringAlphabetic(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -2370,6 +2545,9 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, Regex.IsMatch(s, "^[A-Za-z]+$"));
         }
+
+        [ExNativeFuncDelegate("isNumeric", ExBaseType.BOOL, "Check if the string or a character at given index is numeric", 's')]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
         public static ExFunctionStatus StdStringNumeric(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -2380,6 +2558,9 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, Regex.IsMatch(s, @"^\d+(\.\d+)?((E|e)(\+|\-)\d+)?$"));
         }
+
+        [ExNativeFuncDelegate("isAlphaNumeric", ExBaseType.BOOL, "Check if the string or a character at given index is alphabetic or numeric", 's')]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
         public static ExFunctionStatus StdStringAlphaNumeric(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -2390,6 +2571,9 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, Regex.IsMatch(s, "^[A-Za-z0-9]+$"));
         }
+
+        [ExNativeFuncDelegate("isLower", ExBaseType.BOOL, "Check if the string or a character at given index is lower case", 's')]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
         public static ExFunctionStatus StdStringLower(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -2407,6 +2591,9 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, !string.IsNullOrEmpty(s));
         }
+
+        [ExNativeFuncDelegate("isUpper", ExBaseType.BOOL, "Check if the string or a character at given index is upper case", 's')]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
         public static ExFunctionStatus StdStringUpper(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -2424,6 +2611,9 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, !string.IsNullOrEmpty(s));
         }
+
+        [ExNativeFuncDelegate("isWhitespace", ExBaseType.BOOL, "Check if the string or a character at given index is whitespace", 's')]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
         public static ExFunctionStatus StdStringWhitespace(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -2441,6 +2631,9 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, s.Length > 0);
         }
+
+        [ExNativeFuncDelegate("isSymbol", ExBaseType.BOOL, "Check if the string or a character at given index is symbolic", 's')]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
         public static ExFunctionStatus StdStringSymbol(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -2458,6 +2651,10 @@ namespace ExMat.BaseLib
             }
             return vm.CleanReturn(nargs + 2, !string.IsNullOrEmpty(s));
         }
+
+        [ExNativeFuncDelegate("slice", ExBaseType.STRING, "Return a new string with characters picked from given range. Negative indices gets incremented by string length", 's')]
+        [ExNativeParamBase(1, "index1", "r", "If used alone: [0,index1), otherwise: [index1,index2)")]
+        [ExNativeParamBase(2, "index2", "r", "Ending index, returned list length == index2 - index1", (-1))]
         public static ExFunctionStatus StdStringSlice(ExVM vm, int nargs)
         {
             ExObject o = new();
@@ -2538,8 +2735,11 @@ namespace ExMat.BaseLib
 
             return vm.CleanReturn(nargs + 2, filled ? new string(res) : string.Empty);
         }
+        #endregion
 
-        // ARRAY
+        #region ARRAY
+        [ExNativeFuncDelegate("append", ExBaseType.ARRAY, "Return a new list with given item appended", 'a')]
+        [ExNativeParamBase(1, "object", ".", "Object to append")]
         public static ExFunctionStatus StdArrayAppend(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2554,6 +2754,9 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
+
+        [ExNativeFuncDelegate("remove_at", ExBaseType.ARRAY, "Return a new list with the item at given index removed", 'a')]
+        [ExNativeParamBase(1, "index", "r", "Index of the item to remove")]
         public static ExFunctionStatus StdArrayRemoveAt(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2577,6 +2780,9 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
+
+        [ExNativeFuncDelegate("extend", ExBaseType.ARRAY, "Return the original list with given list of objects appended", 'a')]
+        [ExNativeParamBase(1, "list", "a", "List of items to append")]
         public static ExFunctionStatus StdArrayExtend(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2590,6 +2796,9 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
+
+        [ExNativeFuncDelegate("expand", ExBaseType.ARRAY, "Return a new list with given list of objects appended", 'a')]
+        [ExNativeParamBase(1, "list", "a", "List of items to append")]
         public static ExFunctionStatus StdArrayExpand(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2604,6 +2813,9 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
+
+        [ExNativeFuncDelegate("push", ExBaseType.ARRAY, "Return the original list with given item appended", 'a')]
+        [ExNativeParamBase(1, "object", ".", "Object to push to end")]
         public static ExFunctionStatus StdArrayPush(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2617,6 +2829,9 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
+
+        [ExNativeFuncDelegate("pop", ExBaseType.ARRAY, "Return the original list with given amount of items popped", 'a')]
+        [ExNativeParamBase(1, "count", "r", "Amount of items to pop", (1))]
         public static ExFunctionStatus StdArrayPop(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2641,6 +2856,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("resize", ExBaseType.ARRAY, "Return the original list resized", 'a')]
+        [ExNativeParamBase(1, "new_size", "r", "New size for the list")]
+        [ExNativeParamBase(2, "filler", ".", "Filler object if new size is bigger than current size", def: null)]
         public static ExFunctionStatus StdArrayResize(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2683,6 +2901,8 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, res);
         }
 
+        [ExNativeFuncDelegate("index_of", ExBaseType.INTEGER, "Return the index of an object or -1 if nothing found", 'a')]
+        [ExNativeParamBase(1, "object", ".", "Object to search for")]
         public static ExFunctionStatus StdArrayIndexOf(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2696,6 +2916,8 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("count", ExBaseType.INTEGER, "Count how many times given object appears in the list", 'a')]
+        [ExNativeParamBase(1, "object", ".", "Object to search for")]
         public static ExFunctionStatus StdArrayCount(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2712,6 +2934,9 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("slice", ExBaseType.ARRAY, "Return a new list with items picked from given range. Negative indices gets incremented by list length", 'a')]
+        [ExNativeParamBase(1, "index1", "r", "If used alone: [0,index1), otherwise: [index1,index2)")]
+        [ExNativeParamBase(2, "index2", "r", "Ending index, returned list length == index2 - index1", (-1))]
         public static ExFunctionStatus StdArraySlice(ExVM vm, int nargs)
         {
             ExObject o = new();
@@ -2792,11 +3017,14 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("shuffle", 0, "Return a new shuffled list", 'a')]
         public static ExFunctionStatus StdArrayShuffle(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, ExUtils.ShuffleList(vm.GetRootArgument().GetList()));
         }
 
+        [ExNativeFuncDelegate("random", 0, "Return a random item or a list of given amount of random items. If 'count' > 1, a list of unique item picks is returned.", 'a')]
+        [ExNativeParamBase(1, "count", "n", "Amount of random values to return", (1))]
         public static ExFunctionStatus StdArrayRandom(ExVM vm, int nargs)
         {
             List<ExObject> lis = vm.GetRootArgument().GetList();
@@ -2820,6 +3048,7 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("reverse", 0, "Return a new list with the order of items reversed", 'a')]
         public static ExFunctionStatus StdArrayReverse(ExVM vm, int nargs)
         {
             ExObject obj = vm.GetRootArgument();
@@ -2832,11 +3061,13 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, res);
         }
 
+        [ExNativeFuncDelegate("copy", 0, "Return a copy of the list.", 'a')]
         public static ExFunctionStatus StdArrayCopy(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, ExUtils.GetACopyOf(vm.GetRootArgument().GetList()));
         }
 
+        [ExNativeFuncDelegate("transpose", 0, "Return the transposed form of given matrix. Not usable for non-matrix formats.", 'a')]
         public static ExFunctionStatus StdArrayTranspose(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2860,8 +3091,11 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
+        #endregion
 
-        // DICT
+        #region DICT
+        [ExNativeFuncDelegate("has_key", ExBaseType.BOOL, "Check if given key exists", 'd')]
+        [ExNativeParamBase(1, "key", "s", "Key to check")]
         public static ExFunctionStatus StdDictHasKey(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2874,6 +3108,8 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
+
+        [ExNativeFuncDelegate("get_keys", 0, "Get a list of the keys", 'd')]
         public static ExFunctionStatus StdDictKeys(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2892,6 +3128,7 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("get_values", 0, "Get a list of the values", 'd')]
         public static ExFunctionStatus StdDictValues(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2910,6 +3147,7 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("random_key", 0, "Get a random key", 'd')]
         public static ExFunctionStatus StdDictRandomKey(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2923,6 +3161,7 @@ namespace ExMat.BaseLib
             }
         }
 
+        [ExNativeFuncDelegate("random_val", 0, "Get a random value", 'd')]
         public static ExFunctionStatus StdDictRandomVal(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2935,7 +3174,12 @@ namespace ExMat.BaseLib
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
         }
-        // CLASS
+        #endregion
+
+        #region CLASS
+        [ExNativeFuncDelegate("has_attr", ExBaseType.BOOL, "Check if an attribute exists for a member or a method", 'y')]
+        [ExNativeParamBase(1, "member_or_method", "s", "Member or method name")]
+        [ExNativeParamBase(2, "attribute", "s", "Attribute name to check")]
         public static ExFunctionStatus StdClassHasAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -2970,6 +3214,10 @@ namespace ExMat.BaseLib
 
             return vm.AddToErrorMessage("unknown member or method '" + mem + "'");
         }
+
+        [ExNativeFuncDelegate("get_attr", ExBaseType.BOOL, "Get an attribute of a member or a method", 'y')]
+        [ExNativeParamBase(1, "member_or_method", "s", "Member or method name")]
+        [ExNativeParamBase(2, "attribute", "s", "Attribute name to get")]
         public static ExFunctionStatus StdClassGetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -3007,6 +3255,10 @@ namespace ExMat.BaseLib
             return vm.AddToErrorMessage("unknown member or method '" + mem + "'");
         }
 
+        [ExNativeFuncDelegate("set_attr", ExBaseType.BOOL, "Set an attribute of a member or a method", 'y')]
+        [ExNativeParamBase(1, "member_or_method", "s", "Member or method name")]
+        [ExNativeParamBase(2, "attribute", "s", "Attribute name to get")]
+        [ExNativeParamBase(3, "new_value", ".", "New attribute value")]
         public static ExFunctionStatus StdClassSetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -3044,8 +3296,12 @@ namespace ExMat.BaseLib
 
             return vm.AddToErrorMessage("unknown member or method '" + mem + "'");
         }
+        #endregion
 
-        // INSTANCE
+        #region INSTANCE
+        [ExNativeFuncDelegate("has_attr", ExBaseType.BOOL, "Check if an attribute exists for a member or a method", 'x')]
+        [ExNativeParamBase(1, "member_or_method", "s", "Member or method name")]
+        [ExNativeParamBase(2, "attribute", "s", "Attribute name to check")]
         public static ExFunctionStatus StdInstanceHasAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -3080,6 +3336,10 @@ namespace ExMat.BaseLib
 
             return vm.AddToErrorMessage("unknown member or method '" + mem + "'");
         }
+
+        [ExNativeFuncDelegate("get_attr", ExBaseType.BOOL, "Get an attribute of a member or a method", 'x')]
+        [ExNativeParamBase(1, "member_or_method", "s", "Member or method name")]
+        [ExNativeParamBase(2, "attribute", "s", "Attribute name to get")]
         public static ExFunctionStatus StdInstanceGetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -3117,6 +3377,10 @@ namespace ExMat.BaseLib
             return vm.AddToErrorMessage("unknown member or method '" + mem + "'");
         }
 
+        [ExNativeFuncDelegate("set_attr", ExBaseType.BOOL, "Set an attribute of a member or a method", 'x')]
+        [ExNativeParamBase(1, "member_or_method", "s", "Member or method name")]
+        [ExNativeParamBase(2, "attribute", "s", "Attribute name to get")]
+        [ExNativeParamBase(3, "new_value", ".", "New attribute value")]
         public static ExFunctionStatus StdInstanceSetAttr(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -3154,52 +3418,33 @@ namespace ExMat.BaseLib
 
             return vm.AddToErrorMessage("unknown member or method '" + mem + "'");
         }
-        //
-        public static ExFunctionStatus StdReloadBase(ExVM vm, int nargs)
+        #endregion
+
+        #region WEAKREF
+        [ExNativeFuncDelegate("ref", 0, "Return the referenced object", 'w')]
+        public static ExFunctionStatus StdWeakRefValue(ExVM vm, int nargs)
         {
-            if (nargs == 1)
+            ExObject ret = vm.GetRootArgument();
+            if (ret.Type != ExObjType.WEAKREF)
             {
-                string name = vm.GetArgument(1).GetString();
-                if (name == ExMat.ReloadBaseLib)
-                {
-                    return vm.CleanReturn(nargs + 2, vm.RootDictionary);
-                }
-
-                ExApi.PushRootTable(vm);
-                if (!ExApi.ReloadNativeFunction(vm, BaseFuncs, name, ExStdLibType.BASE, true))
-                {
-                    return vm.AddToErrorMessage(string.Format("unknown Std function {0}", name));
-                }
-
+                return vm.AddToErrorMessage("can't get reference value of non-weakref object");
             }
-            else
-            {
-                if (!RegisterStdBase(vm))
-                {
-                    return vm.AddToErrorMessage("something went wrong...");
-                }
-            }
-            return vm.CleanReturn(nargs + 2, vm.RootDictionary);
-        }
 
-        public static ExFunctionStatus StdExit(ExVM vm, int nargs)
-        {
-            vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetInt());
-            return ExFunctionStatus.EXIT;
+            vm.Push(ret.Value._WeakRef.ReferencedObject);
+            return ExFunctionStatus.SUCCESS;
         }
+        #endregion
 
-        public static ExFunctionStatus StdInteractive(ExVM vm, int nargs)
-        {
-            return vm.CleanReturn(nargs + 2, vm.IsInteractive);
-        }
-
-        public static ExFunctionStatus StdGCCollect(ExVM vm, int nargs)
-        {
-            vm.Pop(2);
-            ExApi.CollectGarbage();
-            return ExFunctionStatus.VOID;
-        }
-
+        #region COMMON DELEGATES
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'w')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'y')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'd')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'a')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'C')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'c')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'r')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 's')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'x')]
         public static ExFunctionStatus StdWeakRef(ExVM vm, int nargs)
         {
             ExObject ret = vm.GetRootArgument();
@@ -3212,495 +3457,38 @@ namespace ExMat.BaseLib
             return ExFunctionStatus.SUCCESS;
         }
 
-        public static ExFunctionStatus StdWeakRefValue(ExVM vm, int nargs)
+        [ExNativeFuncDelegate(ExCommonDelegateType.LENGTH, 'd')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.LENGTH, 'a')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.LENGTH, 's')]
+        public static ExFunctionStatus StdDefaultLength(ExVM vm, int nargs)
         {
-            ExObject ret = vm.GetRootArgument();
-            if (ret.Type != ExObjType.WEAKREF)
+            int size = -1;
+            ExObject obj = vm.GetRootArgument();   // Objeyi al
+            switch (obj.Type)
             {
-                return vm.AddToErrorMessage("can't get reference value of non-weakref object");
+                case ExObjType.ARRAY:
+                    {
+                        size = obj.GetList().Count;
+                        break;
+                    }
+                case ExObjType.DICT:
+                    {
+                        size = obj.Value.d_Dict.Count;
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        size = obj.Value.s_String.Length;
+                        break;
+                    }
             }
-
-            vm.Push(ret.Value._WeakRef.ReferencedObject);
-            return ExFunctionStatus.SUCCESS;
+            return vm.CleanReturn(nargs + 2, new ExObject(size));
         }
+        #endregion
 
-        public static MethodInfo GetBaseLibMethod(string name)
-        {
-            return Type.GetType("ExMat.BaseLib.ExBaseLib").GetMethod(name);
-        }
-        //
-        private static readonly List<ExRegFunc> _exStdFuncs = new()
-        {
-            new()
-            {
-                Name = "help",
-                Function = StdHelp,
-                Parameters = new()
-                {
-                    new("func_or_name", "s|Y", "Native function itself or the name of the native function", new("help")),
-                    new("print", ".", "Wheter to print the information", new(true))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Get and print the built-in help information of a native function. Printing can be disabled with the 2nd parameter."
-            },
-            new()
-            {
-                Name = "root",
-                Function = StdRoot,
-                Returns = ExBaseType.DICT,
-                Parameters = new(),
-                Safe = true,
-                Description = "Get the root table."
-            },
-            new()
-            {
-                Name = "sleep",
-                Function = StdSleep,
-                Parameters = new()
-                {
-                    new("miliseconds", "r")
-                },
-                Returns = ExBaseType.BOOL,
-                Safe = true,
-                Description = "Sleeps main thread given amount of time. Returns 'true' when thread wakes up."
-            },
-            new()
-            {
-                Name = "to_base64",
-                Function = StdToBase64,
-                Parameters = new()
-                {
-                    new("source", "s", "Source string to convert"),
-                    new("encoding", "s", "Encoding of the 'source'", new("utf-8"))
-                },
-                Returns = ExBaseType.STRING,
-                Safe = true,
-                Description = "Convert given string to it's base64 representation."
-            },
-            new()
-            {
-                Name = "from_base64",
-                Function = StdFromBase64,
-                Parameters = new()
-                {
-                    new("source", "s", "Source string to convert"),
-                    new("encoding", "s", "Encoding of the 'source'", new("utf-8"))
-                },
-                Returns = ExBaseType.STRING,
-                Safe = true,
-                Description = "Convert given string from it's base64 representation to original."
-            },
-            new()
-            {
-                Name = "print",
-                Function = StdPrint,
-                Parameters = new()
-                {
-                    new("message", ".", "Message or object"),
-                    new("depth", "n", "Printing depth for objects, 1 = Object's string representation, 2 = Stringify first level objects inside lists/dictionaries, ...", new(2))
-                },
-                Description = "Print messages or objects to immediate console."
-            },
+        #endregion
 
-            new()
-            {
-                Name = "printl",
-                Function = StdPrintl,
-                Parameters = new()
-                {
-                    new("message", ".", "Message or object to print to immediate console"),
-                    new("depth", "n", "Printing depth for objects, 1 = Object's string representation, 2 = Stringify first level objects inside lists/dictionaries, ...", new(2))
-                },
-                Description = "Print messages or objects to immediate console with a new line '\\n' at the end"
-            },
-
-            new()
-            {
-                Name = "time",
-                Function = StdTime,
-                Returns = ExBaseType.FLOAT,
-                Parameters = new(),
-                Safe = true,
-                Description = "Get how long the VM has been alive in miliseconds."
-            },
-            new()
-            {
-                Name = "date",
-                Function = StdDate,
-                Parameters = new()
-                {
-                    new("type", "s", "Type(s) of date. Use '|' to combine and get a list. Available types:" + string.Join("\n\t\t", ExMat.DateTypeInfoString.Split('\n')), new("today")),
-                    new("short_format", ".", "Get the shorter format of date values", new(false))
-                },
-                Returns = ExBaseType.STRING | ExBaseType.ARRAY,
-                Safe = true,
-                Description = "Get current date information."
-            },
-
-            new()
-            {
-                Name = "type",
-                Function = StdType,
-                Parameters = new()
-                {
-                    new("object", ".", "Object to get the type of")
-                },
-                Returns = ExBaseType.STRING,
-                Safe = true,
-                Description = "Get the type of an object as a string."
-            },
-
-            new()
-            {
-                Name = "assert",
-                Function = StdAssert,
-                Parameters = new()
-                {
-                    new("condition", ".", "Condition to check"),
-                    new("message", "s", "Assertion error message", new(string.Empty))
-                },
-                Description = "Assert given 'condition' is true as bool. Throws assertion error with given message if 'condition' is false as bool"
-            },
-
-            new()
-            {
-                Name = "string",
-                Function = StdString,
-                Parameters = new()
-                {
-                    new("object", ".", "Condition to check", new(string.Empty)),
-                    new("is_char_array", ".", "Assertion error message", new(false)),
-                    new("depth", "n", "Depth for objects to stringify", new(2))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Convert given object to a string. Allows character/integer lists to string conversion via 'is_char_array'."
-            },
-            new()
-            {
-                Name = "complex",
-                Function = StdComplex,
-                Parameters = new()
-                {
-                    new("real_part", "n", "Real part of the number", new(0.0)),
-                    new("img_part", "n", "Imaginary part of the number", new(0.0))
-                },
-                Returns = ExBaseType.COMPLEX,
-                Safe = true,
-                Description = "Create a complex number with given real and imaginary parts"
-            },
-            new()
-            {
-                Name = "complex2",
-                Function = StdComplex2,
-                Parameters = new()
-                {
-                    new("magnitute", "r", "Magnitute of the number", new(0.0)),
-                    new("phase", "r", "Phase of the number", new(0.0))
-                },
-                Returns = ExBaseType.COMPLEX,
-                Safe = true,
-                Description = "Create a complex number with given magnitute and phase"
-            },
-            new()
-            {
-                Name = "float",
-                Function = StdFloat,
-                Parameters = new()
-                {
-                    new("object", ".", "Object to parse as float", new(0.0))
-                },
-                Returns = ExBaseType.FLOAT,
-                Description = "Parse given object as a float"
-            },
-            new()
-            {
-                Name = "integer",
-                Function = StdInteger,
-                Parameters = new()
-                {
-                    new("object", ".", "Object to parse as integer", new(0))
-                },
-                Returns = ExBaseType.INTEGER,
-                Description = "Parse given object as an integer"
-            },
-            new()
-            {
-                Name = "bool",
-                Function = StdBool,
-                Parameters = new()
-                {
-                    new("object", ".", "Object to bool value of", new(true))
-                },
-                Returns = ExBaseType.BOOL,
-                Safe = true,
-                Description = "Get bool value of given object"
-            },
-            new()
-            {
-                Name = "bits",
-                Function = StdBits,
-                Parameters = new()
-                {
-                    new("number", "r", "64bit number", new(0)),
-                    new("reverse", ".", "Reverse bit order", new(false))
-                },
-                Returns = ExBaseType.ARRAY,
-                Safe = true,
-                Description = "Get the 64bit representation of a real number"
-            },
-            new()
-            {
-                Name = "bits32",
-                Function = StdBits32,
-                Parameters = new()
-                {
-                    new("number", "r", "32bit number", new(0)),
-                    new("reverse", ".", "Reverse bit order", new(false))
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Get the 32bit representation of a real number"
-            },
-            new()
-            {
-                Name = "bytes",
-                Function = StdBytes,
-                Parameters = new()
-                {
-                    new("object", "r|s", "64bit number or string to get bytes of", new(0)),
-                    new("reverse", ".", "Reverse byte order", new(false))
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Get the 8 byte representation of a real number or all bytes of a string in a list"
-            },
-            new()
-            {
-                Name = "hex",
-                Function = StdHex,
-                Parameters = new()
-                {
-                    new("number", "r", "64bit number", new(0)),
-                    new("add_0x_prefix", ".", "Wheter to add '0' and 'x' as first 2 elements of the list", new(true))
-                },
-                Returns = ExBaseType.ARRAY,
-                Safe = true,
-                Description = "Get a list of characters which represent given 64bit number in hexadecimal format"
-            },
-            new()
-            {
-                Name = "binary",
-                Function = StdBinary,
-                Parameters = new()
-                {
-                    new("number", "r", "64bit number", new(0)),
-                    new("add_0B_prefix", ".", "Wheter to add '0' and 'B' as first 2 elements of the list", new(true))
-                },
-                Returns = ExBaseType.ARRAY,
-                Safe = true,
-                Description = "Get a list of zeros and ones which represent given 64bit number in binary format"
-            },
-            new()
-            {
-                Name = "binary32",
-                Function = StdBinary32,
-                Parameters = new()
-                {
-                    new("number", "r", "32bit number", new(0)),
-                    new("add_0b_prefix", ".", "Wheter to add '0' and 'b' as first 2 elements of the list", new(true))
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Get a list of zeros and ones which represent given 32bit number in binary format"
-            },
-
-            new()
-            {
-                Name = "list",
-                Function = StdList,
-                Parameters = new()
-                {
-                    new("length", "n|s", "Length of the list or string to get the character list of", new(0)),
-                    new("filler", ".", "Filler object to use while initializing the list", new())
-                },
-                Returns = ExBaseType.ARRAY,
-                Safe = true,
-                Description = "Initialize an empty list or convert a string into a list of characters"
-            },
-            new()
-            {
-                Name = "range",
-                Function = StdRange,
-                Parameters = new()
-                {
-                    new("start", "n", "Inclusive start value"),
-                    new("end", "n", "Exclusive end value", new(0)),
-                    new("step", "n", "Step size between values", new(1))
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Initialize a number range series with given inclusive start and exclusive end values and step information."
-            },
-            new()
-            {
-                Name = "rangei",
-                Function = StdRangei,
-                Parameters = new()
-                {
-                    new("start", "n", "Inclusive start value"),
-                    new("end", "n", "Inclusive end value", new(0)),
-                    new("step", "n", "Step size between values", new(1))
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Initialize a number range series with given inclusive start and end values and step information."
-            },
-            new()
-            {
-                Name = "matrix",
-                Function = StdMatrix,
-                Parameters = new()
-                {
-                    new("rows", "i", "Row dimension"),
-                    new("cols", "i", "Column dimension", new(1)),
-                    new("filler", ".", "Filler object", new())
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Initialize a matrix with 'rows'x'cols' dimensions."
-            },
-
-            new()
-            {
-                Name = "map",
-                Function = StdMap,
-                Parameters = new()
-                {
-                    new("func", "c|y", "Mapping function, single parameter (2 parameters if 'alt_list' is used)"),
-                    new("list", "a", "List to iterate over"),
-                    new("alt_list", "a", "A secondary optional list to iterate with 'list'.", new ExList())
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Map a list to a new list with a function. A secondary list can be given to iterate over simultaneously to pass a 2nd parameter to mapping function"
-            },
-            new()
-            {
-                Name = "filter",
-                Function = StdFilter,
-                Parameters = new()
-                {
-                    new("func", "c", "Filter function, single parameter"),
-                    new("list", "a", "List to iterate over")
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Filter a list with a filtering function and return a new list"
-            },
-            new()
-            {
-                Name = "call",
-                Function = StdCall,
-                NumberOfParameters = -2,
-                Returns = -1,
-                Description = "Call the function in the first argument with other arguments passed to it"
-            },
-            new()
-            {
-                Name = "parse",
-                Function = StdParse,
-                Parameters = new()
-                {
-                    new("func_or_class", "c|y", "Function or class for parsing array of arguments to"),
-                    new("list", "a", "Array of arguments for the function or class")
-                },
-                Returns = -1,
-                Description = "Parse a list of arguments to a function or a class"
-            },
-            new()
-            {
-                Name = "iter",
-                Function = StdIter,
-                Parameters = new()
-                {
-                    new("func_or_class", "c|y", "Function or class with 3 parameters: (<int> iteration, <var> previous_value,  <var> current_value). Returned value becomes previous_value for the next iteration"),
-                    new("list", "a", "List to iterate through"),
-                    new("start_value", ".", "This value is used as the 'previous_value' for the first iteration")
-                },
-                Returns = -1,
-                Description = "Iterate through a list and reduce with given function. Each iteration gets the returned value from the function on previous iteration."
-            },
-            new()
-            {
-                Name = "first",
-                Function = StdFirst,
-                Parameters = new()
-                {
-                    new("func", "c", "Condition to be met. Single parameter function, gets passed list elements to it"),
-                    new("list", "a", "List to iterate through")
-                },
-                Returns = -1,
-                Description = "Find the first value meeting the given condition in a list"
-            },
-            new()
-            {
-                Name = "any",
-                Function = StdAny,
-                Parameters = new()
-                {
-                    new("func", "c", "Condition to be met. Single parameter function, gets passed list elements to it"),
-                    new("list", "a", "List to iterate through")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check if any element in a list meets the given condition"
-            },
-            new()
-            {
-                Name = "all",
-                Function = StdAll,
-                Parameters = new()
-                {
-                    new("func", "c", "Condition to be met. Single parameter function, gets passed list elements to it"),
-                    new("list", "a", "List to iterate through")
-                },
-                Returns = ExBaseType.BOOL,
-                Description = "Check if all elements of a list meet the given condition"
-            },
-
-            new()
-            {
-                Name = "exit",
-                Function = StdExit,
-                Parameters = new()
-                {
-                    new("func", "r", "Condition to be met. Single parameter function, gets passed list elements to it", new(0))
-                },
-                Safe = true,
-                Description = "Exits the virtual machine at the next possible oppurtunity"
-            },
-            new()
-            {
-                Name = "is_interactive",
-                Function = StdInteractive,
-                Returns = ExBaseType.BOOL,
-                Parameters = new(),
-                Safe = true,
-                Description = "Check if current script is running inside an interactive console"
-            },
-            new()
-            {
-                Name = "collect_garbage",
-                Function = StdGCCollect,
-                Safe = true,
-                Description = "Force run the garbage collector"
-            },
-
-            new()
-            {
-                Name = ExMat.ReloadBaseLib,
-                Function = StdReloadBase,
-                Parameters = new()
-                {
-                    new("func_name", "s", "Name of the base library function to reload", new(ExMat.ReloadBaseLib))
-                },
-                Returns = ExBaseType.DICT
-            }
-        };
-
-        public static List<ExRegFunc> BaseFuncs => _exStdFuncs;
-
+        /// MAIN
         public static void RegisterStdBaseConstants(ExVM vm)
         {
             // Global tabloyu sanal belleğe ata
@@ -3740,7 +3528,7 @@ namespace ExMat.BaseLib
         public static bool RegisterStdBase(ExVM vm)
         {
             // Yerli fonksiyonları global tabloya kaydet
-            ExApi.RegisterNativeFunctions(vm, BaseFuncs, ExStdLibType.BASE);
+            ExApi.RegisterNativeFunctions(vm, typeof(ExBaseLib));
 
             RegisterStdBaseConstants(vm);
 
