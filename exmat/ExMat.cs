@@ -129,29 +129,30 @@ namespace ExMat
         /// <summary>
         /// Informational multi-line string about available types for 'date' function
         /// </summary>
-        public const string DateTypeInfoString = @"
-today
-now = time,
-year,
-month,
-day = wday,
-mday,
-yday,
-hours = hour = hh = h,
-minutes = minute = min = mm = m,
-seconds = second = sec = ss = s,
-miliseconds = milisecond = ms,
-utc,
-utc-today,
-utc-time = utc-now,
-utc-year,
-utc-month,
-utc-day = utc-wday,
-utc-mday,
-utc-yday,
-utc-hours = utc-hour = utc-hh = utc-h";
+        public const string DateTypeInfoString = @"Type(s) of date. Use '|' to combine and get a list. Available types:
+        today
+        now = time,
+        year,
+        month,
+        day = wday,
+        mday,
+        yday,
+        hours = hour = hh = h,
+        minutes = minute = min = mm = m,
+        seconds = second = sec = ss = s,
+        miliseconds = milisecond = ms,
+        utc,
+        utc-today,
+        utc-time = utc-now,
+        utc-year,
+        utc-month,
+        utc-day = utc-wday,
+        utc-mday,
+        utc-yday,
+        utc-hours = utc-hour = utc-hh = utc-h";
 
     }
+
 
     /// <summary>
     /// Base/raw object types, use one of these to create <see cref="ExObjType"/> types with <see cref="ExObjFlag"/> flags
@@ -619,34 +620,10 @@ utc-hours = utc-hour = utc-hh = utc-h";
         DONT = 999
     }
 
-    /// <summary>
-    /// Types for standard libraries
-    /// </summary>
-    public enum ExStdLibType
+    public enum ExProcessInfo
     {
-        /// <summary>
-        /// Base library
-        /// </summary>
-        BASE,
-        /// <summary>
-        /// Math library
-        /// </summary>
-        MATH,
-        /// <summary>
-        /// Input-output library
-        /// </summary>
-        IO,
-        /// <summary>
-        /// String library
-        /// </summary>
-        STRING,
-        /// <summary>
-        /// Networking library
-        /// </summary>
-        NETWORK,
-        /// <summary>
-        /// System library
-        /// </summary>
-        SYSTEM
+        DATE,
+        MODULE,
+        ARGS
     }
 }

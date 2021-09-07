@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -21,6 +22,40 @@ namespace ExMat.API
     /// </summary>
     public static class ExApi
     {
+        /// <summary>
+        /// Find all methods with <see cref="ExNativeFuncBase"/> attribute an not the <see cref="ExNativeFuncDelegate"/> attribute, in the given type of standard library
+        /// </summary>
+        /// <param name="type">Standard library type</param>
+        /// <returns>List of native non-delegate functions found</returns>
+        public static List<ExNativeFunc> GetNonDelegateNativeFunctions(Type type)
+        {
+            return new(type
+                        .GetMethods()
+                        .Where(m => Attribute.IsDefined(m, typeof(ExNativeFuncBase)) && !Attribute.IsDefined(m, typeof(ExNativeFuncDelegate)))
+                        .Select(n => new ExNativeFunc((ExNativeFunc.FunctionRef)Delegate.CreateDelegate(typeof(ExNativeFunc.FunctionRef), n))));
+        }
+
+        /// <summary>
+        /// Find all methods with <see cref="ExNativeFuncDelegate"/> attribute in the given type of standard library
+        /// </summary>
+        /// <param name="type">Standard library type</param>
+        /// <returns>List of native delegate functions found</returns>
+        public static List<ExNativeFunc> GetDelegateNativeFunctions(Type type)
+        {
+            List<ExNativeFunc> funcs = new();
+            foreach (MethodInfo m in type
+                                    .GetMethods()
+                                    .Where(m => Attribute.IsDefined(m, typeof(ExNativeFuncDelegate))))
+            {
+                ExNativeFuncDelegate[] basedelegs = (ExNativeFuncDelegate[])m.GetCustomAttributes(typeof(ExNativeFuncDelegate), false);
+                foreach (ExNativeFuncDelegate deleg in basedelegs)
+                {
+                    funcs.Add(new ExNativeFunc((ExNativeFunc.FunctionRef)Delegate.CreateDelegate(typeof(ExNativeFunc.FunctionRef), m), deleg.BaseTypeMask));
+                }
+            }
+
+            return funcs;
+        }
 
         /// <summary>
         /// Create a cryptographically safe random string using characters from [a-zA-Z0-9]
@@ -687,11 +722,11 @@ namespace ExMat.API
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="fs">Function list</param>
         /// <param name="name">Name to search for</param>
-        /// <returns>A <see cref="ExRegFunc"/> if <paramref name="name"/> was found in <paramref name="fs"/> list
+        /// <returns>A <see cref="ExNativeFunc"/> if <paramref name="name"/> was found in <paramref name="fs"/> list
         /// <para><see langword="null"/> if there was no functions named <paramref name="name"/> in <paramref name="fs"/></para></returns>
-        public static ExRegFunc FindNativeFunction(ExVM vm, List<ExRegFunc> fs, string name)
+        public static ExNativeFunc FindNativeFunction(ExVM vm, List<ExNativeFunc> fs, string name)
         {
-            foreach (ExRegFunc f in fs)
+            foreach (ExNativeFunc f in fs)
             {
                 if (f.Name == name && f.Name != string.Empty)
                 {
@@ -711,9 +746,13 @@ namespace ExMat.API
         /// <param name="pop">Wheter to pop the root from stack after searching</param>
         /// <returns><see langword="true"/> if <paramref name="name"/> was found in <paramref name="fs"/> and reloaded
         /// <para><see langword="false"/> if there was no function named <paramref name="name"/> in <paramref name="fs"/></para></returns>
-        public static bool ReloadNativeFunction(ExVM vm, List<ExRegFunc> fs, string name, ExStdLibType libtype, bool pop = false)
+        public static bool ReloadNativeFunction(ExVM vm, Type lib, string name, bool pop = false)
         {
-            ExRegFunc r;
+            List<ExNativeFunc> fs = GetNonDelegateNativeFunctions(lib);
+
+            ExStdLibType libtype = GetLibraryTypeFromStdClass(lib);
+
+            ExNativeFunc r;
             if ((r = FindNativeFunction(vm, fs, name)) != null)
             {
                 RegisterNativeFunction(vm, r, libtype);
@@ -732,7 +771,7 @@ namespace ExMat.API
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="func">Native function</param>
         /// <param name="libtype">Library the <paramref name="func"/> is based on</param>
-        public static void RegisterNativeFunction(ExVM vm, ExRegFunc func, ExStdLibType libtype)
+        public static void RegisterNativeFunction(ExVM vm, ExNativeFunc func, ExStdLibType libtype)
         {
             func.Base = libtype;
 
@@ -746,14 +785,30 @@ namespace ExMat.API
         }
 
         /// <summary>
+        /// Get the <see cref="ExStdLibType"/> representation of a standard library
+        /// </summary>
+        /// <param name="stdClass">Standard library type object</param>
+        /// <returns>Given stdlib type's <see cref="ExStdLibType"/> representation</returns>
+        public static ExStdLibType GetLibraryTypeFromStdClass(Type stdClass)
+        {
+            return Attribute.IsDefined(stdClass, typeof(ExStdLib))
+                ? ((ExStdLib)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLib)).Type
+                : 0;
+        }
+
+        /// <summary>
         /// Register native functions to a virtual machines roottable
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
-        /// <param name="funcs">List of native functions</param>
-        public static void RegisterNativeFunctions(ExVM vm, List<ExRegFunc> funcs, ExStdLibType libtype)
+        /// <param name="lib">Standard library type object to get the native functions from</param>
+        public static void RegisterNativeFunctions(ExVM vm, Type lib)
         {
+            List<ExNativeFunc> funcs = GetNonDelegateNativeFunctions(lib);
+
+            ExStdLibType libtype = GetLibraryTypeFromStdClass(lib);
+
             PushRootTable(vm);
-            foreach (ExRegFunc func in funcs)
+            foreach (ExNativeFunc func in funcs)
             {
                 RegisterNativeFunction(vm, func, libtype);    // Yerli fonksiyonları oluştur ve kaydet
             }
@@ -874,7 +929,7 @@ namespace ExMat.API
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="f">Native function to create a closure of</param>
-        public static void CreateClosure(ExVM vm, ExRegFunc.FunctionRef f)
+        public static void CreateClosure(ExVM vm, ExNativeFunc.FunctionRef f)
         {
             vm.Push(ExNativeClosure.Create(vm.SharedState, f, 0));
         }
@@ -913,11 +968,35 @@ namespace ExMat.API
             return "(" + string.Join(", ", names) + ")";
         }
 
+        /// <summary>
+        /// Get the integer <see cref="ExBaseType"/> representation of a given character mask. Refer to table below
+        /// <para>    Mask    |   Expected Type</para>
+        /// <para>-------------------------</para>
+        /// <para>    .       |   Any type</para>
+        /// <para>    e       |   NULL</para>
+        /// <para>    i       |   INTEGER</para>
+        /// <para>    f       |   FLOAT</para>
+        /// <para>    C       |   COMPLEX     (Capital c)</para>
+        /// <para>    b       |   BOOL</para>
+        /// <para>    n       |   INTEGER|FLOAT|COMPLEX</para>
+        /// <para>    r       |   INTEGER|FLOAT</para>
+        /// <para>    s       |   STRING</para>
+        /// <para>    d       |   DICT</para>
+        /// <para>    a       |   ARRAY</para>
+        /// <para>    Y       |   NATIVECLOSURE</para>
+        /// <para>    c       |   CLOSURE|NATIVECLOSURE</para>
+        /// <para>    x       |   INSTANCE</para>
+        /// <para>    y       |   CLASS</para>
+        /// <para>    w       |   WEAKREF</para>
+        /// </summary>
+        /// <param name="c">Character mask</param>
+        /// <returns>Integer parsed representation of given mask <paramref name="c"/>
+        /// <para> If mask is unknown, returns <see cref="int.MaxValue"/></para></returns>
         private static int CompileTypeChar(char c)
         {
             switch (c)    // Her bir karakteri incele
             {
-                case '.': return -1;
+                case '.': return 0;
                 case 'e': return (int)ExBaseType.NULL;
                 case 'i': return (int)ExBaseType.INTEGER;
                 case 'f': return (int)ExBaseType.FLOAT;
@@ -940,27 +1019,7 @@ namespace ExMat.API
         /// <summary>
         /// Compile a string mask into list of parameter masks for expected types
         /// </summary>
-        /// <param name="mask">String mask for expected types for parameters
-        /// <para>Use <c>|</c> for multiple types for parameters, each character represents a parameter unless combined with <c>|</c> character</para>
-        /// <para>Spaces are ignored </para>
-        /// <para>    Mask    |   Expected Type</para>
-        /// <para>-------------------------</para>
-        /// <para>    .       |   Any type</para>
-        /// <para>    e       |   NULL</para>
-        /// <para>    i       |   INTEGER</para>
-        /// <para>    f       |   FLOAT</para>
-        /// <para>    C       |   COMPLEX     (Capital c)</para>
-        /// <para>    b       |   BOOL</para>
-        /// <para>    n       |   INTEGER|FLOAT|COMPLEX</para>
-        /// <para>    r       |   INTEGER|FLOAT</para>
-        /// <para>    s       |   STRING</para>
-        /// <para>    d       |   DICT</para>
-        /// <para>    a       |   ARRAY</para>
-        /// <para>    c       |   CLOSURE|NATIVECLOSURE</para>
-        /// <para>    x       |   INSTANCE</para>
-        /// <para>    y       |   CLASS</para>
-        /// <para>    w       |   WEAKREF</para>
-        /// </param>
+        /// <param name="mask">String mask for expected types for parameters, refer to <see cref="CompileTypeChar(char)"/> method</param>
         /// <param name="results">Compilation results from <paramref name="mask"/> for each parameter</param>
         /// <returns></returns>
         public static bool CompileTypeMask(string mask, List<int> results)
@@ -974,7 +1033,7 @@ namespace ExMat.API
                 {
                     return false;   // bilinmeyen maske
                 }
-                else if (_mask == -1)
+                else if (_mask == 0)
                 {
                     results.Add(-1);
                     i++;
@@ -1081,6 +1140,7 @@ namespace ExMat.API
             switch (mask)
             {
                 case -1:
+                case 0:
                     {
                         return "ANY";
                     }
@@ -1147,7 +1207,7 @@ namespace ExMat.API
         /// </summary>
         /// <param name="ps">List of parameters</param>
         /// <returns>Parameter index and default value filled dictionary</returns>
-        public static Dictionary<int, ExObject> GetDefaultValuesFromParameters(List<ExFuncParameter> ps)
+        public static Dictionary<int, ExObject> GetDefaultValuesFromParameters(List<ExNativeParam> ps)
         {
             Dictionary<int, ExObject> d = new();    // TO-DO change how default values are handled
             if (ps == null)
@@ -1170,7 +1230,7 @@ namespace ExMat.API
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="d">Dictionary of integer keys for parameter numbers and <see cref="ExObject"/> values for default values</param>
-        public static void SetDefaultValues(ExVM vm, List<ExFuncParameter> ps)
+        public static void SetDefaultValues(ExVM vm, List<ExNativeParam> ps)
         {
             ExObject o = GetFromStack(vm, -1);
             if (o.Type == ExObjType.NATIVECLOSURE)
@@ -1179,19 +1239,19 @@ namespace ExMat.API
             }
         }
 
-        public static void SetDocumentation(ExVM vm, ExRegFunc reg)
+        public static void SetDocumentation(ExVM vm, ExNativeFunc reg)
         {
             ExObject o = GetFromStack(vm, -1);
             if (o.Type == ExObjType.NATIVECLOSURE)
             {
                 o.GetNClosure().Documentation = CreateDocStringFromRegFunc(reg, o.GetNClosure().TypeMasks.Count == 0);
                 o.GetNClosure().Summary = reg.Description;
-                o.GetNClosure().Returns = reg.Returns;
+                o.GetNClosure().Returns = reg.ReturnsType;
                 // TO-DO Maybe add reference to 'reg' instead of doing this ?
             }
         }
 
-        public static string CreateDocStringFromRegFunc(ExRegFunc reg, bool hasVargs)
+        public static string CreateDocStringFromRegFunc(ExNativeFunc reg, bool hasVargs)
         {
             StringBuilder s = new();
 
@@ -1204,7 +1264,7 @@ namespace ExMat.API
                 s.AppendFormat("Library: {0}", reg.Base.ToString().ToLower());
             }
 
-            s.AppendFormat("\nFunction: <{0}> {1}", (string)reg.Returns, reg.Name);
+            s.AppendFormat("\nFunction: <{0}> {1}", reg.ReturnsType, reg.Name);
 
             int i = 0, j = 0;
 
@@ -1221,7 +1281,7 @@ namespace ExMat.API
             while (reg.Parameters != null
                 && i < reg.Parameters.Count)
             {
-                ExFuncParameter param = reg.Parameters[i];
+                ExNativeParam param = reg.Parameters[i];
                 if (param.HasDefaultValue)
                 {
                     s.AppendFormat("\n\t{0}. [<{1}> {2} = {3}] : {4}",
@@ -1249,7 +1309,6 @@ namespace ExMat.API
             }
 
             s.AppendFormat("\nSummary: {0}", reg.Description);
-            s.AppendFormat("\nSafety: {0}", reg.Safe ? "Never throws" : "Can throw");
 
             return s.ToString();
         }
