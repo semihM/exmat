@@ -37,14 +37,10 @@ namespace ExMat.Objects
             Initialize(ex.Name, ex.TypeMask, ex.Description, ex.DefaultValue, ex.Index);
         }
 
-        private bool Initialize(string name, string type = ".", string info = "", ExObject def = null, int idx = 0)
+        private void Initialize(string name, string type = ".", string info = "", ExObject def = null, int idx = 0)
         {
             List<int> types = new(1);
-            if (!API.ExApi.CompileTypeMask(type, types) || types.Count != 1)
-            {
-                return false;
-            }
-            else
+            if (API.ExApi.CompileTypeMask(type, types) || types.Count != 1)
             {
                 Index = idx;
                 Name = name;
@@ -56,7 +52,7 @@ namespace ExMat.Objects
 
                 DefaultValue = def;
 
-                return true;
+                Valid = true;
             }
         }
         public ExNativeParam(string name, string type = ".", string info = "", ExObject def = null, int idx = 0)

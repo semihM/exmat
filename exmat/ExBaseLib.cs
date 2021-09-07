@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
@@ -18,12 +19,13 @@ namespace ExMat.BaseLib
     {
         #region FUNCTIONS
         [ExNativeFuncBase("help", ExBaseType.STRING, "Get and print the built-in help information of a native function. Printing can be disabled with the 2nd parameter.")]
-        [ExNativeParamBase(1, "func_or_name", "s|Y", "Native function itself or the name of the native function", "help")]
+        [ExNativeParamBase(1, "func_or_name", "s|Y|e", "Native function itself or the name of the native function", "help")]
         [ExNativeParamBase(2, "print", ".", "Wheter to print the information", '\0')]
         public static ExFunctionStatus StdHelp(ExVM vm, int nargs) //TO-DO Refactor
         {
-            ExObject o = nargs >= 1 ? vm.GetArgument(1) : null;
+            ExObject o = nargs >= 1 ? vm.GetArgument(1) : new();
             bool print = nargs != 2 || vm.GetArgument(2).GetBool();
+            string docs;
             switch (o.Type)
             {
                 case ExObjType.STRING:
@@ -34,11 +36,12 @@ namespace ExMat.BaseLib
                             ExObject found = vm.RootDictionary.GetDict()[name];
                             if (found.Type == ExObjType.NATIVECLOSURE)
                             {
+                                docs = found.GetNClosure().Documentation;
                                 if (print)
                                 {
-                                    vm.PrintLine(found.GetNClosure().Documentation);
+                                    vm.PrintLine(docs);
                                 }
-                                return vm.CleanReturn(nargs + 2, found.GetNClosure().Documentation);
+                                return vm.CleanReturn(nargs + 2, docs);
                             }
                             return vm.AddToErrorMessage(string.Format("Expected a native function. '{0}' is not a native function, it is type '{1}'!", name, found.Type.ToString()));
                         }
@@ -46,11 +49,9 @@ namespace ExMat.BaseLib
                     }
                 default:
                     {
-                        string docs;
-
-                        if (o == null)
+                        if (nargs < 1)
                         {
-                            docs = ((ExNativeFuncBase)MethodBase.GetCurrentMethod().GetCustomAttributes(typeof(ExNativeFuncBase), true)[0]).Description;
+                            docs = ((ExNativeFuncBase)MethodBase.GetCurrentMethod().GetCustomAttributes(typeof(ExNativeFuncBase), true).FirstOrDefault()).Description;
                         }
                         else
                         {
