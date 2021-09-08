@@ -14,19 +14,30 @@ namespace ExMat
     /// </summary>
     public static class ExMat
     {
-        public const string Version = "ExMat v0.0.9";
+        /// <summary>
+        /// Full version
+        /// </summary>
+        public const string Version = "ExMat v0.0.10";
 
-        public const int VersionNumber = 9;
+        /// <summary>
+        /// Version number
+        /// </summary>
+        public const int VersionNumber = 10;
+
+        /// <summary>
+        /// Title of the interactive console
+        /// </summary>
+        public const string ConsoleTitle = "[] ExMat Interactive";
+
+        /// <summary>
+        /// Help information to print at the beginning
+        /// </summary>
+        public const string HelpInfoString = "Use 'help' function to get function documentation";
 
         /// <summary>
         /// String and file terminator character
         /// </summary>
         public const char EndChar = '\0';
-
-        /// <summary>
-        /// Current version no
-        /// </summary>
-        public const string VersionID = "0.0.1";
 
         /// <summary>
         /// Constructor method name for classes
@@ -112,11 +123,6 @@ namespace ExMat
         public const string ReloadBaseLib = "reload_base";
 
         /// <summary>
-        /// Title of the interactive console
-        /// </summary>
-        public const string ConsoleTitle = "[] ExMat Interactive";
-
-        /// <summary>
         /// Maximum length of the echo'd string, used for native functions which calls 'echo' in external terminals
         /// </summary>
         public const int ECHOLIMIT = 8000;
@@ -151,8 +157,77 @@ namespace ExMat
         utc-yday,
         utc-hours = utc-hour = utc-hh = utc-h";
 
-    }
+        /// <summary>
+        /// Type mask information
+        /// <para>  Integer   |   Mask     |   Expected Type</para>
+        /// <para>-------------------------------------</para>
+        /// <para>   -1       |    .       |   Any type</para>
+        /// <para>    0       |    .       |   Any type</para>
+        /// <para>    1       |    e       |   NULL</para>
+        /// <para>    2       |    i       |   INTEGER</para>
+        /// <para>    4       |    f       |   FLOAT</para>
+        /// <para>    8       |    C       |   COMPLEX</para>
+        /// <para>    16      |    b       |   BOOL</para>
+        /// <para>    32      |    s       |   STRING</para>
+        /// <para>    64      |    S       |   SPACE</para>
+        /// <para>    128     |    a       |   ARRAY</para>
+        /// <para>    256     |    d       |   DICT</para>
+        /// <para>    512     |    f       |   CLOSURE</para>
+        /// <para>    1024    |    Y       |   NATIVECLOSURE</para>
+        /// <para>    2048    |    y       |   CLASS</para>
+        /// <para>    4096    |    x       |   INSTANCE</para>
+        /// <para>    8192    |    w       |   WEAKREF</para>
+        /// <para>    6       |    r       |   INTEGER|FLOAT</para>
+        /// <para>    14      |    n       |   INTEGER|FLOAT|COMPLEX</para>
+        /// <para>    1536    |    c       |   CLOSURE|NATIVECLOSURE</para>
+        /// </summary>
+        public static readonly Dictionary<int, char> TypeMasks = new()
+        {
+            { -1, '.' },
+            { 0, '.' },
+            { (int)ExBaseType.NULL, 'e' },
+            { (int)ExBaseType.INTEGER, 'i' },
+            { (int)ExBaseType.FLOAT, 'f' },
+            { (int)ExBaseType.COMPLEX, 'C' },
+            { (int)ExBaseType.BOOL, 'b' },
+            { (int)ExBaseType.STRING, 's' },
+            { (int)ExBaseType.SPACE, 'S' },
+            { (int)ExBaseType.ARRAY, 'a' },
+            { (int)ExBaseType.DICT, 'd' },
+            { (int)ExBaseType.CLOSURE, 'f' },
+            { (int)ExBaseType.NATIVECLOSURE, 'Y' },
+            { (int)ExBaseType.CLASS, 'y' },
+            { (int)ExBaseType.INSTANCE, 'x' },
+            { (int)ExBaseType.WEAKREF, 'w' },
+            { (int)ExBaseType.CLOSURE | (int)ExBaseType.NATIVECLOSURE, 'c' },
+            { (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT, 'r' },
+            { (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT | (int)ExBaseType.COMPLEX, 'n' },
+        };
 
+        /// <summary>
+        /// Standard base library name
+        /// </summary>
+        public const string StandardLibraryName = "base";
+
+        /// <summary>
+        /// Namespace required for a class to be checked for being a standard library 
+        /// </summary>
+        public const string StandardLibraryNameSpace = "ExMat.StdLib";
+
+        /// <summary>
+        /// Delegate registery method for std libs
+        /// </summary>
+        /// <param name="vm">Virtual machine for registery</param>
+        /// <returns><see langword="true"/> if registery was successful, otherwise <see langword="false"/></returns>
+        public delegate bool StdLibRegistery(VM.ExVM vm);
+
+        public static readonly Dictionary<string, string> Assemblies = new()
+        {
+            { "exm", "Entering assembly project" },
+            { "exmat", "Core project" },
+            { "exmatstdlib", "Built-in standard libraries" },
+        };
+    }
 
     /// <summary>
     /// Base/raw object types, use one of these to create <see cref="ExObjType"/> types with <see cref="ExObjFlag"/> flags
