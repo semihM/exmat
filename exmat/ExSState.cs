@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using ExMat.API;
-using ExMat.BaseLib;
 using ExMat.Closure;
 using ExMat.Objects;
 using ExMat.VM;
@@ -72,7 +71,7 @@ namespace ExMat.States
                 CreateMetaMethod(i);
             }
 
-            List<ExNativeFunc> delegs = ExApi.GetDelegateNativeFunctions(typeof(ExBaseLib));
+            List<ExNativeFunc> delegs = ExApi.FindDelegateNativeFunctions();
 
             DictDelegate.Assign(GetDelegateDictionary(this, delegs, 'd'));
             ClassDelegate.Assign(GetDelegateDictionary(this, delegs, 'y'));

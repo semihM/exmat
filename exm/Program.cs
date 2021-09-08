@@ -247,7 +247,7 @@ namespace ExMat
         {
             ActiveVM = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
             ActiveVM.ActiveThread = ActiveThread;
-            
+
             if (!ExApi.RegisterStdLibraries(ActiveVM)) // Standard kütüphaneler
             {
                 return false;

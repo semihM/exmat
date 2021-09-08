@@ -7,7 +7,6 @@ using System.Numerics;
 using System.Text;
 using System.Threading;
 using ExMat.API;
-using ExMat.BaseLib;
 using ExMat.Class;
 using ExMat.Closure;
 using ExMat.FuncPrototype;
@@ -231,6 +230,11 @@ namespace ExMat.VM
             return ExFunctionStatus.ERROR;
         }
 
+        public ExFunctionStatus AddToErrorMessage(string format, params object[] msgs)
+        {
+            return AddToErrorMessage(string.Format(format, msgs));
+        }
+
         public void Throw(string msg, ExVM vm = null)
         {
             ExApi.Throw(msg, vm ?? this);
@@ -287,8 +291,6 @@ namespace ExMat.VM
             ExUtils.InitList(ref CallStack, AllocatedCallSize);
             // Global tabloyu oluştur
             RootDictionary = new(new Dictionary<string, ExObject>());
-            // Standart kütüphaneyi kaydet
-            ExBaseLib.RegisterStdBase(this);
         }
 
         /// <summary>
@@ -842,7 +844,10 @@ namespace ExMat.VM
         {
             return Stack[StackBase];
         }
-
+        public ExNativeClosure GetRootClosure()
+        {
+            return Stack[StackBase - 1].GetNClosure();
+        }
         public long GetPositiveIntegerArgument(int idx, long defaultVal = 1)
         {
             long val = GetArgument(idx).GetInt();
@@ -1197,7 +1202,7 @@ namespace ExMat.VM
                     {
                         if (raise)
                         {
-                            AddToErrorMessage("can't use 'CLUSTER' or 'SPACE' as an argument for parameter " + i);
+                            AddToErrorMessage("can't use 'CLUSTER' or 'SPACE' as an argument for parameter {0}", i);
                         }
                         return false;
                     }
@@ -1207,7 +1212,7 @@ namespace ExMat.VM
                         {
                             if (raise)
                             {
-                                AddToErrorMessage("expected " + space.Dimension + " dimensions for parameter " + i);
+                                AddToErrorMessage("expected {0} dimensions for parameter {1}", space.Dimension, i);
                             }
                             return false;
                         }
@@ -1234,7 +1239,7 @@ namespace ExMat.VM
                                         {
                                             if (raise)
                                             {
-                                                AddToErrorMessage("expected real or complex numbers for parameter " + i);
+                                                AddToErrorMessage("expected real or complex numbers for parameter {0}", i);
                                             }
                                             return false;
                                         }
@@ -1257,7 +1262,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected numeric positive non-zero values for parameter " + i);
+                                                            AddToErrorMessage("expected numeric positive non-zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1272,7 +1277,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected numeric negative non-zero values for parameter " + i);
+                                                            AddToErrorMessage("expected numeric negative non-zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1287,7 +1292,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected numeric non-zero values for parameter " + i);
+                                                            AddToErrorMessage("expected numeric non-zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1318,7 +1323,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected numeric positive or zero values for parameter " + i);
+                                                            AddToErrorMessage("expected numeric positive or zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1333,7 +1338,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected numeric negative or zero values for parameter " + i);
+                                                            AddToErrorMessage("expected numeric negative or zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1348,7 +1353,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected numeric values for parameter " + i);
+                                                            AddToErrorMessage("expected numeric values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1378,7 +1383,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected integer positive or zero values for parameter " + i);
+                                                            AddToErrorMessage("expected integer positive or zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1393,7 +1398,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected integer negative or zero values for parameter " + i);
+                                                            AddToErrorMessage("expected integer negative or zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1408,7 +1413,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected integer values for parameter " + i);
+                                                            AddToErrorMessage("expected integer values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1438,7 +1443,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected integer positive non-zero values for parameter " + i);
+                                                            AddToErrorMessage("expected integer positive non-zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1453,7 +1458,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected integer negative non-zero values for parameter " + i);
+                                                            AddToErrorMessage("expected integer negative non-zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1468,7 +1473,7 @@ namespace ExMat.VM
                                                     {
                                                         if (raise)
                                                         {
-                                                            AddToErrorMessage("expected integer non-zero values for parameter " + i);
+                                                            AddToErrorMessage("expected integer non-zero values for parameter {0}", i);
                                                         }
                                                         return false;
                                                     }
@@ -1495,7 +1500,7 @@ namespace ExMat.VM
                         {
                             if (raise)
                             {
-                                AddToErrorMessage("expected " + space.Dimension + " dimensions for parameter " + i);
+                                AddToErrorMessage("expected {0} dimensions for parameter {1}", space.Dimension, i);
                             }
                             return false;
                         }
@@ -1522,7 +1527,7 @@ namespace ExMat.VM
                         {
                             if (raise)
                             {
-                                AddToErrorMessage("expected non-complex number for parameter " + i);
+                                AddToErrorMessage("expected non-complex number for parameter {0}", i);
                             }
                             return false;
                         }
@@ -1534,7 +1539,7 @@ namespace ExMat.VM
                         {
                             if (raise)
                             {
-                                AddToErrorMessage("expected " + space.Dimension + " dimensions for parameter " + i);
+                                AddToErrorMessage("expected {0} dimensions for parameter {1}", space.Dimension, i);
                             }
                             return false;
                         }
@@ -1568,7 +1573,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected numeric positive non-zero value for parameter " + i);
+                                                        AddToErrorMessage("expected numeric positive non-zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1580,7 +1585,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected numeric negative non-zero value for parameter " + i);
+                                                        AddToErrorMessage("expected numeric negative non-zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1593,7 +1598,7 @@ namespace ExMat.VM
 
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected numeric non-zero value for parameter " + i);
+                                                        AddToErrorMessage("expected numeric non-zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1620,7 +1625,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected numeric positive or zero value for parameter " + i);
+                                                        AddToErrorMessage("expected numeric positive or zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1632,7 +1637,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected numeric negative or zero value for parameter " + i);
+                                                        AddToErrorMessage("expected numeric negative or zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1663,7 +1668,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected integer positive or zero value for parameter " + i);
+                                                        AddToErrorMessage("expected integer positive or zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1675,7 +1680,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected integer negative or zero value for parameter " + i);
+                                                        AddToErrorMessage("expected integer negative or zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1687,7 +1692,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected integer value for parameter " + i);
+                                                        AddToErrorMessage("expected integer value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1714,7 +1719,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected integer positive non-zero value for parameter " + i);
+                                                        AddToErrorMessage("expected integer positive non-zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1726,7 +1731,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected integer negative non-zero value for parameter " + i);
+                                                        AddToErrorMessage("expected integer negative non-zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -1738,7 +1743,7 @@ namespace ExMat.VM
                                                 {
                                                     if (raise)
                                                     {
-                                                        AddToErrorMessage("expected integer non-zero value for parameter " + i);
+                                                        AddToErrorMessage("expected integer non-zero value for parameter {0}", i);
                                                     }
                                                     return false;
                                                 }
@@ -3935,7 +3940,7 @@ namespace ExMat.VM
 
             if (!isUsingIn)
             {
-                AddToErrorMessage(string.Format("can't index '{0}' with '{1}'", isNative ? "NATIVECLOSURE" : "CLOSURE", key.Type.ToString()));
+                AddToErrorMessage("can't index '{0}' with '{1}'", isNative ? "NATIVECLOSURE" : "CLOSURE", key.Type.ToString());
             }
             return ExGetterStatus.ERROR;
         }

@@ -32,7 +32,7 @@ namespace ExMat.Objects
         /// <param name="name">Name of the native function user will refer this method as</param>
         /// <param name="returns">What type of values this function can return ?</param>
         /// <param name="docs">Explanation for this function's purpose</param>
-        /// <param name="basetype">Base object type this function will be a delegate of, refer to <see cref="API.ExApi.CompileTypeChar(char)"/> method</param>
+        /// <param name="basetype">Base object type this function will be a delegate of, refer to <see cref="ExMat.TypeMasks"/> method</param>
         public ExNativeFuncDelegate(string name, ExBaseType returns, string docs, char basetype)
         {
             Name = name;
