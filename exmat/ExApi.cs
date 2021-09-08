@@ -18,7 +18,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace ExMat.API
 {
     /// <summary>
-    /// A middle-ground class for accessing mostly <see cref="ExVM"/> related methods easier
+    /// A middle-ground class for <see cref="ExVM"/> and standard library registeration related methods
     /// </summary>
     public static class ExApi
     {
@@ -33,6 +33,20 @@ namespace ExMat.API
                         .GetMethods()
                         .Where(m => Attribute.IsDefined(m, typeof(ExNativeFuncBase)) && !Attribute.IsDefined(m, typeof(ExNativeFuncDelegate)))
                         .Select(n => new ExNativeFunc((ExNativeFunc.FunctionRef)Delegate.CreateDelegate(typeof(ExNativeFunc.FunctionRef), n))));
+        }
+
+        /// <summary>
+        /// Find all methods with <see cref="ExNativeFuncDelegate"/> attribute defined in the current assembly
+        /// </summary>
+        /// <returns>List of native delegate functions found in the assembly</returns>
+        public static List<ExNativeFunc> FindDelegateNativeFunctions()
+        {
+            List<ExNativeFunc> funcs = new();
+            foreach (Type lib in GetStandardLibraryTypes(GetAllAssemblies()))
+            {
+                funcs.AddRange(GetDelegateNativeFunctions(lib));
+            }
+            return funcs;
         }
 
         /// <summary>
@@ -756,6 +770,10 @@ namespace ExMat.API
             if ((r = FindNativeFunction(vm, fs, name)) != null)
             {
                 RegisterNativeFunction(vm, r, libtype);
+                if (pop)
+                {
+                    vm.Pop();
+                }
                 return true;
             }
             if (pop)
@@ -785,15 +803,172 @@ namespace ExMat.API
         }
 
         /// <summary>
-        /// Get the <see cref="ExStdLibType"/> representation of a standard library
+        /// Invoke <see cref="IExStdLib.Register(ExVM)"/> of given type on given virtual machine
+        /// </summary>
+        /// <param name="vm">Virtual machine to invoke the method with</param>
+        /// <param name="type">Standard library type</param>
+        /// <returns><see cref="ExFunctionStatus.SUCCESS"/> on success, <see cref="ExFunctionStatus.ERROR"/> otherwise</returns>
+        public static ExFunctionStatus InvokeRegisterOnStdLib(ExVM vm, Type type)
+        {
+            if (!Attribute.IsDefined(type, typeof(ExStdLibRegister)))
+            {
+                return vm.AddToErrorMessage("Library '{0}' doesn't define a ExStdLibRegister attribute!", ((ExStdLibName)type.GetCustomAttribute(typeof(ExStdLibName))).Name);
+            }
+
+            ExMat.StdLibRegistery registery = GetStdLibraryRegisteryMethod(type);
+            if (registery == null)
+            {
+                return vm.AddToErrorMessage("Library '{0}' registery method named '{1}' is not valid. It has to use the delegate 'ExMat.StdLibRegistery(ExVM vm)'", ((ExStdLibName)type.GetCustomAttribute(typeof(ExStdLibName))).Name, GetStdLibraryRegisteryName(type));
+            }
+            else
+            {
+                if (registery(vm))
+                {
+                    return ExFunctionStatus.SUCCESS;
+                }
+                return vm.AddToErrorMessage("something went wrong...");
+            }
+        }
+
+        /// <summary>
+        /// Get all assemblies defined in <see cref="ExMat.Assemblies"/> into an array
+        /// </summary>
+        /// <returns>An array of assembly information</returns>
+        public static Assembly[] GetAllAssemblies()
+        {
+            return ExMat.Assemblies.Select(p => Assembly.Load(p.Key)).ToArray();
+        }
+
+        /// <summary>
+        /// Register std libs from given assembly
+        /// </summary>
+        /// <param name="vm">Virtual machine to register libraries to<param>
+        public static bool RegisterStdLibraries(ExVM vm) // TO-DO Allow plugins/external libraries
+        {
+            try
+            {
+                foreach (Type lib in GetStandardLibraryTypes(GetAllAssemblies()))
+                {
+                    ExFunctionStatus status = InvokeRegisterOnStdLib(vm, lib);
+                    if (status == ExFunctionStatus.ERROR)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception err)
+            {
+                vm.AddToErrorMessage("Failed to load assemblies: {0}", err.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get all types defined in the executing assembly
+        /// </summary>
+        /// <returns>List of types defined in assembly</returns>
+        public static List<Type> GetTypesFromAssemblies()
+        {
+            return new(Assembly.GetExecutingAssembly().GetTypes());
+        }
+
+        public static List<Type> GetStandardLibraryTypes()
+        {
+            return GetStandardLibraryTypes(null);
+        }
+
+        /// <summary>
+        /// Get standard libraries defined in current assembly
+        /// </summary>
+        /// <param name="asm"></param>
+        /// <returns>List of std lib types</returns>
+        public static List<Type> GetStandardLibraryTypes(params Assembly[] asm)
+        {
+            List<Type> types = GetTypesFromAssemblies();
+            if (asm != null)
+            {
+                foreach (Assembly a in asm)
+                {
+                    types.AddRange(a.GetTypes());
+                }
+            }
+
+            return new(types
+                       .Where(t => t.IsClass
+                                && string.Equals(t.Namespace, ExMat.StandardLibraryNameSpace, StringComparison.Ordinal)
+                                && IsStdLib(t))
+                       .ToArray());
+        }
+
+        /// <summary>
+        /// Get the <see cref="ExStdLibBase"/> representation of a standard library
         /// </summary>
         /// <param name="stdClass">Standard library type object</param>
-        /// <returns>Given stdlib type's <see cref="ExStdLibType"/> representation</returns>
+        /// <returns>Given stdlib type's <see cref="ExStdLibBase"/> representation</returns>
         public static ExStdLibType GetLibraryTypeFromStdClass(Type stdClass)
         {
-            return Attribute.IsDefined(stdClass, typeof(ExStdLib))
-                ? ((ExStdLib)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLib)).Type
+            return IsStdLib(stdClass)
+                ? ((ExStdLibBase)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLibBase)).Type
                 : 0;
+        }
+
+        /// <summary>
+        /// Get the <see cref="ExStdLibName"/> name of a standard library
+        /// </summary>
+        /// <param name="stdClass">Standard library type object</param>
+        /// <returns>Given stdlib type's <see cref="ExStdLibName"/> name or <see cref="string.Empty"/> if attribute doesn't exist</returns>
+        public static string GetLibraryNameFromStdClass(Type stdClass)
+        {
+            return IsStdLib(stdClass)
+                ? ((ExStdLibName)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLibName)).Name
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Get the <see cref="ExStdLibName"/> named registery method of a standard library which is stored in a <see cref="ExMat.StdLibRegistery"/> delegate property
+        /// </summary>
+        /// <param name="stdClass">Standard library type object</param>
+        /// <returns>Given stdlib type's <see cref="ExMat.StdLibRegistery"/> property with <see cref="ExStdLibRegister"/> name or <see langword="null"/> if it doesn't exist</returns>
+        public static ExMat.StdLibRegistery GetStdLibraryRegisteryMethod(Type stdClass)
+        {
+            string regname = GetStdLibraryRegisteryName(stdClass);
+
+            if (string.IsNullOrWhiteSpace(regname))
+            {
+                return null;
+            }
+            else
+            {
+                PropertyInfo pi = stdClass.GetProperty(regname);
+                if (pi == null)
+                {
+                    return null;
+                }
+                return (ExMat.StdLibRegistery)pi.GetValue(pi);
+            }
+        }
+
+        /// <summary>
+        /// Get the <see cref="ExStdLibRegister.RegisterMethodName"/> of a standard library 
+        /// </summary>
+        /// <param name="stdClass">Standard library type object</param>
+        /// <returns>Given stdlib type's <see cref="ExStdLibName"/> name or <see cref="string.Empty"/> if attribute doesn't exist/returns>
+        public static string GetStdLibraryRegisteryName(Type stdClass)
+        {
+            return IsStdLib(stdClass)
+                ? ((ExStdLibRegister)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLibRegister)).RegisterMethodName
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Check if given class has <see cref="ExStdLibName"/> attribute defined
+        /// </summary>
+        /// <param name="stdClass">Class to check</param>
+        /// <returns><see langword="true"/> if <paramref name="stdClass"/> is a std lib, otherwise <see langword="false"/></returns>
+        public static bool IsStdLib(Type stdClass)
+        {
+            return Attribute.IsDefined(stdClass, typeof(ExStdLibName));
         }
 
         /// <summary>
@@ -969,59 +1144,47 @@ namespace ExMat.API
         }
 
         /// <summary>
-        /// Get the integer <see cref="ExBaseType"/> representation of a given character mask. Refer to table below
-        /// <para>    Mask    |   Expected Type</para>
-        /// <para>-------------------------</para>
-        /// <para>    .       |   Any type</para>
-        /// <para>    e       |   NULL</para>
-        /// <para>    i       |   INTEGER</para>
-        /// <para>    f       |   FLOAT</para>
-        /// <para>    C       |   COMPLEX     (Capital c)</para>
-        /// <para>    b       |   BOOL</para>
-        /// <para>    n       |   INTEGER|FLOAT|COMPLEX</para>
-        /// <para>    r       |   INTEGER|FLOAT</para>
-        /// <para>    s       |   STRING</para>
-        /// <para>    d       |   DICT</para>
-        /// <para>    a       |   ARRAY</para>
-        /// <para>    Y       |   NATIVECLOSURE</para>
-        /// <para>    c       |   CLOSURE|NATIVECLOSURE</para>
-        /// <para>    x       |   INSTANCE</para>
-        /// <para>    y       |   CLASS</para>
-        /// <para>    w       |   WEAKREF</para>
-        /// </summary>
+        /// Get the integer <see cref="ExBaseType"/> representation of a given character mask. Refer to <see cref="ExMat.TypeMasks"/>
         /// <param name="c">Character mask</param>
         /// <returns>Integer parsed representation of given mask <paramref name="c"/>
         /// <para> If mask is unknown, returns <see cref="int.MaxValue"/></para></returns>
         private static int CompileTypeChar(char c)
         {
-            switch (c)    // Her bir karakteri incele
+            if (ExMat.TypeMasks.ContainsValue(c))
             {
-                case '.': return 0;
-                case 'e': return (int)ExBaseType.NULL;
-                case 'i': return (int)ExBaseType.INTEGER;
-                case 'f': return (int)ExBaseType.FLOAT;
-                case 'C': return (int)ExBaseType.COMPLEX;
-                case 'b': return (int)ExBaseType.BOOL;
-                case 'r': return (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT;
-                case 'n': return (int)ExBaseType.INTEGER | (int)ExBaseType.FLOAT | (int)ExBaseType.COMPLEX;
-                case 's': return (int)ExBaseType.STRING;
-                case 'd': return (int)ExBaseType.DICT;
-                case 'a': return (int)ExBaseType.ARRAY;
-                case 'Y': return (int)ExBaseType.NATIVECLOSURE;
-                case 'c': return (int)ExBaseType.CLOSURE | (int)ExBaseType.NATIVECLOSURE;
-                case 'x': return (int)ExBaseType.INSTANCE;
-                case 'y': return (int)ExBaseType.CLASS;
-                case 'w': return (int)ExBaseType.WEAKREF;
-                default: return int.MaxValue;  // bilinmeyen maske
+                return ExMat.TypeMasks.FirstOrDefault(p => p.Value == c).Key;
+            }
+            return int.MaxValue;  // bilinmeyen maske
+        }
+
+        private static string DecompileTypeMaskChar(int c)
+        {
+            if (ExMat.TypeMasks.ContainsKey(c))
+            {
+                return ExMat.TypeMasks[c].ToString();
+            }
+            else
+            {
+                int n = Enum.GetNames(typeof(ExBaseType)).Length;
+                List<char> comb = new();
+
+                for (int i = 0; i < n; i++)
+                {
+                    if (((1 << i) & c) > 0 && ExMat.TypeMasks.ContainsKey(i))
+                    {
+                        comb.Add(ExMat.TypeMasks[i]);
+                    }
+                }
+                return string.Join("|", comb);
             }
         }
 
         /// <summary>
         /// Compile a string mask into list of parameter masks for expected types
         /// </summary>
-        /// <param name="mask">String mask for expected types for parameters, refer to <see cref="CompileTypeChar(char)"/> method</param>
+        /// <param name="mask">String mask for expected types for parameters, refer to <see cref="ExMat.TypeMasks)"/> method</param>
         /// <param name="results">Compilation results from <paramref name="mask"/> for each parameter</param>
-        /// <returns></returns>
+        /// <returns><see langword="true"/> if mask was compiled successfully, otherwise <see langword="false"/></returns>
         public static bool CompileTypeMask(string mask, List<int> results)
         {
             int i = 0, m = 0, l = mask.Length;
@@ -1175,6 +1338,21 @@ namespace ExMat.API
             return true;
         }
 
+        public static ExNativeFuncBase GetNativeFunc(MethodBase method)
+        {
+            return (ExNativeFuncBase)method.GetCustomAttributes(typeof(ExNativeFuncBase), true).FirstOrDefault();
+        }
+
+        public static ExNativeParamBase GetNativeParam(MethodBase method, int index)
+        {
+            return (ExNativeParamBase)method.GetCustomAttributes(typeof(ExNativeParamBase), true).FirstOrDefault(a => a is ExNativeParamBase p && p.Index == index);
+        }
+
+        public static ExObject GetNativeParamDefault(MethodBase method, int index)
+        {
+            return ((ExNativeParamBase)method.GetCustomAttributes(typeof(ExNativeParamBase), true).FirstOrDefault(a => a is ExNativeParamBase p && p.Index == index)).DefaultValue;
+        }
+
         /// <summary>
         /// Set parameter checks for the native function on top of the stack of <paramref name="vm"/>
         /// </summary>
@@ -1247,7 +1425,6 @@ namespace ExMat.API
                 o.GetNClosure().Documentation = CreateDocStringFromRegFunc(reg, o.GetNClosure().TypeMasks.Count == 0);
                 o.GetNClosure().Summary = reg.Description;
                 o.GetNClosure().Returns = reg.ReturnsType;
-                // TO-DO Maybe add reference to 'reg' instead of doing this ?
             }
         }
 
@@ -1559,9 +1736,11 @@ namespace ExMat.API
         /// Push the roottable to virtual machine's stack
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
-        public static void PushRootTable(ExVM vm)
+        /// <returns>Always returns <see langword="true"/></returns>
+        public static bool PushRootTable(ExVM vm)
         {
             vm.Push(vm.RootDictionary);
+            return true;
         }
 
         /// <summary>
@@ -1729,27 +1908,34 @@ namespace ExMat.API
                     && vm.GetAbove(-1).IsNotNull();
         }
 
+        private static string FitConsoleString(int width, string source)
+        {
+            int slen = source.Length;
+            return "/" + new string(' ', (width - slen) / 2) + source + new string(' ', ((width - slen) / 2) + (slen % 2 == 1 ? 1 : 0)) + "/\n";
+        }
+
         /// <summary>
         /// Writes version and program info in different colors
         /// </summary>
         /// <param name="vm">Virtual machine to get information from</param>
-        public static void WriteVersion(ExVM vm)
+        public static void WriteInfoString(ExVM vm)
         {
-            string version = vm.RootDictionary.GetDict()["_version_"].GetString();
+            string version = vm.RootDictionary.GetDict().ContainsKey("_version_")
+                ? vm.RootDictionary.GetDict()["_version_"].GetString()
+                : "<UNKNOWN_VERSION>";
+
             string date = DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString();
-            int width = 60;
-            int vlen = version.Length;
-            int dlen = date.Length;
+
+            int width = 120;
 
             Console.BackgroundColor = ConsoleColor.DarkBlue;
 
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine(new string('/', width + 2));
-            Console.Write("/");
 
-            Console.Write(new string(' ', (width - vlen) / 2) + version + new string(' ', ((width - vlen) / 2) + (vlen % 2 == 1 ? 1 : 0)));
-            Console.WriteLine("/");
-            Console.Write("/" + new string(' ', (width - dlen) / 2) + date + new string(' ', ((width - dlen) / 2) + (dlen % 2 == 1 ? 1 : 0)) + "/\n");
+            Console.Write(FitConsoleString(width, version));
+            Console.Write(FitConsoleString(width, date));
+            Console.Write(FitConsoleString(width, ExMat.HelpInfoString));
 
             Console.WriteLine(new string('/', width + 2));
 
