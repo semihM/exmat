@@ -8,6 +8,10 @@ namespace ExMat
     public enum ExStdLibType
     {
         /// <summary>
+        /// External custom library
+        /// </summary>
+        EXTERNAL,
+        /// <summary>
         /// Base library
         /// </summary>
         BASE,
@@ -34,11 +38,11 @@ namespace ExMat
     }
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class ExStdLib : Attribute
+    public class ExStdLibBase : Attribute
     {
         public ExStdLibType Type;
 
-        public ExStdLib(ExStdLibType type)
+        public ExStdLibBase(ExStdLibType type)
         {
             Type = type;
         }
