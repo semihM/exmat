@@ -34,7 +34,11 @@ namespace ExMat
         /// <summary>
         /// System library
         /// </summary>
-        SYSTEM
+        SYSTEM,
+        /// <summary>
+        /// Statistics library
+        /// </summary>
+        STATISTICS
     }
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
