@@ -22,7 +22,7 @@ namespace ExMat.StdLib
         public static ExFunctionStatus StdHelp(ExVM vm, int nargs)
         {
             ExObject o = nargs >= 1 ? vm.GetArgument(1) : new();
-            bool print = nargs >= 2 ? vm.GetArgument(2).GetBool() : true;
+            bool print = nargs < 2 || vm.GetArgument(2).GetBool();
             string docs;
             switch (o.Type)
             {
