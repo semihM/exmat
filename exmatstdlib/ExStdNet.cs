@@ -12,9 +12,11 @@ using HtmlAgilityPack;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ExMat.BaseLib
+namespace ExMat.StdLib
 {
-    [ExStdLib(ExStdLibType.NETWORK)]
+    [ExStdLibBase(ExStdLibType.NETWORK)]
+    [ExStdLibName("network")]
+    [ExStdLibRegister(nameof(Registery))]
     public static class ExStdNet
     {
         #region UTILITY
@@ -251,13 +253,13 @@ namespace ExMat.BaseLib
             }
         }
 
-        [ExNativeFuncBase("has_network", "Check if there is any network connection currently 'up'.")]
+        [ExNativeFuncBase("has_network", ExBaseType.BOOL, "Check if there is any network connection currently 'up'.")]
         public static ExFunctionStatus StdNetHasNetwork(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, NetworkInterface.GetIsNetworkAvailable());
         }
 
-        [ExNativeFuncBase("ip_config", "Get a list of dictionaries containing adapter and network information")]
+        [ExNativeFuncBase("ip_config", ExBaseType.ARRAY, "Get a list of dictionaries containing adapter and network information")]
         public static ExFunctionStatus StdNetIPConfig(ExVM vm, int nargs)
         {
             NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
@@ -317,11 +319,11 @@ namespace ExMat.BaseLib
         #endregion
 
         // MAIN
-        public static bool RegisterStdNet(ExVM vm)
+        public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
             ExApi.RegisterNativeFunctions(vm, typeof(ExStdNet));
 
             return true;
-        }
+        };
     }
 }

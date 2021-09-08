@@ -7,9 +7,11 @@ using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.VM;
 
-namespace ExMat.BaseLib
+namespace ExMat.StdLib
 {
-    [ExStdLib(ExStdLibType.STRING)]
+    [ExStdLibBase(ExStdLibType.STRING)]
+    [ExStdLibName("string")]
+    [ExStdLibRegister(nameof(Registery))]
     public static class ExStdString
     {
         #region UTILITY
@@ -244,11 +246,12 @@ namespace ExMat.BaseLib
         #endregion
 
         // MAIN
-        public static bool RegisterStdString(ExVM vm)
+
+        public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
             ExApi.RegisterNativeFunctions(vm, typeof(ExStdString));
 
             return true;
-        }
+        };
     }
 }

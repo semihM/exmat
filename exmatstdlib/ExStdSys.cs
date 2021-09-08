@@ -9,9 +9,11 @@ using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
 
-namespace ExMat.BaseLib
+namespace ExMat.StdLib
 {
-    [ExStdLib(ExStdLibType.SYSTEM)]
+    [ExStdLibBase(ExStdLibType.SYSTEM)]
+    [ExStdLibName("system")]
+    [ExStdLibRegister(nameof(Registery))]
     public static class ExStdSys
     {
         #region UTILITY
@@ -58,6 +60,11 @@ namespace ExMat.BaseLib
 
         private static Dictionary<string, ExObject> GetProcessData(Process p)
         {
+            if (p == null)
+            {
+                return null;
+            }
+
             Dictionary<string, ExObject> dict;
             dict = new()
             {
@@ -132,7 +139,7 @@ namespace ExMat.BaseLib
             }
         }
 
-        [ExNativeFuncBase("get_processes", "Get a list of dictionaries containing information about processes currently active on the machine.")]
+        [ExNativeFuncBase("get_processes", ExBaseType.ARRAY, "Get a list of dictionaries containing information about processes currently active on the machine.")]
         public static ExFunctionStatus StdSysGetProcesses(ExVM vm, int nargs)
         {
             try
@@ -287,7 +294,7 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, true);
         }
 
-        [ExNativeFuncBase("env_info", "Get information about the runtime and the current enviroment in a dictionary")]
+        [ExNativeFuncBase("env_info", ExBaseType.DICT, "Get information about the runtime and the current enviroment in a dictionary")]
         public static ExFunctionStatus StdSysEnvInfo(ExVM vm, int nargs)
         {
             Dictionary<string, ExObject> info = new()
@@ -296,6 +303,7 @@ namespace ExMat.BaseLib
                 { "curr_dir", new(Environment.CurrentDirectory) },
                 { "sys_dir", new(Environment.SystemDirectory) },
                 { "is_64bit", new(Environment.Is64BitOperatingSystem) },
+                { "processor_count", new(Environment.ProcessorCount) },
                 { "machine_name", new(Environment.MachineName) },
                 { "user_name", new(Environment.UserName) },
                 { "user_domain", new(Environment.UserDomainName) },
@@ -309,8 +317,7 @@ namespace ExMat.BaseLib
                 { "clr_dir", new(RuntimeEnvironment.GetRuntimeDirectory()) },
                 { "clr_version", new(RuntimeEnvironment.GetSystemVersion()) },
                 { "logic_drives", new(ExApi.ListObjFromStringArray(Environment.GetLogicalDrives())) },
-                { "process_id", new(Environment.ProcessId) },
-                { "process_count", new(Environment.ProcessorCount) },
+                { "process_id", new(Environment.ProcessId) }
             };
             return vm.CleanReturn(nargs + 2, info);
         }
@@ -395,7 +402,7 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, true);
         }
 
-        [ExNativeFuncBase("can_beep", "Check if the console beep function is available.")]
+        [ExNativeFuncBase("can_beep", ExBaseType.BOOL, "Check if the console beep function is available.")]
         public static ExFunctionStatus StdSysConsoleCanBeep(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, ExApi.CanBeep());
@@ -458,12 +465,11 @@ namespace ExMat.BaseLib
         #endregion
 
         // MAIN
-
-        public static bool RegisterStdSys(ExVM vm)
+        public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
             ExApi.RegisterNativeFunctions(vm, typeof(ExStdSys));
 
             return true;
-        }
+        };
     }
 }

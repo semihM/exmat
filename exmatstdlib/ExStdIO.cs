@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Linq;
 using System.Text;
 using ClosedXML.Excel;
 using ExcelDataReader;
@@ -11,9 +12,11 @@ using ExMat.VM;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ExMat.BaseLib
+namespace ExMat.StdLib
 {
-    [ExStdLib(ExStdLibType.IO)]
+    [ExStdLibBase(ExStdLibType.IO)]
+    [ExStdLibName("io")]
+    [ExStdLibRegister(nameof(Registery))]
     public static class ExStdIO
     {
         #region UTILITY
@@ -207,6 +210,38 @@ namespace ExMat.BaseLib
                 res = s.ToString();
             }
         }
+
+
+        /// <summary>
+        /// Get std library <see cref="Type"/> from it's name.
+        /// </summary>
+        /// <param name="vm">Virtual machine to report errors to</param>
+        /// <param name="lib">Library name to search for. Doesn't allow <see cref="ExMat.StandardLibraryName"/>.</param>
+        /// <param name="type">Output type, if nothing matched, gets <see langword="null"/></param>
+        /// <returns><see cref="ExFunctionStatus.SUCCESS"/> on success, otherwise <see cref="ExFunctionStatus.ERROR"/> with error messages written to <paramref name="vm"/></returns>
+        private static ExFunctionStatus GetStdTypeFromString(ExVM vm, string lib, out Type type) // TO-DO maybe move this to API ?
+        {
+            type = null;
+            List<Type> libs = ExApi.GetStandardLibraryTypes();
+
+            List<string> libnames = new(libs.Select(t => ExApi.GetLibraryNameFromStdClass(t)));
+
+            int idx = libnames.IndexOf(lib);
+            if (idx == -1 && (idx = libnames.IndexOf(lib.ToLower())) == -1)
+            {
+                return vm.AddToErrorMessage("Unknown library: {0}", lib);
+            }
+            else
+            {
+                if (libnames[idx] == ExMat.StandardLibraryName)
+                {
+                    return vm.AddToErrorMessage("use '{0}' function to reload the std base functions", ExMat.ReloadBaseLib);
+                }
+
+                type = libs[idx];
+                return ExFunctionStatus.SUCCESS;
+            }
+        }
         #endregion
 
         #region IO FUNCTIONS
@@ -349,14 +384,14 @@ namespace ExMat.BaseLib
 
             Encoding e = ExApi.DecideEncodingFromString(enc);
 
-            int n = lis.Value.l_List.Count;
+            int n = lis.GetList().Count;
 
             string[] lines = new string[n];
 
             for (int l = 0; l < n; l++)
             {
                 ExObject line = new();
-                vm.ToString(lis.Value.l_List[l], ref line);
+                vm.ToString(lis.GetList()[l], ref line);
                 lines[l] = line.GetString();
             }
 
@@ -378,7 +413,7 @@ namespace ExMat.BaseLib
         {
             string i = vm.GetArgument(1).GetString();
             ExObject lis = vm.GetArgument(2);
-            int n = lis.Value.l_List.Count;
+            int n = lis.GetList().Count;
 
             byte[] bytes = new byte[n];
 
@@ -386,9 +421,9 @@ namespace ExMat.BaseLib
             {
                 ExObject b = new();
 
-                if (!ExApi.ToInteger(vm, lis.Value.l_List[l], ref b))
+                if (!ExApi.ToInteger(vm, lis.GetList()[l], ref b))
                 {
-                    return vm.AddToErrorMessage(string.Format("Failed to convert '{0}' to byte", ExApi.GetSimpleString(lis.Value.l_List[l])));
+                    return vm.AddToErrorMessage("Failed to convert '{0}' to byte", ExApi.GetSimpleString(lis.GetList()[l]));
                 }
 
                 bytes[l] = Convert.ToByte(b.GetInt());
@@ -453,14 +488,14 @@ namespace ExMat.BaseLib
 
             Encoding e = ExApi.DecideEncodingFromString(enc);
 
-            int n = lis.Value.l_List.Count;
+            int n = lis.GetList().Count;
 
             string[] lines = new string[n];
 
             for (int l = 0; l < n; l++)
             {
                 ExObject line = new();
-                vm.ToString(lis.Value.l_List[l], ref line);
+                vm.ToString(lis.GetList()[l], ref line);
                 lines[l] = line.GetString();
             }
 
@@ -610,7 +645,7 @@ namespace ExMat.BaseLib
                 cd = vm.GetArgument(1).GetString();
                 if (!Directory.Exists(cd))
                 {
-                    return vm.AddToErrorMessage(cd + " path doesn't exist");
+                    return vm.AddToErrorMessage("Path '{0}' doesn't exist", cd);
                 }
             }
             else
@@ -669,7 +704,7 @@ namespace ExMat.BaseLib
                 {
                     if (!File.Exists(fname + ".exmat"))
                     {
-                        return vm.AddToErrorMessage(fname + " file doesn't exist");
+                        return vm.AddToErrorMessage("File '{0}' doesn't exist", fname);
                     }
                     fname += ".exmat";
                 }
@@ -701,108 +736,33 @@ namespace ExMat.BaseLib
         public static ExFunctionStatus IoReloadlib(ExVM vm, int nargs)
         {
             string lname = vm.GetArgument(1).GetString();
-            string fname = null;
+
+            if (GetStdTypeFromString(vm, lname, out Type type) == ExFunctionStatus.ERROR)
+            {
+                return ExFunctionStatus.ERROR;
+            }
+
             if (nargs == 2)
             {
-                fname = vm.GetArgument(2).GetString();
+                string fname = vm.GetArgument(2).GetString();
+                if (fname != ExMat.ReloadLibFunc)
+                {
+                    ExApi.PushRootTable(vm);
+                    if (!ExApi.ReloadNativeFunction(vm, type, fname, true))
+                    {
+                        return vm.AddToErrorMessage("unknown IO function {0}", fname);
+                    }
+                }
             }
-            switch (lname.ToLower())
+            else
             {
-                case "std":
-                    {
-                        return vm.AddToErrorMessage("use '" + ExMat.ReloadBaseLib + "' function to reload the std base functions");
-                    }
-                case "io":
-                    {
-                        if (nargs == 2)
-                        {
-                            if (fname != ExMat.ReloadLibFunc)
-                            {
-                                ExApi.PushRootTable(vm);
-                                if (!ExApi.ReloadNativeFunction(vm, typeof(ExStdIO), fname, true))
-                                {
-                                    return vm.AddToErrorMessage(string.Format("unknown IO function {0}", fname));
-                                }
-                            }
-                        }
-                        else if (!RegisterStdIO(vm))
-                        {
-                            break;
-                        }
-                        return vm.CleanReturn(nargs + 2, true);
-                    }
-                case "math":
-                    {
-                        if (nargs == 2)
-                        {
-                            ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, typeof(ExStdMath), fname, true))
-                            {
-                                return vm.AddToErrorMessage(string.Format("unknown Math function {0}", fname));
-                            }
-                        }
-                        else if (!ExStdMath.RegisterStdMath(vm))
-                        {
-                            break;
-                        }
-                        return vm.CleanReturn(nargs + 2, true);
-                    }
-                case "string":
-                    {
-                        if (nargs == 2)
-                        {
-                            ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, typeof(ExStdString), fname, true))
-                            {
-                                return vm.AddToErrorMessage(string.Format("unknown String function {0}", fname));
-                            }
-                        }
-                        else if (!ExStdString.RegisterStdString(vm))
-                        {
-                            break;
-                        }
-                        return vm.CleanReturn(nargs + 2, true);
-                    }
-                case "sys":
-                    {
-                        if (nargs == 2)
-                        {
-                            ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, typeof(ExStdSys), fname, true))
-                            {
-                                return vm.AddToErrorMessage(string.Format("unknown Sys function {0}", fname));
-                            }
-                        }
-                        else if (!ExStdSys.RegisterStdSys(vm))
-                        {
-                            break;
-                        }
-                        return vm.CleanReturn(nargs + 2, true);
-                    }
-                case "net":
-                    {
-                        if (nargs == 2)
-                        {
-                            ExApi.PushRootTable(vm);
-                            if (!ExApi.ReloadNativeFunction(vm, typeof(ExStdNet), fname, true))
-                            {
-                                return vm.AddToErrorMessage(string.Format("unknown Net function {0}", fname));
-                            }
-                        }
-                        else if (!ExStdNet.RegisterStdNet(vm))
-                        {
-                            break;
-                        }
-                        return vm.CleanReturn(nargs + 2, true);
-                    }
-
-                default:
-                    {
-                        return vm.AddToErrorMessage("Unknown library: " + lname);
-                    }
+                if (ExApi.InvokeRegisterOnStdLib(vm, type) == ExFunctionStatus.ERROR)
+                {
+                    return ExFunctionStatus.ERROR;
+                }
             }
 
-            return vm.AddToErrorMessage("something went wrong...");
+            return vm.CleanReturn(nargs + 2, true);
         }
 
         [ExNativeFuncBase(ExMat.ReloadLibFunc, ExBaseType.BOOL, "Reload a standard library")]
@@ -811,23 +771,22 @@ namespace ExMat.BaseLib
         {
             string fname = vm.GetArgument(1).GetString();
 
-            ExApi.PushRootTable(vm);
+            List<Type> libs = ExApi.GetStandardLibraryTypes();
+            bool found = false;
 
-            if (fname != ExMat.ReloadLibFunc
-                && fname != ExMat.ReloadLib
-                && ExApi.ReloadNativeFunction(vm, typeof(ExStdIO), fname, true))
+            foreach (Type lib in libs)
             {
-                return ExFunctionStatus.VOID;
-            }
-            else if (ExApi.ReloadNativeFunction(vm, typeof(ExStdMath), fname, true)
-                || ExApi.ReloadNativeFunction(vm, typeof(ExStdString), fname, true)
-                || ExApi.ReloadNativeFunction(vm, typeof(ExStdSys), fname, true)
-                || ExApi.ReloadNativeFunction(vm, typeof(ExStdNet), fname, true))
-            {
-                return ExFunctionStatus.VOID;
+                ExApi.PushRootTable(vm);
+                if (ExApi.ReloadNativeFunction(vm, lib, fname, true))
+                {
+                    found = true;
+                    break;
+                }
             }
 
-            return vm.AddToErrorMessage("couldn't find a native function named '" + fname + "', try 'reload_base' function");
+            return found
+                    ? vm.CleanReturn(nargs + 2, true)
+                    : vm.AddToErrorMessage("couldn't find a native function named '" + fname + "', try 'reload_base' function");
         }
 
         [ExNativeFuncBase("read_excel", ExBaseType.BOOL, "Read an '.xslx' worksheet into a list of dictionaries with sheet names and list of lists")]
@@ -962,7 +921,8 @@ namespace ExMat.BaseLib
         #endregion
 
         // MAIN
-        public static bool RegisterStdIO(ExVM vm)
+
+        public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
             // For read_excel
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
@@ -970,6 +930,6 @@ namespace ExMat.BaseLib
             ExApi.RegisterNativeFunctions(vm, typeof(ExStdIO));
 
             return true;
-        }
+        };
     }
 }

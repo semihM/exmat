@@ -6,9 +6,11 @@ using ExMat.Objects;
 using ExMat.Utils;
 using ExMat.VM;
 
-namespace ExMat.BaseLib
+namespace ExMat.StdLib
 {
-    [ExStdLib(ExStdLibType.MATH)]
+    [ExStdLibBase(ExStdLibType.MATH)]
+    [ExStdLibName("math")]
+    [ExStdLibRegister(nameof(Registery))]
     public static class ExStdMath
     {
         #region UTILITY
@@ -2327,13 +2329,14 @@ namespace ExMat.BaseLib
             vm.Pop(1);
         }
 
-        public static bool RegisterStdMath(ExVM vm)
+        public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
             ExApi.RegisterNativeFunctions(vm, typeof(ExStdMath));
 
             RegisterStdMathConstants(vm);
 
             return true;
-        }
+        };
+
     }
 }
