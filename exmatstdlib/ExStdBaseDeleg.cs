@@ -133,7 +133,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("isAlphabetic", ExBaseType.BOOL, "Check if the string or a character at given index is alphabetic", 's')]
-        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", 0)]
         public static ExFunctionStatus StdStringAlphabetic(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -146,7 +146,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("isNumeric", ExBaseType.BOOL, "Check if the string or a character at given index is numeric", 's')]
-        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", 0)]
         public static ExFunctionStatus StdStringNumeric(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -159,7 +159,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("isAlphaNumeric", ExBaseType.BOOL, "Check if the string or a character at given index is alphabetic or numeric", 's')]
-        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", 0)]
         public static ExFunctionStatus StdStringAlphaNumeric(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -172,7 +172,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("isLower", ExBaseType.BOOL, "Check if the string or a character at given index is lower case", 's')]
-        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", 0)]
         public static ExFunctionStatus StdStringLower(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -192,7 +192,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("isUpper", ExBaseType.BOOL, "Check if the string or a character at given index is upper case", 's')]
-        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", 0)]
         public static ExFunctionStatus StdStringUpper(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -212,7 +212,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("isWhitespace", ExBaseType.BOOL, "Check if the string or a character at given index is whitespace", 's')]
-        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", 0)]
         public static ExFunctionStatus StdStringWhitespace(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -232,7 +232,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("isSymbol", ExBaseType.BOOL, "Check if the string or a character at given index is symbolic", 's')]
-        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", (0))]
+        [ExNativeParamBase(1, "index", "r", "Character index to check instead of the whole string", 0)]
         public static ExFunctionStatus StdStringSymbol(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
@@ -430,7 +430,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("pop", ExBaseType.ARRAY, "Return the original list with given amount of items popped", 'a')]
-        [ExNativeParamBase(1, "count", "r", "Amount of items to pop", (1))]
+        [ExNativeParamBase(1, "count", "r", "Amount of items to pop", 1)]
         public static ExFunctionStatus StdArrayPop(ExVM vm, int nargs)
         {
             ExObject res = new();
@@ -623,7 +623,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncDelegate("random", 0, "Return a random item or a list of given amount of random items. If 'count' > 1, a list of unique item picks is returned.", 'a')]
-        [ExNativeParamBase(1, "count", "n", "Amount of random values to return", (1))]
+        [ExNativeParamBase(1, "count", "n", "Amount of random values to return", 1)]
         public static ExFunctionStatus StdArrayRandom(ExVM vm, int nargs)
         {
             List<ExObject> lis = vm.GetRootArgument().GetList();
@@ -689,6 +689,36 @@ namespace ExMat.StdLib
             {
                 return vm.AddToErrorMessage("stack is corrupted!");
             }
+        }
+
+        [ExNativeFuncDelegate("order_asc", ExBaseType.ARRAY, "Return a new list in ascending order. Only uses real numbers in the list.", 'a')]
+        public static ExFunctionStatus StdArrayOrderAsc(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, ExUtils.GetOrderedNumericList(vm.GetRootArgument().GetList()));
+        }
+        [ExNativeFuncDelegate("order_des", ExBaseType.ARRAY, "Return a new list in descending order. Only uses real numbers in the list.", 'a')]
+        public static ExFunctionStatus StdArrayOrderDes(ExVM vm, int nargs)
+        {
+            List<ExObject> lis = ExUtils.GetOrderedNumericList(vm.GetRootArgument().GetList());
+            lis.Reverse();
+            return vm.CleanReturn(nargs + 2, lis);
+        }
+        [ExNativeFuncDelegate("unique", ExBaseType.ARRAY, "Return a new list of distinct values found in the list.", 'a')]
+        public static ExFunctionStatus StdArrayUnique(ExVM vm, int nargs)
+        {
+            List<ExObject> lis = vm.GetRootArgument().GetList();
+
+            List<ExObject> uniques = new();
+
+            foreach (ExObject o in lis)
+            {
+                if (!uniques.Exists(x => ExApi.CheckEqualReturnRes(x, o)))
+                {
+                    uniques.Add(new(o));
+                }
+            }
+
+            return vm.CleanReturn(nargs + 2, uniques);
         }
         #endregion
 
