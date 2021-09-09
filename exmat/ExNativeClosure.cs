@@ -13,7 +13,7 @@ namespace ExMat.Closure
     {
         public ExSState SharedState;            // Ortak değerler
         public ExObject Name;                   // Fonksiyon ismi
-        public ExNativeFunc.FunctionRef Function;  // C# metotu referansı
+        public ExMat.StdLibFunction Function;      // C# metotu referansı
         public bool IsDelegateFunction;         // Temsili(delegate) metot?
 
         public int nOuters;                     // Dışardaki değişkenlere referansı sayısı
@@ -122,7 +122,7 @@ namespace ExMat.Closure
             ReferenceCount = 1;
         }
 
-        public static ExNativeClosure Create(ExSState exS, ExNativeFunc.FunctionRef f, int nout)
+        public static ExNativeClosure Create(ExSState exS, ExMat.StdLibFunction f, int nout)
         {
             ExNativeClosure cls = new() { SharedState = exS, Function = f };
             ExUtils.InitList(ref cls.OutersList, nout);

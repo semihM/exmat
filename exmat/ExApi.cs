@@ -23,6 +23,16 @@ namespace ExMat.API
     public static class ExApi
     {
         /// <summary>
+        /// Check wheter given method has the same signature as <see cref="ExMat.StdLibFunction"/> delegate
+        /// </summary>
+        /// <param name="m">Method to check</param>
+        /// <returns><see langword="true"/> if <paramref name="m"/> has the same signature as <see cref="ExMat.StdLibFunction"/>, otherwise <see langword="false"/></returns>
+        public static bool IsValidStdLibFunction(MethodInfo m)
+        {
+            return ExMat.StdLibFunctionRegex.IsMatch(m.ToString());
+        }
+
+        /// <summary>
         /// Find all methods with <see cref="ExNativeFuncBase"/> attribute an not the <see cref="ExNativeFuncDelegate"/> attribute, in the given type of standard library
         /// </summary>
         /// <param name="type">Standard library type</param>
@@ -31,8 +41,10 @@ namespace ExMat.API
         {
             return new(type
                         .GetMethods()
-                        .Where(m => Attribute.IsDefined(m, typeof(ExNativeFuncBase)) && !Attribute.IsDefined(m, typeof(ExNativeFuncDelegate)))
-                        .Select(n => new ExNativeFunc((ExNativeFunc.FunctionRef)Delegate.CreateDelegate(typeof(ExNativeFunc.FunctionRef), n))));
+                        .Where(m => Attribute.IsDefined(m, typeof(ExNativeFuncBase))
+                                    && !Attribute.IsDefined(m, typeof(ExNativeFuncDelegate))
+                                    && IsValidStdLibFunction(m))
+                        .Select(n => new ExNativeFunc((ExMat.StdLibFunction)Delegate.CreateDelegate(typeof(ExMat.StdLibFunction), n))));
         }
 
         /// <summary>
@@ -59,12 +71,13 @@ namespace ExMat.API
             List<ExNativeFunc> funcs = new();
             foreach (MethodInfo m in type
                                     .GetMethods()
-                                    .Where(m => Attribute.IsDefined(m, typeof(ExNativeFuncDelegate))))
+                                    .Where(m => Attribute.IsDefined(m, typeof(ExNativeFuncDelegate))
+                                                && IsValidStdLibFunction(m)))
             {
                 ExNativeFuncDelegate[] basedelegs = (ExNativeFuncDelegate[])m.GetCustomAttributes(typeof(ExNativeFuncDelegate), false);
                 foreach (ExNativeFuncDelegate deleg in basedelegs)
                 {
-                    funcs.Add(new ExNativeFunc((ExNativeFunc.FunctionRef)Delegate.CreateDelegate(typeof(ExNativeFunc.FunctionRef), m), deleg.BaseTypeMask));
+                    funcs.Add(new ExNativeFunc((ExMat.StdLibFunction)Delegate.CreateDelegate(typeof(ExMat.StdLibFunction), m), deleg.BaseTypeMask));
                 }
             }
 
@@ -1126,7 +1139,7 @@ namespace ExMat.API
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="f">Native function to create a closure of</param>
-        public static void CreateClosure(ExVM vm, ExNativeFunc.FunctionRef f)
+        public static void CreateClosure(ExVM vm, ExMat.StdLibFunction f)
         {
             vm.Push(ExNativeClosure.Create(vm.SharedState, f, 0));
         }

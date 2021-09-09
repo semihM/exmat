@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using ExMat.VM;
 
 namespace ExMat.Objects
 {
@@ -19,19 +18,9 @@ namespace ExMat.Objects
         public ExStdLibType Base;
 
         /// <summary>
-        /// Delegate, a native function template
-        /// </summary>
-        /// <param name="vm">VM to use the stack of</param>
-        /// <param name="nargs">Number of arguments passed to the function</param>
-        /// <returns>If a value was pushed to stack: <see cref="ExFunctionStatus.SUCCESS"/>
-        /// <para>If nothing was pushed to stack: <see cref="ExFunctionStatus.VOID"/></para>
-        /// <para>If there was an error: <see cref="ExFunctionStatus.ERROR"/></para>
-        /// <para>In the special case of 'exit': <see cref="ExFunctionStatus.EXIT"/></para></returns>
-        public delegate ExFunctionStatus FunctionRef(ExVM vm, int nargs);
-        /// <summary>
         /// Function reference
         /// </summary>
-        public FunctionRef Function;    // Fonksiyon referansı
+        public ExMat.StdLibFunction Function;    // Fonksiyon referansı
 
         /// <summary>
         /// Parameter information
@@ -109,7 +98,7 @@ namespace ExMat.Objects
 
         public ExNativeFunc() { }
 
-        public ExNativeFunc(FunctionRef foo)
+        public ExNativeFunc(ExMat.StdLibFunction foo)
         {
             Function = foo;
 
@@ -141,7 +130,7 @@ namespace ExMat.Objects
             SetReturnInfo();
         }
 
-        public ExNativeFunc(FunctionRef foo, char baseMask)
+        public ExNativeFunc(ExMat.StdLibFunction foo, char baseMask)
         {
             Function = foo;
 

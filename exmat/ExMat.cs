@@ -221,12 +221,44 @@ namespace ExMat
         /// <returns><see langword="true"/> if registery was successful, otherwise <see langword="false"/></returns>
         public delegate bool StdLibRegistery(VM.ExVM vm);
 
+        /// <summary>
+        /// Delegate, a native function template
+        /// </summary>
+        /// <param name="vm">VM to use the stack of</param>
+        /// <param name="nargs">Number of arguments passed to the function</param>
+        /// <returns>If a value was pushed to stack: <see cref="ExFunctionStatus.SUCCESS"/>
+        /// <para>If nothing was pushed to stack: <see cref="ExFunctionStatus.VOID"/></para>
+        /// <para>If there was an error: <see cref="ExFunctionStatus.ERROR"/></para>
+        /// <para>In the special case of 'exit': <see cref="ExFunctionStatus.EXIT"/></para></returns>
+        public delegate ExFunctionStatus StdLibFunction(VM.ExVM vm, int nargs);
+
+        /// <summary>
+        /// Method name of delegate <see cref="StdLibFunction"/> to get standard library method signature pattern from
+        /// </summary>
+        private const string StdLibFunctionPatternMethodName = "Invoke"; // TO-DO find a better way!
+
+        /// <summary>
+        /// Standard library method signature pattern, this is for matching <see cref="StdLibFunction"/>'s signature
+        /// </summary>
+        private static string StdLibFunctionPattern => System.Text.RegularExpressions.Regex.Escape(
+                                                            typeof(StdLibFunction)
+                                                            .GetMethod(StdLibFunctionPatternMethodName)
+                                                            .ToString())
+                                                        .Replace(StdLibFunctionPatternMethodName, "[\\w\\d]+")
+                                                        .Replace("\\ ", " ");
+
+        /// <summary>
+        /// Regex object to use while finding standard library functions
+        /// </summary>
+        public static readonly System.Text.RegularExpressions.Regex StdLibFunctionRegex = new(StdLibFunctionPattern);
+
         public static readonly Dictionary<string, string> Assemblies = new()
         {
             { "exm", "Entering assembly project" },
             { "exmat", "Core project" },
             { "exmatstdlib", "Built-in standard libraries" },
         };
+
     }
 
     /// <summary>
