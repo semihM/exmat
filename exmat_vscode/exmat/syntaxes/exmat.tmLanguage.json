@@ -189,7 +189,11 @@
 				},
 				{
 					"name": "entity.name.function.exmat",
-					"match": "\\b(process|print_out|env_info|env_var|env_vars|set_env_var|env_exit|can_beep|beep|beep_async|open_dir)\\b"
+					"match": "\\b(get_process|get_processes|stop_process|start_process|print_out|env_info|env_var|env_vars|set_env_var|env_exit|can_beep|beep|beep_async|open_dir)\\b"
+				},
+				{
+					"name": "entity.name.function.exmat",
+					"match": "\\b(mean|mode|median)\\b"
 				}
 			]
 		},

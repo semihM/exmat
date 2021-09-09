@@ -45,7 +45,7 @@ namespace ExMat.Objects
 
         public void AddDimension(ExSpace ch)
         {
-            Child = new(ch.Dimension, ch.Domain, ch.Sign, null);
+            Child = new(ch.Dimension, ch.Domain, ch.Sign, ch.Child);
         }
 
         public ExSpace(string spc, int d, char s = '\\')

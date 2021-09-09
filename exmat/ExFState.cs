@@ -678,7 +678,7 @@ namespace ExMat.States
             {
                 if (pair.Value.Type == ExObjType.WEAKREF)
                 {
-                    int ind = (int)(pair.Value.Value._WeakRef.ReferencedObject.Value.i_Int);
+                    int ind = (int)pair.Value.Value._WeakRef.ReferencedObject.Value.i_Int;
                     while (funcPro.Literals.Count <= ind)
                     {
                         funcPro.Literals.Add(new(string.Empty));

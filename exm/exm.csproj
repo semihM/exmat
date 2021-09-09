@@ -6,6 +6,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />

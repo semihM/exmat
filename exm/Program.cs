@@ -3,7 +3,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using ExMat.API;
-using ExMat.BaseLib;
 using ExMat.Exceptions;
 using ExMat.Objects;
 using ExMat.VM;
@@ -189,7 +188,7 @@ namespace ExMat
 
                 ActiveVM.ForceThrow = true;
                 ActiveVM.ErrorOverride = ExErrorType.INTERRUPT;
-                ActiveVM.AddToErrorMessage(string.Format("Output '{0}' was interrupted by control character: '{1}'", ActiveVM.InputCount, args.SpecialKey.ToString()));
+                ActiveVM.AddToErrorMessage("Output '{0}' was interrupted by control character: '{1}'", ActiveVM.InputCount, args.SpecialKey.ToString());
 
                 SetupDummyInterruptFrame();
 
@@ -204,23 +203,10 @@ namespace ExMat
             }
             else
             {
-                ActiveVM.AddToErrorMessage(string.Format("Input stream '{0}' was interrupted by control character: '{1}'", ActiveVM.InputCount, args.SpecialKey.ToString()));
+                ActiveVM.AddToErrorMessage("Input stream '{0}' was interrupted by control character: '{1}'", ActiveVM.InputCount, args.SpecialKey.ToString());
                 ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPTINPUT);
                 ActiveVM.PrintedToConsole = false; // Hack, allow writing stack top after interruption
             }
-        }
-
-        /// <summary>
-        /// Registers math, io, string and net standard libraries
-        /// </summary>
-        /// <param name="vm">Virtual machine to register libraries for</param>
-        private static void RegisterStdLibraries(ExVM vm)
-        {
-            ExStdMath.RegisterStdMath(vm);      // Matematik kütüphanesi
-            ExStdIO.RegisterStdIO(vm);          // Girdi/çıktı, dosya kütüphanesi
-            ExStdString.RegisterStdString(vm);  // Yazı dizisi işleme kütüphanesi
-            ExStdNet.RegisterStdNet(vm);        // Ağ işlemleri kütüphanesi
-            ExStdSys.RegisterStdSys(vm);        // Sistem kütüphanesi
         }
 
         private static void Indent(int n = 1)
@@ -249,20 +235,31 @@ namespace ExMat
             }
         }
 
-        private static void Initialize()
+        private static void InitializeConsole()
+        {
+            // Title, Version info
+            Console.Title = ExMat.ConsoleTitle;
+            Console.ResetColor();
+            ExApi.WriteInfoString(ActiveVM);
+        }
+
+        private static bool Initialize()
         {
             ActiveVM = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
             ActiveVM.ActiveThread = ActiveThread;
 
-            RegisterStdLibraries(ActiveVM);   // Standard kütüphaneler
+            if (!ExApi.RegisterStdLibraries(ActiveVM)) // Standard kütüphaneler
+            {
+                return false;
+            }
 
             // Event handlers
             AddCancelEventHandler();
 
-            // Title, Version info
-            Console.Title = ExMat.ConsoleTitle;
-            Console.ResetColor();
-            ExApi.WriteVersion(ActiveVM);
+            // Setup the console
+            InitializeConsole();
+
+            return true;
         }
 
         private static void KeepConsoleUpAtEnd(string msg = "")
@@ -279,19 +276,28 @@ namespace ExMat
         {
             ActiveThread = new(() =>
             {
-                Initialize();
-
-                try
+                if (!Initialize())
                 {
-                    ReturnValue = new(CompileString(ActiveVM, FileContents));
+                    ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
                 }
-                catch (ThreadInterruptedException) { } //lgtm [cs/empty-catch-block]
-                catch (ExException exp)
+                else
                 {
-                    ActiveVM.AddToErrorMessage(exp.Message);
-                    ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
-                }
+                    try
+                    {
+                        ReturnValue = new(CompileString(ActiveVM, FileContents));
 
+                    }
+                    catch (ThreadInterruptedException) { } //lgtm [cs/empty-catch-block]
+                    catch (ExException exp)
+                    {
+                        ActiveVM.AddToErrorMessage(exp.Message);
+                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
+                    }
+                    catch (Exception)
+                    {
+                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
+                    }
+                }
                 KeepConsoleUpAtEnd();
             });
         }
@@ -379,10 +385,14 @@ namespace ExMat
         {
             ActiveThread = new(() =>
             {
-                Initialize();
-
                 int ret = -1;
                 StringBuilder code = new();
+
+                if (!Initialize())
+                {
+                    ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
+                    return;
+                }
 
                 while (!ActiveVM.ExitCalled)    // Sürekli olarak girdi al
                 {
@@ -405,6 +415,13 @@ namespace ExMat
                     {
                         ActiveVM.AddToErrorMessage(exp.Message);
                         ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
+                    }
+                    catch (Exception exp)
+                    {
+                        ActiveVM.AddToErrorMessage(exp.Message);
+                        ActiveVM.AddToErrorMessage(exp.StackTrace);
+                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
+                        break;
                     }
                     finally
                     {

@@ -152,7 +152,7 @@ namespace ExMat.Closure
 
                         if (Function.nDefaultParameters > 0)
                         {
-                            s += (Function.nParams - 1) + " params (min:" + (Function.nParams - Function.nDefaultParameters - 1) + "))";
+                            s += Function.nParams - 1 + " params (min:" + (Function.nParams - Function.nDefaultParameters - 1) + "))";
                         }
                         else if (Function.HasVargs)
                         {
@@ -160,20 +160,20 @@ namespace ExMat.Closure
                         }
                         else
                         {
-                            s += (Function.nParams - 1) + " params)";
+                            s += Function.nParams - 1 + " params)";
                         }
                         break;
                     }
                 case ExClosureType.RULE:
                     {
                         s = "RULE(" + Function.Name.GetString() + ", ";
-                        s += (Function.nParams - 1) + " params)";
+                        s += Function.nParams - 1 + " params)";
                         break;
                     }
                 case ExClosureType.CLUSTER:
                     {
                         s = "CLUSTER(" + Function.Name.GetString() + ", ";
-                        s += (Function.nParams - 1) + " params)";
+                        s += Function.nParams - 1 + " params)";
                         break;
                     }
                 case ExClosureType.SEQUENCE:

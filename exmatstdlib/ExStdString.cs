@@ -7,15 +7,14 @@ using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.VM;
 
-namespace ExMat.BaseLib
+namespace ExMat.StdLib
 {
+    [ExStdLibBase(ExStdLibType.STRING)]
+    [ExStdLibName("string")]
+    [ExStdLibRegister(nameof(Registery))]
     public static class ExStdString
     {
-        public static ExFunctionStatus StdStringRands(ExVM vm, int nargs)
-        {
-            return vm.CleanReturn(nargs + 2, ExApi.RandomString(nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 10) : 10));
-        }
-
+        #region UTILITY
         private static ExObject GetMatch(Match match)
         {
             if (match.Success)
@@ -46,46 +45,98 @@ namespace ExMat.BaseLib
             return list;
         }
 
+        public static void ReplaceMacroParams(ExMacro m, List<ExObject> args)
+        {
+            string[] lines = m.Source.Split('\n');
+            for (int i = 0; i < m.Parameters.Count; i++)
+            {
+                ExMacroParam p = m.Parameters[i];
+                string val = args[i].GetString();
+                for (int j = 0; j < p.Lines.Count; j++)
+                {
+                    lines[p.Lines[j]] = lines[p.Lines[j]].Substring(0, p.Columns[j]) + val + lines[p.Lines[j]].Substring(p.Columns[j] + p.Name.Length + 4, lines[p.Lines[j]].Length);
+                }
+            }
+        }
+        #endregion
+
+        #region STRING FUNCTIONS
+        [ExNativeFuncBase("rands", ExBaseType.STRING, "Create a cryptographically safe random string using characters from [a-zA-Z0-9] with given length.")]
+        [ExNativeParamBase(1, "length", "r", "Length of the string", 10)]
+        public static ExFunctionStatus StdStringRands(ExVM vm, int nargs)
+        {
+            return vm.CleanReturn(nargs + 2, ExApi.RandomString(nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 10) : 10));
+        }
+
+        [ExNativeFuncBase("reg_matches", ExBaseType.ARRAY, "Find all matches of given pattern in given string. Returns match informations as dictionaries.")]
+        [ExNativeParamBase(1, "string", "s", "String to search through")]
+        [ExNativeParamBase(2, "pattern", "s", "Pattern to match")]
         public static ExFunctionStatus StdStringRegexMatches(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, GetMatchList(Regex.Matches(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString())));
         }
 
+        [ExNativeFuncBase("reg_match", ExBaseType.DICT | ExBaseType.NULL, "Find a match of given pattern in given string. Returns first match information as dictionary or null if nothing matches.")]
+        [ExNativeParamBase(1, "string", "s", "String to search through")]
+        [ExNativeParamBase(2, "pattern", "s", "Pattern to match")]
         public static ExFunctionStatus StdStringRegexMatch(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, GetMatch(Regex.Match(vm.GetArgument(1).GetString(), vm.GetArgument(2).GetString())));
         }
 
+        [ExNativeFuncBase("reg_replace", ExBaseType.STRING, "Replace parts which matches given pattern in a string with a given value maximum given times")]
+        [ExNativeParamBase(1, "string", "s", "String to search through")]
+        [ExNativeParamBase(2, "old", "s", "Old value pattern")]
+        [ExNativeParamBase(3, "new", "s", "Replacement value")]
+        [ExNativeParamBase(4, "max_count", "r", "Maximum count of replacements", int.MaxValue)]
         public static ExFunctionStatus StdStringRegexReplace(ExVM vm, int nargs)
         {
             int count = nargs == 4 ? (int)vm.GetPositiveIntegerArgument(4, int.MaxValue) : int.MaxValue;
             return vm.CleanReturn(nargs + 2, new Regex(vm.GetArgument(2).GetString()).Replace(vm.GetArgument(1).GetString(), vm.GetArgument(3).GetString(), count));
         }
 
+        [ExNativeFuncBase("reg_split", ExBaseType.ARRAY, "Split given string with a pattern given amount of maximum splits")]
+        [ExNativeParamBase(1, "string", "s", "String to split")]
+        [ExNativeParamBase(2, "pattern", "s", "Splitting pattern")]
+        [ExNativeParamBase(3, "max_count", "r", "Maximum count of splitting", int.MaxValue)]
         public static ExFunctionStatus StdStringRegexSplit(ExVM vm, int nargs)
         {
             int count = nargs == 3 ? (int)vm.GetPositiveIntegerArgument(3, int.MaxValue) : int.MaxValue;
             return vm.CleanReturn(nargs + 2, new ExList(new Regex(vm.GetArgument(1).GetString()).Split(vm.GetArgument(2).GetString(), count)));
         }
+
+        [ExNativeFuncBase("reg_escape", ExBaseType.STRING, "Escape regex characters in given string")]
+        [ExNativeParamBase(1, "string", "s", "String to escape regex characters")]
         public static ExFunctionStatus StdStringRegexEscape(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, Regex.Escape(vm.GetArgument(1).GetString()));
         }
 
+        [ExNativeFuncBase("strip", ExBaseType.STRING, "Return a new string of given string stripped from both at the begining and the end.")]
+        [ExNativeParamBase(1, "string", "s", "String to strip")]
         public static ExFunctionStatus StdStringStrip(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().Trim());
         }
+
+        [ExNativeFuncBase("lstrip", ExBaseType.STRING, "Return a new string of given string stripped from the begining.")]
+        [ExNativeParamBase(1, "string", "s", "String to strip")]
         public static ExFunctionStatus StdStringLstrip(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().TrimStart());
         }
 
+        [ExNativeFuncBase("rstrip", ExBaseType.STRING, "Return a new string of given string stripped from the end.")]
+        [ExNativeParamBase(1, "string", "s", "String to strip")]
         public static ExFunctionStatus StdStringRstrip(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetString().TrimEnd());
         }
 
+        [ExNativeFuncBase("split", ExBaseType.ARRAY, "Split given string with given splitter.")]
+        [ExNativeParamBase(1, "string", "s", "String to split")]
+        [ExNativeParamBase(2, "splitter", "s", "Splitting string")]
+        [ExNativeParamBase(3, "remove_empty", ".", "Wheter to remove empty strings", false)]
         public static ExFunctionStatus StdStringSplit(ExVM vm, int nargs)
         {
             string s = vm.GetArgument(1).GetString();
@@ -107,6 +158,10 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, new ExObject(lis));
         }
 
+        [ExNativeFuncBase("join", ExBaseType.STRING, "Join a list of objects with given seperators into a string, using given depth of stringification for the objects.")]
+        [ExNativeParamBase(1, "seperator", "s", "String to use between strings")]
+        [ExNativeParamBase(2, "list", "a", "List of objects")]
+        [ExNativeParamBase(3, "depth", "r", "Depth to stringify objects to", 2)]
         public static ExFunctionStatus StdStringJoin(ExVM vm, int nargs)
         {
             string s = vm.GetArgument(1).GetString();
@@ -145,20 +200,8 @@ namespace ExMat.BaseLib
             return vm.CleanReturn(nargs + 2, res.ToString());
         }
 
-        public static void ReplaceMacroParams(ExMacro m, List<ExObject> args)
-        {
-            string[] lines = m.Source.Split('\n');
-            for (int i = 0; i < m.Parameters.Count; i++)
-            {
-                ExMacroParam p = m.Parameters[i];
-                string val = args[i].GetString();
-                for (int j = 0; j < p.Lines.Count; j++)
-                {
-                    lines[p.Lines[j]] = lines[p.Lines[j]].Substring(0, p.Columns[j]) + val + lines[p.Lines[j]].Substring(p.Columns[j] + p.Name.Length + 4, lines[p.Lines[j]].Length);
-                }
-            }
-        }
-
+        [ExNativeFuncBase("compile", ExBaseType.CLOSURE, "Compile given code into a callable function")]
+        [ExNativeParamBase(1, "code", "s", "Code to compile")]
         public static ExFunctionStatus StdStringCompile(ExVM vm, int nargs)
         {
             string code = vm.GetArgument(1).GetString();
@@ -171,6 +214,7 @@ namespace ExMat.BaseLib
             return ExFunctionStatus.ERROR;
         }
 
+        [ExNativeFuncBase("format", ExBaseType.STRING, "Replace given {x} patterns in the first string with the (x+2)th argument passed.\n\tExample: format(\"{0}, {1}\", \"first\", \"second\") == \"first, second\"", -2)]
         public static ExFunctionStatus StdStringFormat(ExVM vm, int nargs)
         {
             string format = vm.GetArgument(1).GetString();
@@ -199,173 +243,13 @@ namespace ExMat.BaseLib
             }
         }
 
-        private static readonly List<ExRegFunc> _stdstrfuncs = new()
+        #endregion
+
+        // MAIN
+
+        public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            new()
-            {
-                Name = "reg_escape",
-                Function = StdStringRegexEscape,
-                Parameters = new()
-                {
-                    new("string", "s", "String to escape regex characters")
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Escape regex characters in given string"
-            },
-
-            new()
-            {
-                Name = "reg_split",
-                Function = StdStringRegexSplit,
-                Parameters = new()
-                {
-                    new("string", "s", "String to split"),
-                    new("pattern", "s", "Splitting pattern"),
-                    new("max_count", "r", "Maximum count of splitting", new(int.MaxValue))
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Split given string with a pattern given amount of maximum splits"
-            },
-
-            new()
-            {
-                Name = "reg_replace",
-                Function = StdStringRegexReplace,
-                Parameters = new()
-                {
-                    new("string", "s", "String to search through"),
-                    new("old", "s", "Old value pattern"),
-                    new("new", "s", "Replacement value"),
-                    new("max_count", "r", "Maximum count of replacements", new(int.MaxValue))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Replace parts which matches given pattern in a string with a given value maximum given times"
-            },
-
-            new()
-            {
-                Name = "reg_match",
-                Function = StdStringRegexMatch,
-                Parameters = new()
-                {
-                    new("string", "s", "String to search through"),
-                    new("pattern", "s", "Pattern to match")
-                },
-                Returns = ExBaseType.DICT | ExBaseType.NULL,
-                Description = "Find a match of given pattern in given string. Returns first match information as dictionary or null if nothing matches."
-            },
-
-            new()
-            {
-                Name = "reg_matches",
-                Function = StdStringRegexMatches,
-                Parameters = new()
-                {
-                    new("string", "s", "String to search through"),
-                    new("pattern", "s", "Pattern to match")
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Find all matches of given pattern in given string. Returns match informations as dictionaries."
-            },
-
-            new()
-            {
-                Name = "compile",
-                Function = StdStringCompile,
-                Parameters = new()
-                {
-                    new("code", "s", "Code to compile")
-                },
-                Returns = ExBaseType.CLOSURE,
-                Description = "Compile given code into a callable function"
-            },
-
-            new()
-            {
-                Name = "strip",
-                Function = StdStringStrip,
-                Parameters = new()
-                {
-                    new("string", "s", "String to strip")
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Return a new string of given string stripped from both at the begining and the end."
-            },
-            new()
-            {
-                Name = "lstrip",
-                Function = StdStringLstrip,
-                Parameters = new()
-                {
-                    new("string", "s", "String to strip")
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Return a new string of given string stripped from the begining."
-            },
-            new()
-            {
-                Name = "rstrip",
-                Function = StdStringRstrip,
-                Parameters = new()
-                {
-                    new("string", "s", "String to strip")
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Return a new string of given string stripped from the end."
-            },
-            new()
-            {
-                Name = "split",
-                Function = StdStringSplit,
-                Parameters = new()
-                {
-                    new("string", "s", "String to split"),
-                    new("splitter", "s", "Splitting string"),
-                    new("remove_empty", ".", "Wheter to remove empty strings", new(false))
-                },
-                Returns = ExBaseType.ARRAY,
-                Description = "Split given string with given splitter."
-            },
-            new()
-            {
-                Name = "join",
-                Function = StdStringJoin,
-                Parameters = new()
-                {
-                    new("seperator", "s", "String to use between strings"),
-                    new("list", "a", "List of objects"),
-                    new("depth", "r", "Depth to stringify objects to", new(2))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Join a list of objects with given seperators into a string, using given depth of stringification for the objects."
-            },
-            new()
-            {
-                Name = "format",
-                Function = StdStringFormat,
-                NumberOfParameters = -2,
-                Returns = ExBaseType.STRING,
-                Description = "Replace given {x} patterns in the first string with the (x+2)th argument passed.\n\tExample: format(\"{0}, {1}\", \"first\", \"second\") == \"first, second\""
-            },
-            new()
-            {
-                Name = "rands",
-                Function = StdStringRands,
-                Parameters = new()
-                {
-                    new("length", "r", "Length of the string", new(10))
-                },
-                Returns = ExBaseType.STRING,
-                Description = "Create a cryptographically safe random string using characters from [a-zA-Z0-9] with given length."
-            }
-        };
-        public static List<ExRegFunc> StringFuncs => _stdstrfuncs;
-
-        public static bool RegisterStdString(ExVM vm)
-        {
-            ExApi.RegisterNativeFunctions(vm, StringFuncs, ExStdLibType.STRING);
-
             return true;
-        }
+        };
     }
 }
