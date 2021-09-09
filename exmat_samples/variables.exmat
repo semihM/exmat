@@ -10,12 +10,19 @@ var complex_var = 3 + 4i                // Kompleks
 var space_var = @R@                     // Uzay
 var boolean_var = true                  // Boolean
 var string_var = "bir \"yazı\" dizisi!" // Yazı dizisi
+
+var verbose_str = $"this is a
+verbose string.
+Which allow ""strings like this"" and 
+escape chars as they are written \ \n \t \r" // Syntax highlighting is broken!
+
 printl(int_var)   
 printl(float_var)   
 printl(complex_var)   
 printl(space_var)  
 printl(boolean_var)  
 printl(string_var)   
+printl(verbose_str)   
 
 var list_var = [1, 3, 5]                        // Liste
 var dict_var = { key_1 = 10, key_2 = "val_2" }  // Tablo
