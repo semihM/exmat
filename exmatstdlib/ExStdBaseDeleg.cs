@@ -81,12 +81,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "substring", "s", "Substring to search for")]
         public static ExFunctionStatus StdStringIndexOf(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (!ExApi.GetSafeObject(vm, -2, ExObjType.STRING, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
-            return vm.CleanReturn(1, res.GetString().IndexOf(vm.GetArgument(1).GetString()));
+            return vm.CleanReturn(1, vm.GetRootArgument().GetString().IndexOf(vm.GetArgument(1).GetString()));
         }
 
         [ExNativeFuncDelegate("to_upper", ExBaseType.STRING, "Return a new string with characters capitalized", 's')]
@@ -256,11 +251,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(2, "index2", "r", "Ending index, returned list length == index2 - index1", (-1))]
         public static ExFunctionStatus StdStringSlice(ExVM vm, int nargs)
         {
-            ExObject o = new();
-            if (!ExApi.GetSafeObject(vm, -1 - nargs, ExObjType.STRING, ref o))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject o = vm.GetRootArgument();
 
             int start = (int)vm.GetArgument(1).GetInt();
 
@@ -341,118 +332,76 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "object", ".", "Object to append")]
         public static ExFunctionStatus StdArrayAppend(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res))
-            {
-                res = new(ExUtils.GetACopyOf(res.GetList()));
-                res.GetList().Add(new(vm.GetArgument(1)));
-                return vm.CleanReturn(nargs + 2, res);
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
+            res = new(ExUtils.GetACopyOf(res.GetList()));
+            res.GetList().Add(new(vm.GetArgument(1)));
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         [ExNativeFuncDelegate("remove_at", ExBaseType.ARRAY, "Return a new list with the item at given index removed", 'a')]
         [ExNativeParamBase(1, "index", "r", "Index of the item to remove")]
         public static ExFunctionStatus StdArrayRemoveAt(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res))
+            ExObject res = vm.GetRootArgument();
+            int liscount = res.GetList().Count;
+            if (liscount == 0)
             {
-                int liscount = res.GetList().Count;
-                if (liscount == 0)
-                {
-                    return vm.AddToErrorMessage("can't remove from an empty list");
-                }
-
-                int remove_idx = (int)vm.GetPositiveRangedIntegerArgument(1, 0, liscount - 1);
-
-                res = new(ExUtils.GetACopyOf(res.GetList()));
-                res.GetList().RemoveAt(remove_idx);
-
-                return vm.CleanReturn(nargs + 2, res);
+                return vm.AddToErrorMessage("can't remove from an empty list");
             }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+
+            int remove_idx = (int)vm.GetPositiveRangedIntegerArgument(1, 0, liscount - 1);
+
+            res = new(ExUtils.GetACopyOf(res.GetList()));
+            res.GetList().RemoveAt(remove_idx);
+
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         [ExNativeFuncDelegate("extend", ExBaseType.ARRAY, "Return the original list with given list of objects appended", 'a')]
         [ExNativeParamBase(1, "list", "a", "List of items to append")]
         public static ExFunctionStatus StdArrayExtend(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res))
-            {
-                res.GetList().AddRange(vm.GetArgument(1).GetList());
-                return vm.CleanReturn(nargs + 2, res);
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
+            res.GetList().AddRange(vm.GetArgument(1).GetList());
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         [ExNativeFuncDelegate("expand", ExBaseType.ARRAY, "Return a new list with given list of objects appended", 'a')]
         [ExNativeParamBase(1, "list", "a", "List of items to append")]
         public static ExFunctionStatus StdArrayExpand(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res))
-            {
-                res = new(ExUtils.GetACopyOf(res.GetList()));
-                res.GetList().AddRange(vm.GetArgument(1).GetList());
-                return vm.CleanReturn(nargs + 2, res);
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = new(ExUtils.GetACopyOf(vm.GetRootArgument().GetList()));
+            res.GetList().AddRange(vm.GetArgument(1).GetList());
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         [ExNativeFuncDelegate("push", ExBaseType.ARRAY, "Return the original list with given item appended", 'a')]
         [ExNativeParamBase(1, "object", ".", "Object to push to end")]
         public static ExFunctionStatus StdArrayPush(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res))
-            {
-                res.GetList().Add(new(vm.GetArgument(1)));
-                return vm.CleanReturn(nargs + 2, res);
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
+            res.GetList().Add(new(vm.GetArgument(1)));
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         [ExNativeFuncDelegate("pop", ExBaseType.ARRAY, "Return the original list with given amount of items popped", 'a')]
         [ExNativeParamBase(1, "count", "r", "Amount of items to pop", 1)]
         public static ExFunctionStatus StdArrayPop(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res))
-            {
-                int liscount = res.GetList().Count;
-                if (liscount == 0)
-                {
-                    return vm.AddToErrorMessage("can't pop from empty list");
-                }
+            ExObject res = vm.GetRootArgument();
 
-                int popcount = nargs == 1 ? (int)vm.GetPositiveRangedIntegerArgument(1, 0, liscount) : 1;
-                for (int i = 0; i < popcount; i++)
-                {
-                    res.GetList().RemoveAt(liscount - 1 - i);
-                }
-                return vm.CleanReturn(nargs + 2, res);
-            }
-            else
+            int liscount = res.GetList().Count;
+            if (liscount == 0)
             {
-                return vm.AddToErrorMessage("stack is corrupted!");
+                return vm.AddToErrorMessage("can't pop from empty list");
             }
+
+            int popcount = nargs == 1 ? (int)vm.GetPositiveRangedIntegerArgument(1, 0, liscount) : 1;
+            for (int i = 0; i < popcount; i++)
+            {
+                res.GetList().RemoveAt(liscount - 1 - i);
+            }
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         [ExNativeFuncDelegate("resize", ExBaseType.ARRAY, "Return the original list resized", 'a')]
@@ -460,11 +409,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(2, "filler", ".", "Filler object if new size is bigger than current size", def: null)]
         public static ExFunctionStatus StdArrayResize(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (!ExApi.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
 
             int newsize = (int)vm.GetPositiveIntegerArgument(1, 0);
 
@@ -504,33 +449,18 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "object", ".", "Object to search for")]
         public static ExFunctionStatus StdArrayIndexOf(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res))
-            {
-                return vm.CleanReturn(nargs + 2, ExApi.GetValueIndexFromArray(res.GetList(), vm.GetArgument(1)));
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            return vm.CleanReturn(nargs + 2, ExApi.GetValueIndexFromArray(vm.GetRootArgument().GetList(), vm.GetArgument(1)));
         }
 
         [ExNativeFuncDelegate("count", ExBaseType.INTEGER, "Count how many times given object appears in the list", 'a')]
         [ExNativeParamBase(1, "object", ".", "Object to search for")]
         public static ExFunctionStatus StdArrayCount(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.ARRAY, ref res))
-            {
-                using ExObject obj = new(vm.GetArgument(1));
+            ExObject res = vm.GetRootArgument();
+            using ExObject obj = new(vm.GetArgument(1));
 
-                int i = ExApi.CountValueEqualsInArray(res.GetList(), obj);
-                return vm.CleanReturn(nargs + 2, i);
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            int i = ExApi.CountValueEqualsInArray(res.GetList(), obj);
+            return vm.CleanReturn(nargs + 2, i);
         }
 
         [ExNativeFuncDelegate("slice", ExBaseType.ARRAY, "Return a new list with items picked from given range. Negative indices gets incremented by list length", 'a')]
@@ -538,82 +468,75 @@ namespace ExMat.StdLib
         [ExNativeParamBase(2, "index2", "r", "Ending index, returned list length == index2 - index1", (-1))]
         public static ExFunctionStatus StdArraySlice(ExVM vm, int nargs)
         {
-            ExObject o = new();
-            if (ExApi.GetSafeObject(vm, -1 - nargs, ExObjType.ARRAY, ref o))
+            ExObject o = vm.GetRootArgument();
+            int start = (int)vm.GetArgument(1).GetInt();
+
+            List<ExObject> arr = o.GetList();
+            List<ExObject> res = new(0);
+
+            int n = arr.Count;
+
+            switch (nargs)
             {
-                int start = (int)vm.GetArgument(1).GetInt();
-
-                List<ExObject> arr = o.GetList();
-                List<ExObject> res = new(0);
-
-                int n = arr.Count;
-
-                switch (nargs)
-                {
-                    case 1:
+                case 1:
+                    {
+                        if (start < 0)
                         {
-                            if (start < 0)
-                            {
-                                start += n;
-                            }
-                            if (start > n || start < 0)
-                            {
-                                vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
-                                return ExFunctionStatus.ERROR;
-                            }
+                            start += n;
+                        }
+                        if (start > n || start < 0)
+                        {
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return ExFunctionStatus.ERROR;
+                        }
 
-                            res = new(start);
+                        res = new(start);
 
-                            for (int i = 0; i < start; i++)
-                            {
-                                res.Add(new(arr[i]));
-                            }
+                        for (int i = 0; i < start; i++)
+                        {
+                            res.Add(new(arr[i]));
+                        }
+                        break;
+                    }
+                case 2:
+                    {
+                        int end = (int)vm.GetArgument(2).GetInt();
+                        if (start < 0)
+                        {
+                            start += n;
+                        }
+                        if (start > n || start < 0)
+                        {
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return ExFunctionStatus.ERROR;
+                        }
+
+                        if (end < 0)
+                        {
+                            end += n;
+                        }
+                        if (end > n || end < 0)
+                        {
+                            vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
+                            return ExFunctionStatus.ERROR;
+                        }
+
+                        if (start >= end)
+                        {
                             break;
                         }
-                    case 2:
+
+                        res = new(end - start);
+
+                        for (int i = start; i < end; i++)
                         {
-                            int end = (int)vm.GetArgument(2).GetInt();
-                            if (start < 0)
-                            {
-                                start += n;
-                            }
-                            if (start > n || start < 0)
-                            {
-                                vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
-                                return ExFunctionStatus.ERROR;
-                            }
-
-                            if (end < 0)
-                            {
-                                end += n;
-                            }
-                            if (end > n || end < 0)
-                            {
-                                vm.AddToErrorMessage("index out of range, must be in range: [" + (-n) + ", " + n + "]");
-                                return ExFunctionStatus.ERROR;
-                            }
-
-                            if (start >= end)
-                            {
-                                break;
-                            }
-
-                            res = new(end - start);
-
-                            for (int i = start; i < end; i++)
-                            {
-                                res.Add(new(arr[i]));
-                            }
-
-                            break;
+                            res.Add(new(arr[i]));
                         }
-                }
-                return vm.CleanReturn(nargs + 2, res);
+
+                        break;
+                    }
             }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            return vm.CleanReturn(nargs + 2, res);
         }
 
         [ExNativeFuncDelegate("shuffle", ExBaseType.ARRAY, "Return a new shuffled list", 'a')]
@@ -669,26 +592,19 @@ namespace ExMat.StdLib
         [ExNativeFuncDelegate("transpose", ExBaseType.ARRAY, "Return the transposed form of given matrix. Not usable for non-matrix formats.", 'a')]
         public static ExFunctionStatus StdArrayTranspose(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -1, ExObjType.ARRAY, ref res))
+            ExObject res = vm.GetRootArgument();
+            List<ExObject> vals = res.GetList();
+            int rows = vals.Count;
+            int cols = 0;
+
+            if (!ExApi.DoMatrixTransposeChecks(vm, vals, ref cols))
             {
-                List<ExObject> vals = res.GetList();
-                int rows = vals.Count;
-                int cols = 0;
-
-                if (!ExApi.DoMatrixTransposeChecks(vm, vals, ref cols))
-                {
-                    return ExFunctionStatus.ERROR;
-                }
-
-                List<ExObject> lis = ExApi.TransposeMatrix(rows, cols, vals);
-
-                return vm.CleanReturn(nargs + 2, lis);
+                return ExFunctionStatus.ERROR;
             }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+
+            List<ExObject> lis = ExApi.TransposeMatrix(rows, cols, vals);
+
+            return vm.CleanReturn(nargs + 2, lis);
         }
 
         [ExNativeFuncDelegate("order_asc", ExBaseType.ARRAY, "Return a new list in ascending order. Only uses real numbers in the list.", 'a')]
@@ -727,81 +643,45 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "key", "s", "Key to check")]
         public static ExFunctionStatus StdDictHasKey(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -2, ExObjType.DICT, ref res))
-            {
-                return vm.CleanReturn(nargs + 2, res.GetDict().ContainsKey(vm.GetArgument(1).GetString()));
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetDict().ContainsKey(vm.GetArgument(1).GetString()));
         }
 
         [ExNativeFuncDelegate("get_keys", ExBaseType.ARRAY, "Get a list of the keys", 'd')]
         public static ExFunctionStatus StdDictKeys(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -1, ExObjType.DICT, ref res))
+            ExObject res = vm.GetRootArgument();
+            List<ExObject> keys = new(res.GetDict().Count);
+            foreach (string key in res.GetDict().Keys)
             {
-                List<ExObject> keys = new(res.GetDict().Count);
-                foreach (string key in res.GetDict().Keys)
-                {
-                    keys.Add(new(key));
-                }
-                return vm.CleanReturn(nargs + 2, keys);
+                keys.Add(new(key));
             }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            return vm.CleanReturn(nargs + 2, keys);
         }
 
         [ExNativeFuncDelegate("get_values", ExBaseType.ARRAY, "Get a list of the values", 'd')]
         public static ExFunctionStatus StdDictValues(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -1, ExObjType.DICT, ref res))
+            ExObject res = vm.GetRootArgument();
+            List<ExObject> vals = new(res.GetDict().Count);
+            foreach (ExObject val in res.GetDict().Values)
             {
-                List<ExObject> vals = new(res.GetDict().Count);
-                foreach (ExObject val in res.GetDict().Values)
-                {
-                    vals.Add(new(val));
-                }
-                return vm.CleanReturn(nargs + 2, vals);
+                vals.Add(new(val));
             }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            return vm.CleanReturn(nargs + 2, vals);
         }
 
         [ExNativeFuncDelegate("random_key", ExBaseType.STRING, "Get a random key", 'd')]
         public static ExFunctionStatus StdDictRandomKey(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -1, ExObjType.DICT, ref res))
-            {
-                return vm.CleanReturn(nargs + 2, new List<string>(res.GetDict().Keys)[new Random().Next(0, res.GetDict().Count)]);
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
+            return vm.CleanReturn(nargs + 2, new List<string>(res.GetDict().Keys)[new Random().Next(0, res.GetDict().Count)]);
         }
 
         [ExNativeFuncDelegate("random_val", 0, "Get a random value", 'd')]
         public static ExFunctionStatus StdDictRandomVal(ExVM vm, int nargs)
         {
-            ExObject res = new();
-            if (ExApi.GetSafeObject(vm, -1, ExObjType.DICT, ref res))
-            {
-                return vm.CleanReturn(nargs + 2, new List<ExObject>(res.GetDict().Values)[new Random().Next(0, res.GetDict().Count)]);
-            }
-            else
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
+            return vm.CleanReturn(nargs + 2, new List<ExObject>(res.GetDict().Values)[new Random().Next(0, res.GetDict().Count)]);
         }
         #endregion
 
@@ -811,12 +691,8 @@ namespace ExMat.StdLib
         [ExNativeParamBase(2, "attribute", "s", "Attribute name to check")]
         public static ExFunctionStatus StdClassHasAttr(ExVM vm, int nargs)
         {
-            ExObject res = new();
+            ExObject res = vm.GetRootArgument();
 
-            if (!ExApi.GetSafeObject(vm, -3, ExObjType.CLASS, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
@@ -849,12 +725,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(2, "attribute", "s", "Attribute name to get")]
         public static ExFunctionStatus StdClassGetAttr(ExVM vm, int nargs)
         {
-            ExObject res = new();
-
-            if (!ExApi.GetSafeObject(vm, -3, ExObjType.CLASS, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
@@ -890,12 +761,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(3, "new_value", ".", "New attribute value")]
         public static ExFunctionStatus StdClassSetAttr(ExVM vm, int nargs)
         {
-            ExObject res = new();
-
-            if (!ExApi.GetSafeObject(vm, -4, ExObjType.CLASS, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
             ExObject val = vm.GetArgument(3);
@@ -933,12 +799,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(2, "attribute", "s", "Attribute name to check")]
         public static ExFunctionStatus StdInstanceHasAttr(ExVM vm, int nargs)
         {
-            ExObject res = new();
-
-            if (!ExApi.GetSafeObject(vm, -3, ExObjType.INSTANCE, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
@@ -971,12 +832,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(2, "attribute", "s", "Attribute name to get")]
         public static ExFunctionStatus StdInstanceGetAttr(ExVM vm, int nargs)
         {
-            ExObject res = new();
-
-            if (!ExApi.GetSafeObject(vm, -3, ExObjType.INSTANCE, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
@@ -1012,12 +868,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(3, "new_value", ".", "New attribute value")]
         public static ExFunctionStatus StdInstanceSetAttr(ExVM vm, int nargs)
         {
-            ExObject res = new();
-
-            if (!ExApi.GetSafeObject(vm, -4, ExObjType.INSTANCE, ref res))
-            {
-                return vm.AddToErrorMessage("stack is corrupted!");
-            }
+            ExObject res = vm.GetRootArgument();
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
             ExObject val = vm.GetArgument(3);
