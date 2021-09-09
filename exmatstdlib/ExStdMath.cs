@@ -196,8 +196,8 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncBase("rand", ExBaseType.INTEGER, "")]
-        [ExNativeParamBase(1, "bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", (0))]
-        [ExNativeParamBase(2, "bound2", "n", "Upper bound for number range", (int.MaxValue))]
+        [ExNativeParamBase(1, "bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", 0)]
+        [ExNativeParamBase(2, "bound2", "n", "Upper bound for number range", int.MaxValue)]
         public static ExFunctionStatus MathRand(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -218,8 +218,8 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncBase("randf", ExBaseType.FLOAT, "Get a random float in given range: [0, 1) , [0, bound1) or [bound1, bound2)")]
-        [ExNativeParamBase(1, "bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", (0.0))]
-        [ExNativeParamBase(2, "bound2", "n", "Upper bound for number range", (1.0))]
+        [ExNativeParamBase(1, "bound1", "n", "If used alone: [0,bound1), otherwise: [bound1, bound2)", 0.0)]
+        [ExNativeParamBase(2, "bound2", "n", "Upper bound for number range", 1.0)]
         public static ExFunctionStatus MathRandf(ExVM vm, int nargs)
         {
             switch (nargs)
@@ -955,7 +955,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("log", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Get the base 'b' logarithm of 'a', that is log'b'('a') == log(a,b). If 'b' is not given, works same as 'loge' function, that is loge('a') == log(a) == log(a,E) == ln(a)")]
         [ExNativeParamBase(1, "a", "n", "Argument")]
-        [ExNativeParamBase(2, "b", "n", "Base", (Math.E))]
+        [ExNativeParamBase(2, "b", "n", "Base", Math.E)]
         public static ExFunctionStatus MathLog(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -1006,7 +1006,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("round", ExBaseType.FLOAT | ExBaseType.COMPLEX, "Round a number to given digits")]
         [ExNativeParamBase(1, "value", "n", "Value to round")]
-        [ExNativeParamBase(2, "digits", "n", "Digits to round to", (0))]
+        [ExNativeParamBase(2, "digits", "n", "Digits to round to", 0)]
         public static ExFunctionStatus MathRound(ExVM vm, int nargs)
         {
             ExObject i = vm.GetArgument(1);
@@ -1480,8 +1480,8 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("save_scatters", ExBaseType.STRING, "Save multiple plots of data points and lines connecting them in a single plot, using given data lists and plot information as an image")]
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
-        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", 800)]
         public static ExFunctionStatus MathPlotSaveScatters(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1590,8 +1590,8 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "x", "a", "X axis data")]
         [ExNativeParamBase(3, "y", "a", "Y axis data")]
-        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", 800)]
         [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
         [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatter(ExVM vm, int nargs)
@@ -1655,8 +1655,8 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("save_scatter_lines", ExBaseType.STRING, "Save multiple plots of line plots in a single plot, using given data lists and plot information as an image")]
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
-        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", 800)]
         public static ExFunctionStatus MathPlotSaveScatterLines(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1765,8 +1765,8 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "x", "a", "X axis data")]
         [ExNativeParamBase(3, "y", "a", "Y axis data")]
-        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", 800)]
         [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
         [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterLine(ExVM vm, int nargs)
@@ -1830,8 +1830,8 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("save_scatter_points", ExBaseType.STRING, "Save multiple scatter plots in a single plot, using given data lists and plot information as an image")]
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
-        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", 800)]
         public static ExFunctionStatus MathPlotSaveScatterPoints(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -1940,8 +1940,8 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "x", "a", "X axis data")]
         [ExNativeParamBase(3, "y", "a", "Y axis data")]
-        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", 800)]
         [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
         [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterPoint(ExVM vm, int nargs)
@@ -2005,8 +2005,8 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("save_scatter_steps", ExBaseType.STRING, "Save multiple step plots in a single plot, using given data lists and plot information as an image")]
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "data_list", "a", "List of plot information lists. Each list must follow the format:\n\t [<list> x_axis, <list> y_axis, {OPTIONAL<string> color = \"blue\"},  {OPTIONAL<string?> label = null}]")]
-        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", 800)]
         public static ExFunctionStatus MathPlotSaveScatterSteps(ExVM vm, int nargs)
         {
             string name = vm.GetArgument(1).GetString();
@@ -2115,8 +2115,8 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "x", "a", "X axis data")]
         [ExNativeParamBase(3, "y", "a", "Y axis data")]
-        [ExNativeParamBase(4, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(5, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(4, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(5, "height", "n", "Height of the image", 800)]
         [ExNativeParamBase(6, "color", "s", "Plot data point color name", "blue")]
         [ExNativeParamBase(7, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterStep(ExVM vm, int nargs)
@@ -2180,8 +2180,8 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("save_complex", ExBaseType.STRING, "Save a scatter plot of complex numbers, using given plot information as an image")]
         [ExNativeParamBase(1, "filename", "s", "Image file name to save as")]
         [ExNativeParamBase(2, "complex_nums", "a", "Complex number list to plot")]
-        [ExNativeParamBase(3, "width", "n", "Width of the image", (1200))]
-        [ExNativeParamBase(4, "height", "n", "Height of the image", (800))]
+        [ExNativeParamBase(3, "width", "n", "Width of the image", 1200)]
+        [ExNativeParamBase(4, "height", "n", "Height of the image", 800)]
         [ExNativeParamBase(5, "color", "s", "Plot data point color name", "blue")]
         [ExNativeParamBase(6, "plot_label", "s", "Plot label, null to not use any labels", def: null)]
         public static ExFunctionStatus MathPlotSaveScatterComplex(ExVM vm, int nargs)
@@ -2331,8 +2331,6 @@ namespace ExMat.StdLib
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            ExApi.RegisterNativeFunctions(vm, typeof(ExStdMath));
-
             RegisterStdMathConstants(vm);
 
             return true;

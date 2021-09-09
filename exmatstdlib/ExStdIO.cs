@@ -833,8 +833,8 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "path", "s", "File path to write to")]
         [ExNativeParamBase(2, "sheet_name", "s", "Sheet name in the file. If it already exists, it will get overwritten unless offset.")]
         [ExNativeParamBase(3, "rows_of_cols", "a", "List of lists to write as an excel sheet")]
-        [ExNativeParamBase(4, "rowoffset", "i", "File path to write to", (0))]
-        [ExNativeParamBase(5, "coloffset", "i", "File path to write to", (0))]
+        [ExNativeParamBase(4, "rowoffset", "i", "File path to write to", 0)]
+        [ExNativeParamBase(5, "coloffset", "i", "File path to write to", 0)]
         public static ExFunctionStatus IoWriteExcel(ExVM vm, int nargs)
         {
             string file = vm.GetArgument(1).GetString();
@@ -896,7 +896,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("raw_key", ExBaseType.STRING, "Read the next key pressed by the user")]
         [ExNativeParamBase(1, "message", "s", "Message to print before input starts", def: "")]
-        [ExNativeParamBase(2, "hide_key", ".", "Hide the key pressed", (true))]
+        [ExNativeParamBase(2, "hide_key", ".", "Hide the key pressed", true)]
         public static ExFunctionStatus IoRawinputkey(ExVM vm, int nargs)
         {
             bool intercept = true;
@@ -926,8 +926,6 @@ namespace ExMat.StdLib
         {
             // For read_excel
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-            ExApi.RegisterNativeFunctions(vm, typeof(ExStdIO));
 
             return true;
         };

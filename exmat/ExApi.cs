@@ -504,12 +504,12 @@ namespace ExMat.API
         }
 
         /// <summary>
-        /// Checks equality of given two objects
+        /// Checks equality of given two objects, store result in given argument <paramref name="res"/>
         /// </summary>
         /// <param name="x">First object</param>
         /// <param name="y">Second object</param>
         /// <param name="res">Result of equality check</param>
-        /// <returns><see langword="true"/> if no errors occur, otherwise <see langword="false"/></returns>
+        /// <returns>Always returns <see langword="true"/>, stores result in <paramref name="res"/></returns>
         public static bool CheckEqual(ExObject x, ExObject y, ref bool res)
         {
             if (x.Type == y.Type)
@@ -521,6 +521,26 @@ namespace ExMat.API
                 CheckEqualForDifferingTypes(x, y, ref res);
             }
             return true;
+        }
+
+        /// <summary>
+        /// Checks equality of given two objects, returns the result
+        /// </summary>
+        /// <param name="x">First object</param>
+        /// <param name="y">Second object</param>
+        /// <returns><see langword="true"/> if <paramref name="x"/> and <paramref name="y"/> hold the same value, otherwise <see langword="false"/></returns>
+        public static bool CheckEqualReturnRes(ExObject x, ExObject y)
+        {
+            bool res = false;
+            if (x.Type == y.Type)
+            {
+                CheckEqualForSameType(x, y, ref res);
+            }
+            else
+            {
+                CheckEqualForDifferingTypes(x, y, ref res);
+            }
+            return res;
         }
 
         /// <summary>
@@ -824,6 +844,8 @@ namespace ExMat.API
             {
                 if (registery(vm))
                 {
+                    RegisterNativeFunctions(vm, type);
+
                     return ExFunctionStatus.SUCCESS;
                 }
                 return vm.AddToErrorMessage("something went wrong...");
@@ -894,11 +916,11 @@ namespace ExMat.API
                 }
             }
 
-            return new(types
-                       .Where(t => t.IsClass
-                                && string.Equals(t.Namespace, ExMat.StandardLibraryNameSpace, StringComparison.Ordinal)
-                                && IsStdLib(t))
-                       .ToArray());
+            return types
+                   .Where(t => t.IsClass
+                          && string.Equals(t.Namespace, ExMat.StandardLibraryNameSpace, StringComparison.Ordinal)
+                          && IsStdLib(t))
+                   .ToList();
         }
 
         /// <summary>

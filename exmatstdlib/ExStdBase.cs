@@ -851,7 +851,7 @@ namespace ExMat.StdLib
 
             int argcount = obj.GetList().Count;
 
-            List<ExObject> l = new(obj.GetList().Count);
+            List<ExObject> l = new(argcount);
 
             switch (cls.Type)
             {
@@ -1443,7 +1443,7 @@ namespace ExMat.StdLib
 
         // List initializer functions
         [ExNativeFuncBase("list", ExBaseType.ARRAY, "Initialize an empty list or convert a string into a list of characters")]
-        [ExNativeParamBase(1, "length", "n|s", "Length of the list or string to get the character list of", (0))]
+        [ExNativeParamBase(1, "length", "n|s", "Length of the list or string to get the character list of", 0)]
         [ExNativeParamBase(2, "filler", ".", "Filler object to use while initializing the list", def: null)]
         public static ExFunctionStatus StdList(ExVM vm, int nargs)
         {
@@ -1486,8 +1486,8 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("rangei", ExBaseType.ARRAY, "Initialize a number range series with given inclusive start and end values and step information.")]
         [ExNativeParamBase(1, "start", "n", "Inclusive start value")]
-        [ExNativeParamBase(2, "end", "n", "Inclusive end value", (0))]
-        [ExNativeParamBase(3, "step", "n", "Step size between values", (1))]
+        [ExNativeParamBase(2, "end", "n", "Inclusive end value", 0)]
+        [ExNativeParamBase(3, "step", "n", "Step size between values", 1)]
         public static ExFunctionStatus StdRangei(ExVM vm, int nargs)
         {
             List<ExObject> l = new();
@@ -1816,8 +1816,8 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("range", ExBaseType.ARRAY, "Initialize a number range series with given inclusive start and exclusive end values and step information.")]
         [ExNativeParamBase(1, "start", "n", "Inclusive start value")]
-        [ExNativeParamBase(2, "end", "n", "Exclusive end value", (0))]
-        [ExNativeParamBase(3, "step", "n", "Step size between values", (1))]
+        [ExNativeParamBase(2, "end", "n", "Exclusive end value", 0)]
+        [ExNativeParamBase(3, "step", "n", "Step size between values", 1)]
         public static ExFunctionStatus StdRange(ExVM vm, int nargs)
         {
             List<ExObject> l = new();
@@ -2146,7 +2146,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("matrix", ExBaseType.ARRAY, "Initialize a matrix with 'rows'x'cols' dimensions.")]
         [ExNativeParamBase(1, "rows", "i", "Row dimension")]
-        [ExNativeParamBase(2, "cols", "i", "Column dimension", (1))]
+        [ExNativeParamBase(2, "cols", "i", "Column dimension", 1)]
         [ExNativeParamBase(3, "filler", ".", "Filler object", def: null)]
         public static ExFunctionStatus StdMatrix(ExVM vm, int nargs)
         {
@@ -2266,7 +2266,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncBase(ExMat.ReloadBaseLib, "")]
-        [ExNativeParamBase(1, "func_name", "s", "Name of the base library function to reload", (ExMat.ReloadBaseLib))]
+        [ExNativeParamBase(1, "func_name", "s", "Name of the base library function to reload", ExMat.ReloadBaseLib)]
         public static ExFunctionStatus StdReloadBase(ExVM vm, int nargs)
         {
             if (nargs == 1)
@@ -2295,7 +2295,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncBase("exit", "Exits the virtual machine at the next possible oppurtunity")]
-        [ExNativeParamBase(1, "func", "r", "Condition to be met. Single parameter function, gets passed list elements to it", (0))]
+        [ExNativeParamBase(1, "func", "r", "Condition to be met. Single parameter function, gets passed list elements to it", 0)]
         public static ExFunctionStatus StdExit(ExVM vm, int nargs)
         {
             vm.CleanReturn(nargs + 2, vm.GetArgument(1).GetInt());
@@ -2454,9 +2454,6 @@ namespace ExMat.StdLib
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            // Yerli fonksiyonları global tabloya kaydet
-            ExApi.RegisterNativeFunctions(vm, typeof(ExStdBase));
-
             RegisterStdBaseConstants(vm);
 
             return true;

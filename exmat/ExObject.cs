@@ -180,8 +180,8 @@ namespace ExMat.Objects
                 case ExObjType.COMPLEX: s += " " + GetComplex().ToString(); break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
-                case ExObjType.CLOSURE: s = (GetClosure() == null ? s + GetString() : Value._Closure.GetDebuggerDisplay()); break;
-                case ExObjType.NATIVECLOSURE: s = (GetNClosure() == null ? s + GetString() : Value._NativeClosure.GetDebuggerDisplay()); break;
+                case ExObjType.CLOSURE: s = GetClosure() == null ? s + GetString() : Value._Closure.GetDebuggerDisplay(); break;
+                case ExObjType.NATIVECLOSURE: s = GetNClosure() == null ? s + GetString() : Value._NativeClosure.GetDebuggerDisplay(); break;
                 case ExObjType.NULL: break;
             }
             return s;

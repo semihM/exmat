@@ -384,7 +384,7 @@ namespace ExMat.VM
                 {
                     if (ts.Length < 4)
                     {
-                        ts = (new string(' ', 8 - ts.Length)) + ts;
+                        ts = new string(' ', 8 - ts.Length) + ts;
                     }
                     s.AppendFormat("{0}{1}", prefix, ts);
                 }
@@ -911,7 +911,7 @@ namespace ExMat.VM
                 {
                     if (t_n != nargs)
                     {
-                        AddToErrorMessage("'" + pro.Name.GetString() + "' takes " + (t_n) + " arguments");
+                        AddToErrorMessage("'" + pro.Name.GetString() + "' takes " + t_n + " arguments");
                         return false;
                     }
 
@@ -938,7 +938,7 @@ namespace ExMat.VM
             {
                 if (t_n != nargs - 1)
                 {
-                    AddToErrorMessage("'" + pro.Name.GetString() + "' takes " + (t_n) + " arguments");
+                    AddToErrorMessage("'" + pro.Name.GetString() + "' takes " + t_n + " arguments");
                     return false;
                 }
 
@@ -4267,7 +4267,7 @@ namespace ExMat.VM
                         }
                         else
                         {
-                            AddToErrorMessage("can't use non-existant default value for parameter " + (i));
+                            AddToErrorMessage("can't use non-existant default value for parameter " + i);
                             return false;
                         }
                     } // ".." sembollerini varsayılan değer kontrolü yaparak değiştir

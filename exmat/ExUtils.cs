@@ -6,6 +6,13 @@ namespace ExMat.Utils
 {
     public static class ExUtils
     {
+        public static List<ExObject> GetOrderedNumericList(List<ExObject> lis)
+        {
+            return lis.Where(o => o.IsRealNumber())
+                    .OrderBy(x => x.GetFloat())
+                    .ToList();
+        }
+
         public static bool AssertNumericArray(ExObject lis)
         {
             foreach (ExObject num in lis.GetList())

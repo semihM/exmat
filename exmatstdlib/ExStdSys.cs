@@ -205,7 +205,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("open_dir", ExBaseType.BOOL, "Open a directory in the explorer")]
         [ExNativeParamBase(1, "directory", "s", "Directory to open", ".")]
-        [ExNativeParamBase(2, "force_create", ".", "Wheter to create the directory if it doesn't exist", (false))]
+        [ExNativeParamBase(2, "force_create", ".", "Wheter to create the directory if it doesn't exist", false)]
         public static ExFunctionStatus StdSysOpendir(ExVM vm, int nargs)
         {
             string dir = vm.GetArgument(1).GetString();
@@ -247,7 +247,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("print_out", "Print a message or an object to a new external terminal instead of the immediate terminal")]
         [ExNativeParamBase(1, "message", ".", "Message or object to print")]
-        [ExNativeParamBase(2, "depth", "n", "Depth of stringification for objects", (2))]
+        [ExNativeParamBase(2, "depth", "n", "Depth of stringification for objects", 2)]
         public static ExFunctionStatus StdSysPrintOut(ExVM vm, int nargs)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -395,7 +395,7 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncBase("env_exit", ExBaseType.BOOL, "Exit from the current enviroment immediately. Works similarly but faster than the 'exit' function.")]
-        [ExNativeParamBase(1, "exit_code", "r", "Exit code to return while exiting", (0))]
+        [ExNativeParamBase(1, "exit_code", "r", "Exit code to return while exiting", 0)]
         public static ExFunctionStatus StdSysEnvExit(ExVM vm, int nargs)
         {
             Environment.Exit((int)vm.GetArgument(1).GetInt());
@@ -409,8 +409,8 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncBase("beep", ExBaseType.BOOL, "Beep the console for the given duration. This function is not async and stops the flow for the given 'duration'.")]
-        [ExNativeParamBase(1, "frequency", "r", "Frequency to beep at in range [37, 32767]", (800))]
-        [ExNativeParamBase(2, "duration", "r", "Beeping duration in miliseconds", (200))]
+        [ExNativeParamBase(1, "frequency", "r", "Frequency to beep at in range [37, 32767]", 800)]
+        [ExNativeParamBase(2, "duration", "r", "Beeping duration in miliseconds", 200)]
         public static ExFunctionStatus StdSysConsoleBeep(ExVM vm, int nargs)
         {
             if (nargs != 0 && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -436,8 +436,8 @@ namespace ExMat.StdLib
         }
 
         [ExNativeFuncBase("beep_async", ExBaseType.BOOL, "Beep the console for the given duration async. This function doesn't stop the flow.")]
-        [ExNativeParamBase(1, "frequency", "r", "Frequency to beep at in range [37, 32767]", (800))]
-        [ExNativeParamBase(2, "duration", "r", "Beeping duration in miliseconds", (200))]
+        [ExNativeParamBase(1, "frequency", "r", "Frequency to beep at in range [37, 32767]", 800)]
+        [ExNativeParamBase(2, "duration", "r", "Beeping duration in miliseconds", 200)]
         public static ExFunctionStatus StdSysConsoleBeepAsync(ExVM vm, int nargs)
         {
             if (nargs != 0 && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -467,8 +467,6 @@ namespace ExMat.StdLib
         // MAIN
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            ExApi.RegisterNativeFunctions(vm, typeof(ExStdSys));
-
             return true;
         };
     }

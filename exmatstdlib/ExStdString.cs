@@ -62,7 +62,7 @@ namespace ExMat.StdLib
 
         #region STRING FUNCTIONS
         [ExNativeFuncBase("rands", ExBaseType.STRING, "Create a cryptographically safe random string using characters from [a-zA-Z0-9] with given length.")]
-        [ExNativeParamBase(1, "length", "r", "Length of the string", (10))]
+        [ExNativeParamBase(1, "length", "r", "Length of the string", 10)]
         public static ExFunctionStatus StdStringRands(ExVM vm, int nargs)
         {
             return vm.CleanReturn(nargs + 2, ExApi.RandomString(nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 10) : 10));
@@ -88,7 +88,7 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "string", "s", "String to search through")]
         [ExNativeParamBase(2, "old", "s", "Old value pattern")]
         [ExNativeParamBase(3, "new", "s", "Replacement value")]
-        [ExNativeParamBase(4, "max_count", "r", "Maximum count of replacements", (int.MaxValue))]
+        [ExNativeParamBase(4, "max_count", "r", "Maximum count of replacements", int.MaxValue)]
         public static ExFunctionStatus StdStringRegexReplace(ExVM vm, int nargs)
         {
             int count = nargs == 4 ? (int)vm.GetPositiveIntegerArgument(4, int.MaxValue) : int.MaxValue;
@@ -98,7 +98,7 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("reg_split", ExBaseType.ARRAY, "Split given string with a pattern given amount of maximum splits")]
         [ExNativeParamBase(1, "string", "s", "String to split")]
         [ExNativeParamBase(2, "pattern", "s", "Splitting pattern")]
-        [ExNativeParamBase(3, "max_count", "r", "Maximum count of splitting", (int.MaxValue))]
+        [ExNativeParamBase(3, "max_count", "r", "Maximum count of splitting", int.MaxValue)]
         public static ExFunctionStatus StdStringRegexSplit(ExVM vm, int nargs)
         {
             int count = nargs == 3 ? (int)vm.GetPositiveIntegerArgument(3, int.MaxValue) : int.MaxValue;
@@ -136,7 +136,7 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("split", ExBaseType.ARRAY, "Split given string with given splitter.")]
         [ExNativeParamBase(1, "string", "s", "String to split")]
         [ExNativeParamBase(2, "splitter", "s", "Splitting string")]
-        [ExNativeParamBase(3, "remove_empty", ".", "Wheter to remove empty strings", (false))]
+        [ExNativeParamBase(3, "remove_empty", ".", "Wheter to remove empty strings", false)]
         public static ExFunctionStatus StdStringSplit(ExVM vm, int nargs)
         {
             string s = vm.GetArgument(1).GetString();
@@ -161,7 +161,7 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("join", ExBaseType.STRING, "Join a list of objects with given seperators into a string, using given depth of stringification for the objects.")]
         [ExNativeParamBase(1, "seperator", "s", "String to use between strings")]
         [ExNativeParamBase(2, "list", "a", "List of objects")]
-        [ExNativeParamBase(3, "depth", "r", "Depth to stringify objects to", (2))]
+        [ExNativeParamBase(3, "depth", "r", "Depth to stringify objects to", 2)]
         public static ExFunctionStatus StdStringJoin(ExVM vm, int nargs)
         {
             string s = vm.GetArgument(1).GetString();
@@ -249,8 +249,6 @@ namespace ExMat.StdLib
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            ExApi.RegisterNativeFunctions(vm, typeof(ExStdString));
-
             return true;
         };
     }

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
 using HtmlAgilityPack;
@@ -222,7 +221,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("fetch", ExBaseType.STRING | ExBaseType.DICT | ExBaseType.ARRAY, "Fetch contents of the given url. Response is parsed if it was a json or html response by default, use 'raw' to change it.")]
         [ExNativeParamBase(1, "url", "s", "Url to fetch information from. JSON and HTML files are parsed accordingly unless 'raw' parameter is set to true.")]
-        [ExNativeParamBase(2, "raw", ".", "Wheter to return raw response content. Use false to parse json and html responses.", (false))]
+        [ExNativeParamBase(2, "raw", ".", "Wheter to return raw response content. Use false to parse json and html responses.", false)]
         public static ExFunctionStatus StdNetFetch(ExVM vm, int nargs)
         {
             string link = vm.GetArgument(1).GetString().Trim();
@@ -321,8 +320,6 @@ namespace ExMat.StdLib
         // MAIN
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            ExApi.RegisterNativeFunctions(vm, typeof(ExStdNet));
-
             return true;
         };
     }
