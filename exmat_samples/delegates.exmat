@@ -1,0 +1,130 @@
+printl("-".repeat(40))
+// Complex number delegates
+var c1 = 3 + 4i
+printl(format("c1.real() -> {0}", c1.real()))
+printl(format("c1.img() -> {0}", c1.img()))
+printl(format("c1.abs() -> {0}", c1.abs()))
+printl(format("c1.phase() -> {0}", c1.phase()))
+printl(format("c1.conj() -> {0}", c1.conj()))
+
+printl("-".repeat(40))
+// Real number delegates
+var r1 = E
+printl(format("r1.real() -> {0}", r1.real()))
+printl(format("r1.img() -> {0}", r1.img())) // Always zero
+
+printl("-".repeat(40))
+// String delegates
+var str = "This is, as you can see, a STRING!"
+
+printl(format("str.len() -> {0}", str.len()))
+
+printl(format("str.index_of(\"you\") -> {0}", str.index_of("you")))
+
+printl(format("str.to_upper() -> {0}", str.to_upper()))
+printl(format("\tstr -> {0}", str))
+
+printl(format("str.to_lower() -> {0}", str.to_lower()))
+printl(format("\tstr -> {0}", str))
+
+printl(format("str.reverse() -> {0}", str.reverse()))
+printl(format("\tstr -> {0}", str))
+
+printl(format("str.repeat(2) -> {0}", str.repeat(2)))
+printl(format("\tstr -> {0}", str))
+
+printl(format("str.replace(\"you\",\"I\") -> {0}", str.replace("you","I")))
+printl(format("\tstr -> {0}", str))
+
+printl(format("str.slice(8) -> {0}", str.slice(8)))
+
+printl(format("str.slice(4,11) -> {0}", str.slice(4,11)))
+
+printl(format("str.isAlphabetic() -> {0}", str.isAlphabetic()))
+printl(format("str.isNumeric() -> {0}", str.isNumeric()))
+printl(format("str.isAlphaNumeric() -> {0}", str.isAlphaNumeric()))
+printl(format("str.isLower() -> {0}", str.isLower()))
+printl(format("str.isUpper() -> {0}", str.isUpper()))
+printl(format("str.isSymbol() -> {0}", str.isSymbol()))
+
+printl("-".repeat(40))
+// Array delegates
+var arr = [1,2,2,4,3,6,4]
+
+printl(format("arr.len() -> {0}", arr.len()))
+
+printl(format("arr.index_of(6) -> {0}", arr.index_of(6)))
+printl(format("arr.index_of(999) -> {0}", arr.index_of(999)))
+
+printl(format("arr.count(2) -> {0}", arr.count(2)))
+
+printl(format("arr.slice(4) -> {0}", arr.slice(4)))
+printl(format("arr.slice(2,6) -> {0}", arr.slice(2,6)))
+
+printl(format("arr.copy() -> {0}", arr.copy()))
+
+printl(format("arr.append(99) -> {0}", arr.append(99)))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.remove_at(0) -> {0}", arr.remove_at(0)))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.push(-50) -> {0}", arr.push(-50)))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.pop() -> {0}", arr.pop()))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.expand([-1,-2]) -> {0}", arr.expand([-1,-2])))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.extend([-1,-2]) -> {0}", arr.extend([-1,-2])))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.resize(7) -> {0}", arr.resize(7)))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.reverse() -> {0}", arr.reverse()))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.shuffle() -> {0}", arr.shuffle()))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.random() -> {0}", arr.random()))
+printl(format("arr.random(4) -> {0}", arr.random(4)))
+
+printl(format("[arr].transpose() -> {0}", [arr].transpose()))
+
+printl(format("arr.unique() -> {0}", arr.unique()))
+
+printl(format("arr.order_asc() -> {0}", arr.order_asc()))
+printl(format("\tarr -> {0}", arr))
+
+printl(format("arr.order_des() -> {0}", arr.order_des()))
+printl(format("\tarr -> {0}", arr))
+
+printl("-".repeat(40))
+// Dictionary delegates
+var tbl =
+{
+    key1 = 123
+    key2 = 555
+    key3 = "testing"
+    key4 = [-1, null, PI]
+}
+
+printl(format("tbl.len() -> {0}", tbl.len()))
+
+printl(format("tbl.get_keys() -> {0}", tbl.get_keys()))
+
+printl(format("tbl.get_values() -> {0}", tbl.get_values()))
+
+printl(format("tbl.has_key(\"key2\") -> {0}", tbl.has_key("key2")))
+printl(format("\"key2\" in tbl -> {0}", "key2" in tbl))
+
+printl(format("tbl.has_key(\"key999\") -> {0}", tbl.has_key("key999")))
+printl(format("\"key999\" in tbl -> {0}", "key999" in tbl))
+
+printl(format("tbl.random_key() -> {0}", tbl.random_key()))
+
+printl(format("tbl.random_val() -> {0}", tbl.random_val()))
