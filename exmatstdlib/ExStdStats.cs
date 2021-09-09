@@ -3,6 +3,7 @@ using System.Linq;
 using System.Numerics;
 using ExMat.API;
 using ExMat.Objects;
+using ExMat.Utils;
 using ExMat.VM;
 
 namespace ExMat.StdLib
@@ -90,7 +91,7 @@ namespace ExMat.StdLib
 
             int max = counts.Values.Max();
 
-            List<ExObject> maxrepeats = new(counts.Where(pair => pair.Value == max).Select(pair => new ExObject(pair.Key)).ToArray());
+            List<ExObject> maxrepeats = counts.Where(pair => pair.Value == max).Select(pair => new ExObject(pair.Key)).ToList();
 
             Dictionary<string, ExObject> res = new(2)
             {
@@ -101,13 +102,32 @@ namespace ExMat.StdLib
 
             return vm.CleanReturn(nargs + 2, res);
         }
+
+        [ExNativeFuncBase("median", ExBaseType.INTEGER | ExBaseType.FLOAT | ExBaseType.NULL, "Get the median of a given list of values. Only real numbers are used for ordering. Returns null if there is no real numbers in list.")]
+        [ExNativeParamBase(1, "list", "a", "List of real numbers")]
+        public static ExFunctionStatus StatsMedian(ExVM vm, int nargs)
+        {
+            List<ExObject> lis = ExUtils.GetOrderedNumericList(vm.GetArgument(1).GetList());
+            int c = lis.Count;
+            if (c == 0)
+            {
+                return vm.CleanReturn(nargs + 2, new ExObject());
+            }
+            else if (c % 2 == 1)
+            {
+                return vm.CleanReturn(nargs + 2, lis[c / 2].GetFloat());
+            }
+            else
+            {
+                return vm.CleanReturn(nargs + 2, (lis[c / 2].GetFloat() + lis[(c - 1) / 2].GetFloat()) / 2.0);
+            }
+        }
+
         #endregion
 
         // MAIN
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            ExApi.RegisterNativeFunctions(vm, typeof(ExStdStats));
-
             return true;
         };
     }
