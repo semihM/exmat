@@ -17,12 +17,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.10";
+        public const string Version = "ExMat v0.0.11";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 10;
+        public const int VersionNumber = 11;
 
         /// <summary>
         /// Title of the interactive console
@@ -32,7 +32,7 @@ namespace ExMat
         /// <summary>
         /// Help information to print at the beginning
         /// </summary>
-        public const string HelpInfoString = "Use 'help' function to get function documentation";
+        public const string HelpInfoString = "Use 'help' for function information, 'root' for global variables, 'consts' for constants";
 
         /// <summary>
         /// String and file terminator character
