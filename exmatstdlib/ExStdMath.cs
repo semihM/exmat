@@ -11,6 +11,7 @@ namespace ExMat.StdLib
     [ExStdLibBase(ExStdLibType.MATH)]
     [ExStdLibName("math")]
     [ExStdLibRegister(nameof(Registery))]
+    [ExStdLibConstDict(nameof(Constants))]
     public static class ExStdMath
     {
         #region UTILITY
@@ -2256,83 +2257,80 @@ namespace ExMat.StdLib
         #endregion
 
         // MAIN
-        public static void RegisterStdMathConstants(ExVM vm)
+        public static Dictionary<string, ExObject> Constants => new()
         {
-            ExApi.PushRootTable(vm);
+            { "INT8_MAX", new(sbyte.MaxValue) },
+            { "INT8_MIN", new(sbyte.MinValue) },
 
-            ExApi.CreateConstantInt(vm, "INT8_MAX", sbyte.MaxValue);
-            ExApi.CreateConstantInt(vm, "INT8_MIN", sbyte.MinValue);
+            { "INT16_MAX", new(short.MaxValue) },
+            { "INT16_MIN", new(short.MinValue) },
 
-            ExApi.CreateConstantInt(vm, "INT16_MAX", short.MaxValue);
-            ExApi.CreateConstantInt(vm, "INT16_MIN", short.MinValue);
+            { "INT32_MAX", new(int.MaxValue) },
+            { "INT32_MIN", new(int.MinValue) },
 
-            ExApi.CreateConstantInt(vm, "INT32_MAX", int.MaxValue);
-            ExApi.CreateConstantInt(vm, "INT32_MIN", int.MinValue);
+            { "INT64_MAX", new(long.MaxValue) },
+            { "INT64_MIN", new(long.MinValue) },
 
-            ExApi.CreateConstantInt(vm, "INT64_MAX", long.MaxValue);
-            ExApi.CreateConstantInt(vm, "INT64_MIN", long.MinValue);
+            { "UINT8_MAX", new(byte.MaxValue) },
+            { "UINT16_MAX", new(ushort.MaxValue) },
+            { "UINT32_MAX", new(uint.MaxValue) },
 
-            ExApi.CreateConstantInt(vm, "UINT8_MAX", byte.MaxValue);
-            ExApi.CreateConstantInt(vm, "UINT16_MAX", ushort.MaxValue);
-            ExApi.CreateConstantInt(vm, "UINT32_MAX", uint.MaxValue);
+            { "FLOAT32_MAX", new(float.MaxValue) },
+            { "FLOAT32_MIN", new(float.MinValue) },
 
-            ExApi.CreateConstantFloat(vm, "FLOAT32_MAX", float.MaxValue);
-            ExApi.CreateConstantFloat(vm, "FLOAT32_MIN", float.MinValue);
+            { "FLOAT64_MAX", new(double.MaxValue) },
+            { "FLOAT64_MIN", new(double.MinValue) },
 
-            ExApi.CreateConstantFloat(vm, "FLOAT64_MAX", double.MaxValue);
-            ExApi.CreateConstantFloat(vm, "FLOAT64_MIN", double.MinValue);
+            { "TAU", new(Math.Tau) },
+            { "PI", new(Math.PI) },
+            { "E", new(Math.E) },
+            { "GOLDEN", new((1.0 + Math.Sqrt(5.0)) / 2.0) },
+            { "DEGREE", new(Math.PI / 180.0) },
+            { "EPSILON", new(double.Epsilon) },
 
-            ExApi.CreateConstantFloat(vm, "TAU", Math.Tau);
-            ExApi.CreateConstantFloat(vm, "PI", Math.PI);
-            ExApi.CreateConstantFloat(vm, "E", Math.E);
-            ExApi.CreateConstantFloat(vm, "GOLDEN", (1.0 + Math.Sqrt(5.0)) / 2.0);
-            ExApi.CreateConstantFloat(vm, "DEGREE", Math.PI / 180.0);
-            ExApi.CreateConstantFloat(vm, "EPSILON", double.Epsilon);
+            { "NAN", new(double.NaN) },
+            { "NINF", new(double.NegativeInfinity) },
+            { "INF", new(double.PositiveInfinity) },
 
-            ExApi.CreateConstantFloat(vm, "NAN", double.NaN);
-            ExApi.CreateConstantFloat(vm, "NINF", double.NegativeInfinity);
-            ExApi.CreateConstantFloat(vm, "INF", double.PositiveInfinity);
-
-            ExApi.CreateConstantDict(vm, "SPACES", new()
             {
-                { "R", ExSpace.Create("R", '\\', 1) },
-                { "R2", ExSpace.Create("R", '\\', 2) },
-                { "R3", ExSpace.Create("R", '\\', 3) },
-                { "Rn", ExSpace.Create("R", '\\', -1) },
-                { "Rmn", ExSpace.Create("R", '\\', -1, -1) },
+                "SPACES",
+                new(new Dictionary<string, ExObject>()
+                {
+                    { "R", new(ExSpace.Create("R", '\\', 1) )},
+                    { "R2", new(ExSpace.Create("R", '\\', 2) )},
+                    { "R3", new(ExSpace.Create("R", '\\', 3) )},
+                    { "Rn", new(ExSpace.Create("R", '\\', -1) )},
+                    { "Rmn", new(ExSpace.Create("R", '\\', -1, -1) )},
 
-                { "Z", ExSpace.Create("Z", '\\', 1) },
-                { "Z2", ExSpace.Create("Z", '\\', 2) },
-                { "Z3", ExSpace.Create("Z", '\\', 3) },
-                { "Zn", ExSpace.Create("Z", '\\', -1) },
-                { "Zmn", ExSpace.Create("Z", '\\', -1, -1) },
+                    { "Z", new(ExSpace.Create("Z", '\\', 1) )},
+                    { "Z2", new(ExSpace.Create("Z", '\\', 2) )},
+                    { "Z3", new(ExSpace.Create("Z", '\\', 3) )},
+                    { "Zn", new(ExSpace.Create("Z", '\\', -1) )},
+                    { "Zmn", new(ExSpace.Create("Z", '\\', -1, -1) )},
 
-                { "N", ExSpace.Create("N", '\\', 1) },
-                { "N2", ExSpace.Create("N", '\\', 2) },
-                { "N3", ExSpace.Create("N", '\\', 3) },
-                { "Nn", ExSpace.Create("N", '\\', -1) },
-                { "Nmn", ExSpace.Create("N", '\\', -1, -1) },
+                    { "N", new(ExSpace.Create("N", '\\', 1) )},
+                    { "N2", new(ExSpace.Create("N", '\\', 2) )},
+                    { "N3", new(ExSpace.Create("N", '\\', 3) )},
+                    { "Nn", new(ExSpace.Create("N", '\\', -1) )},
+                    { "Nmn", new(ExSpace.Create("N", '\\', -1, -1) )},
 
-                { "C", ExSpace.Create("C", '\\', 1) },
-                { "C2", ExSpace.Create("C", '\\', 2) },
-                { "C3", ExSpace.Create("C", '\\', 3) },
-                { "Cn", ExSpace.Create("C", '\\', -1) },
-                { "Cmn", ExSpace.Create("C", '\\', -1, -1) },
+                    { "C", new(ExSpace.Create("C", '\\', 1) )},
+                    { "C2", new(ExSpace.Create("C", '\\', 2) )},
+                    { "C3", new(ExSpace.Create("C", '\\', 3) )},
+                    { "Cn", new(ExSpace.Create("C", '\\', -1) )},
+                    { "Cmn", new(ExSpace.Create("C", '\\', -1, -1) )},
 
-                { "A", ExSpace.Create("A", '\\', 1) },
-                { "A2", ExSpace.Create("A", '\\', 2) },
-                { "A3", ExSpace.Create("A", '\\', 3) },
-                { "An", ExSpace.Create("A", '\\', -1) },
-                { "Amn", ExSpace.Create("A", '\\', -1, -1) },
-            });
-
-            vm.Pop(1);
-        }
+                    { "A", new(ExSpace.Create("A", '\\', 1) )},
+                    { "A2", new(ExSpace.Create("A", '\\', 2) )},
+                    { "A3", new(ExSpace.Create("A", '\\', 3) )},
+                    { "An", new(ExSpace.Create("A", '\\', -1) )},
+                    { "Amn", new(ExSpace.Create("A", '\\', -1, -1) )}
+                })
+            }
+        };
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            RegisterStdMathConstants(vm);
-
             return true;
         };
 

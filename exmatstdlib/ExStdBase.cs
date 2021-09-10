@@ -13,6 +13,7 @@ namespace ExMat.StdLib
     [ExStdLibBase(ExStdLibType.BASE)]
     [ExStdLibName(ExMat.StandardLibraryName)]
     [ExStdLibRegister(nameof(Registery))]
+    [ExStdLibConstDict(nameof(Constants))]
     public static partial class ExStdBase
     {
         #region FUNCTIONS
@@ -70,6 +71,14 @@ namespace ExMat.StdLib
         {
             vm.Pop(nargs + 2);
             ExApi.PushRootTable(vm);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        [ExNativeFuncBase("consts", ExBaseType.DICT, "Get the consts table. This table allows changing constant values!")]
+        public static ExFunctionStatus StdConsts(ExVM vm, int nargs)
+        {
+            vm.Pop(nargs + 2);
+            ExApi.PushConstsTable(vm);
             return ExFunctionStatus.SUCCESS;
         }
 
@@ -2416,46 +2425,41 @@ namespace ExMat.StdLib
         #endregion
 
         /// MAIN
-        public static void RegisterStdBaseConstants(ExVM vm)
+
+        public static Dictionary<string, ExObject> Constants => new()
         {
-            // Global tabloyu sanal belleğe ata
-            ExApi.PushRootTable(vm);
-
-            // Sabit değerleri tabloya ekle
-            ExApi.CreateConstantInt(vm, "_versionnumber_", ExMat.VersionNumber);
-            ExApi.CreateConstantString(vm, "_version_", ExMat.Version);
-
-            ExApi.CreateConstantString(vm, "_config_",
-#if DEBUG
-                "DEBUG"
-#else     
-                "RELEASE"
-#endif
-            );
-
-            ExApi.CreateConstantDict(vm, "COLORS", new()
+            { "_versionnumber_", new(ExMat.VersionNumber) },
+            { "_version_", new(ExMat.Version) },
             {
-                { "RED", new("red") },
-                { "DARKRED", new("darkred") },
-                { "GREEN", new("green") },
-                { "DARKGREEN", new("darkgreen") },
-                { "BLUE", new("blue") },
-                { "DARKBLUE", new("darkblue") },
-                { "YELLOW", new("yellow") },
-                { "DARKYELLOW", new("darkyellow") },
-                { "MAGENTA", new("magenta") },
-                { "DARKMAGENTA", new("darkmagenta") },
-                { "CYAN", new("cyan") },
-                { "DARKCYAN", new("darkcyan") },
-            });
-            // Kayıtları yaptıktan sonra global tabloyu bellekten kaldır
-            vm.Pop(1);
-        }
+                "_config_",
+#if DEBUG
+                new("DEBUG")
+#else
+                new("RELEASE")
+#endif
+            },
+            {
+                "COLORS",
+                new(new Dictionary<string, ExObject>()
+                {
+                    { "RED", new("red") },
+                    { "DARKRED", new("darkred") },
+                    { "GREEN", new("green") },
+                    { "DARKGREEN", new("darkgreen") },
+                    { "BLUE", new("blue") },
+                    { "DARKBLUE", new("darkblue") },
+                    { "YELLOW", new("yellow") },
+                    { "DARKYELLOW", new("darkyellow") },
+                    { "MAGENTA", new("magenta") },
+                    { "DARKMAGENTA", new("darkmagenta") },
+                    { "CYAN", new("cyan") },
+                    { "DARKCYAN", new("darkcyan") }
+                })
+            },
+        };
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            RegisterStdBaseConstants(vm);
-
             return true;
         };
     }

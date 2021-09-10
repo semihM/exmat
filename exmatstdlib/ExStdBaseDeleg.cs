@@ -921,9 +921,10 @@ namespace ExMat.StdLib
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'd')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'a')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'C')]
-        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'c')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'f')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'r')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 's')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'S')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'x')]
         public static ExFunctionStatus StdWeakRef(ExVM vm, int nargs)
         {
@@ -964,6 +965,7 @@ namespace ExMat.StdLib
             }
             return vm.CleanReturn(nargs + 2, new ExObject(size));
         }
+
         #endregion
 
         #endregion

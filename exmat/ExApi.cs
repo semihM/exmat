@@ -885,9 +885,16 @@ namespace ExMat.API
                 foreach (Type lib in GetStandardLibraryTypes(GetAllAssemblies()))
                 {
                     ExFunctionStatus status = InvokeRegisterOnStdLib(vm, lib);
+
                     if (status == ExFunctionStatus.ERROR)
                     {
                         return false;
+                    }
+
+                    Dictionary<string, ExObject> consts = GetStdLibraryConstsDict(lib);
+                    if (consts != null)
+                    {
+                        RegisterConstantsFromDict(consts, vm);
                     }
                 }
                 return true;
@@ -897,6 +904,28 @@ namespace ExMat.API
                 vm.AddToErrorMessage("Failed to load assemblies: {0}", err.Message);
                 return false;
             }
+        }
+
+        public static bool RegisterConstantsFromDict(Dictionary<string, ExObject> consts, ExVM toVM)
+        {
+            PushConstsTable(toVM);
+
+            foreach (KeyValuePair<string, ExObject> pair in consts)
+            {
+                switch (pair.Value.Type)
+                {
+                    case ExObjType.INTEGER: CreateConstantInt(toVM, pair.Key, pair.Value.GetInt()); break;
+                    case ExObjType.FLOAT: CreateConstantFloat(toVM, pair.Key, pair.Value.GetFloat()); break;
+                    case ExObjType.STRING: CreateConstantString(toVM, pair.Key, pair.Value.GetString()); break;
+                    case ExObjType.ARRAY: CreateConstantList(toVM, pair.Key, pair.Value.GetList()); break;
+                    case ExObjType.DICT: CreateConstantDict(toVM, pair.Key, pair.Value.GetDict()); break;
+                    case ExObjType.SPACE: CreateConstantSpace(toVM, pair.Key, pair.Value.Value.c_Space); break;
+                    default: break;
+                }
+            }
+
+            toVM.Pop();
+            return true;
         }
 
         /// <summary>
@@ -961,7 +990,7 @@ namespace ExMat.API
         }
 
         /// <summary>
-        /// Get the <see cref="ExStdLibName"/> named registery method of a standard library which is stored in a <see cref="ExMat.StdLibRegistery"/> delegate property
+        /// Get the <see cref="ExStdLibRegister"/> named registery method of a standard library which is stored in a <see cref="ExMat.StdLibRegistery"/> delegate property
         /// </summary>
         /// <param name="stdClass">Standard library type object</param>
         /// <returns>Given stdlib type's <see cref="ExMat.StdLibRegistery"/> property with <see cref="ExStdLibRegister"/> name or <see langword="null"/> if it doesn't exist</returns>
@@ -980,7 +1009,47 @@ namespace ExMat.API
                 {
                     return null;
                 }
-                return (ExMat.StdLibRegistery)pi.GetValue(pi);
+
+                try
+                {
+                    return (ExMat.StdLibRegistery)pi.GetValue(pi);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get the <see cref="ExStdLibConstDict"/> named constants dictionary of a standard library which is stored in a <see cref="Dictionary{TKey=String, TVal=ExObject}"/> property
+        /// </summary>
+        /// <param name="stdClass">Standard library type object</param>
+        /// <returns>Given stdlib type's <see cref="Dictionary{TKey=String, TVal=ExObject}"/> property with <see cref="ExStdLibConstDict"/> name or <see langword="null"/> if it doesn't exist</returns>
+        public static Dictionary<string, ExObject> GetStdLibraryConstsDict(Type stdClass)
+        {
+            string cname = GetStdLibraryConstsName(stdClass);
+
+            if (string.IsNullOrWhiteSpace(cname))
+            {
+                return null;
+            }
+            else
+            {
+                PropertyInfo pi = stdClass.GetProperty(cname);
+                if (pi == null)
+                {
+                    return null;
+                }
+
+                try
+                {
+                    return (Dictionary<string, ExObject>)pi.GetValue(pi);
+                }
+                catch
+                {
+                    return null;
+                }
             }
         }
 
@@ -988,11 +1057,23 @@ namespace ExMat.API
         /// Get the <see cref="ExStdLibRegister.RegisterMethodName"/> of a standard library 
         /// </summary>
         /// <param name="stdClass">Standard library type object</param>
-        /// <returns>Given stdlib type's <see cref="ExStdLibName"/> name or <see cref="string.Empty"/> if attribute doesn't exist/returns>
+        /// <returns>Given stdlib type's <see cref="ExStdLibRegister"/> register name or <see cref="string.Empty"/> if attribute doesn't exist/returns>
         public static string GetStdLibraryRegisteryName(Type stdClass)
         {
-            return IsStdLib(stdClass)
+            return IsStdLib(stdClass) && Attribute.IsDefined(stdClass, typeof(ExStdLibRegister))
                 ? ((ExStdLibRegister)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLibRegister)).RegisterMethodName
+                : string.Empty;
+        }
+
+        /// <summary>
+        /// Get the <see cref="ExStdLibConstDict.Name"/> of a standard library 
+        /// </summary>
+        /// <param name="stdClass">Standard library type object</param>
+        /// <returns>Given stdlib type's <see cref="ExStdLibConstDict"/> constants dictionary name or <see cref="string.Empty"/> if attribute doesn't exist/returns>
+        public static string GetStdLibraryConstsName(Type stdClass)
+        {
+            return IsStdLib(stdClass) && Attribute.IsDefined(stdClass, typeof(ExStdLibConstDict))
+                ? ((ExStdLibConstDict)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLibConstDict)).Name
                 : string.Empty;
         }
 
@@ -1025,6 +1106,11 @@ namespace ExMat.API
             vm.Pop();
         }
 
+        public static void CreateNewSlotConts(ExVM vm, string name)
+        {
+            CreateNewSlot(vm, -3, true, name);
+        }
+
         /// <summary>
         /// Create a constant 64bit integer value
         /// </summary>
@@ -1035,7 +1121,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(val);
-            CreateNewSlot(vm, -3);
+            CreateNewSlotConts(vm, name);
         }
 
         /// <summary>
@@ -1048,7 +1134,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(val);
-            CreateNewSlot(vm, -3);
+            CreateNewSlotConts(vm, name);
         }
 
         /// <summary>
@@ -1061,7 +1147,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             PushString(vm, val, -1);
-            CreateNewSlot(vm, -3);
+            CreateNewSlotConts(vm, name);
         }
 
         /// <summary>
@@ -1074,7 +1160,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(new ExObject(val));
-            CreateNewSlot(vm, -3);
+            CreateNewSlotConts(vm, name);
         }
 
         /// <summary>
@@ -1087,7 +1173,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(new ExObject(dict));
-            CreateNewSlot(vm, -3);
+            CreateNewSlotConts(vm, name);
         }
 
         /// <summary>
@@ -1100,7 +1186,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(new ExList(lis));
-            CreateNewSlot(vm, -3);
+            CreateNewSlotConts(vm, name);
         }
 
         /// <summary>
@@ -1541,7 +1627,7 @@ namespace ExMat.API
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="idx">Stack index of target object to create a new slot on:
         /// <para><see cref="ExVM.StackBase"/><c> + <paramref name="idx"/> - 1</c></para></param>
-        public static void CreateNewSlot(ExVM vm, int idx)
+        public static void CreateNewSlot(ExVM vm, int idx, bool isConst = false, string name = "")
         {
             if (GetTopOfStack(vm) < 3)
             {
@@ -1557,6 +1643,18 @@ namespace ExMat.API
                     Throw(vm, "'null' is not a valid key");
                 }
                 vm.NewSlot(self, k, vm.GetAbove(-1), false);
+
+                if (isConst)
+                {
+                    if (!vm.SharedState.Consts.ContainsKey(name))
+                    {
+                        vm.SharedState.Consts.Add(name, new(vm.GetAbove(-1)));
+                    }
+                    else
+                    {
+                        vm.SharedState.Consts[name] = new(vm.GetAbove(-1));
+                    }
+                }
                 vm.Pop(2);
             }
         }
@@ -1779,6 +1877,17 @@ namespace ExMat.API
         }
 
         /// <summary>
+        /// Push the constants table to given VM's stack
+        /// </summary>
+        /// <param name="vm">Virtual machine to use the stack of</param>
+        /// <returns>Always returns <see langword="true"/></returns>
+        public static bool PushConstsTable(ExVM vm)
+        {
+            vm.Push(vm.SharedState.Consts);
+            return true;
+        }
+
+        /// <summary>
         /// Get an object from a virtual machine's stack
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
@@ -1955,8 +2064,8 @@ namespace ExMat.API
         /// <param name="vm">Virtual machine to get information from</param>
         public static void WriteInfoString(ExVM vm)
         {
-            string version = vm.RootDictionary.GetDict().ContainsKey("_version_")
-                ? vm.RootDictionary.GetDict()["_version_"].GetString()
+            string version = vm.SharedState.Consts.ContainsKey("_version_")
+                ? vm.SharedState.Consts["_version_"].GetString()
                 : "<UNKNOWN_VERSION>";
 
             string date = DateTime.Now.ToLongDateString() + " " + DateTime.Now.ToLongTimeString();
