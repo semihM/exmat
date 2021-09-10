@@ -25,6 +25,9 @@ namespace ExMat.States
         // Kullanılan yazı dizileri ve değişken isimleri
         public Dictionary<string, ExObject> Strings = new();
 
+        // Sabitler
+        public Dictionary<string, ExObject> Consts = new();
+
         // Sınıf temisili metotları
         public ExObject ClassDelegate = new(new Dictionary<string, ExObject>());
 

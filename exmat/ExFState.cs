@@ -160,6 +160,17 @@ namespace ExMat.States
             }
         }
 
+        public bool IsConst(ExObject idx, out ExObject cnst)
+        {
+            if (SharedState.Consts.ContainsKey(idx.GetString()))
+            {
+                cnst = SharedState.Consts[idx.GetString()];
+                return true;
+            }
+            cnst = null;
+            return false;
+        }
+
         public long GetLiteral(ExObject o)
         {
             string name;

@@ -183,6 +183,69 @@ namespace ExMat.Compiler
             return typ.ToString();
         }
 
+        public ExObject ExpectConstableValue()
+        {
+            ExObject res;
+
+            switch (CurrentToken)
+            {
+                case TokenType.INTEGER:
+                    {
+                        res = new(Lexer.ValInteger);
+                        break;
+                    }
+                case TokenType.FLOAT:
+                    {
+                        res = new(Lexer.ValFloat);
+                        break;
+                    }
+                case TokenType.LITERAL:
+                    {
+                        res = new(Lexer.ValString);
+                        break;
+                    }
+                case TokenType.SPACE:
+                    {
+                        res = new(Lexer.ValSpace);
+                        break;
+                    }
+                case TokenType.SUB:
+                    {
+                        if (!ReadAndSetToken())
+                        {
+                            return null;
+                        }
+                        switch (CurrentToken)
+                        {
+                            case TokenType.INTEGER:
+                                {
+                                    res = new(Lexer.ValInteger);
+                                    break;
+                                }
+                            case TokenType.FLOAT:
+                                {
+                                    res = new(Lexer.ValFloat);
+                                    break;
+                                }
+                            default:
+                                {
+                                    AddToErrorMessage("expected scalar after '-'");
+                                    return null;
+                                }
+                        }
+                        break;
+                    }
+                default:
+                    {
+                        AddToErrorMessage("expected const-able: int, float, string, space");
+                        return null;
+                    }
+            }
+
+            ReadAndSetToken();
+            return res;
+        }
+
         public ExObject Expect(TokenType expected)
         {
             if (CurrentToken != expected                        // Beklenmedik sembol
@@ -311,6 +374,40 @@ namespace ExMat.Compiler
                         if (!ProcessVarAsgStatement())
                         {
                             return false;
+                        }
+                        break;
+                    }
+                case TokenType.CONST:     // var
+                    {
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+
+                        ExObject name = Expect(TokenType.IDENTIFIER);
+                        if (name == null)
+                        {
+                            return false;
+                        }
+
+                        if (Expect(TokenType.ASG) == null)
+                        {
+                            return AddToErrorMessage("expected '=' after const identifier");
+                        }
+
+                        ExObject val = ExpectConstableValue();
+                        if (val == null || !CheckSMC())
+                        {
+                            return false;
+                        }
+
+                        if (FunctionState.SharedState.Consts.ContainsKey(name.GetString()))
+                        {
+                            FunctionState.SharedState.Consts[name.GetString()] = new(val);
+                        }
+                        else
+                        {
+                            FunctionState.SharedState.Consts.Add(name.GetString(), new(val));
                         }
                         break;
                     }
@@ -2280,10 +2377,62 @@ namespace ExMat.Compiler
                                 ExpressionState.Position = p;
                             }
                         }
-                        else
+                        else if (FunctionState.IsConst(idx, out ExObject cnst))
                         {
-                            FunctionState.PushTarget(0);
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(idx), 0, 0);
+                            ExObject cval;
+                            if (cnst.Type == ExObjType.DICT)
+                            {
+                                if (Expect(TokenType.DOT) == null)
+                                {
+                                    return AddToErrorMessage("expected '.' for constant defined in a table");
+                                }
+
+                                ExObject cid = Expect(TokenType.IDENTIFIER);
+                                if (cid == null || cid.Type != ExObjType.STRING)
+                                {
+                                    return AddToErrorMessage("Invalid constant name, expected string type name.");
+                                }
+                                else if (!cnst.GetDict().ContainsKey(cid.GetString()))
+                                {
+                                    return AddToErrorMessage($"Unknown constant name '{cid.GetString()}'");
+                                }
+                                else
+                                {
+                                    cval = new(cnst.GetDict()[cid.GetString()]);
+                                }
+                            }
+                            else
+                            {
+                                cval = new(cnst);
+                            }
+
+                            ExpressionState.Position = FunctionState.PushTarget();
+
+                            switch (cval.Type)
+                            {
+                                case ExObjType.INTEGER:
+                                    {
+                                        AddIntConstLoadInstr(cval.GetInt(), ExpressionState.Position);
+                                        break;
+                                    }
+                                case ExObjType.FLOAT:
+                                    {
+                                        AddFloatConstLoadInstr(new DoubleLong() { f = cval.GetFloat() }.i, ExpressionState.Position);
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        FunctionState.AddInstr(ExOperationCode.LOAD, ExpressionState.Position, FunctionState.GetLiteral(cval), 0, 0);
+                                        break;
+                                    }
+                            }
+
+                            ExpressionState.Type = ExEType.EXPRESSION;
+                        }
+                        else // Yerli olmayan
+                        {
+                            FunctionState.PushTarget(0); // Hack, push 'this'
+                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
 
                             if (ExRequiresGetter())
                             {

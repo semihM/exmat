@@ -108,6 +108,7 @@ namespace ExMat.Lexer
             { "break", TokenType.BREAK },
             // Tanımsal
             { "var", TokenType.VAR },
+            { "const", TokenType.CONST },
             { "function", TokenType.FUNCTION },
             { "cluster", TokenType.CLUSTER },
             { "rule", TokenType.RULE },
