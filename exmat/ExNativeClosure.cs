@@ -31,7 +31,7 @@ namespace ExMat.Closure
 
         public string Returns = string.Empty;
 
-        public ExStdLibType Base = ExStdLibType.UNKNOWN;
+        public string Base = string.Empty;
 
         protected override void Dispose(bool disposing)
         {

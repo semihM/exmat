@@ -26,7 +26,7 @@ namespace ExMat.Objects
         /// <summary>
         /// Wheter this parameter is a valid parameter
         /// </summary>
-        public bool Valid = false;
+        public bool Valid;
 
         private bool disposedValue;
 

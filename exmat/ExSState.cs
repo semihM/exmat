@@ -101,6 +101,7 @@ namespace ExMat.States
             cls.Documentation = ExApi.CreateDocStringFromRegFunc(f, false); // TO-DO : Hack, what happens if we want vargs in delegates ?
             cls.Summary = f.Description;
             cls.Returns = f.ReturnsType;
+            cls.Base = ((ExBaseType)ExMat.TypeMasks.FirstOrDefault(p => p.Value == f.BaseTypeMask).Key).ToString();
         }
 
         public static ExObject CreateDefDel(ExSState exs, List<ExNativeFunc> f)

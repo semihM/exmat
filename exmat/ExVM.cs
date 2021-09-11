@@ -509,7 +509,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
-                        res = new(string.Format(CultureInfo.CurrentCulture, "NATIVECLOSURE({0}) <{1}> {2}({3})", ExApi.GetSimpleLibNameFromStdLibType(obj.GetNClosure().Base), obj.GetNClosure().Returns, obj.GetNClosure().Name.GetString(), obj.GetNClosure().GetInfoString()));
+                        res = new(string.Format(CultureInfo.CurrentCulture, "NATIVECLOSURE({0}) <{1}> {2}({3})", obj.GetNClosure().Base, obj.GetNClosure().Returns, obj.GetNClosure().Name.GetString(), obj.GetNClosure().GetInfoString()));
                         break;
                     }
                 case ExObjType.CLOSURE:
@@ -4059,7 +4059,7 @@ namespace ExMat.VM
                 }
 
                 // Çağrı zinciri listesini sıralı liste halinde CallInfo içerisinde sakla
-                CallInfo = ExNode<ExCallInfo>.BuildNodesFromList(CallStack, CallStackSize++);
+                CallInfo = new(CallStack, CallStackSize++);
 
                 CallInfo.Value.PrevBase = newBase - StackBase;  // tabanı kaydet
                 CallInfo.Value.PrevTop = StackTop - StackBase;  // tavanı kaydet

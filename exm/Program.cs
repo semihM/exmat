@@ -162,7 +162,7 @@ namespace ExMat
                 new()
             };
 
-            ActiveVM.CallInfo = InfoVar.ExNode<InfoVar.ExCallInfo>.BuildNodesFromList(ActiveVM.CallStack);
+            ActiveVM.CallInfo = new(ActiveVM.CallStack);
         }
 
         // TO-DO Find a way to interrupt .NET operations
