@@ -11,7 +11,7 @@ using ExMat.VM;
 namespace ExMat
 {
     /// <summary>
-    /// Refer to docs inside this class for more information
+    /// Refer to docs inside this class for more information!
     /// </summary>
     internal static class Program
     {
