@@ -8,6 +8,10 @@ namespace ExMat
     public enum ExStdLibType
     {
         /// <summary>
+        /// Unknown library, for internal use only
+        /// </summary>
+        UNKNOWN,
+        /// <summary>
         /// External custom library
         /// </summary>
         EXTERNAL,
