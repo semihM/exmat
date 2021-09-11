@@ -20,7 +20,7 @@
             {
                 if (disposing)
                 {
-                    Disposer.DisposeObjects(ReferencedObject);
+                    ExDisposer.DisposeObjects(ReferencedObject);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

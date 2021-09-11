@@ -132,7 +132,7 @@ namespace ExMat.StdLib
                     }
                 case ExObjType.SPACE:
                     {
-                        prev += prefix + "\"" + obj.Value.c_Space.GetSpaceString() + "\"";
+                        prev += prefix + "\"" + obj.GetSpace().GetSpaceString() + "\"";
                         break;
                     }
                 default:

@@ -929,7 +929,7 @@ namespace ExMat.StdLib
         public static ExFunctionStatus StdWeakRef(ExVM vm, int nargs)
         {
             ExObject ret = vm.GetRootArgument();
-            if (ret.IsCountingRefs())
+            if (ExTypeCheck.IsCountingRefs(ret))
             {
                 vm.Push(ret.Value._RefC.GetWeakRef(ret.Type, ret.Value));
                 return ExFunctionStatus.SUCCESS;

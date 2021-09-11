@@ -141,7 +141,7 @@ namespace ExMat.StdLib
             double[] a = new double[l.Count];
             for (int i = 0; i < l.Count; i++)
             {
-                if (!l[i].IsNumeric())
+                if (!ExTypeCheck.IsNumeric(l[i]))
                 {
                     vm.AddToErrorMessage("cant plot non-numeric values");
                     return Array.Empty<double>();
@@ -2203,7 +2203,7 @@ namespace ExMat.StdLib
                 ExObject v = x[i];
                 if (v.Type != ExObjType.COMPLEX)
                 {
-                    if (!v.IsNumeric())
+                    if (!ExTypeCheck.IsNumeric(v))
                     {
                         return vm.AddToErrorMessage("cant plot non-numeric in complex plane");
                     }
