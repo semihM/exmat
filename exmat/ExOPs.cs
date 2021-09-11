@@ -111,6 +111,9 @@
 
         DEFAULT,
 
+        LOADCONSTDICT,
+        RELOADLIB,
+
         CLOSE = 984
     }
 
