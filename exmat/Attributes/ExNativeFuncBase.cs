@@ -2,6 +2,9 @@
 
 namespace ExMat.Objects
 {
+    /// <summary>
+    /// Attribute to register a method as a non-delegate native function
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public class ExNativeFuncBase : Attribute
     {

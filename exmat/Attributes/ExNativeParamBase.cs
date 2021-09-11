@@ -3,6 +3,9 @@ using System.Diagnostics;
 
 namespace ExMat.Objects
 {
+    /// <summary>
+    /// Attribute to register a native function parameter
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExNativeParamBase : Attribute
