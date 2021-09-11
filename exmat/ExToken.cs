@@ -107,6 +107,7 @@
         CONSTRUCTOR,    // Sınıf inşa edici metot
         THIS,           // İçinde bulunulan objeye erişim
         BASE,           // Ait olunan sınıfa erişim
+        RELOAD,     // Ana kütüphaneyi tekrardan global tabloya yüklemek
         ////
 
         // Diğer
