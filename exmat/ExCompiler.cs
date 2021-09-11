@@ -391,6 +391,11 @@ namespace ExMat.Compiler
                             return false;
                         }
 
+                        if (FunctionState.SharedState.Consts.ContainsKey(name.GetString()))
+                        {
+                            return AddToErrorMessage($"a constant named '{name.GetString()}' already exists, use 'consts' function to force-update constants");
+                        }
+
                         if (Expect(TokenType.ASG) == null)
                         {
                             return AddToErrorMessage("expected '=' after const identifier");
@@ -402,14 +407,7 @@ namespace ExMat.Compiler
                             return false;
                         }
 
-                        if (FunctionState.SharedState.Consts.ContainsKey(name.GetString()))
-                        {
-                            FunctionState.SharedState.Consts[name.GetString()] = new(val);
-                        }
-                        else
-                        {
-                            FunctionState.SharedState.Consts.Add(name.GetString(), new(val));
-                        }
+                        FunctionState.SharedState.Consts.Add(name.GetString(), new(val));
                         break;
                     }
                 case TokenType.FUNCTION:
@@ -2310,10 +2308,6 @@ namespace ExMat.Compiler
 
             bool dot;
             dot = CurrentToken == TokenType.DOT;
-            if (!ReadAndSetToken())
-            {
-                return false;
-            }
 
             if (cnst.Type == ExObjType.DICT)
             {
@@ -2322,7 +2316,13 @@ namespace ExMat.Compiler
                     return AddToErrorMessage("expected '.' for constant dict");
                 }
 
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+
                 cid = Expect(TokenType.IDENTIFIER);
+
                 if (cid == null || cid.Type != ExObjType.STRING)
                 {
                     return AddToErrorMessage("Invalid constant name, expected string type name.");
