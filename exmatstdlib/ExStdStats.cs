@@ -48,12 +48,7 @@ namespace ExMat.StdLib
                 }
             }
 
-            if (img == 0)
-            {
-                return vm.CleanReturn(nargs + 2, real / count);
-            }
-
-            return vm.CleanReturn(nargs + 2, new Complex(real / count, img / count));
+            return img == 0 ? vm.CleanReturn(nargs + 2, real / count) : vm.CleanReturn(nargs + 2, new Complex(real / count, img / count));
         }
 
         [ExNativeFuncBase("mode", ExBaseType.DICT, "Get the mode of a given list of values. Returns a dictionary:\n\t'value' = Most repeated value or list of most repeated values\n\t'repeat' = Repeat count of 'value' or items in 'value'\n\t'single_value' = Wheter 'value' is the repeated value itself or list of most repeating objects")]
@@ -109,18 +104,11 @@ namespace ExMat.StdLib
         {
             List<ExObject> lis = ExUtils.GetOrderedNumericList(vm.GetArgument(1).GetList());
             int c = lis.Count;
-            if (c == 0)
-            {
-                return vm.CleanReturn(nargs + 2, new ExObject());
-            }
-            else if (c % 2 == 1)
-            {
-                return vm.CleanReturn(nargs + 2, lis[c / 2].GetFloat());
-            }
-            else
-            {
-                return vm.CleanReturn(nargs + 2, (lis[c / 2].GetFloat() + lis[(c - 1) / 2].GetFloat()) / 2.0);
-            }
+            return c == 0
+                ? vm.CleanReturn(nargs + 2, new ExObject())
+                : c % 2 == 1
+                    ? vm.CleanReturn(nargs + 2, lis[c / 2].GetFloat())
+                    : vm.CleanReturn(nargs + 2, (lis[c / 2].GetFloat() + lis[(c - 1) / 2].GetFloat()) / 2.0);
         }
 
         #endregion

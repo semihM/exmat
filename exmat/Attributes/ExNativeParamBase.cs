@@ -60,14 +60,7 @@ namespace ExMat.Objects
             Name = name;
             TypeMask = typeMask;
             Description = description;
-            if (def == null)
-            {
-                DefaultValue = new();
-            }
-            else
-            {
-                DefaultValue = new(def);
-            }
+            DefaultValue = def == null ? (new()) : (new(def));
         }
 
         public ExNativeParamBase(int idx, string name, string typeMask, string description, long def)

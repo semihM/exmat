@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.Serialization;
 using System.Threading;
 using ExMat.API;
@@ -20,7 +21,7 @@ namespace ExMat.Exceptions
         public ExException(string message)
             : base(message)
         {
-            Console.WriteLine(string.Format("\n\nFATAL ERROR: {0}\n\n", message));
+            Console.WriteLine(string.Format(CultureInfo.CurrentCulture, "\n\nFATAL ERROR: {0}\n\n", message));
             Thread.Sleep(HoldAfterError);
         }
 
@@ -32,7 +33,7 @@ namespace ExMat.Exceptions
 
         public ExException(ExVM vm, string message, Exception innerException) : base(message, innerException)
         {
-            WriteErrorMessagesToVM(vm, string.Format("Inner Exception{0}: {1}\nMessage: {2}", innerException.GetType().Name, innerException.Message, message));
+            WriteErrorMessagesToVM(vm, string.Format(CultureInfo.CurrentCulture, "Inner Exception{0}: {1}\nMessage: {2}", innerException.GetType().Name, innerException.Message, message));
         }
 
         protected ExException(ExVM vm, SerializationInfo info, StreamingContext context) : base(info, context)

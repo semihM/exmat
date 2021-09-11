@@ -8,6 +8,7 @@ namespace ExMat.States
         OBJECT,     // Obje
         BASE,       // Metotun ait olduğu sınıf, temel sınıf
         VAR,        // Değişken
+        CONSTDELEG, // Sabit tablo temsili fonksiyonu
         OUTER       // Bilinmeyen(dışarıda aranacak) değişken
     }
 

@@ -22,7 +22,7 @@
 
         public static bool IsRealNumber(Objects.ExObject obj)
         {
-            return obj.Type == ExObjType.INTEGER || obj.Type == ExObjType.FLOAT;
+            return obj.Type is ExObjType.INTEGER or ExObjType.FLOAT;
         }
 
         public static bool IsNumeric(Objects.ExObject obj)

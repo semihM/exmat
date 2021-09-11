@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using ExMat.Class;
 using ExMat.FuncPrototype;
 using ExMat.Interfaces;
@@ -100,7 +101,7 @@ namespace ExMat.Closure
                         Dictionary<string, ExObject> dict = new();
                         foreach (ExObject d in DefaultParams)
                         {
-                            dict.Add((++start).ToString(), d);
+                            dict.Add((++start).ToString(CultureInfo.CurrentCulture), d);
                         }
                         return dict;
                     }
@@ -187,15 +188,9 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            if (Function.Name == null || ExTypeCheck.IsNull(Function.Name))
-            {
-                return "CLOSURE";
-            }
-            if (Base != null)
-            {
-                return "[HAS BASE] CLOSURE(" + Function.Name.GetString() + ")";
-            }
-            return "CLOSURE(" + Function.Name.GetString() + ")";
+            return Function.Name == null || ExTypeCheck.IsNull(Function.Name)
+                ? "CLOSURE"
+                : Base != null ? "[HAS BASE] CLOSURE(" + Function.Name.GetString() + ")" : "CLOSURE(" + Function.Name.GetString() + ")";
         }
 
 

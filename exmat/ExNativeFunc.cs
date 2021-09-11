@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -15,7 +16,7 @@ namespace ExMat.Objects
         /// <summary>
         /// Library of which this function is a part of 
         /// </summary>
-        public ExStdLibType Base;
+        public ExStdLibType Base = ExStdLibType.UNKNOWN;
 
         /// <summary>
         /// Function reference
@@ -41,7 +42,7 @@ namespace ExMat.Objects
 
             if (string.IsNullOrEmpty(ParameterMask))
             {
-                StringBuilder pmask = new(BaseTypeMask.ToString());
+                StringBuilder pmask = new(BaseTypeMask.ToString(CultureInfo.CurrentCulture));
                 foreach (ExNativeParam p in Parameters)
                 {
                     pmask.Append(p.TypeMask);
@@ -116,14 +117,7 @@ namespace ExMat.Objects
                 }
             }
 
-            if (NumberOfParameters != int.MaxValue)
-            {
-                Parameters = null;
-            }
-            else
-            {
-                Parameters = new(Parameters.OrderBy(x => x.Index));
-            }
+            Parameters = NumberOfParameters != int.MaxValue ? null : (new(Parameters.OrderBy(x => x.Index)));
 
             SetNumberOfParameters();
             SetNumberOfParameterCombinedMask();
@@ -148,14 +142,7 @@ namespace ExMat.Objects
                 }
             }
 
-            if (NumberOfParameters != int.MaxValue)
-            {
-                Parameters = null;
-            }
-            else
-            {
-                Parameters = new(Parameters.OrderBy(x => x.Index));
-            }
+            Parameters = NumberOfParameters != int.MaxValue ? null : (new(Parameters.OrderBy(x => x.Index)));
 
             SetNumberOfParameters();
             SetNumberOfParameterCombinedMask();
@@ -192,7 +179,7 @@ namespace ExMat.Objects
 
         private object GetDebuggerDisplay()
         {
-            return string.Format("RegFunc {0}", Name);
+            return string.Format(CultureInfo.CurrentCulture, "RegFunc {0}", Name);
         }
     }
 }

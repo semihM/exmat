@@ -215,11 +215,9 @@ namespace ExMat.Class
 
         public new string GetDebuggerDisplay()
         {
-            if (Base != null)
-            {
-                return "[" + Base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
-            }
-            return "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
+            return Base != null
+                ? "[" + Base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")"
+                : "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
         }
 
         protected override void Dispose(bool disposing)

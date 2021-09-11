@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Numerics;
 using ExMat.API;
 using ExMat.Objects;
@@ -21,9 +22,7 @@ namespace ExMat.StdLib
         private static int PrimeCount = 1358124;
         private static int PrimeMax = 21474829;
 
-        private static Random rand = new();
-
-        public static Random Rand { get => rand; set => rand = value; }
+        public static Random Rand { get; set; } = new();
 
         private static void FindPrimes()
         {
@@ -456,14 +455,7 @@ namespace ExMat.StdLib
                 case ExObjType.INTEGER:
                     {
                         long o = i.GetInt();
-                        if (o < 0)
-                        {
-                            return vm.CleanReturn(nargs + 2, o > long.MinValue ? Math.Abs(o) : 0);
-                        }
-                        else
-                        {
-                            return vm.CleanReturn(nargs + 2, Math.Abs(o));
-                        }
+                        return o < 0 ? vm.CleanReturn(nargs + 2, o > long.MinValue ? Math.Abs(o) : 0) : vm.CleanReturn(nargs + 2, Math.Abs(o));
                     }
                 case ExObjType.COMPLEX:
                     {
@@ -687,14 +679,9 @@ namespace ExMat.StdLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i.Value.c_Float == 0.0)
-                        {
-                            return vm.CleanReturn(nargs + 2, Math.Acosh(i.Value.f_Float));
-                        }
-                        else
-                        {
-                            return vm.AddToErrorMessage("can't use complex numbers with acosh");
-                        }
+                        return i.Value.c_Float == 0.0
+                            ? vm.CleanReturn(nargs + 2, Math.Acosh(i.Value.f_Float))
+                            : vm.AddToErrorMessage("can't use complex numbers with acosh");
                     }
                 default:
                     {
@@ -738,14 +725,9 @@ namespace ExMat.StdLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i.Value.c_Float == 0.0)
-                        {
-                            return vm.CleanReturn(nargs + 2, Math.Asinh(i.Value.f_Float));
-                        }
-                        else
-                        {
-                            return vm.AddToErrorMessage("can't use complex numbers with asinh");
-                        }
+                        return i.Value.c_Float == 0.0
+                            ? vm.CleanReturn(nargs + 2, Math.Asinh(i.Value.f_Float))
+                            : vm.AddToErrorMessage("can't use complex numbers with asinh");
                     }
                 default:
                     {
@@ -789,14 +771,9 @@ namespace ExMat.StdLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i.Value.c_Float == 0.0)
-                        {
-                            return vm.CleanReturn(nargs + 2, Math.Atanh(i.Value.f_Float));
-                        }
-                        else
-                        {
-                            return vm.AddToErrorMessage("can't use complex numbers with atanh");
-                        }
+                        return i.Value.c_Float == 0.0
+                            ? vm.CleanReturn(nargs + 2, Math.Atanh(i.Value.f_Float))
+                            : vm.AddToErrorMessage("can't use complex numbers with atanh");
                     }
                 default:
                     {
@@ -828,14 +805,9 @@ namespace ExMat.StdLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2.Value.c_Float == 0.0)
-                                    {
-                                        return vm.CleanReturn(nargs + 2, Math.Atan2(l, i2.Value.f_Float));
-                                    }
-                                    else
-                                    {
-                                        return vm.AddToErrorMessage("can't use complex numbers with atan2");
-                                    }
+                                    return i2.Value.c_Float == 0.0
+                                        ? vm.CleanReturn(nargs + 2, Math.Atan2(l, i2.Value.f_Float))
+                                        : vm.AddToErrorMessage("can't use complex numbers with atan2");
                                 }
                             default:
                                 {
@@ -870,14 +842,9 @@ namespace ExMat.StdLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2.Value.c_Float == 0.0)
-                                    {
-                                        return vm.CleanReturn(nargs + 2, Math.Atan2(b, i2.Value.f_Float));
-                                    }
-                                    else
-                                    {
-                                        return vm.AddToErrorMessage("can't use complex numbers with atan2");
-                                    }
+                                    return i2.Value.c_Float == 0.0
+                                        ? vm.CleanReturn(nargs + 2, Math.Atan2(b, i2.Value.f_Float))
+                                        : vm.AddToErrorMessage("can't use complex numbers with atan2");
                                 }
                             default:
                                 {
@@ -1172,14 +1139,9 @@ namespace ExMat.StdLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2.Value.c_Float == 0.0)
-                                    {
-                                        return vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float));
-                                    }
-                                    else
-                                    {
-                                        return vm.AddToErrorMessage("can't compare complex numbers");
-                                    }
+                                    return i2.Value.c_Float == 0.0
+                                        ? vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float))
+                                        : vm.AddToErrorMessage("can't compare complex numbers");
                                 }
                             default:
                                 {
@@ -1200,14 +1162,9 @@ namespace ExMat.StdLib
                                     }
                                 case ExObjType.COMPLEX:
                                     {
-                                        if (i2.Value.c_Float == 0.0)
-                                        {
-                                            return vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float));
-                                        }
-                                        else
-                                        {
-                                            return vm.AddToErrorMessage("can't compare complex numbers");
-                                        }
+                                        return i2.Value.c_Float == 0.0
+                                            ? vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float))
+                                            : vm.AddToErrorMessage("can't compare complex numbers");
                                     }
                                 default:
                                     {
@@ -1231,14 +1188,9 @@ namespace ExMat.StdLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2.Value.c_Float == 0.0)
-                                    {
-                                        return vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float));
-                                    }
-                                    else
-                                    {
-                                        return vm.AddToErrorMessage("can't compare complex numbers");
-                                    }
+                                    return i2.Value.c_Float == 0.0
+                                        ? vm.CleanReturn(nargs + 2, Math.Min(b, i2.Value.f_Float))
+                                        : vm.AddToErrorMessage("can't compare complex numbers");
                                 }
                             default:
                                 {
@@ -1270,14 +1222,9 @@ namespace ExMat.StdLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2.Value.c_Float == 0.0)
-                                    {
-                                        return vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float));
-                                    }
-                                    else
-                                    {
-                                        return vm.AddToErrorMessage("can't compare complex numbers");
-                                    }
+                                    return i2.Value.c_Float == 0.0
+                                        ? vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float))
+                                        : vm.AddToErrorMessage("can't compare complex numbers");
                                 }
                             default:
                                 {
@@ -1298,14 +1245,9 @@ namespace ExMat.StdLib
                                     }
                                 case ExObjType.COMPLEX:
                                     {
-                                        if (i2.Value.c_Float == 0.0)
-                                        {
-                                            return vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float));
-                                        }
-                                        else
-                                        {
-                                            return vm.AddToErrorMessage("can't compare complex numbers");
-                                        }
+                                        return i2.Value.c_Float == 0.0
+                                            ? vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float))
+                                            : vm.AddToErrorMessage("can't compare complex numbers");
                                     }
                                 default:
                                     {
@@ -1329,14 +1271,9 @@ namespace ExMat.StdLib
                                 }
                             case ExObjType.COMPLEX:
                                 {
-                                    if (i2.Value.c_Float == 0.0)
-                                    {
-                                        return vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float));
-                                    }
-                                    else
-                                    {
-                                        return vm.AddToErrorMessage("can't compare complex numbers");
-                                    }
+                                    return i2.Value.c_Float == 0.0
+                                        ? vm.CleanReturn(nargs + 2, Math.Max(b, i2.Value.f_Float))
+                                        : vm.AddToErrorMessage("can't compare complex numbers");
                                 }
                             default:
                                 {
@@ -1429,14 +1366,9 @@ namespace ExMat.StdLib
                     }
                 case ExObjType.COMPLEX:
                     {
-                        if (i.Value.c_Float == 0.0)
-                        {
-                            return vm.CleanReturn(nargs + 2, Math.Sign(i.Value.f_Float));
-                        }
-                        else
-                        {
-                            return vm.AddToErrorMessage("can't get complex number's sign");
-                        }
+                        return i.Value.c_Float == 0.0
+                            ? vm.CleanReturn(nargs + 2, Math.Sign(i.Value.f_Float))
+                            : vm.AddToErrorMessage("can't get complex number's sign");
                     }
                 default:
                     {
@@ -1620,7 +1552,7 @@ namespace ExMat.StdLib
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower(CultureInfo.CurrentCulture));
                         break;
                     }
             }
@@ -1795,7 +1727,7 @@ namespace ExMat.StdLib
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower(CultureInfo.CurrentCulture));
                         break;
                     }
             }
@@ -1970,7 +1902,7 @@ namespace ExMat.StdLib
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower(CultureInfo.CurrentCulture));
                         break;
                     }
             }
@@ -2145,7 +2077,7 @@ namespace ExMat.StdLib
                     }
                 case 6:
                     {
-                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(6).GetString().ToLower(CultureInfo.CurrentCulture));
                         break;
                     }
             }
@@ -2232,7 +2164,7 @@ namespace ExMat.StdLib
                     }
                 case 5:
                     {
-                        color = System.Drawing.Color.FromName(vm.GetArgument(5).GetString().ToLower());
+                        color = System.Drawing.Color.FromName(vm.GetArgument(5).GetString().ToLower(CultureInfo.CurrentCulture));
                         break;
                     }
             }
