@@ -9,7 +9,7 @@ using ExMat.Utils;
 namespace ExMat.Closure
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExNativeClosure : ExRefC, IExClosureAttr
+    public class ExNativeClosure : ExRefC, IExClosure
     {
         public ExSState SharedState;            // Ortak değerler
         public ExObject Name;                   // Fonksiyon ismi
@@ -45,9 +45,9 @@ namespace ExMat.Closure
             nOuters = 0;
             nParameterChecks = 0;
 
-            Disposer.DisposeObjects(Name);
-            Disposer.DisposeList(ref OutersList);
-            Disposer.DisposeDict(ref DefaultValues);
+            ExDisposer.DisposeObjects(Name);
+            ExDisposer.DisposeList(ref OutersList);
+            ExDisposer.DisposeDict(ref DefaultValues);
         }
 
         public dynamic GetAttribute(string attr)

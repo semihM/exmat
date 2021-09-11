@@ -473,7 +473,7 @@ namespace ExMat.API
                     res = x.GetDict().GetHashCode() == y.GetDict().GetHashCode();
                     break;
                 case ExObjType.SPACE:
-                    res = string.Equals(x.Value.c_Space.GetSpaceString(), y.Value.c_Space.GetSpaceString());
+                    res = string.Equals(x.GetSpace().GetSpaceString(), y.GetSpace().GetSpaceString());
                     break;
                 case ExObjType.CLASS:
                     res = x.GetClass().Hash == y.GetClass().Hash;
@@ -496,8 +496,8 @@ namespace ExMat.API
 
         public static void CheckEqualForDifferingTypes(ExObject x, ExObject y, ref bool res)
         {
-            bool bx = x.IsNumeric();
-            bool by = y.IsNumeric();
+            bool bx = ExTypeCheck.IsNumeric(x);
+            bool by = ExTypeCheck.IsNumeric(y);
             if (by && x.Type == ExObjType.COMPLEX)
             {
                 res = x.GetComplex() == y.GetFloat();
@@ -919,7 +919,7 @@ namespace ExMat.API
                     case ExObjType.STRING: CreateConstantString(toVM, pair.Key, pair.Value.GetString()); break;
                     case ExObjType.ARRAY: CreateConstantList(toVM, pair.Key, pair.Value.GetList()); break;
                     case ExObjType.DICT: CreateConstantDict(toVM, pair.Key, pair.Value.GetDict()); break;
-                    case ExObjType.SPACE: CreateConstantSpace(toVM, pair.Key, pair.Value.Value.c_Space); break;
+                    case ExObjType.SPACE: CreateConstantSpace(toVM, pair.Key, pair.Value.GetSpace()); break;
                     default: break;
                 }
             }
@@ -1410,7 +1410,7 @@ namespace ExMat.API
                     }
                 case ExObjType.SPACE:
                     {
-                        return obj.Value.c_Space.GetSpaceString();
+                        return obj.GetSpace().GetSpaceString();
                     }
                 default:
                     {
@@ -1638,7 +1638,7 @@ namespace ExMat.API
             {
                 ExObject k = new();
                 k.Assign(vm.GetAbove(-2));
-                if (k.IsNull())
+                if (ExTypeCheck.IsNull(k))
                 {
                     Throw(vm, "'null' is not a valid key");
                 }
@@ -1708,7 +1708,7 @@ namespace ExMat.API
         /// <param name="attr">Attribute name</param>
         /// <param name="dest">Attribute's value if found</param>
         /// <returns>If attribute exists <see cref="ExGetterStatus.FOUND"/>, otherwise <see cref="ExGetterStatus.ERROR"/></returns>
-        public static ExGetterStatus GetFunctionAttribute(IExClosureAttr func, string attr, ref ExObject dest)
+        public static ExGetterStatus GetFunctionAttribute(IExClosure func, string attr, ref ExObject dest)
         {
             switch (attr)
             {
@@ -2049,7 +2049,7 @@ namespace ExMat.API
         private static bool ShouldPrintTop(ExVM vm)
         {
             return !vm.PrintedToConsole
-                    && vm.GetAbove(-1).IsNotNull();
+                    && ExTypeCheck.IsNotNull(vm.GetAbove(-1));
         }
 
         private static string FitConsoleString(int width, string source)

@@ -61,7 +61,7 @@ namespace ExMat.Outer
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(ValueRef);
+            ExDisposer.DisposeObjects(ValueRef);
 
             if (_prev != null)
             {

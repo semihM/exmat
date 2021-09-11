@@ -172,7 +172,7 @@ namespace ExMat.Objects
                     Function = null;
                     Description = null;
 
-                    Disposer.DisposeList(ref Parameters);
+                    ExDisposer.DisposeList(ref Parameters);
 
                     ReturnsType = null;
                 }

@@ -72,7 +72,7 @@ namespace ExMat.Objects
             {
                 if (disposing)
                 {
-                    Disposer.DisposeObjects(DefaultValue);
+                    ExDisposer.DisposeObjects(DefaultValue);
                     Name = null;
                     Description = null;
                     TypeMaskString = null;

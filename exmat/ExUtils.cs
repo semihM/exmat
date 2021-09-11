@@ -8,7 +8,7 @@ namespace ExMat.Utils
     {
         public static List<ExObject> GetOrderedNumericList(List<ExObject> lis)
         {
-            return lis.Where(o => o.IsRealNumber())
+            return lis.Where(o => ExTypeCheck.IsRealNumber(o))
                     .OrderBy(x => x.GetFloat())
                     .ToList();
         }
@@ -17,7 +17,7 @@ namespace ExMat.Utils
         {
             foreach (ExObject num in lis.GetList())
             {
-                if (!num.IsNumeric())
+                if (!ExTypeCheck.IsNumeric(num))
                 {
                     return false;
                 }

@@ -19,7 +19,7 @@ namespace ExMat.Lexer
                 {
                     Name = null;
                     Source = null;
-                    Disposer.DisposeList(ref Parameters);
+                    ExDisposer.DisposeList(ref Parameters);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

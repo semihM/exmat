@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ExMat.Objects
 {
-    public static class Disposer
+    public static class ExDisposer
     {
         public static void DisposeList<T>(ref List<T> lis) where T : IDisposable, new()
         {

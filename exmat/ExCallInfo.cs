@@ -41,8 +41,8 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    Disposer.DisposeList(ref Literals);
-                    Disposer.DisposeObjects(Closure);
+                    ExDisposer.DisposeList(ref Literals);
+                    ExDisposer.DisposeObjects(Closure);
 
                     Instructions.RemoveAll((ExInstr i) => true);
                     Instructions = null;

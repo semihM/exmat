@@ -43,7 +43,7 @@ namespace ExMat.Class
                 else if (Delegate.Type == ExObjType.ARRAY)
                 {
                     int k = vm.SharedState.GetMetaIdx(vm.SharedState.MetaMethods[(int)m].GetString());
-                    if (Delegate.GetList()[k].IsNotNull())
+                    if (ExTypeCheck.IsNotNull(Delegate.GetList()[k]))
                     {
                         res.Assign(Delegate.GetList()[k]);
                         return true;
@@ -84,7 +84,7 @@ namespace ExMat.Class
 
         public bool GetMeta(int midx, ref ExObject res)
         {
-            if (Class.MetaFuncs[midx].IsNotNull())
+            if (ExTypeCheck.IsNotNull(Class.MetaFuncs[midx]))
             {
                 res = Class.MetaFuncs[midx];
                 return true;
@@ -127,8 +127,8 @@ namespace ExMat.Class
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(Class);
-            Disposer.DisposeList(ref MemberValues);
+            ExDisposer.DisposeObjects(Class);
+            ExDisposer.DisposeList(ref MemberValues);
         }
     }
 }

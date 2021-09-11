@@ -183,7 +183,7 @@ namespace ExMat.Class
                         ReferenceCount++;
                     }
 
-                    if (tmp.IsNull())
+                    if (ExTypeCheck.IsNull(tmp))
                     {
                         bool bconstr = exs.ConstructorID.GetString() == key.GetString();
 
@@ -226,12 +226,12 @@ namespace ExMat.Class
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(Base);
-            Disposer.DisposeObjects(Attributes);
+            ExDisposer.DisposeObjects(Base);
+            ExDisposer.DisposeObjects(Attributes);
 
-            Disposer.DisposeList(ref Methods);
-            Disposer.DisposeList(ref DefaultValues);
-            Disposer.DisposeList(ref MetaFuncs);
+            ExDisposer.DisposeList(ref Methods);
+            ExDisposer.DisposeList(ref DefaultValues);
+            ExDisposer.DisposeList(ref MetaFuncs);
         }
     }
 }

@@ -143,7 +143,7 @@ namespace ExMat.States
                 {
                     Root = null;
 
-                    Disposer.DisposeObjects(ConstructorID,
+                    ExDisposer.DisposeObjects(ConstructorID,
                                             MetaMethodsMap,
                                             WeakRefDelegate,
                                             InstanceDelegate,
@@ -155,9 +155,9 @@ namespace ExMat.States
                                             DictDelegate,
                                             ClassDelegate);
 
-                    Disposer.DisposeDict(ref Strings);
+                    ExDisposer.DisposeDict(ref Strings);
 
-                    Disposer.DisposeList(ref MetaMethods);
+                    ExDisposer.DisposeList(ref MetaMethods);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

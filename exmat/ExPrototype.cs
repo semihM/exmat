@@ -167,16 +167,16 @@ namespace ExMat.FuncPrototype
         {
             base.Dispose(disposing);
 
-            Disposer.DisposeObjects(Source, Name);
+            ExDisposer.DisposeObjects(Source, Name);
 
             LineInfos = null;
             DefaultParameters = null;
 
-            Disposer.DisposeList(ref Outers);
-            Disposer.DisposeList(ref LocalInfos);
-            Disposer.DisposeList(ref Functions);
-            Disposer.DisposeList(ref Parameters);
-            Disposer.DisposeList(ref Literals);
+            ExDisposer.DisposeList(ref Outers);
+            ExDisposer.DisposeList(ref LocalInfos);
+            ExDisposer.DisposeList(ref Functions);
+            ExDisposer.DisposeList(ref Parameters);
+            ExDisposer.DisposeList(ref Literals);
 
             Instructions.RemoveAll((ExInstr i) => true);
             Instructions = null;

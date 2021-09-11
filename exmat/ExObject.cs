@@ -17,36 +17,6 @@ namespace ExMat.Objects
 
         private bool disposedValue;
 
-        public bool IsNull()
-        {
-            return Type == ExObjType.NULL;
-        }
-
-        public bool IsNotNull()
-        {
-            return Type != ExObjType.NULL;
-        }
-
-        public bool IsDelegable()
-        {
-            return ((int)Type & (int)ExObjFlag.DELEGABLE) != 0;
-        }
-
-        public bool IsRealNumber()
-        {
-            return Type == ExObjType.INTEGER || Type == ExObjType.FLOAT;
-        }
-
-        public bool IsNumeric()
-        {
-            return ((int)Type & (int)ExObjFlag.NUMERIC) != 0;
-        }
-
-        public bool IsCountingRefs()
-        {
-            return ((int)Type & (int)ExObjFlag.COUNTREFERENCES) != 0;
-        }
-
         public long GetInt()
         {
             return Type == ExObjType.INTEGER ? Value.i_Int : (long)Value.f_Float;
@@ -112,13 +82,9 @@ namespace ExMat.Objects
             Value.s_String = s;
         }
 
-        public bool IsFalseable()
-        {
-            return ((int)Type & (int)ExObjFlag.CANBEFALSE) != 0;
-        }
         public bool GetBool()
         {
-            if (IsFalseable())
+            if (ExTypeCheck.IsFalseable(this))
             {
                 switch (Type)
                 {
@@ -169,6 +135,11 @@ namespace ExMat.Objects
             return Value._Class;
         }
 
+        public ExSpace GetSpace()
+        {
+            return Value.c_Space;
+        }
+
         public virtual string GetDebuggerDisplay()
         {
             string s = Type.ToString();
@@ -199,8 +170,8 @@ namespace ExMat.Objects
                     Value.s_String = null;
 
                     Value.c_Space = null;
-                    Disposer.DisposeList(ref Value.l_List);
-                    Disposer.DisposeDict(ref Value.d_Dict);
+                    ExDisposer.DisposeList(ref Value.l_List);
+                    ExDisposer.DisposeDict(ref Value.d_Dict);
 
                     Value._RefC = null;
                     Value._WeakRef = null;

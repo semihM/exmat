@@ -10,7 +10,7 @@ using ExMat.Utils;
 namespace ExMat.Closure
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClosure : ExRefC, IExClosureAttr
+    public class ExClosure : ExRefC, IExClosure
     {
         public ExClass Base;                // Ait olunan sınıf(varsa)
         public ExPrototype Function;        // Fonksiyon prototipi
@@ -24,9 +24,9 @@ namespace ExMat.Closure
             Base = null;
 
             WeakReference = null;
-            Disposer.DisposeObjects(Function);
-            Disposer.DisposeList(ref OutersList);
-            Disposer.DisposeList(ref DefaultParams);
+            ExDisposer.DisposeObjects(Function);
+            ExDisposer.DisposeList(ref OutersList);
+            ExDisposer.DisposeList(ref DefaultParams);
         }
 
         public static ExClosure Create(ExSState exS, ExPrototype fpro)
@@ -187,7 +187,7 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            if (Function.Name == null || Function.Name.IsNull())
+            if (Function.Name == null || ExTypeCheck.IsNull(Function.Name))
             {
                 return "CLOSURE";
             }
