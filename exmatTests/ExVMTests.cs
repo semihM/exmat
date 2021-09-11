@@ -408,7 +408,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.AND, a, b, tmp));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -425,7 +425,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.OR, a, b, tmp));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -442,7 +442,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.XOR, a, b, tmp));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -459,7 +459,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTL, a, b, tmp));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -476,7 +476,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -488,7 +488,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsFalse(ExVM.DoBitwiseOP((long)ExOperationCode.CLOSE, new(1), new(1), tmp));
 
-            Assert.IsTrue(tmp.IsNull());
+            Assert.IsTrue(ExTypeCheck.IsNull(tmp));
         }
 
         [TestMethod()]
@@ -501,7 +501,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsFalse(ExVM.DoBitwiseOP((long)BitOP.SHIFTR, a, b, tmp));
 
-            Assert.IsTrue(tmp.IsNull());
+            Assert.IsTrue(ExTypeCheck.IsNull(tmp));
         }
         #endregion
 
@@ -635,7 +635,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetInt());
         }
@@ -651,7 +651,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetFloat());
         }
@@ -667,7 +667,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsTrue(ExVM.DoNegateOP(tmp, a));
 
-            Assert.IsTrue(tmp.IsNotNull());
+            Assert.IsTrue(ExTypeCheck.IsNotNull(tmp));
 
             Assert.AreEqual(res, tmp.GetComplex());
         }
@@ -681,7 +681,7 @@ namespace ExMat.VM.Tests
 
             Assert.IsFalse(ExVM.DoNegateOP(tmp, a));
 
-            Assert.IsFalse(tmp.IsNotNull());
+            Assert.IsFalse(ExTypeCheck.IsNotNull(tmp));
         }
         #endregion
     }
