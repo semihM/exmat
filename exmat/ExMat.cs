@@ -45,6 +45,11 @@ namespace ExMat
         public const string ConstructorName = "init";
 
         /// <summary>
+        /// Base reference keyword name
+        /// </summary>
+        public const string BaseName = "base";
+
+        /// <summary>
         /// Self reference keyword name
         /// </summary>
         public const string ThisName = "this";
@@ -108,19 +113,19 @@ namespace ExMat
         public const string DefParams = "defparams";
 
         /// <summary>
+        /// Function name, reload a function 
+        /// </summary>
+        public const string ReloadFunc = "reload_func";
+
+        /// <summary>
         /// Function name, reload a standard library specific function
         /// </summary>
-        public const string ReloadLibFunc = "reload_func";
+        public const string ReloadLibFunc = "reload_lib_func";
 
         /// <summary>
-        /// Function name, reload a standard library or a standard library specific function
+        /// Library reloading keyword name
         /// </summary>
-        public const string ReloadLib = "reload_lib";
-
-        /// <summary>
-        /// Function name, reload the standard base library
-        /// </summary>
-        public const string ReloadBaseLib = "reload_base";
+        public const string ReloadName = "reload";
 
         /// <summary>
         /// Maximum length of the echo'd string, used for native functions which calls 'echo' in external terminals
@@ -207,7 +212,7 @@ namespace ExMat
         /// <summary>
         /// Standard base library name
         /// </summary>
-        public const string StandardLibraryName = "base";
+        public const string StandardBaseLibraryName = "base";
 
         /// <summary>
         /// Namespace required for a class to be checked for being a standard library 
