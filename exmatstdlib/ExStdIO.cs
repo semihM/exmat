@@ -627,17 +627,23 @@ namespace ExMat.StdLib
             return vm.CleanReturn(nargs + 2, new ExList(all));
         }
 
-        [ExNativeFuncBase("include_file", ExBaseType.BOOL, "Compile and execute an external '.exmat' file using the current VM")]
+        [ExNativeFuncBase("include_file", ExBaseType.BOOL, "Compile and execute an external '.exmat' file using the current VM. Returns false if there were any errors, otherwise true.")]
         [ExNativeParamBase(1, "file", "s", "Script file with '.exmat' extension")]
-        public static ExFunctionStatus IoIncludefile(ExVM vm, int nargs)
+        [ExNativeParamBase(2, "write_errors", ".", "Wheter to write error messages", true)]
+        [ExNativeParamBase(3, "stop_on_error", ".", "Wheter to stop when an error is thrown", true)]
+        public static ExFunctionStatus IoIncludefile(ExVM vm, int nargs) // TO-DO Refactor
         {
             string fname = vm.GetArgument(1).GetString();
+            bool werrors = nargs < 2 || vm.GetArgument(2).GetBool();
             if (fname == "*")
             {
-                fname = Directory.GetCurrentDirectory();
-                List<string> all;
-                all = new(Directory.GetFiles(fname));
                 bool failed = false;
+                bool stops = nargs < 3 || vm.GetArgument(3).GetBool();
+
+                fname = Directory.GetCurrentDirectory();
+
+                List<string> all = new(Directory.GetFiles(fname));
+
                 foreach (string f in all)
                 {
                     if (!f.EndsWith(".exmat", StringComparison.Ordinal))
@@ -650,17 +656,41 @@ namespace ExMat.StdLib
                         ExApi.PushRootTable(vm);
                         if (!ExApi.Call(vm, 1, false, false))
                         {
-                            ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
                             failed = true;
-                            break;
+                            if (werrors)
+                            {
+                                vm.AddToErrorMessage("File: '{0}'", f);
+                                ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                            }
+                            else
+                            {
+                                vm.ErrorString = string.Empty;
+                            }
+
+                            if (stops)
+                            {
+                                break;
+                            }
                         }
 
                     }
                     else
                     {
-                        ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
                         failed = true;
-                        break;
+                        if (werrors)
+                        {
+                            vm.AddToErrorMessage("File: '{0}'", f);
+                            ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                        }
+                        else
+                        {
+                            vm.ErrorString = string.Empty;
+                        }
+
+                        if (stops)
+                        {
+                            break;
+                        }
                     }
                 }
 
@@ -682,7 +712,15 @@ namespace ExMat.StdLib
                     ExApi.PushRootTable(vm);
                     if (!ExApi.Call(vm, 1, false, false))
                     {
-                        ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                        if (werrors)
+                        {
+                            vm.AddToErrorMessage("File: '{0}'", fname);
+                            ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                        }
+                        else
+                        {
+                            vm.ErrorString = string.Empty;
+                        }
                         return vm.CleanReturn(nargs + 3, false);
                     }
                     else
@@ -692,7 +730,15 @@ namespace ExMat.StdLib
                 }
                 else
                 {
-                    ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                    if (werrors)
+                    {
+                        vm.AddToErrorMessage("File: '{0}'", fname);
+                        ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                    }
+                    else
+                    {
+                        vm.ErrorString = string.Empty;
+                    }
                     return vm.CleanReturn(nargs + 3, false);
                 }
             }
