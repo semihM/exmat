@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -85,6 +86,21 @@ namespace ExMat.API
         }
 
         /// <summary>
+        /// Get the base type of given object type
+        /// </summary>
+        /// <param name="type">Object type</param>
+        /// <returns>Raw base type of given object type, stripped from flags</returns>
+        public static ExBaseType GetBaseType(ExObjType type)
+        {
+            int raw = (int)type;
+            foreach (ExObjFlag flg in Enum.GetValues(typeof(ExObjFlag)))
+            {
+                raw &= ~(int)flg;
+            }
+            return (ExBaseType)raw;
+        }
+
+        /// <summary>
         /// Create a cryptographically safe random string using characters from [a-zA-Z0-9]
         /// </summary>
         /// <param name="length">Length of the string</param>
@@ -155,11 +171,7 @@ namespace ExMat.API
         public static bool ConvertAndGetString(ExVM vm, int idx, int maxdepth, out string output)
         {
             output = string.Empty;
-            if (!ToString(vm, idx + 1, maxdepth) || !GetString(vm, -1, ref output))
-            {
-                return false;
-            }
-            return true;
+            return ToString(vm, idx + 1, maxdepth) && GetString(vm, -1, ref output);
         }
 
         private static Thread Beeper;
@@ -383,38 +395,16 @@ namespace ExMat.API
         public static string GetFloatString(ExObject obj)
         {
             double r = obj.GetFloat();
-            if (r % 1 == 0.0)
-            {
-                if (r < 1e+14)
-                {
-                    return obj.GetFloat().ToString();
-                }
-                else
-                {
-                    return obj.GetFloat().ToString("E14");
-                }
-            }
-            else if (r >= 1e-14)
-            {
-                return obj.GetFloat().ToString("0.00000000000000");
-            }
-            else if (r < 1e+14)
-            {
-                return obj.GetFloat().ToString();
-            }
-            else
-            {
-                return obj.GetFloat().ToString("E14");
-            }
+            return r % 1 == 0.0
+                ? r < 1e+14 ? obj.GetFloat().ToString(CultureInfo.CurrentCulture) : obj.GetFloat().ToString("E14", CultureInfo.CurrentCulture)
+                : r >= 1e-14
+                    ? obj.GetFloat().ToString("0.00000000000000", CultureInfo.CurrentCulture)
+                    : r < 1e+14 ? obj.GetFloat().ToString(CultureInfo.CurrentCulture) : obj.GetFloat().ToString("E14", CultureInfo.CurrentCulture);
         }
 
         public static bool CheckEqualFloat(double x, double y)
         {
-            if (double.IsNaN(x))
-            {
-                return double.IsNaN(y);
-            }
-            return x == y;
+            return double.IsNaN(x) ? double.IsNaN(y) : x == y;
         }
 
         public static bool CheckEqualArray(List<ExObject> x, List<ExObject> y)
@@ -473,7 +463,7 @@ namespace ExMat.API
                     res = x.GetDict().GetHashCode() == y.GetDict().GetHashCode();
                     break;
                 case ExObjType.SPACE:
-                    res = string.Equals(x.GetSpace().GetSpaceString(), y.GetSpace().GetSpaceString());
+                    res = string.Equals(x.GetSpace().GetSpaceString(), y.GetSpace().GetSpaceString(), StringComparison.Ordinal);
                     break;
                 case ExObjType.CLASS:
                     res = x.GetClass().Hash == y.GetClass().Hash;
@@ -498,22 +488,11 @@ namespace ExMat.API
         {
             bool bx = ExTypeCheck.IsNumeric(x);
             bool by = ExTypeCheck.IsNumeric(y);
-            if (by && x.Type == ExObjType.COMPLEX)
-            {
-                res = x.GetComplex() == y.GetFloat();
-            }
-            else if (bx && y.Type == ExObjType.COMPLEX)
-            {
-                res = x.GetFloat() == y.GetComplex();
-            }
-            else if (bx && by)
-            {
-                res = CheckEqualFloat(x.GetFloat(), y.GetFloat());
-            }
-            else
-            {
-                res = false;
-            }
+            res = by && x.Type == ExObjType.COMPLEX
+                ? x.GetComplex() == y.GetFloat()
+                : bx && y.Type == ExObjType.COMPLEX
+                    ? x.GetFloat() == y.GetComplex()
+                    : bx && by && CheckEqualFloat(x.GetFloat(), y.GetFloat());
         }
 
         /// <summary>
@@ -578,7 +557,7 @@ namespace ExMat.API
 
         public static ConsoleColor GetColorFromName(string name, ConsoleColor def = ConsoleColor.Black)
         {
-            switch (name.Trim().ToLower())
+            switch (name.Trim().ToLower(CultureInfo.CurrentCulture))
             {
                 case "black":
                     {
@@ -662,7 +641,7 @@ namespace ExMat.API
             }
             else
             {
-                switch (enc.ToLower())
+                switch (enc.ToLower(CultureInfo.CurrentCulture))
                 {
                     case "utf-8":
                     case "utf8":
@@ -719,9 +698,9 @@ namespace ExMat.API
             if (bits == 32)
             {
                 string s = Convert.ToString((int)i, 2);
-                return s.PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
+                return s.PadLeft(bits, '0').Select(c => int.Parse(c.ToString(CultureInfo.CurrentCulture), CultureInfo.CurrentCulture)).ToArray();
             }
-            return Convert.ToString(i, 2).PadLeft(bits, '0').Select(c => int.Parse(c.ToString())).ToArray();
+            return Convert.ToString(i, 2).PadLeft(bits, '0').Select(c => int.Parse(c.ToString(CultureInfo.CurrentCulture), CultureInfo.CurrentCulture)).ToArray();
         }
 
         /// <summary>
@@ -875,6 +854,32 @@ namespace ExMat.API
         }
 
         /// <summary>
+        /// Register a standard library
+        /// </summary>
+        /// <param name="vm">Virtual machine to register the library to<param>
+        public static bool RegisterStdLibrary(ExVM vm, Type lib)
+        {
+            if (lib == null)
+            {
+                vm.AddToErrorMessage("unknown library");
+                return false;
+            }
+            ExFunctionStatus status = InvokeRegisterOnStdLib(vm, lib);
+
+            if (status == ExFunctionStatus.ERROR)
+            {
+                return false;
+            }
+
+            Dictionary<string, ExObject> consts = GetStdLibraryConstsDict(lib);
+            if (consts != null)
+            {
+                RegisterConstantsFromDict(consts, vm);
+            }
+            return true;
+        }
+
+        /// <summary>
         /// Register std libs from given assembly
         /// </summary>
         /// <param name="vm">Virtual machine to register libraries to<param>
@@ -884,17 +889,9 @@ namespace ExMat.API
             {
                 foreach (Type lib in GetStandardLibraryTypes(GetAllAssemblies()))
                 {
-                    ExFunctionStatus status = InvokeRegisterOnStdLib(vm, lib);
-
-                    if (status == ExFunctionStatus.ERROR)
+                    if (!RegisterStdLibrary(vm, lib))
                     {
                         return false;
-                    }
-
-                    Dictionary<string, ExObject> consts = GetStdLibraryConstsDict(lib);
-                    if (consts != null)
-                    {
-                        RegisterConstantsFromDict(consts, vm);
                     }
                 }
                 return true;
@@ -939,7 +936,12 @@ namespace ExMat.API
 
         public static List<Type> GetStandardLibraryTypes()
         {
-            return GetStandardLibraryTypes(null);
+            return GetStandardLibraryTypes(GetAllAssemblies());
+        }
+
+        public static Type GetStandardLibraryFromName(string name)
+        {
+            return GetStandardLibraryTypes(GetAllAssemblies()).FirstOrDefault(l => GetLibraryNameFromStdClass(l) == name);
         }
 
         /// <summary>
@@ -958,11 +960,7 @@ namespace ExMat.API
                 }
             }
 
-            return types
-                   .Where(t => t.IsClass
-                          && string.Equals(t.Namespace, ExMat.StandardLibraryNameSpace, StringComparison.Ordinal)
-                          && IsStdLib(t))
-                   .ToList();
+            return types.Where(t => t.IsClass && string.Equals(t.Namespace, ExMat.StandardLibraryNameSpace, StringComparison.Ordinal) && IsStdLib(t)).ToList();
         }
 
         /// <summary>
@@ -975,6 +973,17 @@ namespace ExMat.API
             return IsStdLib(stdClass)
                 ? ((ExStdLibBase)Attribute.GetCustomAttributes(stdClass).FirstOrDefault(a => a is ExStdLibBase)).Type
                 : 0;
+        }
+
+        public static ExStdLibType GetLibraryTypeFromName(string name)
+        {
+            Type t;
+            return (t = GetStandardLibraryFromName(name)) == null ? ExStdLibType.UNKNOWN : GetLibraryTypeFromStdClass(t);
+        }
+
+        public static bool ReloadLibrary(ExVM vm, string libname)
+        {
+            return RegisterStdLibrary(vm, GetStandardLibraryTypes(GetAllAssemblies()).FirstOrDefault(l => GetLibraryNameFromStdClass(l) == libname));
         }
 
         /// <summary>
@@ -1282,7 +1291,7 @@ namespace ExMat.API
         {
             if (ExMat.TypeMasks.ContainsKey(c))
             {
-                return ExMat.TypeMasks[c].ToString();
+                return ExMat.TypeMasks[c].ToString(CultureInfo.CurrentCulture);
             }
             else
             {
@@ -1350,11 +1359,11 @@ namespace ExMat.API
             StringBuilder s = new();
             for (; i < paramsleft; i++)
             {
-                s.AppendFormat("[{0}", infos[i]);
+                s.AppendFormat(CultureInfo.CurrentCulture, "[{0}", infos[i]);
 
-                if (defs.ContainsKey((i + 1).ToString()))
+                if (defs.ContainsKey((i + 1).ToString(CultureInfo.CurrentCulture)))
                 {
-                    s.AppendFormat(" = {0}", GetSimpleString(defs[(i + 1).ToString()]));
+                    s.AppendFormat(CultureInfo.CurrentCulture, " = {0}", GetSimpleString(defs[(i + 1).ToString(CultureInfo.CurrentCulture)]));
                 }
 
                 s.Append(']');
@@ -1377,7 +1386,7 @@ namespace ExMat.API
                     }
                 case ExObjType.INTEGER:
                     {
-                        return obj.GetInt().ToString();
+                        return obj.GetInt().ToString(CultureInfo.CurrentCulture);
                     }
                 case ExObjType.FLOAT:
                     {
@@ -1546,7 +1555,19 @@ namespace ExMat.API
                 o.GetNClosure().Documentation = CreateDocStringFromRegFunc(reg, o.GetNClosure().TypeMasks.Count == 0);
                 o.GetNClosure().Summary = reg.Description;
                 o.GetNClosure().Returns = reg.ReturnsType;
+                o.GetNClosure().Base = reg.Base;
             }
+        }
+
+        public static ExStdLibType GetStdLibTypeFromSimpleLibName(string name)
+        {
+            string n = Enum.GetNames(typeof(ExStdLibType)).FirstOrDefault(t => GetSimpleLibNameFromStdLibType(Enum.Parse<ExStdLibType>(t)) == name);
+            return string.IsNullOrWhiteSpace(n) ? ExStdLibType.UNKNOWN : Enum.Parse<ExStdLibType>(n);
+        }
+
+        public static string GetSimpleLibNameFromStdLibType(ExStdLibType type)
+        {
+            return type.ToString().ToLower(CultureInfo.CurrentCulture);
         }
 
         public static string CreateDocStringFromRegFunc(ExNativeFunc reg, bool hasVargs)
@@ -1555,14 +1576,14 @@ namespace ExMat.API
 
             if (reg.IsDelegateFunction)
             {
-                s.AppendFormat("Base: {0}", ((ExBaseType)CompileTypeChar(reg.BaseTypeMask)).ToString());
+                s.AppendFormat(CultureInfo.CurrentCulture, "Base: {0}", ((ExBaseType)CompileTypeChar(reg.BaseTypeMask)).ToString());
             }
             else
             {
-                s.AppendFormat("Library: {0}", reg.Base.ToString().ToLower());
+                s.AppendFormat(CultureInfo.CurrentCulture, "Library: {0}", reg.Base.ToString().ToLower(CultureInfo.CurrentCulture));
             }
 
-            s.AppendFormat("\nFunction: <{0}> {1}", reg.ReturnsType, reg.Name);
+            s.AppendFormat(CultureInfo.CurrentCulture, "\nFunction: <{0}> {1}", reg.ReturnsType, reg.Name);
 
             int i = 0, j = 0;
 
@@ -1572,7 +1593,7 @@ namespace ExMat.API
             {
                 while (j < -reg.NumberOfParameters - 1)
                 {
-                    s.AppendFormat("\n\t{0}. <ANY> unknown", ++j);
+                    s.AppendFormat(CultureInfo.CurrentCulture, "\n\t{0}. <ANY> unknown", ++j);
                 }
             }
 
@@ -1582,7 +1603,7 @@ namespace ExMat.API
                 ExNativeParam param = reg.Parameters[i];
                 if (param.HasDefaultValue)
                 {
-                    s.AppendFormat("\n\t{0}. [<{1}> {2} = {3}] : {4}",
+                    s.AppendFormat(CultureInfo.CurrentCulture, "\n\t{0}. [<{1}> {2} = {3}] : {4}",
                         j + ++i,
                         GetTypeMaskInfo(param.Type),
                         param.Name,
@@ -1593,20 +1614,20 @@ namespace ExMat.API
                 }
                 else
                 {
-                    s.AppendFormat("\n\t{0}. <{1}> {2} : {3}", j + ++i, GetTypeMaskInfo(param.Type), param.Name, param.Description);
+                    s.AppendFormat(CultureInfo.CurrentCulture, "\n\t{0}. <{1}> {2} : {3}", j + ++i, GetTypeMaskInfo(param.Type), param.Name, param.Description);
                 }
             }
 
             if (hasVargs)
             {
-                s.AppendFormat("\n\t{0}. <...> vargs", j + i + 1);
+                s.AppendFormat(CultureInfo.CurrentCulture, "\n\t{0}. <...> vargs", j + i + 1);
             }
             else if (i + j == 0)
             {
                 s.Append(" No parameters");
             }
 
-            s.AppendFormat("\nSummary: {0}", reg.Description);
+            s.AppendFormat(CultureInfo.CurrentCulture, "\nSummary: {0}", reg.Description);
 
             return s.ToString();
         }
@@ -1634,7 +1655,7 @@ namespace ExMat.API
                 Throw(vm, "not enough parameters in stack");
             }
             ExObject self = GetFromStack(vm, idx);
-            if (self.Type == ExObjType.DICT || self.Type == ExObjType.CLASS)
+            if (self.Type is ExObjType.DICT or ExObjType.CLASS)
             {
                 ExObject k = new();
                 k.Assign(vm.GetAbove(-2));
@@ -1763,15 +1784,15 @@ namespace ExMat.API
             {
                 res = new(r);
             }
-            else if (s.StartsWith("0x"))
+            else if (s.StartsWith("0x", StringComparison.Ordinal))
             {
                 if (s.Length <= 18
-                    && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
+                    && long.TryParse(s[2..], NumberStyles.HexNumber, null, out long hr))
                 {
                     res = new(hr);
                 }
             }
-            else if (s.StartsWith("0b")
+            else if (s.StartsWith("0b", StringComparison.Ordinal)
                     && s.Length <= 34)
             {
                 try
@@ -1783,7 +1804,7 @@ namespace ExMat.API
                     return false;
                 }
             }
-            else if (s.StartsWith("0B")
+            else if (s.StartsWith("0B", StringComparison.Ordinal)
                     && s.Length <= 66)
             {
                 try
@@ -1815,15 +1836,15 @@ namespace ExMat.API
             {
                 res = new(r);
             }
-            else if (s.StartsWith("0x"))
+            else if (s.StartsWith("0x", StringComparison.Ordinal))
             {
                 if (s.Length <= 18
-                    && long.TryParse(s[2..], System.Globalization.NumberStyles.HexNumber, null, out long hr))
+                    && long.TryParse(s[2..], NumberStyles.HexNumber, null, out long hr))
                 {
                     res = new(new DoubleLong() { i = hr }.f);
                 }
             }
-            else if (s.StartsWith("0b")
+            else if (s.StartsWith("0b", StringComparison.Ordinal)
                     && s.Length <= 66)
             {
                 try
@@ -2129,7 +2150,7 @@ namespace ExMat.API
 
         public static string GetEscapedFormattedString(string raw)
         {
-            return string.Format("\'{0}\'", Escape(raw));
+            return string.Format(CultureInfo.CurrentCulture, "\'{0}\'", Escape(raw));
         }
 
         public static int CallTop(ExVM vm)
