@@ -57,32 +57,7 @@ namespace ExMat.StdLib
         {
             List<ExObject> lis = vm.GetArgument(1).GetList();
 
-            Dictionary<ExObject, int> counts = new();
-
-            for (int i = 0; i < lis.Count; i++)
-            {
-                ExObject o = lis[i];
-
-                int c = 0;
-
-                bool cfound = false;
-                ExObject[] carr = new ExObject[counts.Count];
-                counts.Keys.CopyTo(carr, 0);
-
-                foreach (KeyValuePair<ExObject, int> pair in counts)
-                {
-                    if (ExApi.CheckEqual(pair.Key, o, ref cfound) && cfound)
-                    {
-                        counts[carr[c]] += 1;
-                        break;
-                    }
-                    c++;
-                }
-                if (!cfound)
-                {
-                    counts.Add(lis[c], 1);
-                }
-            }
+            Dictionary<ExObject, int> counts = ExApi.GetRepeatCounts(lis);
 
             int max = counts.Values.Max();
 

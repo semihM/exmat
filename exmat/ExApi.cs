@@ -1428,6 +1428,37 @@ namespace ExMat.API
             }
         }
 
+        public static Dictionary<ExObject, int> GetRepeatCounts(List<ExObject> lis)
+        {
+            Dictionary<ExObject, int> counts = new();
+
+            if (lis == null)
+            {
+                return counts;
+            }
+
+            for (int i = 0; i < lis.Count; i++)
+            {
+                ExObject o = lis[i];
+
+                int c = 0;
+                bool cfound = false;
+
+                ExObject[] carr = new ExObject[counts.Count];
+                counts.Keys.CopyTo(carr, 0);
+                KeyValuePair<ExObject, int> pair = counts.FirstOrDefault(p => ++c > 0 && CheckEqual(p.Key, o, ref cfound) && cfound);
+                if (pair.Key != null)
+                {
+                    counts[carr[c - 1]] += 1;
+                }
+                if (!cfound)
+                {
+                    counts.Add(o, 1);
+                }
+            }
+            return counts;
+        }
+
         public static string GetTypeMaskInfo(int mask)
         {
             switch (mask)
@@ -1555,7 +1586,7 @@ namespace ExMat.API
                 o.GetNClosure().Documentation = CreateDocStringFromRegFunc(reg, o.GetNClosure().TypeMasks.Count == 0);
                 o.GetNClosure().Summary = reg.Description;
                 o.GetNClosure().Returns = reg.ReturnsType;
-                o.GetNClosure().Base = reg.Base;
+                o.GetNClosure().Base = GetSimpleLibNameFromStdLibType(reg.Base);
             }
         }
 
