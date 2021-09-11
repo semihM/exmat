@@ -35,7 +35,7 @@ namespace ExMat.Class
             {
                 if (disposing)
                 {
-                    Disposer.DisposeObjects(Value, Attributes);
+                    ExDisposer.DisposeObjects(Value, Attributes);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

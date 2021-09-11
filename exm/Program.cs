@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -70,14 +71,7 @@ namespace ExMat
 
             ActiveVM.SetFlag(ExInteractiveConsoleFlag.CURRENTLYEXECUTING);
 
-            if (ExApi.CompileSource(vm, code))      // Derle
-            {
-                ret = ExApi.CallTop(vm);
-            }
-            else
-            {
-                ret = ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
-            }
+            ret = ExApi.CompileSource(vm, code) ? ExApi.CallTop(vm) : ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
 
             ResetAfterCompilation(vm, ResetInStack);
             return ret;
@@ -168,7 +162,7 @@ namespace ExMat
                 new()
             };
 
-            ActiveVM.CallInfo = InfoVar.ExNode<InfoVar.ExCallInfo>.BuildNodesFromList(ActiveVM.CallStack);
+            ActiveVM.CallInfo = new(ActiveVM.CallStack);
         }
 
         // TO-DO Find a way to interrupt .NET operations
@@ -359,26 +353,12 @@ namespace ExMat
 
         private static string TrimCode(string code, bool includeCarry = true)
         {
-            if (includeCarry)
-            {
-                return code.TrimEnd('\\', ' ', '\t');
-            }
-            else
-            {
-                return code.TrimEnd(' ', '\t');
-            }
+            return includeCarry ? code.TrimEnd('\\', ' ', '\t') : code.TrimEnd(' ', '\t');
         }
 
         private static string TrimCode(StringBuilder code, bool includeCarry = true)
         {
-            if (includeCarry)
-            {
-                return code.ToString().TrimEnd('\\', ' ', '\t');
-            }
-            else
-            {
-                return code.ToString().TrimEnd(' ', '\t');
-            }
+            return includeCarry ? code.ToString().TrimEnd('\\', ' ', '\t') : code.ToString().TrimEnd(' ', '\t');
         }
 
         private static void CreateInteractiveVMThread()
@@ -438,14 +418,7 @@ namespace ExMat
 
         private static bool ReadFileContents(string path)
         {
-            if (File.Exists(path))
-            {
-                FileContents = File.ReadAllText(path);
-            }
-            else
-            {
-                FileContents = string.Empty;
-            }
+            FileContents = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
             return !string.IsNullOrWhiteSpace(FileContents);
         }
 
@@ -474,7 +447,7 @@ namespace ExMat
             {
                 if (!ReadFileContents(args[0])) // start exm.exe SCRIPT_PATH
                 {
-                    KeepConsoleUpAtEnd(string.Format("File '{0}' doesn't exist!", args[0]));
+                    KeepConsoleUpAtEnd(string.Format(CultureInfo.CurrentCulture, "File '{0}' doesn't exist!", args[0]));
                     return -1;
                 }
 

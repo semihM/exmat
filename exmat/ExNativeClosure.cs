@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using ExMat.Interfaces;
 using ExMat.Objects;
@@ -9,11 +10,11 @@ using ExMat.Utils;
 namespace ExMat.Closure
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExNativeClosure : ExRefC, IExClosureAttr
+    public class ExNativeClosure : ExRefC, IExClosure
     {
         public ExSState SharedState;            // Ortak değerler
         public ExObject Name;                   // Fonksiyon ismi
-        public ExNativeFunc.FunctionRef Function;  // C# metotu referansı
+        public ExMat.StdLibFunction Function;      // C# metotu referansı
         public bool IsDelegateFunction;         // Temsili(delegate) metot?
 
         public int nOuters;                     // Dışardaki değişkenlere referansı sayısı
@@ -30,6 +31,8 @@ namespace ExMat.Closure
 
         public string Returns = string.Empty;
 
+        public string Base = string.Empty;
+
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);
@@ -45,9 +48,9 @@ namespace ExMat.Closure
             nOuters = 0;
             nParameterChecks = 0;
 
-            Disposer.DisposeObjects(Name);
-            Disposer.DisposeList(ref OutersList);
-            Disposer.DisposeDict(ref DefaultValues);
+            ExDisposer.DisposeObjects(Name);
+            ExDisposer.DisposeList(ref OutersList);
+            ExDisposer.DisposeDict(ref DefaultValues);
         }
 
         public dynamic GetAttribute(string attr)
@@ -80,18 +83,9 @@ namespace ExMat.Closure
                     }
                 case ExMat.nParams:
                     {
-                        if (nParameterChecks < 0)
-                        {
-                            return TypeMasks.Count == 0 ? (-nParameterChecks - 1) : TypeMasks.Count - 1;
-                        }
-                        else if (nParameterChecks > 0)
-                        {
-                            return nParameterChecks - 1;
-                        }
-                        else
-                        {
-                            return TypeMasks.Count - 1;
-                        }
+                        return nParameterChecks < 0
+                            ? (dynamic)(TypeMasks.Count == 0 ? (-nParameterChecks - 1) : TypeMasks.Count - 1)
+                            : nParameterChecks > 0 ? (dynamic)(nParameterChecks - 1) : (dynamic)(TypeMasks.Count - 1);
                     }
                 case ExMat.nDefParams:
                     {
@@ -106,7 +100,7 @@ namespace ExMat.Closure
                         Dictionary<string, ExObject> dict = new();
                         foreach (KeyValuePair<int, ExObject> pair in DefaultValues)
                         {
-                            dict.Add(pair.Key.ToString(), new(pair.Value));
+                            dict.Add(pair.Key.ToString(CultureInfo.CurrentCulture), new(pair.Value));
                         }
                         return dict;
                     }
@@ -122,7 +116,7 @@ namespace ExMat.Closure
             ReferenceCount = 1;
         }
 
-        public static ExNativeClosure Create(ExSState exS, ExNativeFunc.FunctionRef f, int nout)
+        public static ExNativeClosure Create(ExSState exS, ExMat.StdLibFunction f, int nout)
         {
             ExNativeClosure cls = new() { SharedState = exS, Function = f };
             ExUtils.InitList(ref cls.OutersList, nout);
@@ -177,17 +171,12 @@ namespace ExMat.Closure
                 }
             }
 
-            if (s.Length == 0)
-            {
-                return $"{(IsDelegateFunction ? "delegate, " : string.Empty)}params: 0, minargs: 0";
-            }
-
-            return s.ToString();
+            return s.Length == 0 ? $"{(IsDelegateFunction ? "delegate, " : string.Empty)}params: 0, minargs: 0" : s.ToString();
         }
 
         public string GetInfoString()
         {
-            string s = (string)GetAttribute(ExMat.FuncName) + ", ";
+            string s = string.Empty;
 
             if ((bool)GetAttribute(ExMat.VargsName))
             {

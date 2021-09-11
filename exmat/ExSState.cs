@@ -25,6 +25,9 @@ namespace ExMat.States
         // Kullanılan yazı dizileri ve değişken isimleri
         public Dictionary<string, ExObject> Strings = new();
 
+        // Sabitler
+        public Dictionary<string, ExObject> Consts = new();
+
         // Sınıf temisili metotları
         public ExObject ClassDelegate = new(new Dictionary<string, ExObject>());
 
@@ -98,6 +101,7 @@ namespace ExMat.States
             cls.Documentation = ExApi.CreateDocStringFromRegFunc(f, false); // TO-DO : Hack, what happens if we want vargs in delegates ?
             cls.Summary = f.Description;
             cls.Returns = f.ReturnsType;
+            cls.Base = ((ExBaseType)ExMat.TypeMasks.FirstOrDefault(p => p.Value == f.BaseTypeMask).Key).ToString();
         }
 
         public static ExObject CreateDefDel(ExSState exs, List<ExNativeFunc> f)
@@ -140,7 +144,7 @@ namespace ExMat.States
                 {
                     Root = null;
 
-                    Disposer.DisposeObjects(ConstructorID,
+                    ExDisposer.DisposeObjects(ConstructorID,
                                             MetaMethodsMap,
                                             WeakRefDelegate,
                                             InstanceDelegate,
@@ -152,9 +156,9 @@ namespace ExMat.States
                                             DictDelegate,
                                             ClassDelegate);
 
-                    Disposer.DisposeDict(ref Strings);
+                    ExDisposer.DisposeDict(ref Strings);
 
-                    Disposer.DisposeList(ref MetaMethods);
+                    ExDisposer.DisposeList(ref MetaMethods);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

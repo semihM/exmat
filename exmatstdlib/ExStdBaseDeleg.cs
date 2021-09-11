@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using ExMat.API;
@@ -19,7 +20,7 @@ namespace ExMat.StdLib
             {
                 return vm.AddToErrorMessage("string can't be indexed with integer higher than it's length or negative");
             }
-            s = s[n].ToString();
+            s = s[n].ToString(CultureInfo.CurrentCulture);
             return ExFunctionStatus.SUCCESS;
         }
         #endregion
@@ -81,19 +82,19 @@ namespace ExMat.StdLib
         [ExNativeParamBase(1, "substring", "s", "Substring to search for")]
         public static ExFunctionStatus StdStringIndexOf(ExVM vm, int nargs)
         {
-            return vm.CleanReturn(1, vm.GetRootArgument().GetString().IndexOf(vm.GetArgument(1).GetString()));
+            return vm.CleanReturn(1, vm.GetRootArgument().GetString().IndexOf(vm.GetArgument(1).GetString(), StringComparison.Ordinal));
         }
 
         [ExNativeFuncDelegate("to_upper", ExBaseType.STRING, "Return a new string with characters capitalized", 's')]
         public static ExFunctionStatus StdStringToUpper(ExVM vm, int nargs)
         {
-            return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetString().ToUpper());
+            return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetString().ToUpper(CultureInfo.CurrentCulture));
         }
 
         [ExNativeFuncDelegate("to_lower", ExBaseType.STRING, "Return a new string with characters uncapitalized", 's')]
         public static ExFunctionStatus StdStringToLower(ExVM vm, int nargs)
         {
-            return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetString().ToLower());
+            return vm.CleanReturn(nargs + 2, vm.GetRootArgument().GetString().ToLower(CultureInfo.CurrentCulture));
         }
 
         [ExNativeFuncDelegate("reverse", ExBaseType.STRING, "Return a new string with character order reversed", 's')]
@@ -132,12 +133,10 @@ namespace ExMat.StdLib
         public static ExFunctionStatus StdStringAlphabetic(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
-            if (nargs == 1
-                && StringIndexCheck(vm, (int)vm.GetPositiveIntegerArgument(1, 0), ref s) == ExFunctionStatus.ERROR)
-            {
-                return ExFunctionStatus.ERROR;
-            }
-            return vm.CleanReturn(nargs + 2, Regex.IsMatch(s, "^[A-Za-z]+$"));
+            return nargs == 1
+                && StringIndexCheck(vm, (int)vm.GetPositiveIntegerArgument(1, 0), ref s) == ExFunctionStatus.ERROR
+                ? ExFunctionStatus.ERROR
+                : vm.CleanReturn(nargs + 2, Regex.IsMatch(s, "^[A-Za-z]+$"));
         }
 
         [ExNativeFuncDelegate("isNumeric", ExBaseType.BOOL, "Check if the string or a character at given index is numeric", 's')]
@@ -145,12 +144,10 @@ namespace ExMat.StdLib
         public static ExFunctionStatus StdStringNumeric(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
-            if (nargs == 1
-                && StringIndexCheck(vm, (int)vm.GetPositiveIntegerArgument(1, 0), ref s) == ExFunctionStatus.ERROR)
-            {
-                return ExFunctionStatus.ERROR;
-            }
-            return vm.CleanReturn(nargs + 2, Regex.IsMatch(s, @"^\d+(\.\d+)?((E|e)(\+|\-)\d+)?$"));
+            return nargs == 1
+                && StringIndexCheck(vm, (int)vm.GetPositiveIntegerArgument(1, 0), ref s) == ExFunctionStatus.ERROR
+                ? ExFunctionStatus.ERROR
+                : vm.CleanReturn(nargs + 2, Regex.IsMatch(s, @"^\d+(\.\d+)?((E|e)(\+|\-)\d+)?$"));
         }
 
         [ExNativeFuncDelegate("isAlphaNumeric", ExBaseType.BOOL, "Check if the string or a character at given index is alphabetic or numeric", 's')]
@@ -158,12 +155,10 @@ namespace ExMat.StdLib
         public static ExFunctionStatus StdStringAlphaNumeric(ExVM vm, int nargs)
         {
             string s = vm.GetRootArgument().GetString();
-            if (nargs == 1
-                && StringIndexCheck(vm, (int)vm.GetPositiveIntegerArgument(1, 0), ref s) == ExFunctionStatus.ERROR)
-            {
-                return ExFunctionStatus.ERROR;
-            }
-            return vm.CleanReturn(nargs + 2, Regex.IsMatch(s, "^[A-Za-z0-9]+$"));
+            return nargs == 1
+                && StringIndexCheck(vm, (int)vm.GetPositiveIntegerArgument(1, 0), ref s) == ExFunctionStatus.ERROR
+                ? ExFunctionStatus.ERROR
+                : vm.CleanReturn(nargs + 2, Regex.IsMatch(s, "^[A-Za-z0-9]+$"));
         }
 
         [ExNativeFuncDelegate("isLower", ExBaseType.BOOL, "Check if the string or a character at given index is lower case", 's')]
@@ -552,22 +547,13 @@ namespace ExMat.StdLib
             List<ExObject> lis = vm.GetRootArgument().GetList();
             int count = nargs == 1 ? (int)vm.GetPositiveIntegerArgument(1, 1) : 1;
 
-            if (count > lis.Count)
-            {
-                return vm.AddToErrorMessage("can't pick {0} values from list with length {1}", count, lis.Count);
-            }
-            else if (count == lis.Count)
-            {
-                return vm.CleanReturn(nargs + 2, ExUtils.ShuffleList(lis));
-            }
-            else if (count == 1)
-            {
-                return vm.CleanReturn(nargs + 2, new ExObject(lis[new Random().Next(lis.Count)]));
-            }
-            else
-            {
-                return vm.CleanReturn(nargs + 2, ExUtils.GetNRandomObjectsFrom(lis, count));
-            }
+            return count > lis.Count
+                ? vm.AddToErrorMessage("can't pick {0} values from list with length {1}", count, lis.Count)
+                : count == lis.Count
+                    ? vm.CleanReturn(nargs + 2, ExUtils.ShuffleList(lis))
+                    : count == 1
+                                    ? vm.CleanReturn(nargs + 2, new ExObject(lis[new Random().Next(lis.Count)]))
+                                    : vm.CleanReturn(nargs + 2, ExUtils.GetNRandomObjectsFrom(lis, count));
         }
 
         [ExNativeFuncDelegate("reverse", ExBaseType.ARRAY, "Return a new list with the order of items reversed", 'a')]
@@ -668,6 +654,17 @@ namespace ExMat.StdLib
                 vals.Add(new(val));
             }
             return vm.CleanReturn(nargs + 2, vals);
+        }
+
+        [ExNativeFuncDelegate("get", 0, "Get the value represented by the given key", 'd')]
+        [ExNativeParamBase(1, "key", "s", "Key to use")]
+        public static ExFunctionStatus StdDictGet(ExVM vm, int nargs)
+        {
+            ExObject res = vm.GetRootArgument();
+            string key = vm.GetArgument(1).GetString();
+            return !res.GetDict().ContainsKey(key)
+                ? vm.AddToErrorMessage("Key '{0}' doesn't exist!", key)
+                : vm.CleanReturn(nargs + 2, res.GetDict()[key]);
         }
 
         [ExNativeFuncDelegate("random_key", ExBaseType.STRING, "Get a random key", 'd')]
@@ -921,14 +918,15 @@ namespace ExMat.StdLib
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'd')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'a')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'C')]
-        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'c')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'f')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'r')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 's')]
+        [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'S')]
         [ExNativeFuncDelegate(ExCommonDelegateType.WEAKREF, 'x')]
         public static ExFunctionStatus StdWeakRef(ExVM vm, int nargs)
         {
             ExObject ret = vm.GetRootArgument();
-            if (ret.IsCountingRefs())
+            if (ExTypeCheck.IsCountingRefs(ret))
             {
                 vm.Push(ret.Value._RefC.GetWeakRef(ret.Type, ret.Value));
                 return ExFunctionStatus.SUCCESS;
@@ -964,6 +962,7 @@ namespace ExMat.StdLib
             }
             return vm.CleanReturn(nargs + 2, new ExObject(size));
         }
+
         #endregion
 
         #endregion

@@ -177,7 +177,7 @@ namespace ExMat.Objects
             {
                 if (disposing)
                 {
-                    Disposer.DisposeList(ref Values);
+                    ExDisposer.DisposeList(ref Values);
                     Allocated = 0;
                     Size = 0;
                 }

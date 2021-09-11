@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -24,7 +25,7 @@ namespace ExMat.StdLib
                 switch (type)
                 {
                     case ExProcessInfo.DATE:
-                        return string.Format("{0} {1}", p.StartTime.ToShortTimeString(), p.StartTime.ToShortDateString());
+                        return string.Format(CultureInfo.CurrentCulture, "{0} {1}", p.StartTime.ToShortTimeString(), p.StartTime.ToShortDateString());
                     case ExProcessInfo.MODULE:
                         return p.MainModule.FileName;
                     case ExProcessInfo.ARGS:
@@ -43,14 +44,9 @@ namespace ExMat.StdLib
         {
             try
             {
-                if (arg == null)
-                {
-                    return Process.GetProcessById(Environment.ProcessId, Environment.MachineName);
-                }
-                else
-                {
-                    return Process.GetProcessById((int)arg.GetInt(), Environment.MachineName);
-                }
+                return arg == null
+                    ? Process.GetProcessById(Environment.ProcessId, Environment.MachineName)
+                    : Process.GetProcessById((int)arg.GetInt(), Environment.MachineName);
             }
             catch
             {
@@ -124,13 +120,11 @@ namespace ExMat.StdLib
 
                     return vm.CleanReturn(nargs + 2, lis);
                 }
-                else if (arg1.Type == ExObjType.INTEGER)
-                {
-                    return vm.CleanReturn(nargs + 2, GetProcessData(GetProcessFromArgument(arg1)));
-                }
                 else
                 {
-                    return vm.CleanReturn(nargs + 2, GetProcessData(GetProcessFromArgument(null)));
+                    return arg1.Type == ExObjType.INTEGER
+                        ? vm.CleanReturn(nargs + 2, GetProcessData(GetProcessFromArgument(arg1)))
+                        : vm.CleanReturn(nargs + 2, GetProcessData(GetProcessFromArgument(null)));
                 }
             }
             catch (Exception err)
@@ -359,12 +353,7 @@ namespace ExMat.StdLib
             {
                 string var = Environment.GetEnvironmentVariable(vm.GetArgument(1).GetString(), target);
 
-                if (string.IsNullOrEmpty(var))
-                {
-                    return vm.CleanReturn(nargs + 2, new ExObject());
-                }
-
-                return vm.CleanReturn(nargs + 2, var);
+                return string.IsNullOrEmpty(var) ? vm.CleanReturn(nargs + 2, new ExObject()) : vm.CleanReturn(nargs + 2, var);
             }
             catch (Exception err)
             {

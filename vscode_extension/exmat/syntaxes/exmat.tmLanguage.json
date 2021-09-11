@@ -135,7 +135,7 @@
 				},
 				{
 					"name": "keyword.other.exmat",
-					"match": "\\b(var|delete|typeof|instanceof)\\b"
+					"match": "\\b(var|delete|typeof|instanceof|reload)\\b"
 				}
 			]
 		},
@@ -185,7 +185,7 @@
 				},
 				{
 					"name": "entity.name.function.exmat",
-					"match": "\\b(reload_lib|reload_func|reload_base|exit|is_interactive|collect_garbage)\\b"
+					"match": "\\b(reload_lib_func|reload_func|exit|is_interactive|collect_garbage)\\b"
 				},
 				{
 					"name": "entity.name.function.exmat",

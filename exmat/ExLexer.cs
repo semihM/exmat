@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 using ExMat.Objects;
 using ExMat.Token;
@@ -108,6 +109,7 @@ namespace ExMat.Lexer
             { "break", TokenType.BREAK },
             // Tanımsal
             { "var", TokenType.VAR },
+            { "const", TokenType.CONST },
             { "function", TokenType.FUNCTION },
             { "cluster", TokenType.CLUSTER },
             { "rule", TokenType.RULE },
@@ -125,9 +127,10 @@ namespace ExMat.Lexer
             { "not", TokenType.NEQ },
             // Diğer
             { "in", TokenType.IN },     // Değer varlığı kontrolü
-            { "base", TokenType.BASE },
+            { ExMat.BaseName, TokenType.BASE },
             { ExMat.ConstructorName, TokenType.CONSTRUCTOR },
-            { ExMat.ThisName, TokenType.THIS }
+            { ExMat.ThisName, TokenType.THIS },
+            { "reload", TokenType.RELOAD }
         };
 
         public ExLexer(string source)
@@ -178,7 +181,7 @@ namespace ExMat.Lexer
             do
             {
                 NextChar();
-            } while (CurrentChar != '\n' && CurrentChar != ExMat.EndChar);
+            } while (CurrentChar is not '\n' and not ExMat.EndChar);
         }
 
         private bool SkipBlockComment()
@@ -424,7 +427,7 @@ namespace ExMat.Lexer
             StringBuilder mtag = new();
             while (true)
             {
-                while (CurrentChar != ExMat.EndChar && CurrentChar != '#')
+                while (CurrentChar is not ExMat.EndChar and not '#')
                 {
                     MacroBlock.Append(CurrentChar);
                     NextChar();
@@ -491,7 +494,7 @@ namespace ExMat.Lexer
         }
         private static bool IsValidHexChar(ref char curr)
         {
-            return char.IsDigit(curr) || (char.IsLetter(curr) && (curr = char.ToLower(curr)) <= 'f' && curr >= 'a');
+            return char.IsDigit(curr) || (char.IsLetter(curr) && (curr = char.ToLower(curr, CultureInfo.CurrentCulture)) <= 'f' && curr >= 'a');
         }
 
         private bool ReadAsHex(int Base, out int Result)
@@ -524,11 +527,8 @@ namespace ExMat.Lexer
 
         private bool AreNextCharacters(string these)
         {
-            if (_source_idx + these.Length <= _source_len)
-            {
-                return _source.Substring(_source_idx - 1, these.Length) == these;
-            }
-            return false;
+            return _source_idx + these.Length <= _source_len
+                   && _source.Substring(_source_idx - 1, these.Length) == these;
         }
 
         private TokenType ReadVerboseString(char end)
@@ -711,11 +711,11 @@ namespace ExMat.Lexer
 
         private static bool IsExponent(char c)
         {
-            return c == 'e' || c == 'E';
+            return c is 'e' or 'E';
         }
         private static bool IsSign(char c)
         {
-            return c == '+' || c == '-';
+            return c is '+' or '-';
         }
         private static bool IsDotNetNumberChar(char c)
         {
@@ -734,7 +734,7 @@ namespace ExMat.Lexer
                     }
                 case TokenType.HEX:
                     {
-                        if (!long.TryParse(ValTempString.ToString(), System.Globalization.NumberStyles.HexNumber, null, out ValInteger))
+                        if (!long.TryParse(ValTempString.ToString(), NumberStyles.HexNumber, null, out ValInteger))
                         {
                             ErrorString = "failed to parse as hexadecimal";
                             return TokenType.UNKNOWN;
@@ -777,7 +777,7 @@ namespace ExMat.Lexer
         {
             bool is32bit = false;
             TokenType typ = TokenType.INTEGER;
-            ValTempString = new(start.ToString());   // ilk karakter
+            ValTempString = new(start.ToString(CultureInfo.CurrentCulture));   // ilk karakter
 
             NextChar();
             if (IsDotNetNumberChar(start)) // .NET nümerik karakteri
@@ -831,7 +831,7 @@ namespace ExMat.Lexer
                         NextChar();
                         ValTempString = new();
 
-                        while (CurrentChar == '0' || CurrentChar == '1')
+                        while (CurrentChar is '0' or '1')
                         {
                             ValTempString.Append(CurrentChar); NextChar();
                         }
@@ -1017,11 +1017,7 @@ namespace ExMat.Lexer
                                 }
 
                                 MacroParamName = ReadMacroParam();
-                                if (string.IsNullOrWhiteSpace(MacroParamName))
-                                {
-                                    return TokenType.UNKNOWN;
-                                }
-                                return SetAndReturnToken(TokenType.MACROPARAM);
+                                return string.IsNullOrWhiteSpace(MacroParamName) ? TokenType.UNKNOWN : SetAndReturnToken(TokenType.MACROPARAM);
                             }
                             else
                             {
@@ -1132,11 +1128,7 @@ namespace ExMat.Lexer
                     case '"':
                         {
                             TokenType res;
-                            if ((res = ReadString(CurrentChar)) != TokenType.UNKNOWN)
-                            {
-                                return SetAndReturnToken(res);
-                            }
-                            return TokenType.UNKNOWN;
+                            return (res = ReadString(CurrentChar)) != TokenType.UNKNOWN ? SetAndReturnToken(res) : TokenType.UNKNOWN;
                         }
                     case '$':
                         {
@@ -1144,11 +1136,7 @@ namespace ExMat.Lexer
                             if (CurrentChar == '\"')
                             {
                                 TokenType res;
-                                if ((res = ReadVerboseString(CurrentChar)) != TokenType.UNKNOWN)
-                                {
-                                    return SetAndReturnToken(res);
-                                }
-                                return TokenType.UNKNOWN;
+                                return (res = ReadVerboseString(CurrentChar)) != TokenType.UNKNOWN ? SetAndReturnToken(res) : TokenType.UNKNOWN;
                             }
                             else
                             {
@@ -1402,7 +1390,7 @@ namespace ExMat.Lexer
                                 char tmp = CurrentChar;
                                 if (char.IsControl(tmp))
                                 {
-                                    ErrorString = "Unexpected control character " + tmp.ToString();
+                                    ErrorString = "Unexpected control character " + tmp.ToString(CultureInfo.CurrentCulture);
                                     return TokenType.UNKNOWN;
                                 }
 
@@ -1422,8 +1410,8 @@ namespace ExMat.Lexer
             {
                 if (disposing)
                 {
-                    Disposer.DisposeList(ref MacroParams);
-                    Disposer.DisposeObjects(ValSpace);
+                    ExDisposer.DisposeList(ref MacroParams);
+                    ExDisposer.DisposeObjects(ValSpace);
 
                     ErrorString = null;
                     ValTempString = null;
@@ -1449,7 +1437,7 @@ namespace ExMat.Lexer
 
         private object GetDebuggerDisplay()
         {
-            return string.Format("Line: {0}, Column: {1}, Char: {2}, Token: {3}", CurrentLine, CurrentCol, CurrentChar, TokenCurr);
+            return string.Format(CultureInfo.CurrentCulture, "Line: {0}, Column: {1}, Char: {2}, Token: {3}", CurrentLine, CurrentCol, CurrentChar, TokenCurr);
         }
     }
 }

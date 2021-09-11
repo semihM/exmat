@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using ExMat.Class;
 using ExMat.FuncPrototype;
 using ExMat.Interfaces;
@@ -10,7 +11,7 @@ using ExMat.Utils;
 namespace ExMat.Closure
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExClosure : ExRefC, IExClosureAttr
+    public class ExClosure : ExRefC, IExClosure
     {
         public ExClass Base;                // Ait olunan sınıf(varsa)
         public ExPrototype Function;        // Fonksiyon prototipi
@@ -24,9 +25,9 @@ namespace ExMat.Closure
             Base = null;
 
             WeakReference = null;
-            Disposer.DisposeObjects(Function);
-            Disposer.DisposeList(ref OutersList);
-            Disposer.DisposeList(ref DefaultParams);
+            ExDisposer.DisposeObjects(Function);
+            ExDisposer.DisposeList(ref OutersList);
+            ExDisposer.DisposeList(ref DefaultParams);
         }
 
         public static ExClosure Create(ExSState exS, ExPrototype fpro)
@@ -100,7 +101,7 @@ namespace ExMat.Closure
                         Dictionary<string, ExObject> dict = new();
                         foreach (ExObject d in DefaultParams)
                         {
-                            dict.Add((++start).ToString(), d);
+                            dict.Add((++start).ToString(CultureInfo.CurrentCulture), d);
                         }
                         return dict;
                     }
@@ -187,15 +188,9 @@ namespace ExMat.Closure
 
         public new string GetDebuggerDisplay()
         {
-            if (Function.Name == null || Function.Name.IsNull())
-            {
-                return "CLOSURE";
-            }
-            if (Base != null)
-            {
-                return "[HAS BASE] CLOSURE(" + Function.Name.GetString() + ")";
-            }
-            return "CLOSURE(" + Function.Name.GetString() + ")";
+            return Function.Name == null || ExTypeCheck.IsNull(Function.Name)
+                ? "CLOSURE"
+                : Base != null ? "[HAS BASE] CLOSURE(" + Function.Name.GetString() + ")" : "CLOSURE(" + Function.Name.GetString() + ")";
         }
 
 

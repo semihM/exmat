@@ -11,7 +11,12 @@ namespace ExMat.InfoVar
         public T Value;
         private bool disposedValue;
 
-        public static ExNode<T> BuildNodesFromList(List<T> l, int start = 0)
+        public ExNode()
+        {
+
+        }
+
+        public ExNode(List<T> l, int start = 0)
         {
             ExNode<T> first = new() { Value = l[0] };
             int c = l.Count;
@@ -26,8 +31,9 @@ namespace ExMat.InfoVar
                 c--;
                 first = first.Prev;
             }
-
-            return first;
+            Value = first.Value;
+            Next = first.Next;
+            Prev = first.Prev;
         }
 
         public T this[int i]

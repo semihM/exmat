@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using ExMat.FuncPrototype;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -183,6 +184,69 @@ namespace ExMat.Compiler
             return typ.ToString();
         }
 
+        public ExObject ExpectConstableValue()
+        {
+            ExObject res;
+
+            switch (CurrentToken)
+            {
+                case TokenType.INTEGER:
+                    {
+                        res = new(Lexer.ValInteger);
+                        break;
+                    }
+                case TokenType.FLOAT:
+                    {
+                        res = new(Lexer.ValFloat);
+                        break;
+                    }
+                case TokenType.LITERAL:
+                    {
+                        res = new(Lexer.ValString);
+                        break;
+                    }
+                case TokenType.SPACE:
+                    {
+                        res = new(Lexer.ValSpace);
+                        break;
+                    }
+                case TokenType.SUB:
+                    {
+                        if (!ReadAndSetToken())
+                        {
+                            return null;
+                        }
+                        switch (CurrentToken)
+                        {
+                            case TokenType.INTEGER:
+                                {
+                                    res = new(Lexer.ValInteger);
+                                    break;
+                                }
+                            case TokenType.FLOAT:
+                                {
+                                    res = new(Lexer.ValFloat);
+                                    break;
+                                }
+                            default:
+                                {
+                                    AddToErrorMessage("expected scalar after '-'");
+                                    return null;
+                                }
+                        }
+                        break;
+                    }
+                default:
+                    {
+                        AddToErrorMessage("expected const-able: int, float, string, space");
+                        return null;
+                    }
+            }
+
+            ReadAndSetToken();
+            return res;
+        }
+
         public ExObject Expect(TokenType expected)
         {
             if (CurrentToken != expected                        // Beklenmedik sembol
@@ -312,6 +376,38 @@ namespace ExMat.Compiler
                         {
                             return false;
                         }
+                        break;
+                    }
+                case TokenType.CONST:     // var
+                    {
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+
+                        ExObject name = Expect(TokenType.IDENTIFIER);
+                        if (name == null)
+                        {
+                            return false;
+                        }
+
+                        if (FunctionState.SharedState.Consts.ContainsKey(name.GetString()))
+                        {
+                            return AddToErrorMessage($"a constant named '{name.GetString()}' already exists, use 'consts' function to force-update constants");
+                        }
+
+                        if (Expect(TokenType.ASG) == null)
+                        {
+                            return AddToErrorMessage("expected '=' after const identifier");
+                        }
+
+                        ExObject val = ExpectConstableValue();
+                        if (val == null || !CheckSMC())
+                        {
+                            return false;
+                        }
+
+                        FunctionState.SharedState.Consts.Add(name.GetString(), new(val));
                         break;
                     }
                 case TokenType.FUNCTION:
@@ -769,7 +865,7 @@ namespace ExMat.Compiler
                             pname.Value.i_Int *= -1;
                         }
 
-                        pname = new(pname.GetInt().ToString());
+                        pname = new(pname.GetInt().ToString(CultureInfo.CurrentCulture));
                     }
                     else if (pname.Type == ExObjType.FLOAT)
                     {
@@ -778,7 +874,7 @@ namespace ExMat.Compiler
                             pname.Value.f_Float *= -1;
                         }
 
-                        pname = new(pname.GetFloat().ToString());
+                        pname = new(pname.GetFloat().ToString(CultureInfo.CurrentCulture));
                     }
                     else
                     {
@@ -865,7 +961,7 @@ namespace ExMat.Compiler
             }
 
             FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(v), 0, 0);
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(v), 0, 0);
 
             if (Expect(TokenType.ROUNDOPEN) == null || !ExSequenceCreate(v))
             {
@@ -890,7 +986,7 @@ namespace ExMat.Compiler
             }
 
             FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(v), 0, 0);
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(v), 0, 0);
 
             if (Expect(TokenType.CURLYOPEN) == null || !ExClusterCreate(v))
             {
@@ -964,7 +1060,7 @@ namespace ExMat.Compiler
                         return false;
                     }
                 }
-                else if (CurrentToken != TokenType.SMC && CurrentToken != TokenType.CURLYCLOSE)
+                else if (CurrentToken is not TokenType.SMC and not TokenType.CURLYCLOSE)
                 {
                     AddToErrorMessage("expected '}' ',' '=>' or ';' for cluster definition");
                     return false;
@@ -1138,7 +1234,7 @@ namespace ExMat.Compiler
             }
 
             FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(v), 0, 0);
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(v), 0, 0);
 
             if (Expect(TokenType.ROUNDOPEN) == null || !ExSymbolCreate(v))
             {
@@ -1227,7 +1323,7 @@ namespace ExMat.Compiler
             }
 
             FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(v), 0, 0);
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(v), 0, 0);
 
             if (Expect(TokenType.ROUNDOPEN) == null || !ExRuleCreate(v))
             {
@@ -1351,7 +1447,7 @@ namespace ExMat.Compiler
             //      yeni bir slot oluşturmak için bu referensa ihtiyacı vardır
             FunctionState.PushTarget(0);
             // Fonksiyon isminin sanal belleğe yüklenme
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(idx), 0, 0);
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
 
             #region _
             // Sınıfa ait metot olarak yazılıyor ise sınıfı bulma komutu ekle
@@ -1367,7 +1463,7 @@ namespace ExMat.Compiler
                     return false;
                 }
 
-                FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(idx), 0, 0);
+                FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
 
                 if (CurrentToken == TokenType.GLOBAL)
                 {
@@ -1411,7 +1507,7 @@ namespace ExMat.Compiler
                 AddToErrorMessage("invalid class name");
                 return false;
             }
-            else if (ExpressionState.Type == ExEType.OBJECT || ExpressionState.Type == ExEType.BASE)
+            else if (ExpressionState.Type is ExEType.OBJECT or ExEType.BASE)
             {
                 if (!ExClassResolveExp())
                 {
@@ -1492,8 +1588,10 @@ namespace ExMat.Compiler
 
                         switch (etyp)    // İfade tipini kontrol et
                         {
-                            case ExEType.EXPRESSION: AddToErrorMessage("can't assing an expression"); return false;
-                            case ExEType.BASE: AddToErrorMessage("can't modify 'base'"); return false;
+                            case ExEType.CONSTDELEG: return AddToErrorMessage("can't modify a constant's delegate");
+                            case ExEType.EXPRESSION: return AddToErrorMessage("can't assing an expression");
+                            case ExEType.BASE: return AddToErrorMessage("can't modify 'base'");
+                            default: break;
                         }
                         if (!ReadAndSetToken() || !ExExp()) // Sağ tarafı derle
                         {
@@ -1541,7 +1639,7 @@ namespace ExMat.Compiler
                                 }
                             case TokenType.NEWSLOT:
                                 {
-                                    if (etyp == ExEType.OBJECT || etyp == ExEType.BASE)
+                                    if (etyp is ExEType.OBJECT or ExEType.BASE)
                                     {
                                         AddBasicDerefInstr(ExOperationCode.NEWSLOT);
                                     }
@@ -2023,7 +2121,7 @@ namespace ExMat.Compiler
                                 return false;
                             }
 
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(tmp), 0, 0);
+                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(tmp), 0, 0);
 
                             if (ExpressionState.Type == ExEType.BASE)
                             {
@@ -2098,6 +2196,10 @@ namespace ExMat.Compiler
                                         FunctionState.PopTarget();
                                         break;
                                     }
+                                case ExEType.CONSTDELEG:
+                                    {
+                                        return AddToErrorMessage("can't transpose a delegate!");
+                                    }
                             }
                             return true;
                         }
@@ -2117,10 +2219,13 @@ namespace ExMat.Compiler
 
                             switch (ExpressionState.Type)
                             {
+                                case ExEType.CONSTDELEG:
+                                    {
+                                        return AddToErrorMessage("can't increment or decrement a delegate");
+                                    }
                                 case ExEType.EXPRESSION:
                                     {
-                                        AddToErrorMessage("can't increment or decrement an expression");
-                                        return false;
+                                        return AddToErrorMessage("can't increment or decrement an expression");
                                     }
                                 case ExEType.OBJECT:
                                 case ExEType.BASE:
@@ -2171,6 +2276,11 @@ namespace ExMat.Compiler
                                         FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
                                         break;
                                     }
+                                case ExEType.CONSTDELEG:
+                                    {
+                                        FunctionState.AddInstr(ExOperationCode.LOADCONSTDICT, FunctionState.PushTarget(), 2, 0, 0);
+                                        break;
+                                    }
                                 default:
                                     {
                                         FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
@@ -2192,6 +2302,111 @@ namespace ExMat.Compiler
             }
         }
 
+        private bool CompileConstFactor(ExObject idx, ExObject cnst)
+        {
+            ExObject cid = null, cval = null;
+
+            bool dot;
+            dot = CurrentToken == TokenType.DOT;
+
+            if (cnst.Type == ExObjType.DICT)
+            {
+                if (!dot)
+                {
+                    return AddToErrorMessage("expected '.' for constant dict");
+                }
+
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+
+                cid = Expect(TokenType.IDENTIFIER);
+
+                if (cid == null || cid.Type != ExObjType.STRING)
+                {
+                    return AddToErrorMessage("Invalid constant name, expected string type name.");
+                }
+                else if (!cnst.GetDict().ContainsKey(cid.GetString()))
+                {
+                    if (!VM.InvokeDefaultDeleg(cnst, cid, ref cval))
+                    {
+                        return AddToErrorMessage($"Unknown constant name '{cid.GetString()}'");
+                    }
+                }
+                else
+                {
+                    cval = new(cnst.GetDict()[cid.GetString()]);
+                }
+            }
+            else
+            {
+                cval = new(cnst);
+            }
+
+            if (cval.Type != ExObjType.NATIVECLOSURE)
+            {
+                ExpressionState.Position = FunctionState.PushTarget();
+            }
+
+            switch (cval.Type)
+            {
+                case ExObjType.INTEGER:
+                    {
+                        AddIntConstLoadInstr(cval.GetInt(), ExpressionState.Position);
+                        break;
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        AddFloatConstLoadInstr(new DoubleLong() { f = cval.GetFloat() }.i, ExpressionState.Position);
+                        break;
+                    }
+                case ExObjType.SPACE:
+                    {
+                        AddSpaceConstLoadInstr(cval.GetSpace(), ExpressionState.Position);
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        FunctionState.AddInstr(ExOperationCode.LOAD, ExpressionState.Position, FunctionState.GetLiteral(cval), 0, 0);
+                        break;
+                    }
+                case ExObjType.ARRAY:
+                case ExObjType.DICT:
+                case ExObjType.NATIVECLOSURE:
+                    {
+                        FunctionState.AddInstr(ExOperationCode.LOADCONSTDICT, FunctionState.PushTarget(), ExMat.InvalidArgument, 0, 0);
+                        FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
+                        AddBasicOpInstr(ExOperationCode.GET);
+
+                        if (cid != null)
+                        {
+                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(cid), 0, 0);
+                            AddBasicOpInstr(ExOperationCode.GET);
+                        }
+                        else
+                        {
+                            FunctionState.AddInstr(ExOperationCode.LOAD, 1, FunctionState.PopTarget(), 0, 0);
+                        }
+                        ExpressionState.Type = ExEType.CONSTDELEG;
+                        break;
+                    }
+                default:
+                    {
+                        FunctionState.AddInstr(ExOperationCode.LOAD, ExpressionState.Position, FunctionState.GetLiteral(cval), 0, 0);
+                        break;
+                    }
+            }
+
+            if (cval.Type is not ExObjType.NATIVECLOSURE
+                and not ExObjType.DICT
+                and not ExObjType.ARRAY)
+            {
+                ExpressionState.Type = ExEType.EXPRESSION;
+            }
+            return true;
+        }
+
         public bool ExFactor(ref int pos)
         {
             ExpressionState.Type = ExEType.EXPRESSION;
@@ -2210,12 +2425,43 @@ namespace ExMat.Compiler
                     }
                 case TokenType.LITERAL:
                     {
-                        FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(FunctionState.CreateString(Lexer.ValString)), 0, 0);
+                        FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(FunctionState.CreateString(Lexer.ValString)), 0, 0);
 
                         if (!ReadAndSetToken())
                         {
                             return false;
                         }
+                        break;
+                    }
+                case TokenType.RELOAD:
+                    {
+                        if (!ReadAndSetToken())
+                        {
+                            return false;
+                        }
+
+                        int l, s = FunctionState.PushTarget();
+
+                        if (CurrentToken is TokenType.LITERAL or TokenType.IDENTIFIER)
+                        {
+                            l = (int)FunctionState.GetLiteral(FunctionState.CreateString(Lexer.ValString));
+                            if (!ReadAndSetToken())
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            l = (int)FunctionState.GetLiteral(FunctionState.CreateString(ExMat.StandardBaseLibraryName));
+                        }
+                        if (!IsEOS())
+                        {
+                            return AddToErrorMessage("expected end of statement.");
+                        }
+
+                        FunctionState.AddInstr(ExOperationCode.RELOADLIB, s, l, 0, 0);
+                        ExpressionState.Type = ExEType.OBJECT;
+
                         break;
                     }
                 case TokenType.BASE:
@@ -2280,10 +2526,17 @@ namespace ExMat.Compiler
                                 ExpressionState.Position = p;
                             }
                         }
-                        else
+                        else if (FunctionState.IsConst(idx, out ExObject cnst))
                         {
-                            FunctionState.PushTarget(0);
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(idx), 0, 0);
+                            if (!CompileConstFactor(idx, cnst))
+                            {
+                                return false;
+                            }
+                        }
+                        else // Yerli olmayan
+                        {
+                            FunctionState.PushTarget(0); // Hack, push 'this'
+                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
 
                             if (ExRequiresGetter())
                             {
@@ -2566,7 +2819,7 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (ExpressionState.Type == ExEType.OBJECT || ExpressionState.Type == ExEType.BASE)
+            if (ExpressionState.Type is ExEType.OBJECT or ExEType.BASE)
             {
                 AddBasicOpInstr(ExOperationCode.DELETE);
             }
@@ -2624,10 +2877,13 @@ namespace ExMat.Compiler
 
             switch (ExpressionState.Type)
             {
+                case ExEType.CONSTDELEG:
+                    {
+                        return AddToErrorMessage("can't increment or decrement a delegate!");
+                    }
                 case ExEType.EXPRESSION:
                     {
-                        AddToErrorMessage("can't increment or decrement an expression!");
-                        return false;
+                        return AddToErrorMessage("can't increment or decrement an expression!");
                     }
                 case ExEType.OBJECT:
                 case ExEType.BASE:
@@ -2687,7 +2943,7 @@ namespace ExMat.Compiler
         }
         public void AddFloatConstLoadInstr(long cval, int p)                // Ondalıklı sayı yükle
         {
-            FunctionState.AddInstr(ExOperationCode.LOADFLOAT,                           // Ondalıklı sayı yükle komutu
+            FunctionState.AddInstr(ExOperationCode.LOADFLOAT,               // Ondalıklı sayı yükle komutu
                                    p < 0 ? FunctionState.PushTarget() : p,  // Hedef
                                    cval,                                    // Kaynak 64bit değer
                                    0,
@@ -2701,11 +2957,11 @@ namespace ExMat.Compiler
                                    useFloat ? 1 : 0,                        // Kaynak ondalıklı mı kullanılmalı ?
                                    0);
         }
-        public void AddSpaceConstLoadInstr(ExSpace s, int p)                            // Uzay değeri yükle
+        public void AddSpaceConstLoadInstr(ExSpace s, int p)                // Uzay değeri yükle
         {
-            FunctionState.AddInstr(ExOperationCode.LOADSPACE,                                       // Uzay yükle komutu
-                                   p < 0 ? FunctionState.PushTarget() : p,              // Hedef
-                                   (int)FunctionState.GetLiteral(new(Lexer.ValSpace)),  // Uzay temsilinin indeksi
+            FunctionState.AddInstr(ExOperationCode.LOADSPACE,               // Uzay yükle komutu
+                                   p < 0 ? FunctionState.PushTarget() : p,  // Hedef
+                                   FunctionState.GetLiteral(new(s)),   // Uzay temsilinin indeksi
                                    0,
                                    0);
         }
@@ -2800,7 +3056,7 @@ namespace ExMat.Compiler
                                 return false;
                             }
 
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(o), 0, 0);
+                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
 
                             if (!ExFuncCreate(o))
                             {
@@ -2831,7 +3087,7 @@ namespace ExMat.Compiler
                                 {
                                     return false;
                                 }
-                                FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(o), 0, 0);
+                                FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
 
                                 if (Expect(TokenType.COL) == null || !ExExp())
                                 {
@@ -2850,7 +3106,7 @@ namespace ExMat.Compiler
                                 return false;
                             }
 
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(o), 0, 0);
+                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
 
                             if (Expect(TokenType.ASG) == null || !ExExp())
                             {
@@ -3057,10 +3313,10 @@ namespace ExMat.Compiler
 
             if (!IsInMacroBlock)
             {
-                while (CurrentToken != TokenType.NEWLINE
-                     && CurrentToken != TokenType.ENDLINE
-                     && CurrentToken != TokenType.MACROEND
-                     && CurrentToken != TokenType.UNKNOWN)
+                while (CurrentToken is not TokenType.NEWLINE
+                     and not TokenType.ENDLINE
+                     and not TokenType.MACROEND
+                     and not TokenType.UNKNOWN)
                 {
                     if (!ProcessStatements())//true))
                     {
@@ -3119,7 +3375,7 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (idx.GetString().ToUpper() != idx.GetString())
+            if (idx.GetString().ToUpper(CultureInfo.CurrentCulture) != idx.GetString())
             {
                 FixAfterMacro(old_lex, old_currToken, old_src);
                 AddToErrorMessage("macro names should be all uppercase characters!");
@@ -3127,7 +3383,7 @@ namespace ExMat.Compiler
             }
 
             FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(idx), 0, 0);
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
             bool isfunc = CurrentToken == TokenType.ROUNDOPEN;
 
             IsInMacroBlock = true;
@@ -3157,14 +3413,14 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            if (idx.GetString().ToUpper() != idx.GetString())
+            if (idx.GetString().ToUpper(CultureInfo.CurrentCulture) != idx.GetString())
             {
                 AddToErrorMessage("macro names should be all uppercase characters!");
                 return false;
             }
 
             FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), (int)FunctionState.GetLiteral(idx), 0, 0);
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
             bool isfunc = CurrentToken == TokenType.ROUNDOPEN;
             if (!ExMacroCreate(idx, isfunc))
             {

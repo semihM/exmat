@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ExMat.Objects
 {
-    public static class Disposer
+    public static class ExDisposer
     {
         public static void DisposeList<T>(ref List<T> lis) where T : IDisposable, new()
         {
@@ -18,14 +18,14 @@ namespace ExMat.Objects
             lis.RemoveRange(0, lis.Count);
             lis = null;
         }
-        public static void DisposeDict<R, T>(ref Dictionary<R, T> dict)
-            where T : IDisposable, new()
+        public static void DisposeDict<TKey, TValue>(ref Dictionary<TKey, TValue> dict)
+            where TValue : IDisposable, new()
         {
             if (dict == null)
             {
                 return;
             }
-            foreach (KeyValuePair<R, T> pair in dict)
+            foreach (KeyValuePair<TKey, TValue> pair in dict)
             {
                 pair.Value.Dispose();
             }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace ExMat.Objects
 {
@@ -28,7 +29,7 @@ namespace ExMat.Objects
                 string[] arr = ch.Split("@", StringSplitOptions.RemoveEmptyEntries);
                 c.Domain = arr[0];
                 c.Sign = arr[1][0];
-                c.Dimension = int.Parse(arr[2]);
+                c.Dimension = int.Parse(arr[2], CultureInfo.CurrentCulture);
                 curr.Child = c;
                 curr = c;
             }

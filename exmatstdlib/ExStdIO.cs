@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text;
 using ClosedXML.Excel;
 using ExcelDataReader;
@@ -24,7 +24,7 @@ namespace ExMat.StdLib
 
         private static string IndentPrefix(string prefix)
         {
-            return string.Format("{0}{1}", prefix, Indentation);
+            return string.Format(CultureInfo.CurrentCulture, "{0}{1}", prefix, Indentation);
         }
 
         public static ExObject GetJsonContent(JToken item)
@@ -93,7 +93,7 @@ namespace ExMat.StdLib
                         foreach (KeyValuePair<string, ExObject> pair in obj.GetDict())
                         {
                             i++;
-                            prev = string.Format("{0}\"{1}\": {2}{3}", prefix, pair.Key, ConvertToJson(pair.Value, prev, IndentPrefix(prefix)), i != last ? ",\n" : "\n");
+                            prev = string.Format(CultureInfo.CurrentCulture, "{0}\"{1}\": {2}{3}", prefix, pair.Key, ConvertToJson(pair.Value, prev, IndentPrefix(prefix)), i != last ? ",\n" : "\n");
                         }
 
                         break;
@@ -105,7 +105,7 @@ namespace ExMat.StdLib
                         foreach (ExObject o in obj.GetList())
                         {
                             i++;
-                            prev = string.Format("{0}{1}", ConvertToJson(o, prev, IndentPrefix(prefix)), i != last ? ", " : "\n");
+                            prev = string.Format(CultureInfo.CurrentCulture, "{0}{1}", ConvertToJson(o, prev, IndentPrefix(prefix)), i != last ? ", " : "\n");
                         }
                         break;
                     }
@@ -132,7 +132,7 @@ namespace ExMat.StdLib
                     }
                 case ExObjType.SPACE:
                     {
-                        prev += prefix + "\"" + obj.Value.c_Space.GetSpaceString() + "\"";
+                        prev += prefix + "\"" + obj.GetSpace().GetSpaceString() + "\"";
                         break;
                     }
                 default:
@@ -197,7 +197,7 @@ namespace ExMat.StdLib
             {
                 if (!char.IsControl(ch = Console.ReadKey(intercept).KeyChar))
                 {
-                    res = ch.ToString();
+                    res = ch.ToString(CultureInfo.CurrentCulture);
                 }
             }
             else
@@ -208,38 +208,6 @@ namespace ExMat.StdLib
                     s.Append(ch);
                 }
                 res = s.ToString();
-            }
-        }
-
-
-        /// <summary>
-        /// Get std library <see cref="Type"/> from it's name.
-        /// </summary>
-        /// <param name="vm">Virtual machine to report errors to</param>
-        /// <param name="lib">Library name to search for. Doesn't allow <see cref="ExMat.StandardLibraryName"/>.</param>
-        /// <param name="type">Output type, if nothing matched, gets <see langword="null"/></param>
-        /// <returns><see cref="ExFunctionStatus.SUCCESS"/> on success, otherwise <see cref="ExFunctionStatus.ERROR"/> with error messages written to <paramref name="vm"/></returns>
-        private static ExFunctionStatus GetStdTypeFromString(ExVM vm, string lib, out Type type) // TO-DO maybe move this to API ?
-        {
-            type = null;
-            List<Type> libs = ExApi.GetStandardLibraryTypes();
-
-            List<string> libnames = new(libs.Select(t => ExApi.GetLibraryNameFromStdClass(t)));
-
-            int idx = libnames.IndexOf(lib);
-            if (idx == -1 && (idx = libnames.IndexOf(lib.ToLower())) == -1)
-            {
-                return vm.AddToErrorMessage("Unknown library: {0}", lib);
-            }
-            else
-            {
-                if (libnames[idx] == ExMat.StandardLibraryName)
-                {
-                    return vm.AddToErrorMessage("use '{0}' function to reload the std base functions", ExMat.ReloadBaseLib);
-                }
-
-                type = libs[idx];
-                return ExFunctionStatus.SUCCESS;
             }
         }
         #endregion
@@ -296,7 +264,7 @@ namespace ExMat.StdLib
             string js = ConvertToJson(vm.GetArgument(2));
             try
             {
-                File.WriteAllText(i.EndsWith(".json") ? i : (i + ".json"), js, e);
+                File.WriteAllText(i.EndsWith(".json", StringComparison.Ordinal) ? i : (i + ".json"), js, e);
                 return vm.CleanReturn(nargs + 2, true);
             }
             catch (Exception err)
@@ -659,20 +627,26 @@ namespace ExMat.StdLib
             return vm.CleanReturn(nargs + 2, new ExList(all));
         }
 
-        [ExNativeFuncBase("include_file", ExBaseType.BOOL, "Compile and execute an external '.exmat' file using the current VM")]
+        [ExNativeFuncBase("include_file", ExBaseType.BOOL, "Compile and execute an external '.exmat' file using the current VM. Returns false if there were any errors, otherwise true.")]
         [ExNativeParamBase(1, "file", "s", "Script file with '.exmat' extension")]
-        public static ExFunctionStatus IoIncludefile(ExVM vm, int nargs)
+        [ExNativeParamBase(2, "write_errors", ".", "Wheter to write error messages", true)]
+        [ExNativeParamBase(3, "stop_on_error", ".", "Wheter to stop when an error is thrown", true)]
+        public static ExFunctionStatus IoIncludefile(ExVM vm, int nargs) // TO-DO Refactor
         {
             string fname = vm.GetArgument(1).GetString();
+            bool werrors = nargs < 2 || vm.GetArgument(2).GetBool();
             if (fname == "*")
             {
-                fname = Directory.GetCurrentDirectory();
-                List<string> all;
-                all = new(Directory.GetFiles(fname));
                 bool failed = false;
+                bool stops = nargs < 3 || vm.GetArgument(3).GetBool();
+
+                fname = Directory.GetCurrentDirectory();
+
+                List<string> all = new(Directory.GetFiles(fname));
+
                 foreach (string f in all)
                 {
-                    if (!f.EndsWith(".exmat"))
+                    if (!f.EndsWith(".exmat", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -682,17 +656,41 @@ namespace ExMat.StdLib
                         ExApi.PushRootTable(vm);
                         if (!ExApi.Call(vm, 1, false, false))
                         {
-                            ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
                             failed = true;
-                            break;
+                            if (werrors)
+                            {
+                                vm.AddToErrorMessage("File: '{0}'", f);
+                                ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                            }
+                            else
+                            {
+                                vm.ErrorString = string.Empty;
+                            }
+
+                            if (stops)
+                            {
+                                break;
+                            }
                         }
 
                     }
                     else
                     {
-                        ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
                         failed = true;
-                        break;
+                        if (werrors)
+                        {
+                            vm.AddToErrorMessage("File: '{0}'", f);
+                            ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                        }
+                        else
+                        {
+                            vm.ErrorString = string.Empty;
+                        }
+
+                        if (stops)
+                        {
+                            break;
+                        }
                     }
                 }
 
@@ -714,7 +712,15 @@ namespace ExMat.StdLib
                     ExApi.PushRootTable(vm);
                     if (!ExApi.Call(vm, 1, false, false))
                     {
-                        ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                        if (werrors)
+                        {
+                            vm.AddToErrorMessage("File: '{0}'", fname);
+                            ExApi.WriteErrorMessages(vm, ExErrorType.RUNTIME);
+                        }
+                        else
+                        {
+                            vm.ErrorString = string.Empty;
+                        }
                         return vm.CleanReturn(nargs + 3, false);
                     }
                     else
@@ -724,69 +730,18 @@ namespace ExMat.StdLib
                 }
                 else
                 {
-                    ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                    if (werrors)
+                    {
+                        vm.AddToErrorMessage("File: '{0}'", fname);
+                        ExApi.WriteErrorMessages(vm, ExErrorType.COMPILE);
+                    }
+                    else
+                    {
+                        vm.ErrorString = string.Empty;
+                    }
                     return vm.CleanReturn(nargs + 3, false);
                 }
             }
-        }
-
-        [ExNativeFuncBase(ExMat.ReloadLib, ExBaseType.BOOL, "Reload a standard library or a function of a standard library")]
-        [ExNativeParamBase(1, "library", "s", "Library to reload: io, math, string, net, system")]
-        [ExNativeParamBase(2, "function_name", "s", "A specific function from the library to reload alone", def: "")]
-        public static ExFunctionStatus IoReloadlib(ExVM vm, int nargs)
-        {
-            string lname = vm.GetArgument(1).GetString();
-
-            if (GetStdTypeFromString(vm, lname, out Type type) == ExFunctionStatus.ERROR)
-            {
-                return ExFunctionStatus.ERROR;
-            }
-
-            if (nargs == 2)
-            {
-                string fname = vm.GetArgument(2).GetString();
-                if (fname != ExMat.ReloadLibFunc)
-                {
-                    ExApi.PushRootTable(vm);
-                    if (!ExApi.ReloadNativeFunction(vm, type, fname, true))
-                    {
-                        return vm.AddToErrorMessage("unknown IO function {0}", fname);
-                    }
-                }
-            }
-            else
-            {
-                if (ExApi.InvokeRegisterOnStdLib(vm, type) == ExFunctionStatus.ERROR)
-                {
-                    return ExFunctionStatus.ERROR;
-                }
-            }
-
-            return vm.CleanReturn(nargs + 2, true);
-        }
-
-        [ExNativeFuncBase(ExMat.ReloadLibFunc, ExBaseType.BOOL, "Reload a standard library")]
-        [ExNativeParamBase(1, "library", "s", "Library to reload: io, math, string, net, system")]
-        public static ExFunctionStatus IoReloadlibfunc(ExVM vm, int nargs)
-        {
-            string fname = vm.GetArgument(1).GetString();
-
-            List<Type> libs = ExApi.GetStandardLibraryTypes();
-            bool found = false;
-
-            foreach (Type lib in libs)
-            {
-                ExApi.PushRootTable(vm);
-                if (ExApi.ReloadNativeFunction(vm, lib, fname, true))
-                {
-                    found = true;
-                    break;
-                }
-            }
-
-            return found
-                    ? vm.CleanReturn(nargs + 2, true)
-                    : vm.AddToErrorMessage("couldn't find a native function named '" + fname + "', try 'reload_base' function");
         }
 
         [ExNativeFuncBase("read_excel", ExBaseType.BOOL, "Read an '.xslx' worksheet into a list of dictionaries with sheet names and list of lists")]
@@ -916,7 +871,7 @@ namespace ExMat.StdLib
             vm.GotUserInput = true;
             vm.PrintedToConsole = true;
 
-            return vm.CleanReturn(nargs + 2, new ExObject(input.ToString()));
+            return vm.CleanReturn(nargs + 2, new ExObject(input.ToString(CultureInfo.CurrentCulture)));
         }
         #endregion
 

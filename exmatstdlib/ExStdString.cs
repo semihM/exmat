@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using ExMat.API;
@@ -17,21 +18,16 @@ namespace ExMat.StdLib
         #region UTILITY
         private static ExObject GetMatch(Match match)
         {
-            if (match.Success)
-            {
-                return new(
+            return match.Success
+                ? (new(
                     new Dictionary<string, ExObject>()
                     {
                         { "start", new(match.Index)},
                         { "end", new(match.Index + match.Length)},
                         { "value", new(match.Value)}
                     }
-                );
-            }
-            else
-            {
-                return new();
-            }
+                ))
+                : (new());
         }
         private static List<ExObject> GetMatchList(MatchCollection matches)
         {
@@ -206,12 +202,7 @@ namespace ExMat.StdLib
         {
             string code = vm.GetArgument(1).GetString();
 
-            if (ExApi.CompileSource(vm, code))
-            {
-                return vm.CleanReturn(nargs + 3, new ExObject(vm.GetAbove(-1)));
-            }
-
-            return ExFunctionStatus.ERROR;
+            return ExApi.CompileSource(vm, code) ? vm.CleanReturn(nargs + 3, new ExObject(vm.GetAbove(-1))) : ExFunctionStatus.ERROR;
         }
 
         [ExNativeFuncBase("format", ExBaseType.STRING, "Replace given {x} patterns in the first string with the (x+2)th argument passed.\n\tExample: format(\"{0}, {1}\", \"first\", \"second\") == \"first, second\"", -2)]
@@ -235,7 +226,7 @@ namespace ExMat.StdLib
 
             try
             {
-                return vm.CleanReturn(nargs + 2, string.Format(format, ps));
+                return vm.CleanReturn(nargs + 2, string.Format(CultureInfo.CurrentCulture, format, ps));
             }
             catch
             {

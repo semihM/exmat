@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using ExMat.API;
@@ -11,8 +13,9 @@ using ExMat.VM;
 namespace ExMat.StdLib
 {
     [ExStdLibBase(ExStdLibType.BASE)]
-    [ExStdLibName(ExMat.StandardLibraryName)]
+    [ExStdLibName(ExMat.StandardBaseLibraryName)]
     [ExStdLibRegister(nameof(Registery))]
+    [ExStdLibConstDict(nameof(Constants))]
     public static partial class ExStdBase
     {
         #region FUNCTIONS
@@ -47,14 +50,7 @@ namespace ExMat.StdLib
                     }
                 default:
                     {
-                        if (nargs < 1)
-                        {
-                            docs = vm.GetRootClosure().Documentation;
-                        }
-                        else
-                        {
-                            docs = o.GetNClosure().Documentation;
-                        }
+                        docs = nargs < 1 ? vm.GetRootClosure().Documentation : o.GetNClosure().Documentation;
 
                         if (print)
                         {
@@ -70,6 +66,14 @@ namespace ExMat.StdLib
         {
             vm.Pop(nargs + 2);
             ExApi.PushRootTable(vm);
+            return ExFunctionStatus.SUCCESS;
+        }
+
+        [ExNativeFuncBase("consts", ExBaseType.DICT, "Get the consts table. This table allows changing constant values!")]
+        public static ExFunctionStatus StdConsts(ExVM vm, int nargs)
+        {
+            vm.Pop(nargs + 2);
+            ExApi.PushConstsTable(vm);
             return ExFunctionStatus.SUCCESS;
         }
 
@@ -170,14 +174,7 @@ namespace ExMat.StdLib
 
                         GetDateFromStringArgument(shrt, splt, res);
 
-                        if (res.Count == 1)
-                        {
-                            return vm.CleanReturn(nargs + 2, new ExObject(res[0]));
-                        }
-                        else
-                        {
-                            return vm.CleanReturn(nargs + 2, new ExObject(res));
-                        }
+                        return res.Count == 1 ? vm.CleanReturn(nargs + 2, new ExObject(res[0])) : vm.CleanReturn(nargs + 2, new ExObject(res));
                     }
                 default:
                     {
@@ -186,7 +183,7 @@ namespace ExMat.StdLib
                                 {
                                     new(DateTime.Today.ToLongDateString()),
                                     new(DateTime.Now.ToLongTimeString()),
-                                    new(DateTime.Now.Millisecond.ToString())
+                                    new(DateTime.Now.Millisecond.ToString(CultureInfo.CurrentCulture))
                                 })
                             );
                     }
@@ -226,7 +223,7 @@ namespace ExMat.StdLib
 
             foreach (string arg in splt)
             {
-                switch (arg.ToLower())
+                switch (arg.ToLower(CultureInfo.CurrentCulture))
                 {
                     case "today":
                         {
@@ -241,12 +238,12 @@ namespace ExMat.StdLib
                         }
                     case "year":
                         {
-                            res.Add(new ExObject(now.Year.ToString()));
+                            res.Add(new ExObject(now.Year.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "month":
                         {
-                            res.Add(new ExObject(now.Month.ToString()));
+                            res.Add(new ExObject(now.Month.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "day":
@@ -257,12 +254,12 @@ namespace ExMat.StdLib
                         }
                     case "mday":
                         {
-                            res.Add(new ExObject(now.Day.ToString()));
+                            res.Add(new ExObject(now.Day.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "yday":
                         {
-                            res.Add(new ExObject(now.DayOfYear.ToString()));
+                            res.Add(new ExObject(now.DayOfYear.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "hours":
@@ -270,7 +267,7 @@ namespace ExMat.StdLib
                     case "hh":
                     case "h":
                         {
-                            res.Add(new ExObject(now.Hour.ToString()));
+                            res.Add(new ExObject(now.Hour.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "minutes":
@@ -279,7 +276,7 @@ namespace ExMat.StdLib
                     case "mm":
                     case "m":
                         {
-                            res.Add(new ExObject(now.Minute.ToString()));
+                            res.Add(new ExObject(now.Minute.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "seconds":
@@ -288,21 +285,21 @@ namespace ExMat.StdLib
                     case "ss":
                     case "s":
                         {
-                            res.Add(new ExObject(now.Second.ToString()));
+                            res.Add(new ExObject(now.Second.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "miliseconds":
                     case "milisecond":
                     case "ms":
                         {
-                            res.Add(new ExObject(now.Millisecond.ToString()));
+                            res.Add(new ExObject(now.Millisecond.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "utc":
                         {
                             res.Add(new ExObject(shrt ? utcnow.ToShortDateString() : utcnow.ToLongDateString()));
                             res.Add(new ExObject(shrt ? utcnow.ToShortTimeString() : utcnow.ToLongTimeString()));
-                            res.Add(new ExObject(utcnow.Millisecond.ToString()));
+                            res.Add(new ExObject(utcnow.Millisecond.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "utc-today":
@@ -318,12 +315,12 @@ namespace ExMat.StdLib
                         }
                     case "utc-year":
                         {
-                            res.Add(new ExObject(utcnow.Month.ToString()));
+                            res.Add(new ExObject(utcnow.Month.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "utc-month":
                         {
-                            res.Add(new ExObject(utcnow.Month.ToString()));
+                            res.Add(new ExObject(utcnow.Month.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "utc-day":
@@ -334,12 +331,12 @@ namespace ExMat.StdLib
                         }
                     case "utc-mday":
                         {
-                            res.Add(new ExObject(utcnow.Day.ToString()));
+                            res.Add(new ExObject(utcnow.Day.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "utc-yday":
                         {
-                            res.Add(new ExObject(utcnow.DayOfYear.ToString()));
+                            res.Add(new ExObject(utcnow.DayOfYear.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                     case "utc-h":
@@ -347,7 +344,7 @@ namespace ExMat.StdLib
                     case "utc-hour":
                     case "utc-hours":
                         {
-                            res.Add(new ExObject(utcnow.Hour.ToString()));
+                            res.Add(new ExObject(utcnow.Hour.ToString(CultureInfo.CurrentCulture)));
                             break;
                         }
                 }
@@ -365,23 +362,16 @@ namespace ExMat.StdLib
                 case 2:
                     {
                         ExObject o = vm.GetArgument(1);
-                        if (o.Type == ExObjType.COMPLEX)
-                        {
-                            return vm.CleanReturn(4, new Complex(o.GetComplex().Real, vm.GetArgument(2).GetFloat()));
-                        }
-                        return vm.CleanReturn(4, new Complex(o.GetFloat(), vm.GetArgument(2).GetFloat()));
+                        return o.Type == ExObjType.COMPLEX
+                            ? vm.CleanReturn(4, new Complex(o.GetComplex().Real, vm.GetArgument(2).GetFloat()))
+                            : vm.CleanReturn(4, new Complex(o.GetFloat(), vm.GetArgument(2).GetFloat()));
                     }
                 case 1:
                     {
                         ExObject obj = vm.GetArgument(1);
-                        if (obj.Type == ExObjType.COMPLEX)
-                        {
-                            return vm.CleanReturn(3, new Complex(obj.GetComplex().Real, obj.GetComplex().Imaginary));
-                        }
-                        else
-                        {
-                            return vm.CleanReturn(3, new Complex(obj.GetFloat(), 0));
-                        }
+                        return obj.Type == ExObjType.COMPLEX
+                            ? vm.CleanReturn(3, new Complex(obj.GetComplex().Real, obj.GetComplex().Imaginary))
+                            : vm.CleanReturn(3, new Complex(obj.GetFloat(), 0));
                     }
                 default:
                     {
@@ -478,12 +468,7 @@ namespace ExMat.StdLib
             {
                 case 1:
                     {
-                        if (!ExApi.ToFloatFromStack(vm, 2, 3))
-                        {
-                            return ExFunctionStatus.ERROR;
-                        }
-
-                        return ExFunctionStatus.SUCCESS;
+                        return !ExApi.ToFloatFromStack(vm, 2, 3) ? ExFunctionStatus.ERROR : ExFunctionStatus.SUCCESS;
                     }
                 default:
                     {
@@ -500,12 +485,7 @@ namespace ExMat.StdLib
             {
                 case 1:
                     {
-                        if (!ExApi.ToIntegerFromStack(vm, 2, 3))
-                        {
-                            return ExFunctionStatus.ERROR;
-                        }
-
-                        return ExFunctionStatus.SUCCESS;
+                        return !ExApi.ToIntegerFromStack(vm, 2, 3) ? ExFunctionStatus.ERROR : ExFunctionStatus.SUCCESS;
                     }
                 default:
                     {
@@ -673,7 +653,7 @@ namespace ExMat.StdLib
 
                                     foreach (int bit in ExApi.GetBits(b, 64))
                                     {
-                                        lis.Add(new(bit.ToString()));
+                                        lis.Add(new(bit.ToString(CultureInfo.CurrentCulture)));
                                     }
 
                                     return vm.CleanReturn(nargs + 2, lis);
@@ -729,7 +709,7 @@ namespace ExMat.StdLib
                                 }
                             default:
                                 {
-                                    if (b > int.MaxValue || b < int.MinValue)
+                                    if (b is > int.MaxValue or < int.MinValue)
                                     {
                                         return vm.AddToErrorMessage("64bit value out of range for 32bit use");
                                     }
@@ -742,7 +722,7 @@ namespace ExMat.StdLib
 
                                     foreach (int bit in ExApi.GetBits(b, 32))
                                     {
-                                        lis.Add(new(bit.ToString()));
+                                        lis.Add(new(bit.ToString(CultureInfo.CurrentCulture)));
                                     }
 
                                     return vm.CleanReturn(nargs + 2, lis);
@@ -798,7 +778,7 @@ namespace ExMat.StdLib
                                 }
                             default:
                                 {
-                                    char[] chars = b.ToString("X16").ToCharArray();
+                                    char[] chars = b.ToString("X16", CultureInfo.CurrentCulture).ToCharArray();
                                     List<ExObject> lis = new(chars.Length + (prefix ? 2 : 0));
                                     if (prefix)
                                     {
@@ -807,7 +787,7 @@ namespace ExMat.StdLib
                                     }
                                     foreach (char i in chars)
                                     {
-                                        lis.Add(new(i.ToString()));
+                                        lis.Add(new(i.ToString(CultureInfo.CurrentCulture)));
                                     }
                                     return vm.CleanReturn(nargs + 2, lis);
                                 }
@@ -891,7 +871,7 @@ namespace ExMat.StdLib
                                         vm.IsMainCall = _bm;
                                         return ExFunctionStatus.ERROR;
                                     }
-                                    else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
+                                    else if (defs.IndexOf(o.GetInt().ToString(CultureInfo.CurrentCulture)) != -1)  // TO-DO fix this mess
                                     {
                                         l.Add(new(vm.GetAt(vm.StackTop - n - 1)));
                                         vm.Pop(n + 1 + m);
@@ -918,7 +898,7 @@ namespace ExMat.StdLib
                                         vm.IsMainCall = _bm;
                                         return ExFunctionStatus.ERROR;
                                     }
-                                    else if (defs.IndexOf(o.GetInt().ToString()) != -1)  // TO-DO fix this mess
+                                    else if (defs.IndexOf(o.GetInt().ToString(CultureInfo.CurrentCulture)) != -1)  // TO-DO fix this mess
                                     {
                                         l.Add(new(vm.GetAt(vm.StackTop - n - 1)));
                                         vm.Pop(n + 1 + m);
@@ -1456,7 +1436,7 @@ namespace ExMat.StdLib
 
                 foreach (char c in s)
                 {
-                    lis.Add(new(c.ToString()));
+                    lis.Add(new(c.ToString(CultureInfo.CurrentCulture)));
                 }
 
                 return vm.CleanReturn(nargs + 2, lis);
@@ -1521,7 +1501,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i <= count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1535,7 +1515,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i <= count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1553,7 +1533,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i <= count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1634,7 +1614,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i <= count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1648,7 +1628,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i <= count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1666,7 +1646,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i <= count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1743,7 +1723,7 @@ namespace ExMat.StdLib
                                                             double step = d.GetInt();
                                                             for (int i = 0; i <= count; i++)
                                                             {
-                                                                l.Add(new(start + i * step));
+                                                                l.Add(new(start + (i * step)));
                                                             }
                                                             break;
                                                         }
@@ -1752,7 +1732,7 @@ namespace ExMat.StdLib
                                                             double step = d.GetFloat();
                                                             for (int i = 0; i <= count; i++)
                                                             {
-                                                                l.Add(new(start + i * step));
+                                                                l.Add(new(start + (i * step)));
                                                             }
                                                             break;
                                                         }
@@ -1761,7 +1741,7 @@ namespace ExMat.StdLib
                                                             Complex step = d.GetComplex();
                                                             for (int i = 0; i <= count; i++)
                                                             {
-                                                                l.Add(new(start + i * step));
+                                                                l.Add(new(start + (i * step)));
                                                             }
                                                             break;
                                                         }
@@ -1787,7 +1767,7 @@ namespace ExMat.StdLib
                                                 long count = e.GetInt();
                                                 for (int i = 0; i <= count; i++)
                                                 {
-                                                    l.Add(new(start + i * start));
+                                                    l.Add(new(start + (i * start)));
                                                 }
                                                 break;
                                             }
@@ -1850,7 +1830,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i < count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1864,7 +1844,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i < count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1882,7 +1862,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i < count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1963,7 +1943,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i < count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1977,7 +1957,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i < count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -1995,7 +1975,7 @@ namespace ExMat.StdLib
 
                                                                 for (int i = 0; i < count; i++)
                                                                 {
-                                                                    l.Add(new(start + i * step));
+                                                                    l.Add(new(start + (i * step)));
                                                                 }
                                                             }
                                                             break;
@@ -2072,7 +2052,7 @@ namespace ExMat.StdLib
                                                             double step = d.GetInt();
                                                             for (int i = 0; i < count; i++)
                                                             {
-                                                                l.Add(new(start + i * step));
+                                                                l.Add(new(start + (i * step)));
                                                             }
                                                             break;
                                                         }
@@ -2081,7 +2061,7 @@ namespace ExMat.StdLib
                                                             double step = d.GetFloat();
                                                             for (int i = 0; i < count; i++)
                                                             {
-                                                                l.Add(new(start + i * step));
+                                                                l.Add(new(start + (i * step)));
                                                             }
                                                             break;
                                                         }
@@ -2090,7 +2070,7 @@ namespace ExMat.StdLib
                                                             Complex step = d.GetComplex();
                                                             for (int i = 0; i < count; i++)
                                                             {
-                                                                l.Add(new(start + i * step));
+                                                                l.Add(new(start + (i * step)));
                                                             }
                                                             break;
                                                         }
@@ -2116,7 +2096,7 @@ namespace ExMat.StdLib
                                                 long count = e.GetInt();
                                                 for (int i = 0; i < count; i++)
                                                 {
-                                                    l.Add(new(start + i * start));
+                                                    l.Add(new(start + (i * start)));
                                                 }
                                                 break;
                                             }
@@ -2265,33 +2245,53 @@ namespace ExMat.StdLib
             return vm.CleanReturn(nargs + 2, l);
         }
 
-        [ExNativeFuncBase(ExMat.ReloadBaseLib, "")]
-        [ExNativeParamBase(1, "func_name", "s", "Name of the base library function to reload", ExMat.ReloadBaseLib)]
-        public static ExFunctionStatus StdReloadBase(ExVM vm, int nargs)
+        [ExNativeFuncBase(ExMat.ReloadLibFunc, ExBaseType.BOOL, "Reload a standard library specific function")]
+        [ExNativeParamBase(1, "library", "s", "Library to reload: base, io, math, string, net, system, statistics")]
+        [ExNativeParamBase(2, "function_name", "s", "A specific function from the library to reload alone")]
+        public static ExFunctionStatus StdReloadlib(ExVM vm, int nargs)
         {
-            if (nargs == 1)
-            {
-                string name = vm.GetArgument(1).GetString();
-                if (name == ExMat.ReloadBaseLib)
-                {
-                    return vm.CleanReturn(nargs + 2, vm.RootDictionary);
-                }
+            string lname = vm.GetArgument(1).GetString();
 
+            if (GetStdTypeFromString(vm, lname, out Type type) == ExFunctionStatus.ERROR)
+            {
+                return ExFunctionStatus.ERROR;
+            }
+
+            string fname = vm.GetArgument(2).GetString();
+            if (fname != ExMat.ReloadFunc)
+            {
                 ExApi.PushRootTable(vm);
-                if (!ExApi.ReloadNativeFunction(vm, typeof(ExStdBase), name, true))
+                if (!ExApi.ReloadNativeFunction(vm, type, fname, true))
                 {
-                    return vm.AddToErrorMessage("unknown Std function {0}", name);
+                    return vm.AddToErrorMessage("unknown '{0}' function '{1}'", lname, fname);
                 }
+            }
 
-            }
-            else
+            return vm.CleanReturn(nargs + 2, true);
+        }
+
+        [ExNativeFuncBase(ExMat.ReloadFunc, ExBaseType.BOOL, "Reload a native function from any standard library")]
+        [ExNativeParamBase(1, "func", "s", "Function name to search for in standard libraries")]
+        public static ExFunctionStatus StdReloadlibfunc(ExVM vm, int nargs)
+        {
+            string fname = vm.GetArgument(1).GetString();
+
+            List<Type> libs = ExApi.GetStandardLibraryTypes();
+            bool found = false;
+
+            foreach (Type lib in libs)
             {
-                if (ExApi.InvokeRegisterOnStdLib(vm, typeof(ExStdBase)) == ExFunctionStatus.ERROR)
+                ExApi.PushRootTable(vm);
+                if (ExApi.ReloadNativeFunction(vm, lib, fname, true))
                 {
-                    return ExFunctionStatus.ERROR;
+                    found = true;
+                    break;
                 }
             }
-            return vm.CleanReturn(nargs + 2, vm.RootDictionary);
+
+            return found
+                    ? vm.CleanReturn(nargs + 2, true)
+                    : vm.AddToErrorMessage($"couldn't find a native function named '{fname}'");
         }
 
         [ExNativeFuncBase("exit", "Exits the virtual machine at the next possible oppurtunity")]
@@ -2359,25 +2359,17 @@ namespace ExMat.StdLib
             {
                 StringBuilder str = new(obj.GetList().Count);
 
-                if (!ExApi.ConvertIntegerStringArrayToString(obj.GetList(), str))
-                {
-                    return vm.AddToErrorMessage("failed to create string, list must contain all positive integers within 'char' range or strings");
-                }
-                else
-                {
-                    return vm.CleanReturn(nargs + 2, str.ToString());
-                }
+                return !ExApi.ConvertIntegerStringArrayToString(obj.GetList(), str)
+                    ? vm.AddToErrorMessage("failed to create string, list must contain all positive integers within 'char' range or strings")
+                    : vm.CleanReturn(nargs + 2, str.ToString());
             }
             else if (obj.Type == ExObjType.INTEGER)
             {
                 long val = obj.GetInt();
 
-                if (val < char.MinValue || val > char.MaxValue)
-                {
-                    return vm.AddToErrorMessage("integer out of range for char conversion");
-                }
-
-                return vm.CleanReturn(nargs + 2, ((char)val).ToString());
+                return val is < char.MinValue or > char.MaxValue
+                    ? vm.AddToErrorMessage("integer out of range for char conversion")
+                    : vm.CleanReturn(nargs + 2, ((char)val).ToString(CultureInfo.CurrentCulture));
             }
             else
             {
@@ -2413,49 +2405,70 @@ namespace ExMat.StdLib
         {
             return HandleBitConversion(64, vm, nargs, b, reverse);
         }
+
+        /// <summary>
+        /// Get std library <see cref="Type"/> from it's name.
+        /// </summary>
+        /// <param name="vm">Virtual machine to report errors to</param>
+        /// <param name="lib">Library name to search for. Doesn't allow <see cref="ExMat.StandardBaseLibraryName"/>.</param>
+        /// <param name="type">Output type, if nothing matched, gets <see langword="null"/></param>
+        /// <returns><see cref="ExFunctionStatus.SUCCESS"/> on success, otherwise <see cref="ExFunctionStatus.ERROR"/> with error messages written to <paramref name="vm"/></returns>
+        private static ExFunctionStatus GetStdTypeFromString(ExVM vm, string lib, out Type type) // TO-DO maybe move this to API ?
+        {
+            type = null;
+            List<Type> libs = ExApi.GetStandardLibraryTypes();
+
+            List<string> libnames = new(libs.Select(t => ExApi.GetLibraryNameFromStdClass(t)));
+
+            int idx = libnames.IndexOf(lib);
+            if (idx == -1 && (idx = libnames.IndexOf(lib.ToLower(CultureInfo.CurrentCulture))) == -1)
+            {
+                return vm.AddToErrorMessage("Unknown library: '{0}'", lib);
+            }
+            else
+            {
+                type = libs[idx];
+                return ExFunctionStatus.SUCCESS;
+            }
+        }
         #endregion
 
         /// MAIN
-        public static void RegisterStdBaseConstants(ExVM vm)
+
+        public static Dictionary<string, ExObject> Constants => new()
         {
-            // Global tabloyu sanal belleğe ata
-            ExApi.PushRootTable(vm);
-
-            // Sabit değerleri tabloya ekle
-            ExApi.CreateConstantInt(vm, "_versionnumber_", ExMat.VersionNumber);
-            ExApi.CreateConstantString(vm, "_version_", ExMat.Version);
-
-            ExApi.CreateConstantString(vm, "_config_",
-#if DEBUG
-                "DEBUG"
-#else     
-                "RELEASE"
-#endif
-            );
-
-            ExApi.CreateConstantDict(vm, "COLORS", new()
+            { "_versionnumber_", new(ExMat.VersionNumber) },
+            { "_version_", new(ExMat.Version) },
             {
-                { "RED", new("red") },
-                { "DARKRED", new("darkred") },
-                { "GREEN", new("green") },
-                { "DARKGREEN", new("darkgreen") },
-                { "BLUE", new("blue") },
-                { "DARKBLUE", new("darkblue") },
-                { "YELLOW", new("yellow") },
-                { "DARKYELLOW", new("darkyellow") },
-                { "MAGENTA", new("magenta") },
-                { "DARKMAGENTA", new("darkmagenta") },
-                { "CYAN", new("cyan") },
-                { "DARKCYAN", new("darkcyan") },
-            });
-            // Kayıtları yaptıktan sonra global tabloyu bellekten kaldır
-            vm.Pop(1);
-        }
+                "_config_",
+#if DEBUG
+                new("DEBUG")
+#else
+                new("RELEASE")
+#endif
+            },
+            {
+                "COLORS",
+                new(new Dictionary<string, ExObject>()
+                {
+                    { "RED", new("red") },
+                    { "DARKRED", new("darkred") },
+                    { "GREEN", new("green") },
+                    { "DARKGREEN", new("darkgreen") },
+                    { "BLUE", new("blue") },
+                    { "DARKBLUE", new("darkblue") },
+                    { "YELLOW", new("yellow") },
+                    { "DARKYELLOW", new("darkyellow") },
+                    { "MAGENTA", new("magenta") },
+                    { "DARKMAGENTA", new("darkmagenta") },
+                    { "CYAN", new("cyan") },
+                    { "DARKCYAN", new("darkcyan") }
+                })
+            },
+        };
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
-            RegisterStdBaseConstants(vm);
-
             return true;
         };
     }

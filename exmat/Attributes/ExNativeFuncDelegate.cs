@@ -24,7 +24,10 @@ namespace ExMat.Objects
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
     public class ExNativeFuncDelegate : ExNativeFuncBase
     {
-        public ExNativeFuncDelegate() { }
+        public ExNativeFuncDelegate()
+        {
+            IsDelegateFunction = true;
+        }
 
         /// <summary>
         /// Explicitly define a delegate function
@@ -36,7 +39,6 @@ namespace ExMat.Objects
         public ExNativeFuncDelegate(string name, ExBaseType returns, string docs, char basetype)
         {
             Name = name;
-            NumberOfParameters = int.MaxValue;
             Description = docs;
             Returns = returns;
             BaseTypeMask = basetype;
@@ -45,26 +47,23 @@ namespace ExMat.Objects
 
         public ExNativeFuncDelegate(ExCommonDelegateType commonDelegateType, char basetype)
         {
+            IsDelegateFunction = true;
+            BaseTypeMask = basetype;
+
             switch (commonDelegateType)
             {
                 case ExCommonDelegateType.LENGTH:
                     {
                         Name = "len";
-                        NumberOfParameters = int.MaxValue;
-                        Description = "Returns the 'length' of the object";
                         Returns = ExBaseType.INTEGER;
-                        BaseTypeMask = basetype;
-                        IsDelegateFunction = true;
+                        Description = "Returns the 'length' of the object";
                         break;
                     }
                 case ExCommonDelegateType.WEAKREF:
                     {
                         Name = "weakref";
-                        NumberOfParameters = int.MaxValue;
-                        Description = "Returns a weak reference of the object";
                         Returns = ExBaseType.WEAKREF;
-                        BaseTypeMask = basetype;
-                        IsDelegateFunction = true;
+                        Description = "Returns a weak reference of the object";
                         break;
                     }
             }

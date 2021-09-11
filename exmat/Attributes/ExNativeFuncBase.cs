@@ -2,6 +2,9 @@
 
 namespace ExMat.Objects
 {
+    /// <summary>
+    /// Attribute to register a method as a non-delegate native function
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = true)]
     public class ExNativeFuncBase : Attribute
     {
@@ -16,7 +19,7 @@ namespace ExMat.Objects
         /// <para>Negative 'n': -n parameters == -n - 1 arguments minimum</para>
         /// <para>Setter should only be used for vargs functions with parameter definitions</para>
         /// </summary>
-        public int NumberOfParameters;
+        public int NumberOfParameters = int.MaxValue;
 
         /// <summary>
         /// Documentation
@@ -37,7 +40,6 @@ namespace ExMat.Objects
         public ExNativeFuncBase(string name, ExBaseType returns = ExBaseType.NULL, string docs = "")
         {
             Name = name;
-            NumberOfParameters = int.MaxValue;
             Description = docs;
             Returns = returns;
             BaseTypeMask = '.';
@@ -46,7 +48,6 @@ namespace ExMat.Objects
         public ExNativeFuncBase(string name, string docs = "")
         {
             Name = name;
-            NumberOfParameters = int.MaxValue;
             Description = docs;
             Returns = ExBaseType.NULL;
             BaseTypeMask = '.';

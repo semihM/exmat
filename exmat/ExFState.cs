@@ -93,14 +93,14 @@ namespace ExMat.States
                     Instructions.RemoveAll((ExInstr i) => true);
                     Instructions = null;
 
-                    Disposer.DisposeList(ref ChildrenFStates);
-                    Disposer.DisposeList(ref LocalVariables);
-                    Disposer.DisposeList(ref LocalVariableInfos);
-                    Disposer.DisposeList(ref OuterInfos);
-                    Disposer.DisposeList(ref Parameters);
-                    Disposer.DisposeList(ref Functions);
+                    ExDisposer.DisposeList(ref ChildrenFStates);
+                    ExDisposer.DisposeList(ref LocalVariables);
+                    ExDisposer.DisposeList(ref LocalVariableInfos);
+                    ExDisposer.DisposeList(ref OuterInfos);
+                    ExDisposer.DisposeList(ref Parameters);
+                    ExDisposer.DisposeList(ref Functions);
 
-                    Disposer.DisposeDict(ref Literals);
+                    ExDisposer.DisposeDict(ref Literals);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -160,18 +160,20 @@ namespace ExMat.States
             }
         }
 
+        public bool IsConst(ExObject idx, out ExObject cnst)
+        {
+            if (SharedState.Consts.ContainsKey(idx.GetString()))
+            {
+                cnst = SharedState.Consts[idx.GetString()];
+                return true;
+            }
+            cnst = null;
+            return false;
+        }
+
         public long GetLiteral(ExObject o)
         {
-            string name;
-            if (o.Type == ExObjType.SPACE)
-            {
-                name = o.Value.c_Space.GetString();
-            }
-            else
-            {
-                name = o.GetString();
-            }
-
+            string name = o.Type == ExObjType.SPACE ? o.GetSpace().GetString() : o.GetString();
             ExObject v = new();
             if (!Literals.ContainsKey(name))
             {
@@ -187,14 +189,7 @@ namespace ExMat.States
             else
             {
                 ExObject val = Literals[name];
-                if (val.Type == ExObjType.WEAKREF)
-                {
-                    v = val.Value._WeakRef.ReferencedObject;
-                }
-                else
-                {
-                    v = val;
-                }
+                v = val.Type == ExObjType.WEAKREF ? val.Value._WeakRef.ReferencedObject : val;
             }
 
             return v.Value.i_Int;
@@ -218,7 +213,7 @@ namespace ExMat.States
             {
                 c_s--;
                 ExLocalInfo li = LocalVariables.Last();
-                if (li.Name.IsNotNull())
+                if (ExTypeCheck.IsNotNull(li.Name))
                 {
                     if (li.EndOPC == int.MaxValue)  //
                     {
@@ -292,7 +287,7 @@ namespace ExMat.States
         public int PopTarget() // Üstteki objeyi çıkart ve dön
         {
             int n = (int)Stack.Back().GetInt();
-            if (LocalVariables[n].Name.IsNull())
+            if (ExTypeCheck.IsNull(LocalVariables[n].Name))
             {
                 LocalVariables.RemoveAt(GetLocalVariablesCount() - 1);
             }
@@ -329,11 +324,11 @@ namespace ExMat.States
 
         public bool IsLocalArg(long pos)
         {
-            return pos < GetLocalVariablesCount() && LocalVariables[(int)pos].Name.IsNotNull();
+            return pos < GetLocalVariablesCount() && ExTypeCheck.IsNotNull(LocalVariables[(int)pos].Name);
         }
         public bool IsLocalArg(int pos)
         {
-            return pos < GetLocalVariablesCount() && LocalVariables[pos].Name.IsNotNull();
+            return pos < GetLocalVariablesCount() && ExTypeCheck.IsNotNull(LocalVariables[pos].Name);
         }
 
         public int GetLocal(ExObject local)
@@ -466,6 +461,13 @@ namespace ExMat.States
                                 Instructions[size - 1] = prev;
                                 return;
                             }
+                            break;
+                        }
+                    case ExOperationCode.LOADCONSTDICT:
+                        {
+                            curr.arg1 = curr.arg1 != ExMat.InvalidArgument && curr.arg1 <= size && Instructions[size - (int)curr.arg1].op == ExOperationCode.GETK
+                                ? Instructions[size - (int)curr.arg1].arg1
+                                : ExMat.InvalidArgument;
                             break;
                         }
                     case ExOperationCode.JZ:

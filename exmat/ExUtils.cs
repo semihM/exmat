@@ -8,7 +8,7 @@ namespace ExMat.Utils
     {
         public static List<ExObject> GetOrderedNumericList(List<ExObject> lis)
         {
-            return lis.Where(o => o.IsRealNumber())
+            return lis.Where(o => ExTypeCheck.IsRealNumber(o))
                     .OrderBy(x => x.GetFloat())
                     .ToList();
         }
@@ -17,7 +17,7 @@ namespace ExMat.Utils
         {
             foreach (ExObject num in lis.GetList())
             {
-                if (!num.IsNumeric())
+                if (!ExTypeCheck.IsNumeric(num))
                 {
                     return false;
                 }
@@ -37,14 +37,7 @@ namespace ExMat.Utils
 
         public static int LongTo32SignedIntegerRange(long i)
         {
-            if (i < 0)
-            {
-                return i >= int.MinValue ? (int)i : int.MinValue;
-            }
-            else
-            {
-                return i > int.MaxValue ? int.MaxValue : (int)i;
-            }
+            return i < 0 ? i >= int.MinValue ? (int)i : int.MinValue : i > int.MaxValue ? int.MaxValue : (int)i;
         }
 
         public static List<ExObject> AppendFillerNTimes(List<ExObject> list, ExObject filler, int n)

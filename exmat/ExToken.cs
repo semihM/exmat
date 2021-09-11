@@ -87,6 +87,7 @@
 
         // Tanım ifadeleri
         VAR,        // Değişken tanımı                      'var'
+        CONST,      // Sabit tanımı                         'const'
         FUNCTION,   // Fonksiyon tanımı                     'function'
         CLUSTER,    // Küme ifadesi                         'cluster'
         RULE,       // Kural fonksiyonu                     'rule'
@@ -106,6 +107,7 @@
         CONSTRUCTOR,    // Sınıf inşa edici metot
         THIS,           // İçinde bulunulan objeye erişim
         BASE,           // Ait olunan sınıfa erişim
+        RELOAD,     // Ana kütüphaneyi tekrardan global tabloya yüklemek
         ////
 
         // Diğer

@@ -8,6 +8,10 @@ namespace ExMat
     public enum ExStdLibType
     {
         /// <summary>
+        /// Unknown library, for internal use only
+        /// </summary>
+        UNKNOWN,
+        /// <summary>
         /// External custom library
         /// </summary>
         EXTERNAL,
@@ -41,6 +45,9 @@ namespace ExMat
         STATISTICS
     }
 
+    /// <summary>
+    /// Attribute to mark a class as a standard library of given <see cref="ExStdLibType"/> type
+    /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class ExStdLibBase : Attribute
     {

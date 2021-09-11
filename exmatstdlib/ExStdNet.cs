@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -85,7 +86,7 @@ namespace ExMat.StdLib
                 case HtmlNodeType.Text:
                     // script and style must not be output
                     string parentName = node.ParentNode.Name;
-                    if ((parentName == "script") || (parentName == "style"))
+                    if (parentName is "script" or "style")
                     {
                         break;
                     }
@@ -179,7 +180,7 @@ namespace ExMat.StdLib
     3. Write your api key into '" + APIFiles["Wiki"] + @"'
 
     - You can use the following code to create the file(replace APIKEY with your key):
-        write_text(""" + string.Format("{0}/{1}", vm.StartDirectory.Replace("\\", "/"), APIFiles["Wiki"]) + @""", ""APIKEY"");");
+        write_text(""" + string.Format(CultureInfo.CurrentCulture, "{0}/{1}", vm.StartDirectory.Replace("\\", "/"), APIFiles["Wiki"]) + @""", ""APIKEY"");");
             }
 
             List<ExObject> Results = new();
@@ -204,9 +205,9 @@ namespace ExMat.StdLib
                         Results.Add(new(
                             new Dictionary<string, ExObject>()
                             {
-                                { "link", new(item.link.ToString()) },
-                                { "title", new(item.title.ToString()) },
-                                { "summary", new(item.snippet.ToString()) }
+                                { "link", new(item.link.ToString(CultureInfo.CurrentCulture)) },
+                                { "title", new(item.title.ToString(CultureInfo.CurrentCulture)) },
+                                { "summary", new(item.snippet.ToString(CultureInfo.CurrentCulture)) }
                             })
                         );
                     }
@@ -272,7 +273,7 @@ namespace ExMat.StdLib
                 string macbytes = string.Join("-", adapter
                                     .GetPhysicalAddress()
                                     .GetAddressBytes()
-                                    .Select(x => x.ToString("X2")));
+                                    .Select(x => x.ToString("X2", CultureInfo.CurrentCulture)));
 
                 string gateway = string.Empty;
 
@@ -283,7 +284,7 @@ namespace ExMat.StdLib
                                 .Select(g => g?.Address)
                                 .FirstOrDefault(a => a != null)
                                 .GetAddressBytes()
-                                .Select(x => x.ToString()));
+                                .Select(x => x.ToString(CultureInfo.CurrentCulture)));
                 }
 
                 UnicastIPAddressInformation ipv4 = properties.UnicastAddresses

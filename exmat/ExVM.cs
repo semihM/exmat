@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO;
 using System.Numerics;
 using System.Text;
@@ -171,19 +172,19 @@ namespace ExMat.VM
 
                     ErrorString = null;
 
-                    Disposer.DisposeObjects(RootDictionary, TempRegistery);
+                    ExDisposer.DisposeObjects(RootDictionary, TempRegistery);
                     RootDictionary = null;
                     TempRegistery = null;
-                    Disposer.DisposeObjects(Outers);
+                    ExDisposer.DisposeObjects(Outers);
                     Outers = null;
-                    Disposer.DisposeObjects(SharedState);
+                    ExDisposer.DisposeObjects(SharedState);
                     SharedState = null;
-                    Disposer.DisposeObjects(CallInfo);
+                    ExDisposer.DisposeObjects(CallInfo);
                     CallInfo = null;
-                    Disposer.DisposeObjects(Stack);
+                    ExDisposer.DisposeObjects(Stack);
                     Stack = null;
 
-                    Disposer.DisposeList(ref CallStack);
+                    ExDisposer.DisposeList(ref CallStack);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -232,7 +233,7 @@ namespace ExMat.VM
 
         public ExFunctionStatus AddToErrorMessage(string format, params object[] msgs)
         {
-            return AddToErrorMessage(string.Format(format, msgs));
+            return AddToErrorMessage(string.Format(CultureInfo.CurrentCulture, format, msgs));
         }
 
         public void Throw(string msg, ExVM vm = null)
@@ -328,20 +329,13 @@ namespace ExMat.VM
                     }
                 default:
                     {
-                        if (obj.IsDelegable())
+                        if (ExTypeCheck.IsDelegable(obj))
                         {
                             ExObject c = new();
                             ExObject res = new();
                             if (obj.GetInstance().GetMetaM(this, ExMetaMethod.STRING, ref c))
                             {
-                                if (CallMeta(ref c, ExMetaMethod.STRING, 1, ref res))
-                                {
-                                    return res.GetString();
-                                }
-                                else
-                                {
-                                    return string.Empty;
-                                }
+                                return CallMeta(ref c, ExMetaMethod.STRING, 1, ref res) ? res.GetString() : string.Empty;
                             }
                         }
                         return obj.Type.ToString();
@@ -386,7 +380,7 @@ namespace ExMat.VM
                     {
                         ts = new string(' ', 8 - ts.Length) + ts;
                     }
-                    s.AppendFormat("{0}{1}", prefix, ts);
+                    s.AppendFormat(CultureInfo.CurrentCulture, "{0}{1}", prefix, ts);
                 }
                 else
                 {
@@ -408,7 +402,7 @@ namespace ExMat.VM
                 }
                 else
                 {
-                    s.AppendFormat("{0}{1}", prefix, ']');
+                    s.AppendFormat(CultureInfo.CurrentCulture, "{0}{1}", prefix, ']');
                 }
             }
             else
@@ -455,7 +449,7 @@ namespace ExMat.VM
             {
                 ToString(pair.Value, ref temp, maxdepth, true, true, string.Empty, currentdepth + 1);
 
-                s.AppendFormat("\t{0} = {1}\n", pair.Key, temp.GetString());
+                s.AppendFormat(CultureInfo.CurrentCulture, "\t{0} = {1}\n", pair.Key, temp.GetString());
 
             }
             s.Append('\t', currentdepth - 1).Append('}');
@@ -480,7 +474,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.INTEGER:
                     {
-                        res = new(obj.GetInt().ToString());
+                        res = new(obj.GetInt().ToString(CultureInfo.CurrentCulture));
                         break;
                     }
                 case ExObjType.FLOAT:
@@ -515,7 +509,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.NATIVECLOSURE:
                     {
-                        res = new(string.Format("{0}({1})", obj.Type.ToString(), obj.GetNClosure().GetInfoString()));
+                        res = new(string.Format(CultureInfo.CurrentCulture, "NATIVECLOSURE({0}) <{1}> {2}({3})", obj.GetNClosure().Base, obj.GetNClosure().Returns, obj.GetNClosure().Name.GetString(), obj.GetNClosure().GetInfoString()));
                         break;
                     }
                 case ExObjType.CLOSURE:
@@ -525,12 +519,12 @@ namespace ExMat.VM
                     }
                 case ExObjType.SPACE:
                     {
-                        res = new(obj.Value.c_Space.GetSpaceString());
+                        res = new(obj.GetSpace().GetSpaceString());
                         break;
                     }
                 default:
                     {
-                        if (obj.IsDelegable())
+                        if (ExTypeCheck.IsDelegable(obj))
                         {
                             ExObject c = new();
 
@@ -560,7 +554,7 @@ namespace ExMat.VM
             if (!braw)
             {
                 ExObject meta = cls.MetaFuncs[(int)ExMetaMethod.NEWMEMBER];
-                if (meta.IsNotNull())
+                if (ExTypeCheck.IsNotNull(meta))
                 {
                     Push(self);
                     Push(key);
@@ -577,7 +571,7 @@ namespace ExMat.VM
                 return false;
             }
 
-            if (attrs.IsNotNull())
+            if (ExTypeCheck.IsNotNull(attrs))
             {
                 cls.SetAttrs(key, attrs);
             }
@@ -586,7 +580,7 @@ namespace ExMat.VM
 
         public bool NewSlot(ExObject self, ExObject key, ExObject val, bool bstat)
         {
-            if (key.IsNull())
+            if (ExTypeCheck.IsNull(key))
             {
                 AddToErrorMessage("'null' can't be used as index");
                 return false;
@@ -851,21 +845,13 @@ namespace ExMat.VM
         public long GetPositiveIntegerArgument(int idx, long defaultVal = 1)
         {
             long val = GetArgument(idx).GetInt();
-            if (val <= 0)
-            {
-                return defaultVal;
-            }
-            return val;
+            return val <= 0 ? defaultVal : val;
         }
 
         public long GetPositiveRangedIntegerArgument(int idx, long min = 1, long max = long.MaxValue)
         {
             long val = GetArgument(idx).GetInt();
-            if (val <= min)
-            {
-                return min;
-            }
-            return val >= max ? max : val;
+            return val <= min ? min : val >= max ? max : val;
         }
         public ExObject CreateString(string s, int len = -1)
         {
@@ -902,7 +888,7 @@ namespace ExMat.VM
             {
                 if (t_n == 1)
                 {
-                    if (!IsInSpace(new(lis), ts[0].Value.c_Space, 1, false))
+                    if (!IsInSpace(new(lis), ts[0].GetSpace(), 1, false))
                     {
                         return false;
                     }
@@ -917,7 +903,7 @@ namespace ExMat.VM
 
                     for (int i = 0; i < nargs; i++)
                     {
-                        if (!IsInSpace(lis[i], ts[i].Value.c_Space, i + 1, false))
+                        if (!IsInSpace(lis[i], ts[i].GetSpace(), i + 1, false))
                         {
                             return false;
                         }
@@ -944,7 +930,7 @@ namespace ExMat.VM
 
                 for (int i = 0; i < nargs && i < t_n; i++)
                 {
-                    if (!IsInSpace(Stack[sbase + i + 1], ts[i].Value.c_Space, i + 1))
+                    if (!IsInSpace(Stack[sbase + i + 1], ts[i].GetSpace(), i + 1))
                     {
                         return false;
                     }
@@ -1059,7 +1045,7 @@ namespace ExMat.VM
             }
             else // CONTINUE HERE, ALLOW PARAMETERS FOR SEQUENCES
             {
-                if (!Stack[stackBase + 1].IsNumeric())
+                if (!ExTypeCheck.IsNumeric(Stack[stackBase + 1]))
                 {
                     AddToErrorMessage("expected integer or float as sequence argument");
                     return -1;
@@ -1069,7 +1055,7 @@ namespace ExMat.VM
                     if (Stack[stackBase + 1].Type == ExObjType.INTEGER)
                     {
                         long ind = Stack[stackBase + 1].GetInt();
-                        string idx = ind.ToString();
+                        string idx = ind.ToString(CultureInfo.CurrentCulture);
                         for (int i = 2; i < closure.Function.Parameters.Count; i++)
                         {
                             ExObject c = closure.Function.Parameters[i];
@@ -1090,7 +1076,7 @@ namespace ExMat.VM
                     else if (Stack[stackBase + 1].Type == ExObjType.FLOAT)
                     {
                         double ind = Stack[stackBase + 1].GetFloat();
-                        string idx = ind.ToString();
+                        string idx = ind.ToString(CultureInfo.CurrentCulture);
                         for (int i = 2; i < closure.Function.Parameters.Count; i++)
                         {
                             ExObject c = closure.Function.Parameters[i];
@@ -1235,7 +1221,7 @@ namespace ExMat.VM
                                 {
                                     foreach (ExObject val in argument.GetList())
                                     {
-                                        if (!val.IsNumeric())
+                                        if (!ExTypeCheck.IsNumeric(val))
                                         {
                                             if (raise)
                                             {
@@ -1258,7 +1244,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument.GetList())
                                                 {
-                                                    if (!val.IsRealNumber() || val.GetFloat() <= 0)
+                                                    if (!ExTypeCheck.IsRealNumber(val) || val.GetFloat() <= 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1273,7 +1259,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument.GetList())
                                                 {
-                                                    if (!val.IsRealNumber() || val.GetFloat() >= 0)
+                                                    if (!ExTypeCheck.IsRealNumber(val) || val.GetFloat() >= 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1288,7 +1274,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument.GetList())
                                                 {
-                                                    if (!val.IsRealNumber() || val.GetFloat() == 0)
+                                                    if (!ExTypeCheck.IsRealNumber(val) || val.GetFloat() == 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1319,7 +1305,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument.GetList())
                                                 {
-                                                    if (!val.IsRealNumber() || val.GetFloat() < 0)
+                                                    if (!ExTypeCheck.IsRealNumber(val) || val.GetFloat() < 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1334,7 +1320,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument.GetList())
                                                 {
-                                                    if (!val.IsRealNumber() || val.GetFloat() > 0)
+                                                    if (!ExTypeCheck.IsRealNumber(val) || val.GetFloat() > 0)
                                                     {
                                                         if (raise)
                                                         {
@@ -1349,7 +1335,7 @@ namespace ExMat.VM
                                             {
                                                 foreach (ExObject val in argument.GetList())
                                                 {
-                                                    if (!val.IsRealNumber())
+                                                    if (!ExTypeCheck.IsRealNumber(val))
                                                     {
                                                         if (raise)
                                                         {
@@ -1514,7 +1500,7 @@ namespace ExMat.VM
                             break;
                         }
 
-                        if (space.Domain == "E" || space.Domain == "C")
+                        if (space.Domain is "E" or "C")
                         {
                             return true;
                         }
@@ -2019,7 +2005,7 @@ namespace ExMat.VM
                                     }
                                 case ExObjType.SPACE:   // Uzay (değişken boyutlara değer atamak amaçlıdır)
                                     {
-                                        ExSpace sp_org = GetTargetInStack(instruction.arg1).Value.c_Space;
+                                        ExSpace sp_org = GetTargetInStack(instruction.arg1).GetSpace();
                                         ExSpace sp = sp_org.DeepCopy();
 
                                         int varcount = sp.VarCount();
@@ -2248,6 +2234,27 @@ namespace ExMat.VM
                                     GetTargetInStack(instruction.arg0 + n).Nullify();
                                 }
                             }
+                            continue;
+                        }
+                    case ExOperationCode.LOADCONSTDICT:
+                        {
+                            if (instruction.arg1 != ExMat.InvalidArgument)
+                            {
+                                GetTargetInStack(instruction).Assign(SharedState.Consts[CallInfo.Value.Literals[(int)instruction.arg1].GetString()]);
+                            }
+                            else
+                            {
+                                GetTargetInStack(instruction).Assign(SharedState.Consts);
+                            }
+                            continue;
+                        }
+                    case ExOperationCode.RELOADLIB:
+                        {
+                            if (!ExApi.ReloadLibrary(this, CallInfo.Value.Literals[(int)instruction.arg1].GetString()))
+                            {
+                                return false;
+                            }
+                            GetTargetInStack(instruction).Assign(RootDictionary);
                             continue;
                         }
                     case ExOperationCode.LOADROOT:
@@ -2616,7 +2623,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (!k.IsNumeric())
+                        if (!ExTypeCheck.IsNumeric(k))
                         {
                             AddToErrorMessage("can't use non-numeric index for removing");
                             return false;
@@ -2677,7 +2684,7 @@ namespace ExMat.VM
         {
             for (int i = 0; i < Stack.Allocated; i++)
             {
-                if (Stack[i].IsNull())
+                if (ExTypeCheck.IsNull(Stack[i]))
                 {
                     return i;
                 }
@@ -2831,8 +2838,7 @@ namespace ExMat.VM
 
             target.Assign(ExClass.Create(SharedState, cb));
 
-            // TO-DO meta methods!
-            if (target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT].IsNotNull())
+            if (ExTypeCheck.IsNotNull(target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT]))
             {
                 int np = 2;
                 ExObject r = new();
@@ -2865,26 +2871,12 @@ namespace ExMat.VM
                         }
                     case ExObjType.INTEGER:
                         {
-                            if (a.GetInt() == b.GetInt())
-                            {
-                                t = 0;
-                            }
-                            else
-                            {
-                                t = a.GetInt() < b.GetInt() ? -1 : 1;
-                            }
+                            t = a.GetInt() == b.GetInt() ? 0 : a.GetInt() < b.GetInt() ? -1 : 1;
                             return true;
                         }
                     case ExObjType.FLOAT:
                         {
-                            if (a.GetFloat() == b.GetFloat())
-                            {
-                                t = 0;
-                            }
-                            else
-                            {
-                                t = a.GetFloat() < b.GetFloat() ? -1 : 1;
-                            }
+                            t = a.GetFloat() == b.GetFloat() ? 0 : a.GetFloat() < b.GetFloat() ? -1 : 1;
                             return true;
                         }
                     default:
@@ -2896,30 +2888,11 @@ namespace ExMat.VM
             }
             else
             {
-                if (a.IsNumeric() && b.IsNumeric())
+                if (ExTypeCheck.IsNumeric(a) && ExTypeCheck.IsNumeric(b))
                 {
-                    if (at == ExObjType.INTEGER && bt == ExObjType.FLOAT)
-                    {
-                        if (a.GetInt() == b.GetFloat())
-                        {
-                            t = 0;
-                        }
-                        else
-                        {
-                            t = a.GetInt() < b.GetFloat() ? -1 : 1;
-                        }
-                    }
-                    else
-                    {
-                        if (a.GetFloat() == b.GetInt())
-                        {
-                            t = 0;
-                        }
-                        else
-                        {
-                            t = a.GetFloat() < b.GetInt() ? -1 : 1;
-                        }
-                    }
+                    t = at == ExObjType.INTEGER && bt == ExObjType.FLOAT
+                        ? a.GetInt() == b.GetFloat() ? 0 : a.GetInt() < b.GetFloat() ? -1 : 1
+                        : a.GetFloat() == b.GetInt() ? 0 : a.GetFloat() < b.GetInt() ? -1 : 1;
                     return true;
                 }
                 else
@@ -2965,22 +2938,10 @@ namespace ExMat.VM
             bool root = CallInfo.Value.IsRootCall;
             int cbase = StackBase - CallInfo.Value.PrevBase;
 
-            ExObject p;
-            if (root)  // kök çağrı
-            {
-                p = res;
-            }
-            else if (CallInfo.Value.Target == -1)       // Hedef belirsiz
-            {
-                p = new();
-            }
-            else // Hedef belirli
-            {
-                p = Stack[cbase + CallInfo.Value.Target];
-            }
+            ExObject p = root ? res : CallInfo.Value.Target == -1 ? (new()) : Stack[cbase + CallInfo.Value.Target];
 
             // Argüman 0'a göre değeri sıfırla ya da konsol için değeri dön
-            if (p.IsNotNull() || _forcereturn)
+            if (ExTypeCheck.IsNotNull(p) || _forcereturn)
             {
                 if (a0 != ExMat.InvalidArgument || interactive)
                 {
@@ -2993,7 +2954,7 @@ namespace ExMat.VM
                     if (isSequence)
                     {
                         CallInfo.Value.Closure.GetClosure().DefaultParams.Add(new(p));
-                        CallInfo.Value.Closure.GetClosure().Function.Parameters.Add(new(Stack[StackBase + 1].GetInt().ToString()));
+                        CallInfo.Value.Closure.GetClosure().Function.Parameters.Add(new(Stack[StackBase + 1].GetInt().ToString(CultureInfo.CurrentCulture)));
                     }
                     #endregion
 
@@ -3049,18 +3010,7 @@ namespace ExMat.VM
         [ExcludeFromCodeCoverage]
         private static double HandleZeroInDivision(double a)
         {
-            if (a > 0)
-            {
-                return double.PositiveInfinity;
-            }
-            else if (a == 0)
-            {
-                return double.NaN;
-            }
-            else
-            {
-                return double.NegativeInfinity;
-            }
+            return a > 0 ? double.PositiveInfinity : a == 0 ? double.NaN : double.NegativeInfinity;
         }
 
         public static bool InnerDoArithmeticOPInt(ExOperationCode op, long a, long b, ref ExObject res)
@@ -3074,14 +3024,7 @@ namespace ExMat.VM
                 case ExOperationCode.MOD:
                 case ExOperationCode.DIV:
                     {
-                        if (b == 0)
-                        {
-                            res = new(HandleZeroInDivision(a));
-                        }
-                        else
-                        {
-                            res = new(op == ExOperationCode.DIV ? (a / b) : (a % b));
-                        }
+                        res = b == 0 ? (new(HandleZeroInDivision(a))) : (new(op == ExOperationCode.DIV ? (a / b) : (a % b)));
                         break;
                     }
                 default: return false;
@@ -3209,7 +3152,7 @@ namespace ExMat.VM
                 {
                     foreach (ExObject num in row.GetList())
                     {
-                        if (!num.IsNumeric())
+                        if (!ExTypeCheck.IsNumeric(num))
                         {
                             AddToErrorMessage("given list have to contain lists of numeric values");
                             return false;
@@ -3398,7 +3341,7 @@ namespace ExMat.VM
                         {
                             goto default;
                         }
-                        res = new(a.IsNull() ? ("null" + b.GetString()) : (a.GetString() + "null"));
+                        res = new(ExTypeCheck.IsNull(a) ? ("null" + b.GetString()) : (a.GetString() + "null"));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGBOOL:
@@ -3407,7 +3350,7 @@ namespace ExMat.VM
                         {
                             goto default;
                         }
-                        res = new(a.Type == ExObjType.BOOL ? (a.GetBool().ToString().ToLower() + b.GetString()) : (a.GetString() + b.GetBool().ToString().ToLower()));
+                        res = new(a.Type == ExObjType.BOOL ? (a.GetBool().ToString(CultureInfo.CurrentCulture).ToLower(CultureInfo.CurrentCulture) + b.GetString()) : (a.GetString() + b.GetBool().ToString(CultureInfo.CurrentCulture).ToLower(CultureInfo.CurrentCulture)));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGCOMPLEX:
@@ -3416,14 +3359,7 @@ namespace ExMat.VM
                         {
                             goto default;
                         }
-                        if (a.Type == ExObjType.STRING)
-                        {
-                            res = new(a.GetString() + b.GetComplexString());
-                        }
-                        else
-                        {
-                            res = new(a.GetComplexString() + b.GetString());
-                        }
+                        res = a.Type == ExObjType.STRING ? (new(a.GetString() + b.GetComplexString())) : (new(a.GetComplexString() + b.GetString()));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGINT:
@@ -3433,14 +3369,9 @@ namespace ExMat.VM
                         {
                             goto default;
                         }
-                        if (a.Type == ExObjType.STRING)
-                        {
-                            res = new(a.GetString() + (b.Type == ExObjType.INTEGER ? b.GetInt() : b.GetFloat()));
-                        }
-                        else
-                        {
-                            res = new((a.Type == ExObjType.INTEGER ? a.GetInt() : a.GetFloat()) + b.GetString());
-                        }
+                        res = a.Type == ExObjType.STRING
+                            ? (new(a.GetString() + (b.Type == ExObjType.INTEGER ? b.GetInt() : b.GetFloat())))
+                            : (new((a.Type == ExObjType.INTEGER ? a.GetInt() : a.GetFloat()) + b.GetString()));
                         break;
                     }
                 default:
@@ -3496,7 +3427,7 @@ namespace ExMat.VM
                         break;
                     }
             }
-            if (a.IsDelegable())
+            if (ExTypeCheck.IsDelegable(a))
             {
                 ExObject c = new();
 
@@ -3539,7 +3470,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (k.IsNumeric())
+                        if (ExTypeCheck.IsNumeric(k))
                         {
                             int n = (int)k.GetInt();
                             int l = self.GetList().Count;
@@ -3573,7 +3504,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.STRING:
                     {
-                        if (k.IsNumeric())
+                        if (ExTypeCheck.IsNumeric(k))
                         {
                             int n = (int)k.GetInt();
                             int l = self.GetString().Length;
@@ -3810,7 +3741,7 @@ namespace ExMat.VM
                 return ExGetterStatus.ERROR;
             }
 
-            if (key.IsNumeric() && !isUsingIn)
+            if (ExTypeCheck.IsNumeric(key) && !isUsingIn)
             {
                 int idx = (int)key.GetInt();
                 idx += idx < 0 ? lis.Count : 0;
@@ -3947,7 +3878,7 @@ namespace ExMat.VM
 
         public ExGetterStatus Getter(string str, ExObject key, ref ExObject dest, bool isUsingIn)
         {
-            if (key.IsNumeric())
+            if (ExTypeCheck.IsNumeric(key))
             {
                 int n = (int)key.GetInt();
                 if (Math.Abs(n) < str.Length)
@@ -3956,7 +3887,7 @@ namespace ExMat.VM
                     {
                         n = str.Length + n;
                     }
-                    dest = new ExObject(str[n].ToString());
+                    dest = new ExObject(str[n].ToString(CultureInfo.CurrentCulture));
                     return ExGetterStatus.FOUND;
                 }
                 else if (!isUsingIn)
@@ -3971,7 +3902,7 @@ namespace ExMat.VM
             }
             else if (isUsingIn)
             {
-                return str.IndexOf(key.GetString()) != -1 ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+                return str.IndexOf(key.GetString(), StringComparison.Ordinal) != -1 ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
             }
 
             return ExGetterStatus.NOTFOUND;
@@ -4011,7 +3942,7 @@ namespace ExMat.VM
                     {
                         if (isUsingIn)
                         {
-                            return IsInSpace(k, self.Value.c_Space, 1, false);
+                            return IsInSpace(k, self.GetSpace(), 1, false);
                         }
                         else
                         {
@@ -4128,7 +4059,7 @@ namespace ExMat.VM
                 }
 
                 // Çağrı zinciri listesini sıralı liste halinde CallInfo içerisinde sakla
-                CallInfo = ExNode<ExCallInfo>.BuildNodesFromList(CallStack, CallStackSize++);
+                CallInfo = new(CallStack, CallStackSize++);
 
                 CallInfo.Value.PrevBase = newBase - StackBase;  // tabanı kaydet
                 CallInfo.Value.PrevTop = StackTop - StackBase;  // tavanı kaydet
@@ -4190,14 +4121,7 @@ namespace ExMat.VM
             StackBase -= CallInfo.Value.PrevBase;           // Tabanı ayarla
             StackTop = StackBase + CallInfo.Value.PrevTop;  // Tavanı ayarla
 
-            if (css > 0 && css < CallStack.Count)    // Varsa sıradaki çağrı yığınına geç
-            {
-                CallInfo.Value = CallStack[css - 1];
-            }
-            else // Yoksa bitir
-            {
-                CallInfo.Value = null;
-            }
+            CallInfo.Value = css > 0 && css < CallStack.Count ? CallStack[css - 1] : null;
 
             if (Outers != null)         // Dış değişken referanslarını azalt
             {
@@ -4379,7 +4303,7 @@ namespace ExMat.VM
                         ExObject tmp = new();
 
                         CreateClassInst(cls.GetClass(), ref result, cn);
-                        if (cn.IsNotNull())
+                        if (ExTypeCheck.IsNotNull(cn))
                         {
                             Stack[stackBase].Assign(result);
                             bool s = Call(ref cn, nArguments, stackBase, ref tmp);

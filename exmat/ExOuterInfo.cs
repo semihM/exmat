@@ -37,7 +37,7 @@ namespace ExMat.InfoVar
             {
                 if (disposing)
                 {
-                    Disposer.DisposeObjects(Name, Index);
+                    ExDisposer.DisposeObjects(Name, Index);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

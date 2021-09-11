@@ -3,6 +3,9 @@ using System.Diagnostics;
 
 namespace ExMat.Objects
 {
+    /// <summary>
+    /// Attribute to register a native function parameter
+    /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExNativeParamBase : Attribute
@@ -57,14 +60,7 @@ namespace ExMat.Objects
             Name = name;
             TypeMask = typeMask;
             Description = description;
-            if (def == null)
-            {
-                DefaultValue = new();
-            }
-            else
-            {
-                DefaultValue = new(def);
-            }
+            DefaultValue = def == null ? (new()) : (new(def));
         }
 
         public ExNativeParamBase(int idx, string name, string typeMask, string description, long def)

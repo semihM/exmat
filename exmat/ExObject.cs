@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 using ExMat.Class;
 using ExMat.Closure;
@@ -16,36 +17,6 @@ namespace ExMat.Objects
         public ExObjVal Value;                  // Veri değeri
 
         private bool disposedValue;
-
-        public bool IsNull()
-        {
-            return Type == ExObjType.NULL;
-        }
-
-        public bool IsNotNull()
-        {
-            return Type != ExObjType.NULL;
-        }
-
-        public bool IsDelegable()
-        {
-            return ((int)Type & (int)ExObjFlag.DELEGABLE) != 0;
-        }
-
-        public bool IsRealNumber()
-        {
-            return Type == ExObjType.INTEGER || Type == ExObjType.FLOAT;
-        }
-
-        public bool IsNumeric()
-        {
-            return ((int)Type & (int)ExObjFlag.NUMERIC) != 0;
-        }
-
-        public bool IsCountingRefs()
-        {
-            return ((int)Type & (int)ExObjFlag.COUNTREFERENCES) != 0;
-        }
 
         public long GetInt()
         {
@@ -68,22 +39,13 @@ namespace ExMat.Objects
 
         public string GetComplexString()
         {
-            if (Value.f_Float == 0.0)
-            {
-                return Value.c_Float + "i";
-            }
-            else if (Value.c_Float > 0)
-            {
-                return Value.f_Float + "+" + Value.c_Float + "i";
-            }
-            else if (Value.c_Float == 0.0)
-            {
-                return Value.f_Float.ToString();
-            }
-            else
-            {
-                return Value.f_Float + Value.c_Float.ToString() + "i";
-            }
+            return Value.f_Float == 0.0
+                ? Value.c_Float + "i"
+                : Value.c_Float > 0
+                    ? Value.f_Float + "+" + Value.c_Float + "i"
+                    : Value.c_Float == 0.0
+                                    ? Value.f_Float.ToString(CultureInfo.CurrentCulture)
+                                    : Value.f_Float + Value.c_Float.ToString(CultureInfo.CurrentCulture) + "i";
         }
 
         public string GetString()
@@ -112,13 +74,9 @@ namespace ExMat.Objects
             Value.s_String = s;
         }
 
-        public bool IsFalseable()
-        {
-            return ((int)Type & (int)ExObjFlag.CANBEFALSE) != 0;
-        }
         public bool GetBool()
         {
-            if (IsFalseable())
+            if (ExTypeCheck.IsFalseable(this))
             {
                 switch (Type)
                 {
@@ -169,15 +127,20 @@ namespace ExMat.Objects
             return Value._Class;
         }
 
+        public ExSpace GetSpace()
+        {
+            return Value.c_Space;
+        }
+
         public virtual string GetDebuggerDisplay()
         {
             string s = Type.ToString();
             switch (Type)
             {
-                case ExObjType.ARRAY: s += Value.l_List == null ? " null" : "(" + Value.l_List.Count.ToString() + ")"; break;
+                case ExObjType.ARRAY: s += Value.l_List == null ? " null" : "(" + Value.l_List.Count.ToString(CultureInfo.CurrentCulture) + ")"; break;
                 case ExObjType.INTEGER: s += " " + GetInt(); break;
                 case ExObjType.FLOAT: s += " " + GetFloat(); break;
-                case ExObjType.COMPLEX: s += " " + GetComplex().ToString(); break;
+                case ExObjType.COMPLEX: s += " " + GetComplex().ToString(CultureInfo.CurrentCulture); break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
                 case ExObjType.CLOSURE: s = GetClosure() == null ? s + GetString() : Value._Closure.GetDebuggerDisplay(); break;
@@ -199,8 +162,8 @@ namespace ExMat.Objects
                     Value.s_String = null;
 
                     Value.c_Space = null;
-                    Disposer.DisposeList(ref Value.l_List);
-                    Disposer.DisposeDict(ref Value.d_Dict);
+                    ExDisposer.DisposeList(ref Value.l_List);
+                    ExDisposer.DisposeDict(ref Value.d_Dict);
 
                     Value._RefC = null;
                     Value._WeakRef = null;

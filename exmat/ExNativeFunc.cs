@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
-using ExMat.VM;
 
 namespace ExMat.Objects
 {
@@ -16,22 +16,12 @@ namespace ExMat.Objects
         /// <summary>
         /// Library of which this function is a part of 
         /// </summary>
-        public ExStdLibType Base;
+        public ExStdLibType Base = ExStdLibType.UNKNOWN;
 
-        /// <summary>
-        /// Delegate, a native function template
-        /// </summary>
-        /// <param name="vm">VM to use the stack of</param>
-        /// <param name="nargs">Number of arguments passed to the function</param>
-        /// <returns>If a value was pushed to stack: <see cref="ExFunctionStatus.SUCCESS"/>
-        /// <para>If nothing was pushed to stack: <see cref="ExFunctionStatus.VOID"/></para>
-        /// <para>If there was an error: <see cref="ExFunctionStatus.ERROR"/></para>
-        /// <para>In the special case of 'exit': <see cref="ExFunctionStatus.EXIT"/></para></returns>
-        public delegate ExFunctionStatus FunctionRef(ExVM vm, int nargs);
         /// <summary>
         /// Function reference
         /// </summary>
-        public FunctionRef Function;    // Fonksiyon referansı
+        public ExMat.StdLibFunction Function;    // Fonksiyon referansı
 
         /// <summary>
         /// Parameter information
@@ -52,7 +42,7 @@ namespace ExMat.Objects
 
             if (string.IsNullOrEmpty(ParameterMask))
             {
-                StringBuilder pmask = new(BaseTypeMask.ToString());
+                StringBuilder pmask = new(BaseTypeMask.ToString(CultureInfo.CurrentCulture));
                 foreach (ExNativeParam p in Parameters)
                 {
                     pmask.Append(p.TypeMask);
@@ -109,7 +99,7 @@ namespace ExMat.Objects
 
         public ExNativeFunc() { }
 
-        public ExNativeFunc(FunctionRef foo)
+        public ExNativeFunc(ExMat.StdLibFunction foo)
         {
             Function = foo;
 
@@ -127,21 +117,14 @@ namespace ExMat.Objects
                 }
             }
 
-            if (NumberOfParameters != int.MaxValue)
-            {
-                Parameters = null;
-            }
-            else
-            {
-                Parameters = new(Parameters.OrderBy(x => x.Index));
-            }
+            Parameters = NumberOfParameters != int.MaxValue ? null : (new(Parameters.OrderBy(x => x.Index)));
 
             SetNumberOfParameters();
             SetNumberOfParameterCombinedMask();
             SetReturnInfo();
         }
 
-        public ExNativeFunc(FunctionRef foo, char baseMask)
+        public ExNativeFunc(ExMat.StdLibFunction foo, char baseMask)
         {
             Function = foo;
 
@@ -159,14 +142,7 @@ namespace ExMat.Objects
                 }
             }
 
-            if (NumberOfParameters != int.MaxValue)
-            {
-                Parameters = null;
-            }
-            else
-            {
-                Parameters = new(Parameters.OrderBy(x => x.Index));
-            }
+            Parameters = NumberOfParameters != int.MaxValue ? null : (new(Parameters.OrderBy(x => x.Index)));
 
             SetNumberOfParameters();
             SetNumberOfParameterCombinedMask();
@@ -183,7 +159,7 @@ namespace ExMat.Objects
                     Function = null;
                     Description = null;
 
-                    Disposer.DisposeList(ref Parameters);
+                    ExDisposer.DisposeList(ref Parameters);
 
                     ReturnsType = null;
                 }
@@ -203,7 +179,7 @@ namespace ExMat.Objects
 
         private object GetDebuggerDisplay()
         {
-            return string.Format("RegFunc {0}", Name);
+            return string.Format(CultureInfo.CurrentCulture, "RegFunc {0}", Name);
         }
     }
 }

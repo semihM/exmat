@@ -17,12 +17,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.10";
+        public const string Version = "ExMat v0.0.11";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 10;
+        public const int VersionNumber = 11;
 
         /// <summary>
         /// Title of the interactive console
@@ -32,7 +32,7 @@ namespace ExMat
         /// <summary>
         /// Help information to print at the beginning
         /// </summary>
-        public const string HelpInfoString = "Use 'help' function to get function documentation";
+        public const string HelpInfoString = "Use 'help' for function information, 'root' for global variables, 'consts' for constants";
 
         /// <summary>
         /// String and file terminator character
@@ -43,6 +43,11 @@ namespace ExMat
         /// Constructor method name for classes
         /// </summary>
         public const string ConstructorName = "init";
+
+        /// <summary>
+        /// Base reference keyword name
+        /// </summary>
+        public const string BaseName = "base";
 
         /// <summary>
         /// Self reference keyword name
@@ -108,19 +113,19 @@ namespace ExMat
         public const string DefParams = "defparams";
 
         /// <summary>
+        /// Function name, reload a function 
+        /// </summary>
+        public const string ReloadFunc = "reload_func";
+
+        /// <summary>
         /// Function name, reload a standard library specific function
         /// </summary>
-        public const string ReloadLibFunc = "reload_func";
+        public const string ReloadLibFunc = "reload_lib_func";
 
         /// <summary>
-        /// Function name, reload a standard library or a standard library specific function
+        /// Library reloading keyword name
         /// </summary>
-        public const string ReloadLib = "reload_lib";
-
-        /// <summary>
-        /// Function name, reload the standard base library
-        /// </summary>
-        public const string ReloadBaseLib = "reload_base";
+        public const string ReloadName = "reload";
 
         /// <summary>
         /// Maximum length of the echo'd string, used for native functions which calls 'echo' in external terminals
@@ -207,7 +212,7 @@ namespace ExMat
         /// <summary>
         /// Standard base library name
         /// </summary>
-        public const string StandardLibraryName = "base";
+        public const string StandardBaseLibraryName = "base";
 
         /// <summary>
         /// Namespace required for a class to be checked for being a standard library 
@@ -221,12 +226,44 @@ namespace ExMat
         /// <returns><see langword="true"/> if registery was successful, otherwise <see langword="false"/></returns>
         public delegate bool StdLibRegistery(VM.ExVM vm);
 
+        /// <summary>
+        /// Delegate, a native function template
+        /// </summary>
+        /// <param name="vm">VM to use the stack of</param>
+        /// <param name="nargs">Number of arguments passed to the function</param>
+        /// <returns>If a value was pushed to stack: <see cref="ExFunctionStatus.SUCCESS"/>
+        /// <para>If nothing was pushed to stack: <see cref="ExFunctionStatus.VOID"/></para>
+        /// <para>If there was an error: <see cref="ExFunctionStatus.ERROR"/></para>
+        /// <para>In the special case of 'exit': <see cref="ExFunctionStatus.EXIT"/></para></returns>
+        public delegate ExFunctionStatus StdLibFunction(VM.ExVM vm, int nargs);
+
+        /// <summary>
+        /// Method name of delegate <see cref="StdLibFunction"/> to get standard library method signature pattern from
+        /// </summary>
+        private const string StdLibFunctionPatternMethodName = "Invoke"; // TO-DO find a better way!
+
+        /// <summary>
+        /// Standard library method signature pattern, this is for matching <see cref="StdLibFunction"/>'s signature
+        /// </summary>
+        private static string StdLibFunctionPattern => System.Text.RegularExpressions.Regex.Escape(
+                                                            typeof(StdLibFunction)
+                                                            .GetMethod(StdLibFunctionPatternMethodName)
+                                                            .ToString())
+                                                        .Replace(StdLibFunctionPatternMethodName, "[\\w\\d]+")
+                                                        .Replace("\\ ", " ");
+
+        /// <summary>
+        /// Regex object to use while finding standard library functions
+        /// </summary>
+        public static readonly System.Text.RegularExpressions.Regex StdLibFunctionRegex = new(StdLibFunctionPattern);
+
         public static readonly Dictionary<string, string> Assemblies = new()
         {
             { "exm", "Entering assembly project" },
             { "exmat", "Core project" },
             { "exmatstdlib", "Built-in standard libraries" },
         };
+
     }
 
     /// <summary>
