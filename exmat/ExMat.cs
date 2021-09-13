@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using ExMat.Class;
 using ExMat.Closure;
+using ExMat.ExClass;
 using ExMat.FuncPrototype;
 using ExMat.Objects;
 using ExMat.Outer;
@@ -525,7 +525,7 @@ namespace ExMat
         /// <summary>
         /// Class for <see cref="ExObjType.CLASS"/>
         /// </summary>
-        public ExClass _Class;                  // Sınıf
+        public ExClass.ExClass _Class;                  // Sınıf
         /// <summary>
         /// Instance for <see cref="ExObjType.INSTANCE"/>
         /// </summary>

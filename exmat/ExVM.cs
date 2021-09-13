@@ -8,8 +8,8 @@ using System.Numerics;
 using System.Text;
 using System.Threading;
 using ExMat.API;
-using ExMat.Class;
 using ExMat.Closure;
+using ExMat.ExClass;
 using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Objects;
@@ -549,7 +549,7 @@ namespace ExMat.VM
                 return false;
             }
 
-            ExClass cls = self.GetClass();
+            ExClass.ExClass cls = self.GetClass();
 
             if (!braw)
             {
@@ -782,7 +782,7 @@ namespace ExMat.VM
             Stack[StackTop++].Assign(o);
         }
 
-        public void Push(ExClass o)
+        public void Push(ExClass.ExClass o)
         {
             Stack[StackTop++].Assign(o);
         }
@@ -866,7 +866,7 @@ namespace ExMat.VM
             return SharedState.Strings[s];
         }
 
-        public static bool CreateClassInst(ExClass cls, ref ExObject o, ExObject cns)
+        public static bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, ExObject cns)
         {
             o.Assign(cls.CreateInstance());
             if (!cls.GetConstructor(ref cns))
@@ -2823,7 +2823,7 @@ namespace ExMat.VM
 
         public bool DoClassOP(ExObject target, int bcls, int attr)
         {
-            ExClass cb = null;
+            ExClass.ExClass cb = null;
             ExObject atrs = new();
             if (bcls != -1)
             {
@@ -2836,7 +2836,7 @@ namespace ExMat.VM
                 atrs.Assign(Stack[StackBase + attr]);
             }
 
-            target.Assign(ExClass.Create(SharedState, cb));
+            target.Assign(ExClass.ExClass.Create(SharedState, cb));
 
             if (ExTypeCheck.IsNotNull(target.GetClass().MetaFuncs[(int)ExMetaMethod.INHERIT]))
             {
@@ -3791,7 +3791,7 @@ namespace ExMat.VM
             return ExGetterStatus.NOTFOUND;
         }
 
-        public ExGetterStatus Getter(ExClass cls, ExObject key, ref ExObject dest, bool isUsingIn)
+        public ExGetterStatus Getter(ExClass.ExClass cls, ExObject key, ref ExObject dest, bool isUsingIn)
         {
             if (cls == null)
             {

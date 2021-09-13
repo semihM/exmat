@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using ExMat.Objects;
 
-namespace ExMat.Class
+namespace ExMat.ExClass
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClassMem : IDisposable

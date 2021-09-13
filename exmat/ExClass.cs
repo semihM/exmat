@@ -4,7 +4,7 @@ using ExMat.Objects;
 using ExMat.States;
 using ExMat.Utils;
 
-namespace ExMat.Class
+namespace ExMat.ExClass
 {
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]

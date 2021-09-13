@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using ExMat.Class;
 using ExMat.FuncPrototype;
 using ExMat.Interfaces;
 using ExMat.Objects;
@@ -13,7 +12,7 @@ namespace ExMat.Closure
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExClosure : ExRefC, IExClosure
     {
-        public ExClass Base;                // Ait olunan sınıf(varsa)
+        public ExClass.ExClass Base;                // Ait olunan sınıf(varsa)
         public ExPrototype Function;        // Fonksiyon prototipi
         public List<ExObject> OutersList;   // Dış değişken bilgisi
         public List<ExObject> DefaultParams;// Varsayılan parametre değerleri
