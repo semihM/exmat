@@ -358,7 +358,7 @@ namespace ExMat
 
         private static string TrimCode(StringBuilder code, bool includeCarry = true)
         {
-            return includeCarry ? code.ToString().TrimEnd('\\', ' ', '\t') : code.ToString().TrimEnd(' ', '\t');
+            return TrimCode(code.ToString(), includeCarry);
         }
 
         private static void CreateInteractiveVMThread()
