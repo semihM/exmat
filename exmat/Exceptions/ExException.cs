@@ -80,19 +80,9 @@ namespace ExMat.Exceptions
 
         public override string StackTrace => base.StackTrace;
 
-        public override bool Equals(object obj)
-        {
-            return base.Equals(obj);
-        }
-
         public override Exception GetBaseException()
         {
             return base.GetBaseException();
-        }
-
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)

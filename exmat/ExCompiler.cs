@@ -799,6 +799,30 @@ namespace ExMat.Compiler
             return true;
         }
 
+        private bool SequenceAddParamDefVal(ExFState f_state)
+        {
+            if (CurrentToken == TokenType.ASG)
+            {
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+
+                if (!ExExp())
+                {
+                    return false;
+                }
+
+                f_state.AddDefParam(FunctionState.TopTarget());
+                return true;
+            }
+            else // TO-DO add = for referencing global and do get ops
+            {
+                AddToErrorMessage("expected '=' for a sequence parameter default value");
+                return false;
+            }
+        }
+
         private bool SequenceAddParam(ref ExObject pname, ref int pcount, ExFState f_state, bool neg) // TO-DO Allow extra parameters ?
         {
             if ((pname = Expect(TokenType.IDENTIFIER)) != null)
@@ -818,23 +842,8 @@ namespace ExMat.Compiler
                 pcount++;
                 f_state.AddParam(pname);
 
-                if (CurrentToken == TokenType.ASG)
+                if (!SequenceAddParamDefVal(f_state))
                 {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-
-                    if (!ExExp())
-                    {
-                        return false;
-                    }
-
-                    f_state.AddDefParam(FunctionState.TopTarget());
-                }
-                else // TO-DO add = for referencing global and do get ops
-                {
-                    AddToErrorMessage("expected '=' for a sequence parameter default value");
                     return false;
                 }
             }
