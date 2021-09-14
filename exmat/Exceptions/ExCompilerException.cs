@@ -11,7 +11,7 @@ namespace ExMat.Exceptions
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExCompilerException : ExException
     {
-        public new ExExceptionType Type = ExExceptionType.COMPILER;
+        public override ExExceptionType Type => ExExceptionType.COMPILER;
 
         public ExCompilerException()
         {

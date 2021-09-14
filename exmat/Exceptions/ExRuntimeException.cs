@@ -11,7 +11,7 @@ namespace ExMat.Exceptions
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExRuntimeException : ExException
     {
-        public new ExExceptionType Type = ExExceptionType.RUNTIME;
+        public override ExExceptionType Type => ExExceptionType.RUNTIME;
 
         public ExRuntimeException()
         {

@@ -26,7 +26,7 @@ namespace ExMat.Exceptions
     {
         public const int HoldAfterError = 20000;
 
-        public ExExceptionType Type = ExExceptionType.BASE;
+        public virtual ExExceptionType Type => ExExceptionType.BASE;
 
         public ExException()
         {
