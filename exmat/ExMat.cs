@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using ExMat.Class;
 using ExMat.Closure;
+using ExMat.ExClass;
 using ExMat.FuncPrototype;
 using ExMat.Objects;
 using ExMat.Outer;
@@ -91,6 +91,11 @@ namespace ExMat
         /// INTERNAL: Used to check for some special cases
         /// </summary>
         public const int InvalidArgument = 985;
+
+        /// <summary>
+        /// Default parameter name for sequences
+        /// </summary>
+        public const string SequenceParameter = "n";
 
         /// <summary>
         /// Function attribute, returns named parameter count
@@ -525,7 +530,7 @@ namespace ExMat
         /// <summary>
         /// Class for <see cref="ExObjType.CLASS"/>
         /// </summary>
-        public ExClass _Class;                  // Sınıf
+        public ExClass.ExClass _Class;                  // Sınıf
         /// <summary>
         /// Instance for <see cref="ExObjType.INSTANCE"/>
         /// </summary>
@@ -654,6 +659,7 @@ namespace ExMat
     /// <summary>
     /// Interactive console flags
     /// </summary>
+    [Flags]
     public enum ExInteractiveConsoleFlag
     {
         /// <summary>
@@ -675,7 +681,11 @@ namespace ExMat
         /// <summary>
         /// Has the VM just been interrupted ?
         /// </summary>
-        RECENTLYINTERRUPTED = 1 << 4
+        RECENTLYINTERRUPTED = 1 << 4,
+        /// <summary>
+        /// Did the recent interruption occured during the thread's sleep ?
+        /// </summary>
+        INTERRUPTEDINSLEEP = 1 << 5
     }
 
     /// <summary>

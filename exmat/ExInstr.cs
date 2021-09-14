@@ -13,6 +13,15 @@ namespace ExMat.OPs
 
         public ExInstr() { }
 
+        public ExInstr(ExInstr other)
+        {
+            op = other.op;
+            arg0 = other.arg0;
+            arg1 = other.arg1;
+            arg2 = other.arg2;
+            arg3 = other.arg3;
+        }
+
         public ExInstr(ExOperationCode o, long a0, long a1, long a2, long a3)
         {
             op = o;

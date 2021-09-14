@@ -977,8 +977,8 @@ namespace ExMat.API
 
         public static ExStdLibType GetLibraryTypeFromName(string name)
         {
-            Type t;
-            return (t = GetStandardLibraryFromName(name)) == null ? ExStdLibType.UNKNOWN : GetLibraryTypeFromStdClass(t);
+            Type t = GetStandardLibraryFromName(name);
+            return t == null ? ExStdLibType.UNKNOWN : GetLibraryTypeFromStdClass(t);
         }
 
         public static bool ReloadLibrary(ExVM vm, string libname)
@@ -1601,6 +1601,20 @@ namespace ExMat.API
             return type.ToString().ToLower(CultureInfo.CurrentCulture);
         }
 
+        public static string GetParameterInfoString(ExNativeParam param, int pno)
+        {
+            return param.HasDefaultValue
+                ? string.Format(CultureInfo.CurrentCulture, "\n\t{0}. [<{1}> {2} = {3}] : {4}",
+                                pno,
+                                GetTypeMaskInfo(param.Type),
+                                param.Name,
+                                param.DefaultValue.Type == ExObjType.STRING
+                                    ? GetEscapedFormattedString(param.DefaultValue.GetString())
+                                    : GetSimpleString(param.DefaultValue),
+                                param.Description)
+                : string.Format(CultureInfo.CurrentCulture, "\n\t{0}. <{1}> {2} : {3}", pno, GetTypeMaskInfo(param.Type), param.Name, param.Description);
+        }
+
         public static string CreateDocStringFromRegFunc(ExNativeFunc reg, bool hasVargs)
         {
             StringBuilder s = new();
@@ -1631,22 +1645,7 @@ namespace ExMat.API
             while (reg.Parameters != null
                 && i < reg.Parameters.Count)
             {
-                ExNativeParam param = reg.Parameters[i];
-                if (param.HasDefaultValue)
-                {
-                    s.AppendFormat(CultureInfo.CurrentCulture, "\n\t{0}. [<{1}> {2} = {3}] : {4}",
-                        j + ++i,
-                        GetTypeMaskInfo(param.Type),
-                        param.Name,
-                        param.DefaultValue.Type == ExObjType.STRING
-                            ? GetEscapedFormattedString(param.DefaultValue.GetString())
-                            : GetSimpleString(param.DefaultValue),
-                        param.Description);
-                }
-                else
-                {
-                    s.AppendFormat(CultureInfo.CurrentCulture, "\n\t{0}. <{1}> {2} : {3}", j + ++i, GetTypeMaskInfo(param.Type), param.Name, param.Description);
-                }
+                s.Append(GetParameterInfoString(reg.Parameters[i], j + ++i));
             }
 
             if (hasVargs)
@@ -1663,14 +1662,32 @@ namespace ExMat.API
             return s.ToString();
         }
 
-        public static void Throw(ExVM vm, string msg)
+        public static void Throw(string msg, ExVM vm, ExExceptionType type = ExExceptionType.BASE)
         {
-            throw new ExException(vm, msg);
+            switch (type)
+            {
+                case ExExceptionType.BASE:
+                    throw new ExException(vm, msg);
+                case ExExceptionType.COMPILER:
+                    throw new ExCompilerException(vm, msg);
+                case ExExceptionType.RUNTIME:
+                    throw new ExRuntimeException(vm, msg);
+                default:
+                    throw new Exception(msg);
+            }
         }
 
-        public static void Throw(string msg, ExVM vm)
+        public static void HandleException(Exception exp, ExVM vm)
         {
-            throw new ExException(vm, msg);
+            vm.AddToErrorMessage(exp.Message);
+            vm.AddToErrorMessage(exp.StackTrace);
+            WriteErrorMessages(vm, ExErrorType.INTERNAL);
+        }
+
+        public static void HandleException(ExException exp, ExVM vm, ExErrorType typeOverride = ExErrorType.DEFAULT)
+        {
+            vm.AddToErrorMessage(exp.Message);
+            WriteErrorMessages(vm, typeOverride);
         }
 
         /// <summary>
@@ -1683,7 +1700,7 @@ namespace ExMat.API
         {
             if (GetTopOfStack(vm) < 3)
             {
-                Throw(vm, "not enough parameters in stack");
+                Throw("not enough parameters in stack", vm);
             }
             ExObject self = GetFromStack(vm, idx);
             if (self.Type is ExObjType.DICT or ExObjType.CLASS)
@@ -1692,7 +1709,7 @@ namespace ExMat.API
                 k.Assign(vm.GetAbove(-2));
                 if (ExTypeCheck.IsNull(k))
                 {
-                    Throw(vm, "'null' is not a valid key");
+                    Throw("'null' is not a valid key", vm);
                 }
                 vm.NewSlot(self, k, vm.GetAbove(-1), false);
 
@@ -2171,6 +2188,30 @@ namespace ExMat.API
             Console.Write("]: ");
             Console.ResetColor();
         }
+
+        public static ExErrorType GetErrorTypeFromException(ExException exp)
+        {
+            switch (exp.Type)
+            {
+                case ExExceptionType.BASE:
+                    {
+                        return ExErrorType.DEFAULT;
+                    }
+                case ExExceptionType.RUNTIME:
+                    {
+                        return ExErrorType.RUNTIME;
+                    }
+                case ExExceptionType.COMPILER:
+                    {
+                        return ExErrorType.COMPILE;
+                    }
+                default:
+                    {
+                        return ExErrorType.INTERNAL;
+                    }
+            }
+        }
+
 
         public static void SleepVM(ExVM vm, int time)
         {

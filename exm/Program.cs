@@ -11,7 +11,7 @@ using ExMat.VM;
 namespace ExMat
 {
     /// <summary>
-    /// Refer to docs inside this class for more information
+    /// Refer to docs inside this class for more information!
     /// </summary>
     internal static class Program
     {
@@ -133,38 +133,6 @@ namespace ExMat
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CancelEventHandler);
         }
 
-        private static void SetupDummyInterruptFrame()
-        {
-            ActiveVM.CallStack = new(4)
-            {
-                new()
-                {
-                    Closure = new(
-                            new Closure.ExClosure()
-                            {
-                                DefaultParams = new(),
-                                Function = new(),
-                                OutersList = new(),
-                                SharedState = ActiveVM.SharedState
-                            }
-                        ),
-                    Literals = new(),
-                    Instructions = new(2) { new(OPs.ExOperationCode.RETURN, ExMat.InvalidArgument, 0, 2, 0), new(OPs.ExOperationCode.RETURN, ExMat.InvalidArgument, 2, 1, 0) },
-                    InstructionsIndex = 0,
-                    IsRootCall = true,
-                    PrevBase = 2,
-                    PrevTop = 3,
-                    Target = 2,
-                    nCalls = 1
-                },
-                new(),
-                new(),
-                new()
-            };
-
-            ActiveVM.CallInfo = new(ActiveVM.CallStack);
-        }
-
         // TO-DO Find a way to interrupt .NET operations
         /// <summary>
         /// Handler for cancel event CTRLC and CTRLBREAK
@@ -184,14 +152,16 @@ namespace ExMat
                 ActiveVM.ErrorOverride = ExErrorType.INTERRUPT;
                 ActiveVM.AddToErrorMessage("Output '{0}' was interrupted by control character: '{1}'", ActiveVM.InputCount, args.SpecialKey.ToString());
 
-                SetupDummyInterruptFrame();
-
                 if (ActiveVM.IsSleeping)
                 {
+                    ActiveVM.SetFlag(ExInteractiveConsoleFlag.INTERRUPTEDINSLEEP);
                     ActiveVM.ActiveThread.Interrupt();
                     ActiveVM.IsSleeping = false;
+                    while (ActiveVM.ActiveThread.ThreadState != ThreadState.Running)
+                    {
+                        ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+                    }
                 }
-
                 ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
                 ResetAfterCompilation(ActiveVM, ResetInStack);
             }
@@ -266,36 +236,6 @@ namespace ExMat
             Console.ReadKey(false);
         }
 
-        private static void CreateSimpleVMThread()
-        {
-            ActiveThread = new(() =>
-            {
-                if (!Initialize())
-                {
-                    ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
-                }
-                else
-                {
-                    try
-                    {
-                        ReturnValue = new(CompileString(ActiveVM, FileContents));
-
-                    }
-                    catch (ThreadInterruptedException) { } //lgtm [cs/empty-catch-block]
-                    catch (ExException exp)
-                    {
-                        ActiveVM.AddToErrorMessage(exp.Message);
-                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
-                    }
-                    catch (Exception)
-                    {
-                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
-                    }
-                }
-                KeepConsoleUpAtEnd();
-            });
-        }
-
         private static void HandleUserInputFunction(ref StringBuilder code)
         {
             // En son işlenen kodda kullanıcıdan girdi aldıysa tekrardan okuma işlemi başlat
@@ -338,10 +278,7 @@ namespace ExMat
 
         private static void HandlePostVMExecution(int ret)
         {
-            if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
-            {
-                ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
-            }
+            ActiveVM.Flags = 0;
 
             ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
 
@@ -349,6 +286,9 @@ namespace ExMat
             {
                 ReturnValue = new(ret);
             }
+
+            ActiveVM.nNativeCalls = 0;
+            ActiveVM.nMetaCalls = 0;
         }
 
         private static string TrimCode(string code, bool includeCarry = true)
@@ -358,9 +298,52 @@ namespace ExMat
 
         private static string TrimCode(StringBuilder code, bool includeCarry = true)
         {
-            return includeCarry ? code.ToString().TrimEnd('\\', ' ', '\t') : code.ToString().TrimEnd(' ', '\t');
+            return TrimCode(code.ToString(), includeCarry);
         }
 
+        private static void HandleSleepInterruption()
+        {
+            if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.INTERRUPTEDINSLEEP))
+            {
+                ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
+                ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.INTERRUPTEDINSLEEP);
+            }
+            ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+
+            ActiveVM.ForceThrow = false;
+            ResetAfterCompilation(ActiveVM, ResetInStack);
+        }
+
+        private static void CreateSimpleVMThread()
+        {
+            ActiveThread = new(() =>
+            {
+                if (!Initialize())
+                {
+                    ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
+                }
+                else
+                {
+                    try
+                    {
+                        ReturnValue = new(CompileString(ActiveVM, FileContents));
+                    }
+                    catch (ThreadInterruptedException)
+                    {
+                        HandleSleepInterruption();
+                    }
+                    catch (ExException exp)
+                    {
+                        ExApi.HandleException(exp, ActiveVM, ExApi.GetErrorTypeFromException(exp));
+                    }
+                    catch (Exception exp)
+                    {
+                        ExApi.HandleException(exp, ActiveVM);
+                    }
+                }
+                KeepConsoleUpAtEnd();
+            });
+        }
         private static void CreateInteractiveVMThread()
         {
             ActiveThread = new(() =>
@@ -390,17 +373,17 @@ namespace ExMat
                         ret = CompileString(ActiveVM, TrimCode(code));  // Derle ve işle
 
                     }
-                    catch (ThreadInterruptedException) { } //lgtm [cs/empty-catch-block]
+                    catch (ThreadInterruptedException)
+                    {
+                        HandleSleepInterruption();
+                    }
                     catch (ExException exp)
                     {
-                        ActiveVM.AddToErrorMessage(exp.Message);
-                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
+                        ExApi.HandleException(exp, ActiveVM, ExApi.GetErrorTypeFromException(exp));
                     }
                     catch (Exception exp)
                     {
-                        ActiveVM.AddToErrorMessage(exp.Message);
-                        ActiveVM.AddToErrorMessage(exp.StackTrace);
-                        ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
+                        ExApi.HandleException(exp, ActiveVM);
                         break;
                     }
                     finally

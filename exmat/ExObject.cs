@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Numerics;
-using ExMat.Class;
 using ExMat.Closure;
+using ExMat.ExClass;
 using ExMat.FuncPrototype;
 using ExMat.Outer;
 
@@ -122,7 +122,7 @@ namespace ExMat.Objects
             return Value._Instance;
         }
 
-        public ExClass GetClass()
+        public ExClass.ExClass GetClass()
         {
             return Value._Class;
         }
@@ -405,14 +405,14 @@ namespace ExMat.Objects
             AddReference(Type, Value, true);
             Release(t, v);
         }
-        public ExObject(ExClass o)
+        public ExObject(ExClass.ExClass o)
         {
             Type = ExObjType.CLASS;
             Value._Class = o;
             Value._RefC = new();
             AddReference(Type, Value, true);
         }
-        public void Assign(ExClass o)
+        public void Assign(ExClass.ExClass o)
         {
             ExObjType t = Type;
             ExObjVal v = Value;

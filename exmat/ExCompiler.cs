@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using ExMat.API;
+using ExMat.Exceptions;
 using ExMat.FuncPrototype;
 using ExMat.Lexer;
 using ExMat.Objects;
@@ -28,7 +30,6 @@ namespace ExMat.Compiler
 
         private readonly bool StoreLineInfos;
         private bool disposedValue;
-        private bool IsInMacroBlock;
 
         protected virtual void Dispose(bool disposing)
         {
@@ -62,6 +63,11 @@ namespace ExMat.Compiler
             }
 
             return false;
+        }
+
+        public void Throw(string msg, ExExceptionType type = ExExceptionType.COMPILER)
+        {
+            ExApi.Throw(msg, VM, type);
         }
 
         public ExScope CreateScope()
@@ -339,206 +345,199 @@ namespace ExMat.Compiler
             return true;
         }
 
+        public bool ProcessCurlyOpenStatement(bool closeScope)
+        {
+            ExScope scp = CreateScope();
+
+            if (!ReadAndSetToken()
+                || !ProcessStatements()
+                || Expect(TokenType.CURLYCLOSE) == null)
+            {
+                return false;
+            }
+
+            ReleaseScope(scp, closeScope);
+            return true;
+        }
+
+        public bool ProcessConstStatement()
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            ExObject name = Expect(TokenType.IDENTIFIER);
+            if (name == null)
+            {
+                return false;
+            }
+
+            if (FunctionState.SharedState.Consts.ContainsKey(name.GetString()))
+            {
+                return AddToErrorMessage($"a constant named '{name.GetString()}' already exists, use 'consts' function to force-update constants");
+            }
+
+            if (Expect(TokenType.ASG) == null)
+            {
+                return AddToErrorMessage("expected '=' after const identifier");
+            }
+
+            ExObject val = ExpectConstableValue();
+            if (val == null || !CheckSMC())
+            {
+                return false;
+            }
+
+            FunctionState.SharedState.Consts.Add(name.GetString(), new(val));
+            return true;
+        }
+
+        public bool ProcessReturnStatement()
+        {
+            ExOperationCode op = ExOperationCode.RETURN;
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+            if (!IsEOS())
+            {
+                int rettarget = FunctionState.GetCurrPos() + 1;
+                if (!ExSepExp())
+                {
+                    return false;
+                }
+
+                FunctionState.ReturnExpressionTarget = rettarget;
+                FunctionState.AddInstr(op, 1, FunctionState.PopTarget(), FunctionState.GetLocalVariablesCount(), 0);
+            }
+            else
+            {
+                FunctionState.ReturnExpressionTarget = -1;
+                FunctionState.AddInstr(op, ExMat.InvalidArgument, 0, FunctionState.GetLocalVariablesCount(), 0);
+            }
+            return true;
+        }
+
+        public bool ProcessBreakStatement()
+        {
+            if (FunctionState.BreakTargetsList.Count <= 0)      // iterasyon bloğu kontrolü
+            {
+                AddToErrorMessage("'break' has to be in a breakable block");
+                return false;
+            }
+
+            DoOuterControl();   // Dış değişken referansları varsa referansları azalt
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+            // Komut indeksini listeye ekle
+            FunctionState.BreakList.Add(FunctionState.GetCurrPos());
+
+            return ReadAndSetToken();
+        }
+
+        public bool ProcessContinueStatement()
+        {
+            if (FunctionState.ContinueTargetList.Count <= 0)    // iterasyon bloğu kontrolü
+            {
+                AddToErrorMessage("'continue' has to be in a breakable block");
+                return false;
+            }
+            DoOuterControl();   // Dış değişken referansları varsa referansları azalt
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+            // Komut indeksini listeye ekle
+            FunctionState.ContinueList.Add(FunctionState.GetCurrPos());
+
+            return ReadAndSetToken();
+        }
 
         public bool ProcessStatement(bool closeScope = true)   // İfadeyi derle                             //, bool macro = false)
         {
+            bool processed;
             switch (CurrentToken)
             {
                 case TokenType.SMC:         // ;
                     {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        processed = ReadAndSetToken();
                         break;
                     }
-
                 case TokenType.CURLYOPEN:   // {
                     {
-                        ExScope scp = CreateScope();
-
-                        if (!ReadAndSetToken()
-                            || !ProcessStatements()
-                            || Expect(TokenType.CURLYCLOSE) == null)
-                        {
-                            return false;
-                        }
-
-                        ReleaseScope(scp, closeScope);
+                        processed = ProcessCurlyOpenStatement(closeScope);
                         break;
                     }
-
-                // Diğer ifadeler
-                #region Other Statements: IF, FOR, VAR, FUNCTION, CLASS, RETURN, BREAK, CONTINUE
                 case TokenType.VAR:     // var
                     {
-                        if (!ProcessVarAsgStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessVarAsgStatement();
                         break;
                     }
-                case TokenType.CONST:     // var
+                case TokenType.CONST:     // const
                     {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-
-                        ExObject name = Expect(TokenType.IDENTIFIER);
-                        if (name == null)
-                        {
-                            return false;
-                        }
-
-                        if (FunctionState.SharedState.Consts.ContainsKey(name.GetString()))
-                        {
-                            return AddToErrorMessage($"a constant named '{name.GetString()}' already exists, use 'consts' function to force-update constants");
-                        }
-
-                        if (Expect(TokenType.ASG) == null)
-                        {
-                            return AddToErrorMessage("expected '=' after const identifier");
-                        }
-
-                        ExObject val = ExpectConstableValue();
-                        if (val == null || !CheckSMC())
-                        {
-                            return false;
-                        }
-
-                        FunctionState.SharedState.Consts.Add(name.GetString(), new(val));
+                        processed = ProcessConstStatement();
                         break;
                     }
                 case TokenType.FUNCTION:
                     {
-                        if (!ProcessFunctionStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessFunctionStatement();
                         break;
                     }
                 case TokenType.IF:      // if
                     {
-                        if (!ProcessIfStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessIfStatement();
                         break;
                     }
 
                 case TokenType.FOR:     // for
                     {
-                        if (!ProcessForStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessForStatement();
                         break;
                     }
                 case TokenType.RULE:
                     {
-                        if (!ProcessRuleAsgStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessRuleAsgStatement();
                         break;
                     }
                 case TokenType.CLASS:
                     {
-                        if (!ProcessClassStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessClassStatement();
                         break;
                     }
                 case TokenType.SEQUENCE:
                     {
-                        if (!ProcessSequenceStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessSequenceStatement();
                         break;
                     }
                 case TokenType.CLUSTER:
                     {
-                        if (!ProcessClusterAsgStatement())
-                        {
-                            return false;
-                        }
+                        processed = ProcessClusterAsgStatement();
                         break;
                     }
                 case TokenType.RETURN:
                     {
-                        ExOperationCode op = ExOperationCode.RETURN;
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        if (!IsEOS())
-                        {
-                            int rettarget = FunctionState.GetCurrPos() + 1;
-                            if (!ExSepExp())
-                            {
-                                return false;
-                            }
-
-                            FunctionState.ReturnExpressionTarget = rettarget;
-                            FunctionState.AddInstr(op, 1, FunctionState.PopTarget(), FunctionState.GetLocalVariablesCount(), 0);
-                        }
-                        else
-                        {
-                            FunctionState.ReturnExpressionTarget = -1;
-                            FunctionState.AddInstr(op, ExMat.InvalidArgument, 0, FunctionState.GetLocalVariablesCount(), 0);
-                        }
+                        processed = ProcessReturnStatement();
                         break;
                     }
                 case TokenType.BREAK:
                     {
-                        if (FunctionState.BreakTargetsList.Count <= 0)      // iterasyon bloğu kontrolü
-                        {
-                            AddToErrorMessage("'break' has to be in a breakable block");
-                            return false;
-                        }
-
-                        DoOuterControl();   // Dış değişken referansları varsa referansları azalt
-                        FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
-                        // Komut indeksini listeye ekle
-                        FunctionState.BreakList.Add(FunctionState.GetCurrPos());
-
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        processed = ProcessBreakStatement();
                         break;
                     }
                 case TokenType.CONTINUE:
                     {
-                        if (FunctionState.ContinueTargetList.Count <= 0)    // iterasyon bloğu kontrolü
-                        {
-                            AddToErrorMessage("'continue' has to be in a breakable block");
-                            return false;
-                        }
-                        DoOuterControl();   // Dış değişken referansları varsa referansları azalt
-                        FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
-                        // Komut indeksini listeye ekle
-                        FunctionState.ContinueList.Add(FunctionState.GetCurrPos());
-
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        processed = ProcessContinueStatement();
                         break;
                     }
-                #endregion 
                 default:
                     {
-                        if (!ExSepExp())
-                        {
-                            return false;
-                        }
+                        processed = ExSepExp();
                         break;
                     }
             }
+
+            if (!processed)
+            {
+                return false;
+            }
+
             FunctionState.NotSnoozed = false;
             return true;
         }
@@ -656,14 +655,17 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ProcessForStatement()
+        private bool ProcessForStatementInit(out ExScope scp)
         {
+            scp = null;
+
             if (!ReadAndSetToken())
             {
                 return false;
             }
 
-            ExScope scp = CreateScope();                // Yeni çerçeve oluştur
+            scp = CreateScope();                // Yeni çerçeve oluştur
+
             if (Expect(TokenType.ROUNDOPEN) == null)    // '(' bekle
             {
                 return false;
@@ -685,17 +687,16 @@ namespace ExMat.Compiler
                 FunctionState.PopTarget();
             }
 
-            // ilk ';' bulunduğunu kontrol et
-            if (Expect(TokenType.SMC) == null)
-            {
-                return false;
-            }
+            return true;
+        }
 
+        private bool ProcessForStatementCond(out int jpos, out int jzpos)
+        {
             // ilk kısımdaki atamaları bağımsız yap
             FunctionState.NotSnoozed = false;
             // koşullar doğru olduğunda atlanılacak indeksi sakla
-            int jpos = FunctionState.GetCurrPos();
-            int jzpos = -1;
+            jpos = FunctionState.GetCurrPos();
+            jzpos = -1;
 
             if (CurrentToken != TokenType.SMC)  // ';' yoksa koşul ifadesi verilmiştir
             {
@@ -709,10 +710,14 @@ namespace ExMat.Compiler
                 jzpos = FunctionState.GetCurrPos();
             }
 
-            if (Expect(TokenType.SMC) == null)  // 2. ';' kontrolü yap
-            {
-                return false;
-            }
+            return true;
+        }
+
+        private bool ProcessForStatementIncr(out List<ExInstr> instrs, out int exp_size)
+        {
+            instrs = null;
+            exp_size = 0;
+
             FunctionState.NotSnoozed = false;   // ikinci kısımdaki koşulları bağımsız yap
 
             int exp_start = FunctionState.GetCurrPos() + 1; // son kısmın başlangıç indeksi
@@ -725,17 +730,13 @@ namespace ExMat.Compiler
                 FunctionState.PopTarget();
             }
 
-            if (Expect(TokenType.ROUNDCLOSE) == null)   // ')' kontrolü yap
-            {
-                return false;
-            }
-
             FunctionState.NotSnoozed = false;   // son komutu bağımsız yap
             // son kısımda kaç komut oluşturulduğunu hesapla
             int exp_end = FunctionState.GetCurrPos();
-            int exp_size = exp_end - exp_start + 1;
+            exp_size = exp_end - exp_start + 1;
+
             // her bir iterasyondan sonra işlenecek komutların listesini oluştur
-            List<ExInstr> instrs = new();
+            instrs = new();
 
             if (exp_size > 0)
             {
@@ -749,6 +750,24 @@ namespace ExMat.Compiler
                     FunctionState.Instructions.RemoveAt(FunctionState.Instructions.Count - 1);
                 }
             }
+
+            return true;
+        }
+
+        public bool ProcessForStatement()
+        {
+            if (!ProcessForStatementInit(out ExScope scp)
+                || Expect(TokenType.SMC) == null
+
+                || !ProcessForStatementCond(out int jpos, out int jzpos)
+                || Expect(TokenType.SMC) == null
+
+                || !ProcessForStatementIncr(out List<ExInstr> instrs, out int exp_size)
+                || Expect(TokenType.ROUNDCLOSE) == null)
+            {
+                return false;
+            }
+
             // Durdurulabilen ve atlanabilen blok oluştur
             List<int> bc = CreateBreakableBlock();
 
@@ -766,6 +785,7 @@ namespace ExMat.Compiler
                     FunctionState.AddInstr(instrs[i]);
                 }
             }
+
             // İterasyon bitiminde komutların atlanmasını sağla
             FunctionState.AddInstr(ExOperationCode.JMP, 0, jpos - FunctionState.GetCurrPos() - 1, 0, 0);
 
@@ -779,14 +799,163 @@ namespace ExMat.Compiler
             return true;
         }
 
+        private bool SequenceAddParamDefVal(ExFState f_state)
+        {
+            if (CurrentToken == TokenType.ASG)
+            {
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+
+                if (!ExExp())
+                {
+                    return false;
+                }
+
+                f_state.AddDefParam(FunctionState.TopTarget());
+                return true;
+            }
+            else // TO-DO add = for referencing global and do get ops
+            {
+                AddToErrorMessage("expected '=' for a sequence parameter default value");
+                return false;
+            }
+        }
+
+        private bool SequenceAddParam(ref ExObject pname, ref int pcount, ExFState f_state, bool neg) // TO-DO Allow extra parameters ?
+        {
+            if ((pname = Expect(TokenType.IDENTIFIER)) != null)
+            {
+                if (pcount > 0)
+                {
+                    AddToErrorMessage("can't add sequence parameters after sequence constraints");
+                    return false;
+                }
+
+                if (neg)
+                {
+                    AddToErrorMessage("can't negate IDENTIFIER");
+                    return false;
+                }
+
+                pcount++;
+                f_state.AddParam(pname);
+
+                if (!SequenceAddParamDefVal(f_state))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (pcount > 0)
+                {
+                    AddToErrorMessage("expected integer constraint for sequence declaration");
+                    return false;
+                }
+                else
+                {
+                    AddToErrorMessage("expected identifier or integer constraints for sequence declaration");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool SequenceConstraint(ref ExObject pname, ref int pcount, ExFState f_state, bool neg)
+        {
+            if (pname.Type == ExObjType.INTEGER)
+            {
+                if (neg)
+                {
+                    pname.Value.i_Int *= -1;
+                }
+
+                pname = new(pname.GetInt().ToString(CultureInfo.CurrentCulture));
+            }
+            else if (pname.Type == ExObjType.FLOAT)
+            {
+                if (neg)
+                {
+                    pname.Value.f_Float *= -1;
+                }
+
+                pname = new(pname.GetFloat().ToString(CultureInfo.CurrentCulture));
+            }
+            else
+            {
+                AddToErrorMessage("expected integer or float for sequence constraint");
+                return false;
+            }
+            pcount++;
+            f_state.AddParam(pname);
+
+            if (CurrentToken == TokenType.COL)
+            {
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+
+                if (!ExExp())
+                {
+                    return false;
+                }
+
+                f_state.AddDefParam(FunctionState.TopTarget());
+            }
+            else // TO-DO add = for referencing global and do get ops
+            {
+                AddToErrorMessage("expected ':' for a sequence constants");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool SequenceInit(ref int pcount, ExFState f_state, bool neg)
+        {
+            ExObject pname;
+            if ((pname = Expect(TokenType.INTEGER)) == null
+                && (pname = Expect(TokenType.FLOAT)) == null)
+            {
+                if (!SequenceAddParam(ref pname, ref pcount, f_state, neg))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (!SequenceConstraint(ref pname, ref pcount, f_state, neg))
+                {
+                    return false;
+                }
+            }
+
+            if (CurrentToken == TokenType.SEP)
+            {
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+            }
+            else if (CurrentToken != TokenType.ROUNDCLOSE)
+            {
+                AddToErrorMessage("expected ')' for sequence constants definition end");
+                return false;
+            }
+            return true;
+        }
+
         public bool ExSequenceCreate(ExObject o)
         {
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
             f_state.Name = o;
 
-            ExObject pname;
             f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
-            f_state.AddParam(FunctionState.CreateString("n"));
+            f_state.AddParam(FunctionState.CreateString(ExMat.SequenceParameter));
 
             f_state.Source = new(Source);
             int pcount = 0;
@@ -803,119 +972,8 @@ namespace ExMat.Compiler
                     neg = true;
                 }
 
-                if ((pname = Expect(TokenType.INTEGER)) == null && (pname = Expect(TokenType.FLOAT)) == null)    // CONTINUE HERE, ALLOW PARAMETERS
+                if (!SequenceInit(ref pcount, f_state, neg))
                 {
-                    if ((pname = Expect(TokenType.IDENTIFIER)) != null)
-                    {
-                        if (pcount > 0)
-                        {
-                            AddToErrorMessage("can't add sequence parameters after sequence constraints");
-                            return false;
-                        }
-
-                        if (neg)
-                        {
-                            AddToErrorMessage("can't negate IDENTIFIER");
-                            return false;
-                        }
-
-                        pcount++;
-                        f_state.AddParam(pname);
-
-                        if (CurrentToken == TokenType.ASG)
-                        {
-                            if (!ReadAndSetToken())
-                            {
-                                return false;
-                            }
-
-                            if (!ExExp())
-                            {
-                                return false;
-                            }
-
-                            f_state.AddDefParam(FunctionState.TopTarget());
-                        }
-                        else // TO-DO add = for referencing global and do get ops
-                        {
-                            AddToErrorMessage("expected '=' for a sequence parameter default value");
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        if (pcount > 0)
-                        {
-                            AddToErrorMessage("expected integer constraint for sequence declaration");
-                            return false;
-                        }
-                        else
-                        {
-                            AddToErrorMessage("expected identifier or integer constraints for sequence declaration");
-                            return false;
-                        }
-                    }
-                }
-                else
-                {
-                    if (pname.Type == ExObjType.INTEGER)
-                    {
-                        if (neg)
-                        {
-                            pname.Value.i_Int *= -1;
-                        }
-
-                        pname = new(pname.GetInt().ToString(CultureInfo.CurrentCulture));
-                    }
-                    else if (pname.Type == ExObjType.FLOAT)
-                    {
-                        if (neg)
-                        {
-                            pname.Value.f_Float *= -1;
-                        }
-
-                        pname = new(pname.GetFloat().ToString(CultureInfo.CurrentCulture));
-                    }
-                    else
-                    {
-                        AddToErrorMessage("expected integer or float for sequence constraint");
-                        return false;
-                    }
-                    pcount++;
-                    f_state.AddParam(pname);
-
-                    if (CurrentToken == TokenType.COL)
-                    {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-
-                        if (!ExExp())
-                        {
-                            return false;
-                        }
-
-                        f_state.AddDefParam(FunctionState.TopTarget());
-                    }
-                    else // TO-DO add = for referencing global and do get ops
-                    {
-                        AddToErrorMessage("expected ':' for a sequence constants");
-                        return false;
-                    }
-                }
-
-
-                if (CurrentToken == TokenType.SEP)
-                {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                }
-                else if (CurrentToken != TokenType.ROUNDCLOSE)
-                {
-                    AddToErrorMessage("expected ')' for sequence constants definition end");
                     return false;
                 }
             }
@@ -1002,67 +1060,101 @@ namespace ExMat.Compiler
             return true;
         }
 
+        private bool ClusterInit(ref int pcount, ExFState f_state)
+        {
+            ExObject pname;
+            if ((pname = Expect(TokenType.IDENTIFIER)) == null)
+            {
+                return false;
+            }
+
+            pcount++;
+            f_state.AddParam(pname);
+
+            if (CurrentToken == TokenType.IN)
+            {
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+
+                if (CurrentToken != TokenType.SPACE)
+                {
+                    if (!ExExp())
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    AddSpaceConstLoadInstr(Lexer.ValSpace, -1);
+                    if (!ReadAndSetToken())
+                    {
+                        return false;
+                    }
+                }
+
+                f_state.AddDefParam(FunctionState.TopTarget());
+            }
+            else // TO-DO add = for referencing global and do get ops
+            {
+                AddToErrorMessage("expected 'in' for a domain reference");
+                return false;
+            }
+
+            return ClusterInitSep();
+        }
+
+        private bool ClusterInitSep()
+        {
+            if (CurrentToken == TokenType.SEP)
+            {
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+            }
+            else if (CurrentToken is not TokenType.SMC and not TokenType.CURLYCLOSE)
+            {
+                AddToErrorMessage("expected '}' ',' '=>' or ';' for cluster definition");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ClusterElementDef()
+        {
+            if (CurrentToken == TokenType.ELEMENTDEF)
+            {
+                AddToErrorMessage("expected '; [expression] => [return_value] }' after space specifications of cluster");
+                return false;
+            }
+            else
+            {
+                if (!ExExp())
+                {
+                    return false;
+                }
+            }
+
+            return CurrentToken == TokenType.ELEMENTDEF
+                || AddToErrorMessage("expected '=>' to define elements of cluster");
+        }
+
         public bool ExClusterCreate(ExObject o)
         {
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
             f_state.Name = o;
 
-            ExObject pname;
             f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
             f_state.Source = new(Source);
             int pcount = 0;
 
             while (CurrentToken != TokenType.SMC)
             {
-                if ((pname = Expect(TokenType.IDENTIFIER)) == null)
+                if (!ClusterInit(ref pcount, f_state))
                 {
-                    return false;
-                }
-
-                pcount++;
-                f_state.AddParam(pname);
-
-                if (CurrentToken == TokenType.IN)
-                {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-
-                    if (CurrentToken != TokenType.SPACE)
-                    {
-                        if (!ExExp())
-                        {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        AddSpaceConstLoadInstr(Lexer.ValSpace, -1);
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                    }
-
-                    f_state.AddDefParam(FunctionState.TopTarget());
-                }
-                else // TO-DO add = for referencing global and do get ops
-                {
-                    AddToErrorMessage("expected 'in' for a domain reference");
-                    return false;
-                }
-
-                if (CurrentToken == TokenType.SEP)
-                {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                }
-                else if (CurrentToken is not TokenType.SMC and not TokenType.CURLYCLOSE)
-                {
-                    AddToErrorMessage("expected '}' ',' '=>' or ';' for cluster definition");
                     return false;
                 }
             }
@@ -1080,24 +1172,11 @@ namespace ExMat.Compiler
             ExFState tmp = FunctionState.Copy();
             FunctionState = f_state;
 
-            if (CurrentToken == TokenType.ELEMENTDEF)
+            if (!ClusterElementDef())
             {
-                AddToErrorMessage("expected '; [expression] => [return_value] }' after space specifications of cluster");
                 return false;
-            }
-            else
-            {
-                if (!ExExp())
-                {
-                    return false;
-                }
             }
 
-            if (CurrentToken != TokenType.ELEMENTDEF)
-            {
-                AddToErrorMessage("expected '=>' to define elements of cluster");
-                return false;
-            }
             //
             FunctionState.AddInstr(ExOperationCode.JZ, FunctionState.PopTarget(), 0, 0, 0);
 
@@ -1159,129 +1238,51 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ExSymbolCreate(ExObject o)
+        private bool RuleInit(ExFState f_state)
         {
-            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
-            f_state.Name = o;
-
             ExObject pname;
-            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
-            f_state.Source = new(Source);
-
-            while (CurrentToken != TokenType.ROUNDCLOSE)
-            {
-                if ((pname = Expect(TokenType.IDENTIFIER)) == null)
-                {
-                    return false;
-                }
-
-                f_state.AddParam(pname);
-
-                if (CurrentToken == TokenType.SEP)
-                {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                }
-                else if (CurrentToken != TokenType.ROUNDCLOSE)
-                {
-                    if (CurrentToken == TokenType.ASG)
-                    {
-                        AddToErrorMessage("default values are not supported for symbols");
-                    }
-                    else
-                    {
-                        AddToErrorMessage("expected ')' or ',' for symbol declaration");
-                    }
-                    return false;
-                }
-            }
-
-            if (Expect(TokenType.ROUNDCLOSE) == null)
+            if ((pname = Expect(TokenType.IDENTIFIER)) == null)
             {
                 return false;
             }
 
-            ExFState tmp = FunctionState.Copy();
-            FunctionState = f_state;
+            f_state.AddParam(pname);
 
-            if (!ExExp())
+            if (CurrentToken == TokenType.SEP)
             {
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+            }
+            else if (CurrentToken != TokenType.ROUNDCLOSE)
+            {
+                if (CurrentToken == TokenType.ASG)
+                {
+                    AddToErrorMessage("default values are not supported for rules");
+                }
+                else
+                {
+                    AddToErrorMessage("expected ')' or ',' for rule declaration");
+                }
                 return false;
             }
-            f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
-
-            f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
-            f_state.AddInstr(ExOperationCode.RETURN, ExMat.InvalidArgument, 0, 0, 0);
-            f_state.SetLocalStackSize(0);
-
-            ExPrototype fpro = f_state.CreatePrototype();
-
-            FunctionState = tmp;
-            FunctionState.Functions.Add(fpro);
-            FunctionState.PopChildState();
 
             return true;
         }
 
-        public bool ProcessFormulaStatement()
-        {
-            ExObject v;
-            if (!ReadAndSetToken() || (v = Expect(TokenType.IDENTIFIER)) == null)
-            {
-                return false;
-            }
-
-            FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(v), 0, 0);
-
-            if (Expect(TokenType.ROUNDOPEN) == null || !ExSymbolCreate(v))
-            {
-                return false;
-            }
-
-            FunctionState.AddInstr(ExOperationCode.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
-
-            AddBasicDerefInstr(ExOperationCode.NEWSLOT);
-
-            return true;
-        }
         public bool ExRuleCreate(ExObject o)
         {
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
             f_state.Name = o;
 
-            ExObject pname;
             f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
             f_state.Source = new(Source);
 
             while (CurrentToken != TokenType.ROUNDCLOSE)
             {
-                if ((pname = Expect(TokenType.IDENTIFIER)) == null)
+                if (!RuleInit(f_state))
                 {
-                    return false;
-                }
-
-                f_state.AddParam(pname);
-
-                if (CurrentToken == TokenType.SEP)
-                {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                }
-                else if (CurrentToken != TokenType.ROUNDCLOSE)
-                {
-                    if (CurrentToken == TokenType.ASG)
-                    {
-                        AddToErrorMessage("default values are not supported for rules");
-                    }
-                    else
-                    {
-                        AddToErrorMessage("expected ')' or ',' for rule declaration");
-                    }
                     return false;
                 }
             }
@@ -1337,14 +1338,10 @@ namespace ExMat.Compiler
             return true;
         }
 
-        public bool ProcessVarAsgStatement()
+        private bool ProcessVarAsgSpecialInit(out bool done)
         {
             ExObject v;
-            if (!ReadAndSetToken()) // okunan 'var' sembolünden sonraki sembolü oku
-            {
-                return false;
-            }
-            #region _
+            done = true;
             if (CurrentToken == TokenType.FUNCTION)
             {
                 if (!ReadAndSetToken()
@@ -1390,34 +1387,60 @@ namespace ExMat.Compiler
                 FunctionState.PushVar(v);
                 return true;
             }
-            #endregion
-            while (true)
+            else
             {
-                if ((v = Expect(TokenType.IDENTIFIER)) == null) // Tanımlayıcı bekle
+                done = false;
+                return true;
+            }
+        }
+
+        private bool VarAsg()
+        {
+            if (CurrentToken == TokenType.ASG)      // '=' bekle
+            {
+                if (!ReadAndSetToken() || !ExExp())     // Sağ tarafı derle
                 {
                     return false;
                 }
 
-                if (CurrentToken == TokenType.ASG)      // '=' bekle
-                {
-                    if (!ReadAndSetToken() || !ExExp())     // Sağ tarafı derle
-                    {
-                        return false;
-                    }
+                int source = FunctionState.PopTarget();
+                int destination = FunctionState.PushTarget();
 
-                    int source = FunctionState.PopTarget();
-                    int destination = FunctionState.PushTarget();
-
-                    // kaynak != hedef ise başka bir değişkenin değeri bu değişkene atanıyordur
-                    if (destination != source)
-                    {
-                        FunctionState.AddInstr(ExOperationCode.MOVE, destination, source, 0, 0);
-                    }
-                }
-                else // '=' yoksa 'null' ata
+                // kaynak != hedef ise başka bir değişkenin değeri bu değişkene atanıyordur
+                if (destination != source)
                 {
-                    FunctionState.AddInstr(ExOperationCode.LOADNULL, FunctionState.PushTarget(), 1, 0, 0);
+                    FunctionState.AddInstr(ExOperationCode.MOVE, destination, source, 0, 0);
                 }
+            }
+            else // '=' yoksa 'null' ata
+            {
+                FunctionState.AddInstr(ExOperationCode.LOADNULL, FunctionState.PushTarget(), 1, 0, 0);
+            }
+            return true;
+        }
+
+        public bool ProcessVarAsgStatement()
+        {
+            if (!ReadAndSetToken()
+                || !ProcessVarAsgSpecialInit(out bool done))
+            {
+                return false;
+            }
+
+            if (done)
+            {
+                return true;
+            }
+
+            ExObject v;
+            while (true)
+            {
+                if ((v = Expect(TokenType.IDENTIFIER)) == null
+                    || !VarAsg())
+                {
+                    return false;
+                }
+
                 FunctionState.PopTarget();      // Yığını temizle
                 FunctionState.PushVar(v);       // Değişkeni ekle
                 if (CurrentToken == TokenType.SEP)  // ',' ile ayrılmış sıradaki değişkeni ara
@@ -1558,6 +1581,128 @@ namespace ExMat.Compiler
             return true;
         }
 
+        private bool ExExpAsgECheck(ExEType etyp)
+        {
+            switch (etyp)    // İfade tipini kontrol et
+            {
+                case ExEType.CONSTDELEG: return AddToErrorMessage("can't modify a constant's delegate");
+                case ExEType.EXPRESSION: return AddToErrorMessage("can't assing an expression");
+                case ExEType.BASE: return AddToErrorMessage("can't modify 'base'");
+                default: return true;
+            }
+        }
+
+        private bool ExExpAsgInit(TokenType op, ExEType etyp, int targetpos)
+        {
+            switch (op)
+            {
+                case TokenType.ASG:
+                    {
+                        ExExpAsg(etyp, targetpos);
+                        break;
+                    }
+                case TokenType.ADDEQ:
+                case TokenType.SUBEQ:
+                case TokenType.MLTEQ:
+                case TokenType.DIVEQ:
+                case TokenType.MODEQ:
+                    {
+                        AddCompoundOpInstr(op, etyp, targetpos);
+                        break;
+                    }
+                case TokenType.NEWSLOT:
+                    {
+                        if (etyp is ExEType.OBJECT or ExEType.BASE)
+                        {
+                            AddBasicDerefInstr(ExOperationCode.NEWSLOT);
+                        }
+                        else
+                        {
+                            AddToErrorMessage("can't create a local slot");
+                            return false;
+                        }
+                        break;
+                    }
+            }
+            return true;
+        }
+
+        private void ExExpAsg(ExEType etyp, int targetpos)
+        {
+            switch (etyp)
+            {
+                case ExEType.VAR:   // Değişkene değer ata
+                    {
+                        int source = FunctionState.PopTarget();
+                        int destination = FunctionState.TopTarget();
+                        FunctionState.AddInstr(ExOperationCode.MOVE, destination, source, 0, 0);
+                        break;
+                    }
+                case ExEType.OBJECT:    // Objenin sahip olduğu bir değeri değiştir
+                case ExEType.BASE:
+                    {
+                        AddBasicDerefInstr(ExOperationCode.SET);
+                        break;
+                    }
+                case ExEType.OUTER:     // Dışardaki bir değişkene değer ata
+                    {
+                        int source = FunctionState.PopTarget();
+                        int destination = FunctionState.PushTarget();
+                        FunctionState.AddInstr(ExOperationCode.SETOUTER, destination, targetpos, source, 0);
+                        break;
+                    }
+            }
+        }
+
+        private bool ExExpTernary()
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            FunctionState.AddInstr(ExOperationCode.JZ, FunctionState.PopTarget(), 0, 0, 0);
+
+            int jzp = FunctionState.GetCurrPos();
+            int t = FunctionState.PushTarget();
+
+            if (!ExExp())
+            {
+                return false;
+            }
+
+            int f = FunctionState.PopTarget();
+            if (t != f)
+            {
+                FunctionState.AddInstr(ExOperationCode.MOVE, t, f, 0, 0);
+            }
+            int end_f = FunctionState.GetCurrPos();
+
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, 0, 0, 0);
+            if (Expect(TokenType.COL) == null)
+            {
+                return false;
+            }
+
+            int jmp = FunctionState.GetCurrPos();
+
+            if (!ExExp())
+            {
+                return false;
+            }
+
+            int s = FunctionState.PopTarget();
+            if (t != s)
+            {
+                FunctionState.AddInstr(ExOperationCode.MOVE, t, s, 0, 0);
+            }
+
+            FunctionState.UpdateInstructionArgument(jmp, 1, FunctionState.GetCurrPos() - jmp);
+            FunctionState.UpdateInstructionArgument(jzp, 1, end_f - jzp + 1);
+            FunctionState.NotSnoozed = false;
+            return true;
+        }
+
         public bool ExExp()
         {
             // İfade takipçisini kopyasını alıp sıfırla
@@ -1574,133 +1719,32 @@ namespace ExMat.Compiler
             switch (CurrentToken)
             {
                 case TokenType.ASG:     // =
-                #region Other tokens: += -= /= *= %= <>
                 case TokenType.ADDEQ:   // +=
                 case TokenType.SUBEQ:   // -=
                 case TokenType.DIVEQ:   // /=
                 case TokenType.MLTEQ:   // *=
                 case TokenType.MODEQ:   // %=
                 case TokenType.NEWSLOT: // <>
-                    #endregion
                     {
-                        TokenType op = CurrentToken; ExEType etyp = ExpressionState.Type;
+                        TokenType op = CurrentToken;
+                        ExEType etyp = ExpressionState.Type;
                         int targetpos = ExpressionState.Position;
 
-                        switch (etyp)    // İfade tipini kontrol et
-                        {
-                            case ExEType.CONSTDELEG: return AddToErrorMessage("can't modify a constant's delegate");
-                            case ExEType.EXPRESSION: return AddToErrorMessage("can't assing an expression");
-                            case ExEType.BASE: return AddToErrorMessage("can't modify 'base'");
-                            default: break;
-                        }
-                        if (!ReadAndSetToken() || !ExExp()) // Sağ tarafı derle
+                        if (!ExExpAsgECheck(etyp)   // LHS valid
+                            || !ReadAndSetToken()   // Next
+                            || !ExExp()             // RHS valid
+                            || !ExExpAsgInit(op, etyp, targetpos))
                         {
                             return false;
-                        }
-
-                        switch (op)
-                        {
-                            case TokenType.ASG:
-                                {
-                                    switch (etyp)
-                                    {
-                                        case ExEType.VAR:   // Değişkene değer ata
-                                            {
-                                                int source = FunctionState.PopTarget();
-                                                int destination = FunctionState.TopTarget();
-                                                FunctionState.AddInstr(ExOperationCode.MOVE, destination, source, 0, 0);
-                                                break;
-                                            }
-                                        case ExEType.OBJECT:    // Objenin sahip olduğu bir değeri değiştir
-                                        case ExEType.BASE:
-                                            {
-                                                AddBasicDerefInstr(ExOperationCode.SET);
-                                                break;
-                                            }
-                                        case ExEType.OUTER:     // Dışardaki bir değişkene değer ata
-                                            {
-                                                int source = FunctionState.PopTarget();
-                                                int destination = FunctionState.PushTarget();
-                                                FunctionState.AddInstr(ExOperationCode.SETOUTER, destination, targetpos, source, 0);
-                                                break;
-                                            }
-                                    }
-                                    break;
-                                }
-                            #region Rest of the tokens
-                            case TokenType.ADDEQ:
-                            case TokenType.SUBEQ:
-                            case TokenType.MLTEQ:
-                            case TokenType.DIVEQ:
-                            case TokenType.MODEQ:
-                                {
-                                    AddCompoundOpInstr(op, etyp, targetpos);
-                                    break;
-                                }
-                            case TokenType.NEWSLOT:
-                                {
-                                    if (etyp is ExEType.OBJECT or ExEType.BASE)
-                                    {
-                                        AddBasicDerefInstr(ExOperationCode.NEWSLOT);
-                                    }
-                                    else
-                                    {
-                                        AddToErrorMessage("can't create a local slot");
-                                        return false;
-                                    }
-                                    break;
-                                }
-                                #endregion
                         }
                         break;
                     }
                 case TokenType.QMARK:   // ?
                     {
-                        if (!ReadAndSetToken())
+                        if (!ExExpTernary())
                         {
                             return false;
                         }
-
-                        FunctionState.AddInstr(ExOperationCode.JZ, FunctionState.PopTarget(), 0, 0, 0);
-
-                        int jzp = FunctionState.GetCurrPos();
-                        int t = FunctionState.PushTarget();
-
-                        if (!ExExp())
-                        {
-                            return false;
-                        }
-
-                        int f = FunctionState.PopTarget();
-                        if (t != f)
-                        {
-                            FunctionState.AddInstr(ExOperationCode.MOVE, t, f, 0, 0);
-                        }
-                        int end_f = FunctionState.GetCurrPos();
-
-                        FunctionState.AddInstr(ExOperationCode.JMP, 0, 0, 0, 0);
-                        if (Expect(TokenType.COL) == null)
-                        {
-                            return false;
-                        }
-
-                        int jmp = FunctionState.GetCurrPos();
-
-                        if (!ExExp())
-                        {
-                            return false;
-                        }
-
-                        int s = FunctionState.PopTarget();
-                        if (t != s)
-                        {
-                            FunctionState.AddInstr(ExOperationCode.MOVE, t, s, 0, 0);
-                        }
-
-                        FunctionState.UpdateInstructionArgument(jmp, 1, FunctionState.GetCurrPos() - jmp);
-                        FunctionState.UpdateInstructionArgument(jzp, 1, end_f - jzp + 1);
-                        FunctionState.NotSnoozed = false;
-
                         break;
                     }
             }
@@ -1910,59 +1954,46 @@ namespace ExMat.Compiler
             }
             while (true)
             {
+                bool valid = false;
                 switch (CurrentToken)
                 {
                     case TokenType.GRT:
                         {
-                            if (!ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.GRT))
-                            {
-                                return false;
-                            }
+                            valid = ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.GRT);
                             break;
                         }
                     case TokenType.LST:
                         {
-                            if (!ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.LST))
-                            {
-                                return false;
-                            }
+                            valid = ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.LST);
                             break;
                         }
                     case TokenType.GET:
                         {
-                            if (!ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.GET))
-                            {
-                                return false;
-                            }
+                            valid = ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.GET);
                             break;
                         }
                     case TokenType.LET:
                         {
-                            if (!ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.LET))
-                            {
-                                return false;
-                            }
+                            valid = ExBinaryExp(ExOperationCode.CMP, ExLogicShift, (int)CmpOP.LET);
                             break;
                         }
                     case TokenType.NOTIN:
                     case TokenType.IN:
                         {
-                            if (!ExBinaryExp(ExOperationCode.EXISTS, ExLogicShift, CurrentToken == TokenType.NOTIN ? 1 : 0))
-                            {
-                                return false;
-                            }
+                            valid = ExBinaryExp(ExOperationCode.EXISTS, ExLogicShift, CurrentToken == TokenType.NOTIN ? 1 : 0);
                             break;
                         }
                     case TokenType.INSTANCEOF:
                         {
-                            if (!ExBinaryExp(ExOperationCode.INSTANCEOF, ExLogicShift))
-                            {
-                                return false;
-                            }
+                            valid = ExBinaryExp(ExOperationCode.INSTANCEOF, ExLogicShift);
                             break;
                         }
                     default:
                         return true;
+                }
+                if (!valid)
+                {
+                    return false;
                 }
             }
         }
@@ -2097,6 +2128,193 @@ namespace ExMat.Compiler
             }
         }
 
+        private bool ExPrefixedDot(ref int p)
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            ExObject tmp;
+            if ((tmp = Expect(TokenType.IDENTIFIER)) == null)
+            {
+                return false;
+            }
+
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(tmp), 0, 0);
+
+            if (ExpressionState.Type == ExEType.BASE)
+            {
+                AddBasicOpInstr(ExOperationCode.GET);
+                p = FunctionState.TopTarget();
+                ExpressionState.Type = ExEType.EXPRESSION;
+                ExpressionState.Position = p;
+            }
+            else
+            {
+                if (ExRequiresGetter())
+                {
+                    AddBasicOpInstr(ExOperationCode.GET);
+                }
+                ExpressionState.Type = ExEType.OBJECT;
+            }
+            return true;
+        }
+
+        private bool ExPrefixedSquareOpen(ref int p)
+        {
+            if (Lexer.TokenPrev == TokenType.NEWLINE)
+            {
+                AddToErrorMessage("can't break deref OR ',' needed after [exp] = exp decl");
+                return false;
+            }
+            if (!ReadAndSetToken() || !ExExp() || Expect(TokenType.SQUARECLOSE) == null)
+            {
+                return false;
+            }
+
+            if (ExpressionState.Type == ExEType.BASE)
+            {
+                AddBasicOpInstr(ExOperationCode.GET);
+                p = FunctionState.TopTarget();
+                ExpressionState.Type = ExEType.EXPRESSION;
+                ExpressionState.Position = p;
+            }
+            else
+            {
+                if (ExRequiresGetter())
+                {
+                    AddBasicOpInstr(ExOperationCode.GET);
+                }
+                ExpressionState.Type = ExEType.OBJECT;
+            }
+            return true;
+        }
+
+        private bool ExPrefixMatrixTranspose()
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            switch (ExpressionState.Type)
+            {
+                case ExEType.EXPRESSION:
+                case ExEType.OBJECT:
+                case ExEType.BASE:
+                case ExEType.VAR:
+                    {
+                        int s = FunctionState.PopTarget();
+                        FunctionState.AddInstr(ExOperationCode.TRANSPOSE, FunctionState.PushTarget(), s, 0, 0);
+                        break;
+                    }
+                case ExEType.OUTER:
+                    {
+                        int t1 = FunctionState.PushTarget();
+                        int t2 = FunctionState.PushTarget();
+                        FunctionState.AddInstr(ExOperationCode.GETOUTER, t2, ExpressionState.Position, 0, 0);
+                        FunctionState.AddInstr(ExOperationCode.TRANSPOSE, t1, t2, 0, 0);
+                        FunctionState.PopTarget();
+                        break;
+                    }
+                default:
+                    {
+                        return AddToErrorMessage("can't transpose a delegate!");
+                    }
+            }
+            return true;
+        }
+
+        private bool ExPrefixedIncDec()
+        {
+            if (IsEOS())
+            {
+                return true;
+            }
+            int v = CurrentToken == TokenType.DEC ? -1 : 1;
+
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            switch (ExpressionState.Type)
+            {
+                case ExEType.CONSTDELEG:
+                    {
+                        return AddToErrorMessage("can't increment or decrement a delegate");
+                    }
+                case ExEType.EXPRESSION:
+                    {
+                        return AddToErrorMessage("can't increment or decrement an expression");
+                    }
+                case ExEType.OBJECT:
+                case ExEType.BASE:
+                    {
+                        AddBasicOpInstr(ExOperationCode.PINC, v);
+                        break;
+                    }
+                case ExEType.VAR:
+                    {
+                        int s = FunctionState.PopTarget();
+                        FunctionState.AddInstr(ExOperationCode.PINCL, FunctionState.PushTarget(), s, 0, v);
+                        break;
+                    }
+                case ExEType.OUTER:
+                    {
+                        int t1 = FunctionState.PushTarget();
+                        int t2 = FunctionState.PushTarget();
+                        FunctionState.AddInstr(ExOperationCode.GETOUTER, t2, ExpressionState.Position, 0, 0);
+                        FunctionState.AddInstr(ExOperationCode.PINCL, t1, t2, 0, v);
+                        FunctionState.AddInstr(ExOperationCode.SETOUTER, t2, ExpressionState.Position, t2, 0);
+                        FunctionState.PopTarget();
+                        break;
+                    }
+            }
+            return true;
+        }
+
+        private bool ExPrefixedRoundOpen()
+        {
+            switch (ExpressionState.Type)
+            {
+                case ExEType.OBJECT:
+                    {
+                        int k_loc = FunctionState.PopTarget();
+                        int obj_loc = FunctionState.PopTarget();
+                        int closure = FunctionState.PushTarget();
+                        int target = FunctionState.PushTarget();
+                        FunctionState.AddInstr(ExOperationCode.PREPCALL, closure, k_loc, obj_loc, target);
+                        break;
+                    }
+                case ExEType.BASE:
+                    {
+                        FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
+                        break;
+                    }
+                case ExEType.OUTER:
+                    {
+                        FunctionState.AddInstr(ExOperationCode.GETOUTER, FunctionState.PushTarget(), ExpressionState.Position, 0, 0);
+                        FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
+                        break;
+                    }
+                case ExEType.CONSTDELEG:
+                    {
+                        FunctionState.AddInstr(ExOperationCode.LOADCONSTDICT, FunctionState.PushTarget(), 2, 0, 0);
+                        break;
+                    }
+                default:
+                    {
+                        FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
+                        break;
+                    }
+            }
+            ExpressionState.Type = ExEType.EXPRESSION;
+
+            return ReadAndSetToken() && ExFuncCall();
+        }
+
         public bool ExPrefixed()
         {
             int p = -1;
@@ -2106,192 +2324,32 @@ namespace ExMat.Compiler
             }
             while (true)
             {
+                bool valid;
+
                 switch (CurrentToken)
                 {
                     case TokenType.DOT:
                         {
-                            if (!ReadAndSetToken())
-                            {
-                                return false;
-                            }
-
-                            ExObject tmp;
-                            if ((tmp = Expect(TokenType.IDENTIFIER)) == null)
-                            {
-                                return false;
-                            }
-
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(tmp), 0, 0);
-
-                            if (ExpressionState.Type == ExEType.BASE)
-                            {
-                                AddBasicOpInstr(ExOperationCode.GET);
-                                p = FunctionState.TopTarget();
-                                ExpressionState.Type = ExEType.EXPRESSION;
-                                ExpressionState.Position = p;
-                            }
-                            else
-                            {
-                                if (ExRequiresGetter())
-                                {
-                                    AddBasicOpInstr(ExOperationCode.GET);
-                                }
-                                ExpressionState.Type = ExEType.OBJECT;
-                            }
+                            valid = ExPrefixedDot(ref p);
                             break;
                         }
                     case TokenType.SQUAREOPEN:
                         {
-                            if (Lexer.TokenPrev == TokenType.NEWLINE)
-                            {
-                                AddToErrorMessage("can't break deref OR ',' needed after [exp] = exp decl");
-                                return false;
-                            }
-                            if (!ReadAndSetToken() || !ExExp() || Expect(TokenType.SQUARECLOSE) == null)
-                            {
-                                return false;
-                            }
-
-                            if (ExpressionState.Type == ExEType.BASE)
-                            {
-                                AddBasicOpInstr(ExOperationCode.GET);
-                                p = FunctionState.TopTarget();
-                                ExpressionState.Type = ExEType.EXPRESSION;
-                                ExpressionState.Position = p;
-                            }
-                            else
-                            {
-                                if (ExRequiresGetter())
-                                {
-                                    AddBasicOpInstr(ExOperationCode.GET);
-                                }
-                                ExpressionState.Type = ExEType.OBJECT;
-                            }
+                            valid = ExPrefixedSquareOpen(ref p);
                             break;
                         }
                     case TokenType.MATTRANSPOSE:
                         {
-                            if (!ReadAndSetToken())
-                            {
-                                return false;
-                            }
-
-                            switch (ExpressionState.Type)
-                            {
-                                case ExEType.EXPRESSION:
-                                case ExEType.OBJECT:
-                                case ExEType.BASE:
-                                case ExEType.VAR:
-                                    {
-                                        int s = FunctionState.PopTarget();
-                                        FunctionState.AddInstr(ExOperationCode.TRANSPOSE, FunctionState.PushTarget(), s, 0, 0);
-                                        break;
-                                    }
-                                case ExEType.OUTER:
-                                    {
-                                        int t1 = FunctionState.PushTarget();
-                                        int t2 = FunctionState.PushTarget();
-                                        FunctionState.AddInstr(ExOperationCode.GETOUTER, t2, ExpressionState.Position, 0, 0);
-                                        FunctionState.AddInstr(ExOperationCode.TRANSPOSE, t1, t2, 0, 0);
-                                        FunctionState.PopTarget();
-                                        break;
-                                    }
-                                case ExEType.CONSTDELEG:
-                                    {
-                                        return AddToErrorMessage("can't transpose a delegate!");
-                                    }
-                            }
-                            return true;
+                            return ExPrefixMatrixTranspose();
                         }
                     case TokenType.INC:
                     case TokenType.DEC:
                         {
-                            if (IsEOS())
-                            {
-                                return true;
-                            }
-                            int v = CurrentToken == TokenType.DEC ? -1 : 1;
-
-                            if (!ReadAndSetToken())
-                            {
-                                return false;
-                            }
-
-                            switch (ExpressionState.Type)
-                            {
-                                case ExEType.CONSTDELEG:
-                                    {
-                                        return AddToErrorMessage("can't increment or decrement a delegate");
-                                    }
-                                case ExEType.EXPRESSION:
-                                    {
-                                        return AddToErrorMessage("can't increment or decrement an expression");
-                                    }
-                                case ExEType.OBJECT:
-                                case ExEType.BASE:
-                                    {
-                                        AddBasicOpInstr(ExOperationCode.PINC, v);
-                                        break;
-                                    }
-                                case ExEType.VAR:
-                                    {
-                                        int s = FunctionState.PopTarget();
-                                        FunctionState.AddInstr(ExOperationCode.PINCL, FunctionState.PushTarget(), s, 0, v);
-                                        break;
-                                    }
-                                case ExEType.OUTER:
-                                    {
-                                        int t1 = FunctionState.PushTarget();
-                                        int t2 = FunctionState.PushTarget();
-                                        FunctionState.AddInstr(ExOperationCode.GETOUTER, t2, ExpressionState.Position, 0, 0);
-                                        FunctionState.AddInstr(ExOperationCode.PINCL, t1, t2, 0, v);
-                                        FunctionState.AddInstr(ExOperationCode.SETOUTER, t2, ExpressionState.Position, t2, 0);
-                                        FunctionState.PopTarget();
-                                        break;
-                                    }
-                            }
-                            return true;
+                            return ExPrefixedIncDec();
                         }
                     case TokenType.ROUNDOPEN:
                         {
-                            switch (ExpressionState.Type)
-                            {
-                                case ExEType.OBJECT:
-                                    {
-                                        int k_loc = FunctionState.PopTarget();
-                                        int obj_loc = FunctionState.PopTarget();
-                                        int closure = FunctionState.PushTarget();
-                                        int target = FunctionState.PushTarget();
-                                        FunctionState.AddInstr(ExOperationCode.PREPCALL, closure, k_loc, obj_loc, target);
-                                        break;
-                                    }
-                                case ExEType.BASE:
-                                    {
-                                        FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
-                                        break;
-                                    }
-                                case ExEType.OUTER:
-                                    {
-                                        FunctionState.AddInstr(ExOperationCode.GETOUTER, FunctionState.PushTarget(), ExpressionState.Position, 0, 0);
-                                        FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
-                                        break;
-                                    }
-                                case ExEType.CONSTDELEG:
-                                    {
-                                        FunctionState.AddInstr(ExOperationCode.LOADCONSTDICT, FunctionState.PushTarget(), 2, 0, 0);
-                                        break;
-                                    }
-                                default:
-                                    {
-                                        FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
-                                        break;
-                                    }
-                            }
-                            ExpressionState.Type = ExEType.EXPRESSION;
-                            if (!ReadAndSetToken() || !ExFuncCall())
-                            {
-                                return false;
-                            }
+                            valid = ExPrefixedRoundOpen();
                             break;
                         }
                     default:
@@ -2299,56 +2357,49 @@ namespace ExMat.Compiler
                             return true;
                         }
                 }
-            }
-        }
 
-        private bool CompileConstFactor(ExObject idx, ExObject cnst)
-        {
-            ExObject cid = null, cval = null;
-
-            bool dot;
-            dot = CurrentToken == TokenType.DOT;
-
-            if (cnst.Type == ExObjType.DICT)
-            {
-                if (!dot)
-                {
-                    return AddToErrorMessage("expected '.' for constant dict");
-                }
-
-                if (!ReadAndSetToken())
+                if (!valid)
                 {
                     return false;
                 }
+            }
+        }
 
-                cid = Expect(TokenType.IDENTIFIER);
+        private bool AccessConstDict(ExObject dict, ref ExObject cid, ref ExObject cval)
+        {
+            if (CurrentToken != TokenType.DOT)
+            {
+                return AddToErrorMessage("expected '.' for constant dict");
+            }
 
-                if (cid == null || cid.Type != ExObjType.STRING)
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            cid = Expect(TokenType.IDENTIFIER);
+
+            if (cid == null || cid.Type != ExObjType.STRING)
+            {
+                return AddToErrorMessage("Invalid constant name, expected string type name.");
+            }
+            else if (!dict.GetDict().ContainsKey(cid.GetString()))
+            {
+                if (!VM.InvokeDefaultDeleg(dict, cid, ref cval))
                 {
-                    return AddToErrorMessage("Invalid constant name, expected string type name.");
-                }
-                else if (!cnst.GetDict().ContainsKey(cid.GetString()))
-                {
-                    if (!VM.InvokeDefaultDeleg(cnst, cid, ref cval))
-                    {
-                        return AddToErrorMessage($"Unknown constant name '{cid.GetString()}'");
-                    }
-                }
-                else
-                {
-                    cval = new(cnst.GetDict()[cid.GetString()]);
+                    return AddToErrorMessage($"Unknown constant name '{cid.GetString()}'");
                 }
             }
             else
             {
-                cval = new(cnst);
+                cval = new(dict.GetDict()[cid.GetString()]);
             }
 
-            if (cval.Type != ExObjType.NATIVECLOSURE)
-            {
-                ExpressionState.Position = FunctionState.PushTarget();
-            }
+            return true;
+        }
 
+        private void AddConstLoadInstr(ExObject cid, ExObject cval, ExObject idx)
+        {
             switch (cval.Type)
             {
                 case ExObjType.INTEGER:
@@ -2397,6 +2448,30 @@ namespace ExMat.Compiler
                         break;
                     }
             }
+        }
+
+        private bool CompileConstFactor(ExObject idx, ExObject cnst)
+        {
+            ExObject cid = null, cval = null;
+
+            if (cnst.Type == ExObjType.DICT)
+            {
+                if (!AccessConstDict(cnst, ref cid, ref cval))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                cval = new(cnst);
+            }
+
+            if (cval.Type != ExObjType.NATIVECLOSURE)
+            {
+                ExpressionState.Position = FunctionState.PushTarget();
+            }
+
+            AddConstLoadInstr(cid, cval, idx);
 
             if (cval.Type is not ExObjType.NATIVECLOSURE
                 and not ExObjType.DICT
@@ -2407,145 +2482,253 @@ namespace ExMat.Compiler
             return true;
         }
 
+        private bool FactorReload()
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            int l, s = FunctionState.PushTarget();
+
+            if (CurrentToken is TokenType.LITERAL or TokenType.IDENTIFIER)
+            {
+                l = (int)FunctionState.GetLiteral(FunctionState.CreateString(Lexer.ValString));
+                if (!ReadAndSetToken())
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                l = (int)FunctionState.GetLiteral(FunctionState.CreateString(ExMat.StandardBaseLibraryName));
+            }
+            if (!IsEOS())
+            {
+                return AddToErrorMessage("expected end of statement.");
+            }
+
+            FunctionState.AddInstr(ExOperationCode.RELOADLIB, s, l, 0, 0);
+            ExpressionState.Type = ExEType.OBJECT;
+            return true;
+        }
+
+        private bool FactorBase(ref int pos)
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+            FunctionState.AddInstr(ExOperationCode.GETBASE, FunctionState.PushTarget(), 0, 0, 0);
+
+            ExpressionState.Type = ExEType.BASE;
+            ExpressionState.Position = FunctionState.TopTarget();
+            pos = ExpressionState.Position;
+            return true;
+        }
+        private bool FactorIdentifiers(ref int pos)
+        {
+            ExObject idx = new();
+            switch (CurrentToken)
+            {
+                case TokenType.IDENTIFIER:
+                    {
+                        idx = FunctionState.CreateString(Lexer.ValString);
+                        break;
+                    }
+                case TokenType.THIS:
+                    {
+                        idx = FunctionState.CreateString(ExMat.ThisName);
+                        break;
+                    }
+                case TokenType.CONSTRUCTOR:
+                    {
+                        idx = FunctionState.CreateString(ExMat.ConstructorName);
+                        break;
+                    }
+            }
+
+            int p;
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            if ((p = FunctionState.GetLocal(idx)) != -1)
+            {
+                FunctionState.PushTarget(p);
+                ExpressionState.Type = ExEType.VAR;
+                ExpressionState.Position = p;
+            }
+            else if ((p = FunctionState.GetOuter(idx)) != -1)
+            {
+                if (ExRequiresGetter())
+                {
+                    ExpressionState.Position = FunctionState.PushTarget();
+                    FunctionState.AddInstr(ExOperationCode.GETOUTER, ExpressionState.Position, p, 0, 0);
+                }
+                else
+                {
+                    ExpressionState.Type = ExEType.OUTER;
+                    ExpressionState.Position = p;
+                }
+            }
+            else if (FunctionState.IsConst(idx, out ExObject cnst))
+            {
+                if (!CompileConstFactor(idx, cnst))
+                {
+                    return false;
+                }
+            }
+            else // Yerli olmayan
+            {
+                FunctionState.PushTarget(0); // Hack, push 'this'
+                FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
+
+                if (ExRequiresGetter())
+                {
+                    AddBasicOpInstr(ExOperationCode.GET);
+                }
+                ExpressionState.Type = ExEType.OBJECT;
+            }
+            pos = ExpressionState.Position;
+            return true;
+        }
+
+        private bool FactorComplexLoad()
+        {
+            if (Lexer.TokenComplex == TokenType.INTEGER)    // Tamsayı katsayılı ?
+            {
+                AddComplexConstLoadInstr(Lexer.ValInteger, -1);
+            }
+            else // Ondalıklı sayı katsayılı
+            {
+                AddComplexConstLoadInstr(new DoubleLong() { f = Lexer.ValFloat }.i, -1, true);
+            }
+
+            return ReadAndSetToken();
+        }
+
+        private bool FactorSquareOpen()
+        {
+            FunctionState.AddInstr(ExOperationCode.NEWOBJECT, FunctionState.PushTarget(), 0, 0, (int)ExNewObjectType.ARRAY);
+            int p = FunctionState.GetCurrPos();
+            int k = 0;
+
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+            while (CurrentToken != TokenType.SQUARECLOSE)
+            {
+                if (!ExExp())
+                {
+                    return false;
+                }
+                if (CurrentToken == TokenType.SEP
+                    && !ReadAndSetToken())
+                {
+                    return false;
+                }
+
+                int v = FunctionState.PopTarget();
+                int a = FunctionState.TopTarget();
+                FunctionState.AddInstr(ExOperationCode.APPENDTOARRAY, a, v, (int)ArrayAType.STACK, 0);
+                k++;
+            }
+            FunctionState.UpdateInstructionArgument(p, 1, k);
+            return ReadAndSetToken();
+        }
+
+        private bool FactorSub()
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+            switch (CurrentToken)
+            {
+                case TokenType.INTEGER:
+                    {
+                        AddIntConstLoadInstr(-Lexer.ValInteger, -1);
+                        return ReadAndSetToken();
+                    }
+                case TokenType.FLOAT:
+                    {
+                        AddFloatConstLoadInstr(new DoubleLong() { f = -Lexer.ValFloat }.i, -1);
+                        return ReadAndSetToken();
+                    }
+                case TokenType.COMPLEX:
+                    {
+                        if (Lexer.TokenComplex == TokenType.INTEGER)
+                        {
+                            AddComplexConstLoadInstr(Lexer.ValInteger, -1);
+                        }
+                        else
+                        {
+                            AddComplexConstLoadInstr(new DoubleLong() { f = Lexer.ValFloat }.i, -1, true);
+                        }
+
+                        return ReadAndSetToken();
+                    }
+                default:
+                    {
+                        return ExOpUnary(ExOperationCode.NEGATE);
+                    }
+            }
+        }
+
+        private bool FactorBitNot()
+        {
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            if (CurrentToken == TokenType.INTEGER)
+            {
+                AddIntConstLoadInstr(~Lexer.ValInteger, -1);
+                return ReadAndSetToken();
+            }
+
+            return ExOpUnary(ExOperationCode.BNOT);
+        }
+
         public bool ExFactor(ref int pos)
         {
             ExpressionState.Type = ExEType.EXPRESSION;
 
+            bool valid;
             switch (CurrentToken)
             {
                 #region Diğer Semboller
                 case TokenType.LAMBDA:
                 case TokenType.FUNCTION:
                     {
-                        if (!ExFuncResolveExp(CurrentToken))
-                        {
-                            return false;
-                        }
+                        valid = ExFuncResolveExp(CurrentToken);
                         break;
                     }
                 case TokenType.LITERAL:
                     {
                         FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(FunctionState.CreateString(Lexer.ValString)), 0, 0);
 
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken();
                         break;
                     }
                 case TokenType.RELOAD:
                     {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-
-                        int l, s = FunctionState.PushTarget();
-
-                        if (CurrentToken is TokenType.LITERAL or TokenType.IDENTIFIER)
-                        {
-                            l = (int)FunctionState.GetLiteral(FunctionState.CreateString(Lexer.ValString));
-                            if (!ReadAndSetToken())
-                            {
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            l = (int)FunctionState.GetLiteral(FunctionState.CreateString(ExMat.StandardBaseLibraryName));
-                        }
-                        if (!IsEOS())
-                        {
-                            return AddToErrorMessage("expected end of statement.");
-                        }
-
-                        FunctionState.AddInstr(ExOperationCode.RELOADLIB, s, l, 0, 0);
-                        ExpressionState.Type = ExEType.OBJECT;
-
+                        valid = FactorReload();
                         break;
                     }
                 case TokenType.BASE:
                     {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        FunctionState.AddInstr(ExOperationCode.GETBASE, FunctionState.PushTarget(), 0, 0, 0);
-
-                        ExpressionState.Type = ExEType.BASE;
-                        ExpressionState.Position = FunctionState.TopTarget();
-                        pos = ExpressionState.Position;
-                        return true;
+                        return FactorBase(ref pos);
                     }
                 case TokenType.IDENTIFIER:
                 case TokenType.CONSTRUCTOR:
                 case TokenType.THIS:
                     {
-                        ExObject idx = new();
-                        switch (CurrentToken)
-                        {
-                            case TokenType.IDENTIFIER:
-                                {
-                                    idx = FunctionState.CreateString(Lexer.ValString);
-                                    break;
-                                }
-                            case TokenType.THIS:
-                                {
-                                    idx = FunctionState.CreateString(ExMat.ThisName);
-                                    break;
-                                }
-                            case TokenType.CONSTRUCTOR:
-                                {
-                                    idx = FunctionState.CreateString(ExMat.ConstructorName);
-                                    break;
-                                }
-                        }
-
-                        int p;
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-
-                        if ((p = FunctionState.GetLocal(idx)) != -1)
-                        {
-                            FunctionState.PushTarget(p);
-                            ExpressionState.Type = ExEType.VAR;
-                            ExpressionState.Position = p;
-                        }
-                        else if ((p = FunctionState.GetOuter(idx)) != -1)
-                        {
-                            if (ExRequiresGetter())
-                            {
-                                ExpressionState.Position = FunctionState.PushTarget();
-                                FunctionState.AddInstr(ExOperationCode.GETOUTER, ExpressionState.Position, p, 0, 0);
-                            }
-                            else
-                            {
-                                ExpressionState.Type = ExEType.OUTER;
-                                ExpressionState.Position = p;
-                            }
-                        }
-                        else if (FunctionState.IsConst(idx, out ExObject cnst))
-                        {
-                            if (!CompileConstFactor(idx, cnst))
-                            {
-                                return false;
-                            }
-                        }
-                        else // Yerli olmayan
-                        {
-                            FunctionState.PushTarget(0); // Hack, push 'this'
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
-
-                            if (ExRequiresGetter())
-                            {
-                                AddBasicOpInstr(ExOperationCode.GET);
-                            }
-                            ExpressionState.Type = ExEType.OBJECT;
-                        }
-                        pos = ExpressionState.Position;
-                        return true;
+                        return FactorIdentifiers(ref pos);
                     }
                 case TokenType.GLOBAL:
                     {
@@ -2560,238 +2743,100 @@ namespace ExMat.Compiler
                 case TokenType.NULL:
                     {
                         FunctionState.AddInstr(ExOperationCode.LOADNULL, FunctionState.PushTarget(), 1, CurrentToken == TokenType.DEFAULT ? 1 : 0, 0);
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken();
                         break;
                     }
                 #endregion
                 case TokenType.INTEGER:
                     {
                         AddIntConstLoadInstr(Lexer.ValInteger, -1); // Sembol ayırıcıdaki tamsayı değerini al
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken();
                         break;
                     }
                 case TokenType.FLOAT:
                     {
                         AddFloatConstLoadInstr(new DoubleLong() { f = Lexer.ValFloat }.i, -1);
-
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken();
                         break;
                     }
                 case TokenType.COMPLEX:
                     {
-                        if (Lexer.TokenComplex == TokenType.INTEGER)    // Tamsayı katsayılı ?
-                        {
-                            AddComplexConstLoadInstr(Lexer.ValInteger, -1);
-                        }
-                        else // Ondalıklı sayı katsayılı
-                        {
-                            AddComplexConstLoadInstr(new DoubleLong() { f = Lexer.ValFloat }.i, -1, true);
-                        }
-
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = FactorComplexLoad();
                         break;
                     }
                 case TokenType.SPACE:
                     {
                         AddSpaceConstLoadInstr(Lexer.ValSpace, -1);
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken();
                         break;
                     }
                 case TokenType.TRUE:
                 case TokenType.FALSE:
                     {
                         FunctionState.AddInstr(ExOperationCode.LOADBOOLEAN, FunctionState.PushTarget(), CurrentToken == TokenType.TRUE ? 1 : 0, 0, 0);
-
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken();
                         break;
                     }
                 case TokenType.SQUAREOPEN:
                     {
-                        FunctionState.AddInstr(ExOperationCode.NEWOBJECT, FunctionState.PushTarget(), 0, 0, (int)ExNewObjectType.ARRAY);
-                        int p = FunctionState.GetCurrPos();
-                        int k = 0;
-
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        while (CurrentToken != TokenType.SQUARECLOSE)
-                        {
-                            if (!ExExp())
-                            {
-                                return false;
-                            }
-                            if (CurrentToken == TokenType.SEP
-                                && !ReadAndSetToken())
-                            {
-                                return false;
-                            }
-
-                            int v = FunctionState.PopTarget();
-                            int a = FunctionState.TopTarget();
-                            FunctionState.AddInstr(ExOperationCode.APPENDTOARRAY, a, v, (int)ArrayAType.STACK, 0);
-                            k++;
-                        }
-                        FunctionState.UpdateInstructionArgument(p, 1, k);
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
+                        valid = FactorSquareOpen();
                         break;
                     }
                 case TokenType.CURLYOPEN:
                     {
                         FunctionState.AddInstr(ExOperationCode.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNewObjectType.DICT, 0);
-
-                        if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.CURLYCLOSE))
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken() && ParseDictClusterOrClass(TokenType.SEP, TokenType.CURLYCLOSE);
                         break;
                     }
                 case TokenType.SUB:
                     {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        switch (CurrentToken)
-                        {
-                            case TokenType.INTEGER:
-                                {
-                                    AddIntConstLoadInstr(-Lexer.ValInteger, -1);
-                                    if (!ReadAndSetToken())
-                                    {
-                                        return false;
-                                    }
-                                    break;
-                                }
-                            case TokenType.FLOAT:
-                                {
-                                    AddFloatConstLoadInstr(new DoubleLong() { f = -Lexer.ValFloat }.i, -1);
-                                    if (!ReadAndSetToken())
-                                    {
-                                        return false;
-                                    }
-                                    break;
-                                }
-                            case TokenType.COMPLEX:
-                                {
-                                    if (Lexer.TokenComplex == TokenType.INTEGER)
-                                    {
-                                        AddComplexConstLoadInstr(Lexer.ValInteger, -1);
-                                    }
-                                    else
-                                    {
-                                        AddComplexConstLoadInstr(new DoubleLong() { f = Lexer.ValFloat }.i, -1, true);
-                                    }
-
-                                    if (!ReadAndSetToken())
-                                    {
-                                        return false;
-                                    }
-                                    break;
-                                }
-                            default:
-                                {
-                                    if (!ExOpUnary(ExOperationCode.NEGATE))
-                                    {
-                                        return false;
-                                    }
-                                    break;
-                                }
-                        }
+                        valid = FactorSub();
                         break;
                     }
                 case TokenType.EXC:
                     {
-                        if (!ReadAndSetToken() || !ExOpUnary(ExOperationCode.NOT))
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken() && ExOpUnary(ExOperationCode.NOT);
                         break;
                     }
                 case TokenType.BNOT:
                     {
-                        if (!ReadAndSetToken())
-                        {
-                            return false;
-                        }
-                        if (CurrentToken == TokenType.INTEGER)
-                        {
-                            AddIntConstLoadInstr(~Lexer.ValInteger, -1);
-                            if (!ReadAndSetToken())
-                            {
-                                return false;
-                            }
-                            break;
-                        }
-                        if (!ExOpUnary(ExOperationCode.BNOT))
-                        {
-                            return false;
-                        }
+                        valid = FactorBitNot();
                         break;
                     }
                 case TokenType.TYPEOF:
                     {
-                        if (!ReadAndSetToken() || !ExOpUnary(ExOperationCode.TYPEOF))
-                        {
-                            return false;
-                        }
+                        valid = ReadAndSetToken() && ExOpUnary(ExOperationCode.TYPEOF);
                         break;
                     }
                 case TokenType.INC:
                 case TokenType.DEC:
                     {
-                        if (!ExPrefixedIncDec(CurrentToken))
-                        {
-                            return false;
-                        }
+                        valid = ExPrefixedIncDec(CurrentToken);
                         break;
                     }
                 case TokenType.ROUNDOPEN:
                     {
-                        if (!ReadAndSetToken()
-                            || !ExSepExp()
-                            || Expect(TokenType.ROUNDCLOSE) == null)
-                        {
-                            return false;
-                        }
-
+                        valid = ReadAndSetToken()
+                                && ExSepExp()
+                                && Expect(TokenType.ROUNDCLOSE) != null;
                         break;
                     }
                 case TokenType.DELETE:
                     {
-                        if (!ExDeleteExp())
-                        {
-                            return false;
-                        }
+                        valid = ExDeleteExp();
                         break;
                     }
                 default:
                     {
-                        AddToErrorMessage("expression expected");
-                        return false;
+                        return AddToErrorMessage("expression expected");
                     }
             }
+
+            if (!valid)
+            {
+                return false;
+            }
+
             pos = -1;
             return true;
         }
@@ -3018,6 +3063,99 @@ namespace ExMat.Compiler
             }
         }
 
+        private bool ParseAttributePresenceCheck(ref bool a_present)
+        {
+            if (CurrentToken == TokenType.ATTRIBUTEBEGIN)
+            {
+                FunctionState.AddInstr(ExOperationCode.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNewObjectType.DICT, 0);
+
+                if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
+                {
+                    return AddToErrorMessage("failed to parse attribute");
+                }
+                a_present = true;
+            }
+            return true;
+        }
+        private bool ParseMethod()
+        {
+            TokenType typ = CurrentToken;
+            if (!ReadAndSetToken())
+            {
+                return false;
+            }
+
+            ExObject o = typ == TokenType.FUNCTION ? Expect(TokenType.IDENTIFIER) : FunctionState.CreateString(ExMat.ConstructorName);
+
+            if (o == null || Expect(TokenType.ROUNDOPEN) == null)
+            {
+                return false;
+            }
+
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
+
+            if (!ExFuncCreate(o))
+            {
+                return false;
+            }
+
+            FunctionState.AddInstr(ExOperationCode.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
+            return true;
+        }
+
+        private bool ParseKeyOrMember(TokenType sep)
+        {
+            return sep == TokenType.SEP ? ParseLiteralDictKey() : ParseIdentifierKeyOrMember();
+        }
+
+        private bool ParseLiteralDictKey()
+        {
+            ExObject o;
+            if ((o = Expect(TokenType.LITERAL)) == null)
+            {
+                return false;
+            }
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
+
+            return Expect(TokenType.COL) != null && ExExp();
+        }
+        private bool ParseIdentifierKeyOrMember()
+        {
+            ExObject o;
+            if ((o = Expect(TokenType.IDENTIFIER)) == null)
+            {
+                return false;
+            }
+
+            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
+
+            return Expect(TokenType.ASG) != null && ExExp();
+        }
+
+        private bool NewSlotFromParsing(bool a_present, TokenType sep)
+        {
+            int v = FunctionState.PopTarget();
+            int k = FunctionState.PopTarget();
+            int a = a_present ? FunctionState.PopTarget() : -1;
+
+            if (!((a_present && (a == k - 1)) || !a_present))
+            {
+                return AddToErrorMessage("attributes present count error");
+            }
+
+            int flg = a_present ? (int)ExNewSlotFlag.ATTR : 0; // to-do static flag
+            int t = FunctionState.TopTarget();
+            if (sep == TokenType.SEP)
+            {
+                FunctionState.AddInstr(ExOperationCode.NEWSLOT, ExMat.InvalidArgument, t, k, v);
+            }
+            else
+            {
+                FunctionState.AddInstr(ExOperationCode.NEWSLOTA, flg, t, k, v);
+            }
+            return true;
+        }
+
         public bool ParseDictClusterOrClass(TokenType sep, TokenType end)
         {
             int p = FunctionState.GetCurrPos();
@@ -3025,123 +3163,49 @@ namespace ExMat.Compiler
 
             while (CurrentToken != end)
             {
-                bool a_present = false;
+                bool valid, a_present = false;
                 if (sep == TokenType.SMC
-                    && CurrentToken == TokenType.ATTRIBUTEBEGIN)
+                    && !ParseAttributePresenceCheck(ref a_present))
                 {
-                    FunctionState.AddInstr(ExOperationCode.NEWOBJECT, FunctionState.PushTarget(), 0, (int)ExNewObjectType.DICT, 0);
-
-                    if (!ReadAndSetToken() || !ParseDictClusterOrClass(TokenType.SEP, TokenType.ATTRIBUTEFINISH))
-                    {
-                        AddToErrorMessage("failed to parse attribute");
-                        return false;
-                    }
-                    a_present = true;
+                    return false;
                 }
+
                 switch (CurrentToken)
                 {
                     case TokenType.FUNCTION:
                     case TokenType.CONSTRUCTOR:
                         {
-                            TokenType typ = CurrentToken;
-                            if (!ReadAndSetToken())
-                            {
-                                return false;
-                            }
-
-                            ExObject o = typ == TokenType.FUNCTION ? Expect(TokenType.IDENTIFIER) : FunctionState.CreateString(ExMat.ConstructorName);
-
-                            if (o == null || Expect(TokenType.ROUNDOPEN) == null)
-                            {
-                                return false;
-                            }
-
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
-
-                            if (!ExFuncCreate(o))
-                            {
-                                return false;
-                            }
-
-                            FunctionState.AddInstr(ExOperationCode.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
+                            valid = ParseMethod();
                             break;
                         }
                     case TokenType.SQUAREOPEN:
                         {
-                            if (!ReadAndSetToken()
-                                || !ExSepExp()
-                                || Expect(TokenType.SQUARECLOSE) == null
-                                || Expect(TokenType.ASG) == null
-                                || !ExExp())
-                            {
-                                return false;
-                            }
+                            valid = ReadAndSetToken()
+                                    && ExSepExp()
+                                    && Expect(TokenType.SQUARECLOSE) != null
+                                    && Expect(TokenType.ASG) != null
+                                    && ExExp();
                             break;
                         }
                     case TokenType.LITERAL:
                         {
-                            if (sep == TokenType.SEP)
-                            {
-                                ExObject o;
-                                if ((o = Expect(TokenType.LITERAL)) == null)
-                                {
-                                    return false;
-                                }
-                                FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
-
-                                if (Expect(TokenType.COL) == null || !ExExp())
-                                {
-                                    return false;
-                                }
-
-                                break;
-                            }
-                            goto default;
+                            valid = ParseKeyOrMember(sep);
+                            break;
                         }
                     default:
                         {
-                            ExObject o;
-                            if ((o = Expect(TokenType.IDENTIFIER)) == null)
-                            {
-                                return false;
-                            }
-
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
-
-                            if (Expect(TokenType.ASG) == null || !ExExp())
-                            {
-                                return false;
-                            }
-
+                            valid = ParseIdentifierKeyOrMember();
                             break;
                         }
                 }
 
-                if (CurrentToken == sep
-                    && !ReadAndSetToken())
-                {
-                    return false;
-                }
                 n++;
 
-                int v = FunctionState.PopTarget();
-                int k = FunctionState.PopTarget();
-                int a = a_present ? FunctionState.PopTarget() : -1;
-
-                if (!((a_present && (a == k - 1)) || !a_present))
+                if (!valid
+                    || (CurrentToken == sep && !ReadAndSetToken())
+                    || !NewSlotFromParsing(a_present, sep))
                 {
-                    return AddToErrorMessage("attributes present count error");
-                }
-
-                int flg = a_present ? (int)ExNewSlotFlag.ATTR : 0; // to-do static flag
-                int t = FunctionState.TopTarget();
-                if (sep == TokenType.SEP)
-                {
-                    FunctionState.AddInstr(ExOperationCode.NEWSLOT, ExMat.InvalidArgument, t, k, v);
-                }
-                else
-                {
-                    FunctionState.AddInstr(ExOperationCode.NEWSLOTA, flg, t, k, v);
+                    return false;
                 }
             }
 
@@ -3259,181 +3323,111 @@ namespace ExMat.Compiler
             return ParseDictClusterOrClass(TokenType.SMC, TokenType.CURLYCLOSE);
         }
 
-        public bool ExMacroCreate(ExObject o, bool isfunc = false)
+        private bool FuncDoVargsCheck(int defParams, ExFState f_state, ref bool done)
         {
-            ExFState f_state = FunctionState.PushChildState(VM.SharedState);
-            f_state.Name = o;
-
-            ExObject pname;
-            f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
-            f_state.Source = new(Source);
-
-            if (isfunc && !ReadAndSetToken())
+            if (CurrentToken == TokenType.VARGS)     // Belirsiz sayıda parametre sembolü "..."
             {
-                return false;
-            }
-
-            while (isfunc && CurrentToken != TokenType.ROUNDCLOSE)
-            {
-                if ((pname = Expect(TokenType.IDENTIFIER)) == null)
+                if (defParams > 0)             // Varsayılan değerler ile "..." kullanılamaz
                 {
-                    return false;
+                    return AddToErrorMessage("can't use vargs alongside default valued parameters");
                 }
 
-                f_state.AddParam(pname);
+                // "vargs" argüman listesini ekle
+                f_state.AddParam(FunctionState.CreateString(ExMat.VargsName));
+                f_state.HasVargs = true;
 
-                if (CurrentToken == TokenType.SEP)
-                {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                }
-                else if (CurrentToken != TokenType.ROUNDCLOSE)
-                {
-                    if (CurrentToken == TokenType.ASG)
-                    {
-                        AddToErrorMessage("default values are not supported for macros");
-                    }
-                    else
-                    {
-                        AddToErrorMessage("expected ')' or ',' for macro function declaration");
-                    }
-                    return false;
-                }
-            }
-
-            if (isfunc && Expect(TokenType.ROUNDCLOSE) == null)
-            {
-                return false;
-            }
-
-            ExFState tmp = FunctionState.Copy();
-            FunctionState = f_state;
-
-            if (!IsInMacroBlock)
-            {
-                while (CurrentToken is not TokenType.NEWLINE
-                     and not TokenType.ENDLINE
-                     and not TokenType.MACROEND
-                     and not TokenType.UNKNOWN)
-                {
-                    if (!ProcessStatements())//true))
-                    {
-                        return false;
-                    }
-                }
                 if (!ReadAndSetToken())
                 {
                     return false;
                 }
 
-                f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
+                if (CurrentToken != TokenType.ROUNDCLOSE)   // "..." sonrası ')' bekle
+                {
+                    return AddToErrorMessage("expected ')' after vargs '...'");
+                }
 
-                f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);
+                return done = true;  // Parametre bölümünü bitir
+            }
+            return true;
+        }
 
+        private bool FuncDoParamAddCheck(ref int defParams, ExFState f_state)
+        {
+            if (CurrentToken == TokenType.ASG)  // '=' bekle, bulunursa varsayılan değer vardır 
+            {
+                if (!ReadAndSetToken() || !ExExp()) // Varsayılan değeri derle
+                {
+                    return false;
+                }
+
+                f_state.AddDefParam(FunctionState.TopTarget()); // Varsayılan değeri ekle
+                defParams++;
             }
             else
             {
-                // TO-DO
-                f_state.AddInstr(ExOperationCode.RETURNMACRO, 1, FunctionState.PopTarget(), 0, 0);
+                if (defParams > 0)    // Varsayılan değerli parametreden sonraki parametrelerin kontrolü
+                {
+                    return AddToErrorMessage("expected '=' for a default value");
+                }
+            }
+            return true;
+        }
+
+        private bool FuncCreateInit(ref int defParams, ExFState f_state, out bool done)
+        {
+            done = false;
+            ExObject pname;
+
+            if (!FuncDoVargsCheck(defParams, f_state, ref done))
+            {
+                return false;
             }
 
-            f_state.AddInstr(ExOperationCode.RETURN, ExMat.InvalidArgument, 0, 0, 0);
-            f_state.SetLocalStackSize(0);
+            if (done)   // (...)
+            {
+                return true;
+            }
 
-            ExPrototype fpro = f_state.CreatePrototype();
+            if ((pname = Expect(TokenType.IDENTIFIER)) == null) // Parametre ismi bekle
+            {
+                return false;
+            }
 
-            FunctionState = tmp;
-            FunctionState.Functions.Add(fpro);
-            FunctionState.PopChildState();
+            f_state.AddParam(pname);    // Uygun parametre ismini ekle
+
+            if (!FuncDoParamAddCheck(ref defParams, f_state))
+            {
+                return false;
+            }
+
+            if (CurrentToken == TokenType.SEP)  // ',' bekle, var ise başka parametre vardır
+            {
+                return ReadAndSetToken();
+            }
+            else if (CurrentToken != TokenType.ROUNDCLOSE)  // ',' yoksa ')' beklenmek zorundadır
+            {
+                return AddToErrorMessage("expected ')' or ',' for function declaration");
+            }
 
             return true;
         }
 
-        private void FixAfterMacro(ExLexer old_lex, TokenType old_currToken, string old_src)
+        private bool FuncCreateProcessBody(bool lambda, ExFState f_state)
         {
-            Lexer = old_lex;
-            CurrentToken = old_currToken;
-            Source = old_src;
-            IsInMacroBlock = false;
-        }
-
-        public bool ProcessMacroBlockStatement()    // TO-DO
-        {
-            ExObject idx;
-
-            ExLexer old_lex = Lexer;
-            TokenType old_currToken = CurrentToken;
-            string old_src = Source;
-
-            Lexer = new(Lexer.MacroBlock.ToString()) { MacroParams = Lexer.MacroParams, MacroBlock = Lexer.MacroBlock, IsReadingMacroBlock = true };
-
-            if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null)
+            if (lambda)     // Lambda ifadesi ise sıradaki ifadeyi derle ve OPC.RETURN ile sonucu döndür
             {
-                FixAfterMacro(old_lex, old_currToken, old_src);
-                return false;
+                if (!ExExp())
+                {
+                    return false;
+                }
+                f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
+                return true;
             }
-
-            if (idx.GetString().ToUpper(CultureInfo.CurrentCulture) != idx.GetString())
+            else
             {
-                FixAfterMacro(old_lex, old_currToken, old_src);
-                AddToErrorMessage("macro names should be all uppercase characters!");
-                return false;
+                // Normal fonksiyon ise bütün ifadeleri derle
+                return ProcessStatement(false);
             }
-
-            FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
-            bool isfunc = CurrentToken == TokenType.ROUNDOPEN;
-
-            IsInMacroBlock = true;
-
-            if (!ExMacroCreate(idx, isfunc))
-            {
-                FixAfterMacro(old_lex, old_currToken, old_src);
-                return false;
-            }
-
-            FunctionState.AddInstr(ExOperationCode.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
-
-            AddBasicDerefInstr(ExOperationCode.NEWSLOT);
-
-            FunctionState.PopTarget();
-
-            FixAfterMacro(old_lex, old_currToken, old_src);
-            return true;
-        }
-
-        public bool ProcessMacroStatement()
-        {
-            ExObject idx;
-
-            if (!ReadAndSetToken() || (idx = Expect(TokenType.IDENTIFIER)) == null)
-            {
-                return false;
-            }
-
-            if (idx.GetString().ToUpper(CultureInfo.CurrentCulture) != idx.GetString())
-            {
-                AddToErrorMessage("macro names should be all uppercase characters!");
-                return false;
-            }
-
-            FunctionState.PushTarget(0);
-            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
-            bool isfunc = CurrentToken == TokenType.ROUNDOPEN;
-            if (!ExMacroCreate(idx, isfunc))
-            {
-                return false;
-            }
-
-            FunctionState.AddInstr(ExOperationCode.CLOSURE, FunctionState.PushTarget(), FunctionState.Functions.Count - 1, 0, 0);
-
-            AddBasicDerefInstr(ExOperationCode.NEWSLOT);
-
-            FunctionState.PopTarget();
-
-            return true;
         }
 
         // Fonksiyon takipçisine ait bir alt fonksiyon oluştur
@@ -3443,75 +3437,22 @@ namespace ExMat.Compiler
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
             f_state.Name = o;
 
-            ExObject pname;
             // Fonksiyonun kendi değişkenlerine referans edecek 'this' referansını ekle
             f_state.AddParam(FunctionState.CreateString(ExMat.ThisName));
             f_state.Source = new(Source);
 
-            int def_param_count = 0;    // Varsayılan parametre değeri sayısı
+            int defParams = 0;    // Varsayılan parametre değeri sayısı
 
             while (CurrentToken != TokenType.ROUNDCLOSE) // Parametreleri oku
             {
-                if (CurrentToken == TokenType.VARGS)     // Belirsiz sayıda parametre sembolü "..."
-                {
-                    if (def_param_count > 0)             // Varsayılan değerler ile "..." kullanılamaz
-                    {
-                        AddToErrorMessage("can't use vargs alongside default valued parameters");
-                        return false;
-                    }
-
-                    // "vargs" argüman listesini ekle
-                    f_state.AddParam(FunctionState.CreateString(ExMat.VargsName));
-                    f_state.HasVargs = true;
-
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                    if (CurrentToken != TokenType.ROUNDCLOSE)   // "..." sonrası ')' bekle
-                    {
-                        AddToErrorMessage("expected ')' after vargs '...'");
-                        return false;
-                    }
-                    break;  // Parametre bölümünü bitir
-                }
-                if ((pname = Expect(TokenType.IDENTIFIER)) == null) // Parametre ismi bekle
+                if (!FuncCreateInit(ref defParams, f_state, out bool done))
                 {
                     return false;
                 }
 
-                f_state.AddParam(pname);    // Uygun parametre ismini ekle
-
-                if (CurrentToken == TokenType.ASG)  // '=' bekle, bulunursa varsayılan değer vardır 
+                if (done)
                 {
-                    if (!ReadAndSetToken() || !ExExp()) // Varsayılan değeri derle
-                    {
-                        return false;
-                    }
-
-                    f_state.AddDefParam(FunctionState.TopTarget()); // Varsayılan değeri ekle
-                    def_param_count++;
-                }
-                else
-                {
-                    if (def_param_count > 0)    // Varsayılan değerli parametreden sonraki parametrelerin kontrolü
-                    {
-                        AddToErrorMessage("expected = for a default value");
-                        return false;
-                    }
-                }
-
-                if (CurrentToken == TokenType.SEP)  // ',' bekle, var ise başka parametre vardır
-                {
-                    if (!ReadAndSetToken())
-                    {
-                        return false;
-                    }
-                }
-                else if (CurrentToken != TokenType.ROUNDCLOSE)  // ',' yoksa ')' beklenmek zorundadır
-                {
-                    AddToErrorMessage("expected ')' or ',' for function declaration");
-                    return false;
+                    break;
                 }
             }
 
@@ -3520,27 +3461,17 @@ namespace ExMat.Compiler
                 return false;
             }
 
-            for (int i = 0; i < def_param_count; i++)   // Varsayılan parametre indekslerini çıkart
+            for (int i = 0; i < defParams; i++)   // Varsayılan parametre indekslerini çıkart
             {
                 FunctionState.PopTarget();
             }
 
             ExFState tmp = FunctionState.Copy();    // Fonksiyon takipçisinin kopyasını al
             FunctionState = f_state;
-            if (lambda)     // Lambda ifadesi ise sıradaki ifadeyi derle ve OPC.RETURN ile sonucu döndür
+
+            if (!FuncCreateProcessBody(lambda, f_state))
             {
-                if (!ExExp())
-                {
-                    return false;
-                }
-                f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
-            }
-            else
-            {
-                if (!ProcessStatement(false))       // Normal fonksiyon ise bütün ifadeleri derle
-                {
-                    return false;
-                }
+                return false;
             }
 
             f_state.AddLineInfo(Lexer.TokenPrev == TokenType.NEWLINE ? Lexer.PrevTokenLine : Lexer.CurrentLine, StoreLineInfos, true);

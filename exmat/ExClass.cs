@@ -4,7 +4,7 @@ using ExMat.Objects;
 using ExMat.States;
 using ExMat.Utils;
 
-namespace ExMat.Class
+namespace ExMat.ExClass
 {
 
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
@@ -132,9 +132,63 @@ namespace ExMat.Class
             return false;
         }
 
+        private bool AddMethod(ExSState exs, string key, ExObject val, ExObject existing)
+        {
+            int metaid;
+            if ((val.Type is ExObjType.CLOSURE or ExObjType.NATIVECLOSURE)
+                && (metaid = exs.GetMetaIdx(key)) != -1)
+            {
+                MetaFuncs[metaid].Assign(val);
+            }
+            else
+            {
+                ExObject tmpv = val;
+                if (Base != null && val.Type == ExObjType.CLOSURE)
+                {
+                    tmpv.Assign(val.Value._Closure);
+                    tmpv.GetClosure().Base = Base;
+                    Base.ReferenceCount++;
+                }
+                else
+                {
+                    tmpv.GetClosure().Base = this;
+                    ReferenceCount++;
+                }
+
+                if (ExTypeCheck.IsNull(existing))
+                {
+                    bool bconstr = exs.ConstructorID.GetString() == key;
+
+                    if (bconstr)
+                    {
+                        ConstructorID = Methods.Count;
+                    }
+
+                    ExClassMem cm = new();
+                    cm.Value.Assign(tmpv);
+                    Members.Add(key, new((int)ExMemberFlag.METHOD | Methods.Count));
+                    Methods.Add(cm);
+                }
+                else
+                {
+                    Methods[existing.GetMemberID()].Value.Assign(tmpv);
+                }
+            }
+            return true;
+        }
+
+        private bool AddMember(string k, ExObject val)
+        {
+            ExClassMem cmem = new();
+            cmem.Value.Assign(val);
+            Members.Add(k, new((int)ExMemberFlag.FIELD | DefaultValues.Count));
+            DefaultValues.Add(cmem);
+            return true;
+        }
+
         public bool NewSlot(ExSState exs, ExObject key, ExObject val, bool bstat)
         {
-            bool bdict = val.Type == ExObjType.CLOSURE || val.Type == ExObjType.NATIVECLOSURE || bstat;
+            bool bdict = (val.Type is ExObjType.CLOSURE or ExObjType.NATIVECLOSURE) || bstat;
             if (GotInstanced && !bdict)
             {
                 return false;
@@ -160,57 +214,7 @@ namespace ExMat.Class
                 tmp = new();
             }
 
-            if (bdict)
-            {
-                int metaid;
-                if ((val.Type == ExObjType.CLOSURE || val.Type == ExObjType.NATIVECLOSURE)
-                    && (metaid = exs.GetMetaIdx(key.GetString())) != -1)
-                {
-                    MetaFuncs[metaid].Assign(val);
-                }
-                else
-                {
-                    ExObject tmpv = val;
-                    if (Base != null && val.Type == ExObjType.CLOSURE)
-                    {
-                        tmpv.Assign(val.Value._Closure);
-                        tmpv.GetClosure().Base = Base;
-                        Base.ReferenceCount++;
-                    }
-                    else
-                    {
-                        tmpv.GetClosure().Base = this;
-                        ReferenceCount++;
-                    }
-
-                    if (ExTypeCheck.IsNull(tmp))
-                    {
-                        bool bconstr = exs.ConstructorID.GetString() == key.GetString();
-
-                        if (bconstr)
-                        {
-                            ConstructorID = Methods.Count;
-                        }
-
-                        ExClassMem cm = new();
-                        cm.Value.Assign(tmpv);
-                        Members.Add(k, new((int)ExMemberFlag.METHOD | Methods.Count));
-                        Methods.Add(cm);
-                    }
-                    else
-                    {
-                        Methods[tmp.GetMemberID()].Value.Assign(tmpv);
-                    }
-                }
-                return true;
-            }
-
-            ExClassMem cmem = new();
-            cmem.Value.Assign(val);
-            Members.Add(k, new((int)ExMemberFlag.FIELD | DefaultValues.Count));
-            DefaultValues.Add(cmem);
-
-            return true;
+            return bdict ? AddMethod(exs, k, val, tmp) : AddMember(k, val);
         }
 
         public new string GetDebuggerDisplay()

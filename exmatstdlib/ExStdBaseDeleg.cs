@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using ExMat.API;
-using ExMat.Class;
 using ExMat.Objects;
 using ExMat.Utils;
 using ExMat.VM;
@@ -693,7 +692,7 @@ namespace ExMat.StdLib
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
-            ExClass cls = res.GetClass();
+            ExClass.ExClass cls = res.GetClass();
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -726,7 +725,7 @@ namespace ExMat.StdLib
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
-            ExClass cls = res.GetClass();
+            ExClass.ExClass cls = res.GetClass();
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -763,7 +762,7 @@ namespace ExMat.StdLib
             string attr = vm.GetArgument(2).GetString();
             ExObject val = vm.GetArgument(3);
 
-            ExClass cls = res.GetClass();
+            ExClass.ExClass cls = res.GetClass();
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -800,7 +799,7 @@ namespace ExMat.StdLib
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
-            ExClass cls = res.GetInstance().Class;
+            ExClass.ExClass cls = res.GetInstance().Class;
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -833,7 +832,7 @@ namespace ExMat.StdLib
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
 
-            ExClass cls = res.GetInstance().Class;
+            ExClass.ExClass cls = res.GetInstance().Class;
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];
@@ -869,7 +868,7 @@ namespace ExMat.StdLib
             string mem = vm.GetArgument(1).GetString();
             string attr = vm.GetArgument(2).GetString();
             ExObject val = vm.GetArgument(3);
-            ExClass cls = res.GetInstance().Class;
+            ExClass.ExClass cls = res.GetInstance().Class;
             if (cls.Members.ContainsKey(mem))
             {
                 ExObject v = cls.Members[mem];

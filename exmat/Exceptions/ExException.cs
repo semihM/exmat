@@ -9,10 +9,24 @@ using ExMat.VM;
 
 namespace ExMat.Exceptions
 {
+    public enum ExExceptionType
+    {
+        BASE,
+
+        COMPILER,
+
+        RUNTIME
+    }
+
+    /// <summary>
+    /// Base class for exceptions
+    /// </summary>
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
     public class ExException : Exception
     {
         public const int HoldAfterError = 20000;
+
+        public virtual ExExceptionType Type => ExExceptionType.BASE;
 
         public ExException()
         {
@@ -38,7 +52,7 @@ namespace ExMat.Exceptions
 
         protected ExException(ExVM vm, SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            WriteErrorMessagesToVM(vm, "FATAL ERROR");
+            WriteErrorMessagesToVM(vm, "Unknown internal error");
         }
 
         protected ExException(SerializationInfo info, StreamingContext context) : base(info, context)
@@ -66,19 +80,9 @@ namespace ExMat.Exceptions
 
         public override string StackTrace => base.StackTrace;
 
-        public override bool Equals(object obj)
-        {
-            return base.Equals(obj);
-        }
-
         public override Exception GetBaseException()
         {
             return base.GetBaseException();
-        }
-
-        public override int GetHashCode()
-        {
-            return base.GetHashCode();
         }
 
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -91,9 +95,9 @@ namespace ExMat.Exceptions
             return base.ToString();
         }
 
-        private string GetDebuggerDisplay()
+        public string GetDebuggerDisplay()
         {
-            return ToString();
+            return "Exception: " + Type.ToString();
         }
     }
 }
