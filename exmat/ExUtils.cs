@@ -90,6 +90,14 @@ namespace ExMat.Utils
             return res;
         }
 
+        public static void ShallowAppend<T>(List<T> from, List<T> to, int start = 0)
+        {
+            for (; start < from.Count; start++)
+            {
+                to.Add(from[start]);
+            }
+        }
+
         public static void InitList<T>(ref List<T> lis, int n) where T : class, new()
         {
             lis = new(n);

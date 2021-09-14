@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using ExMat.API;
 using ExMat.Closure;
+using ExMat.Exceptions;
 using ExMat.ExClass;
 using ExMat.FuncPrototype;
 using ExMat.InfoVar;
@@ -236,9 +237,9 @@ namespace ExMat.VM
             return AddToErrorMessage(string.Format(CultureInfo.CurrentCulture, format, msgs));
         }
 
-        public void Throw(string msg, ExVM vm = null)
+        public void Throw(string msg, ExVM vm = null, ExExceptionType type = ExExceptionType.RUNTIME)
         {
-            ExApi.Throw(msg, vm ?? this);
+            ExApi.Throw(msg, vm ?? this, type);
         }
 
         /// <summary>
@@ -1785,7 +1786,7 @@ namespace ExMat.VM
 
                 if (!LeaveFrame())
                 {
-                    Throw("something went wrong with the stack!");
+                    Throw("something went wrong with the stack!", type: ExExceptionType.BASE);
                 }
                 if (end)
                 {
@@ -1800,7 +1801,7 @@ namespace ExMat.VM
         {
             if (nNativeCalls++ > 100)   // Sonsuz döngüye girildi
             {
-                Throw("Native stack overflow");
+                Throw("Native stack overflow", type: ExExceptionType.BASE);
             }
             // Fonksiyon kopyasını al
             TempRegistery = new(closure);
@@ -1821,25 +1822,20 @@ namespace ExMat.VM
             // Komutlar bitene kadar işlemeye başla
             while (true)
             {
+                if (ForceThrow)
+                {
+                    return ForceThrow = false;
+                }
+
                 if (CallInfo.Value == null
                     || CallInfo.Value.Instructions == null)
                 {
-                    if (ForceThrow)
-                    {
-                        ForceThrow = false;
-                        return false;
-                    }
                     return true;
                 }
 
                 if (CallInfo.Value.InstructionsIndex >= CallInfo.Value.Instructions.Count
                     || CallInfo.Value.InstructionsIndex < 0)
                 {
-                    if (ForceThrow)
-                    {
-                        ForceThrow = false;
-                        return false;
-                    }
                     return false;
                 }
 
@@ -2354,7 +2350,7 @@ namespace ExMat.VM
                                     val.Assign(instruction.arg1 == 1); break;
                                 default:
                                     {
-                                        Throw("unknown array append method");
+                                        Throw("unknown array append method", type: ExExceptionType.BASE);
                                         break;
                                     }
                             }
@@ -2570,7 +2566,7 @@ namespace ExMat.VM
                         }
                     default:
                         {
-                            Throw("unknown operator " + instruction.op);
+                            Throw("unknown operator " + instruction.op, type: ExExceptionType.BASE);
                             break;
                         }
                 }
@@ -2960,7 +2956,7 @@ namespace ExMat.VM
 
                     if (!LeaveFrame(isSequence))
                     {
-                        Throw("something went wrong with the stack!");
+                        Throw("something went wrong with the stack!", type: ExExceptionType.BASE);
                     }
                     return root;
                 }
@@ -2972,7 +2968,7 @@ namespace ExMat.VM
 
             if (!LeaveFrame())
             {
-                Throw("something went wrong with the stack!");
+                Throw("something went wrong with the stack!", type: ExExceptionType.BASE);
             }
             return root;
         }
@@ -4078,7 +4074,7 @@ namespace ExMat.VM
             {
                 if (nMetaCalls > 0)     // meta metot içerisinde ise hata ver
                 {
-                    Throw("stack overflow, cant resize while in metamethod");
+                    Throw("stack overflow, cant resize while in metamethod", type: ExExceptionType.BASE);
                 }
                 Stack.Resize(Stack.Allocated + 256);
             }
@@ -4149,7 +4145,7 @@ namespace ExMat.VM
 
             if (nNativeCalls + 1 > 100)
             {
-                Throw("Native stack overflow");
+                Throw("Native stack overflow", type: ExExceptionType.BASE);
             }
 
             // nParameterChecks > 0 => tam nParameterChecks adet argüman gerekli
@@ -4238,7 +4234,7 @@ namespace ExMat.VM
                     {
                         if (!LeaveFrame())  // Çerçeveyi kapat ve hata dönme sürecini başlat
                         {
-                            Throw("something went wrong with the stack!");
+                            Throw("something went wrong with the stack!", type: ExExceptionType.BASE);
                         }
                         return false;
                     }
@@ -4263,7 +4259,7 @@ namespace ExMat.VM
             // Çerçeveden çık
             if (!LeaveFrame())
             {
-                Throw("something went wrong with the stack!");
+                Throw("something went wrong with the stack!", type: ExExceptionType.BASE);
             }
             return true;
         }

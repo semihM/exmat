@@ -44,8 +44,11 @@ namespace ExMat.InfoVar
                     ExDisposer.DisposeList(ref Literals);
                     ExDisposer.DisposeObjects(Closure);
 
-                    Instructions.RemoveAll((ExInstr i) => true);
-                    Instructions = null;
+                    if (Instructions != null)
+                    {
+                        Instructions.Clear();
+                        Instructions = null;
+                    }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

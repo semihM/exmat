@@ -6,6 +6,7 @@ using ExMat.FuncPrototype;
 using ExMat.InfoVar;
 using ExMat.Objects;
 using ExMat.OPs;
+using ExMat.Utils;
 
 namespace ExMat.States
 {
@@ -69,6 +70,8 @@ namespace ExMat.States
 
         public List<ExLineInfo> LineInfos = new();
         public int LastLine;
+
+        private readonly int Invalid = ExMat.InvalidArgument; // To get rid of CA1822 warnings
 
         private bool disposedValue;
 
@@ -395,10 +398,214 @@ namespace ExMat.States
             return SharedState.Strings[s];
         }
 
+        private bool UpdateInstrOpcMove(ExInstr prev, ExInstr curr, int size)
+        {
+            switch (prev.op)
+            {
+                case ExOperationCode.ADD:       // Toplama işlemi
+                case ExOperationCode.SUB:
+                case ExOperationCode.MLT:
+                case ExOperationCode.EXP:
+                case ExOperationCode.DIV:
+                case ExOperationCode.MOD:
+                case ExOperationCode.MMLT:
+                case ExOperationCode.TRANSPOSE:
+                case ExOperationCode.CARTESIAN:
+                case ExOperationCode.BITWISE:
+                case ExOperationCode.LOAD:      // Yazı dizisi ata
+                case ExOperationCode.LOADINTEGER:
+                case ExOperationCode.LOADFLOAT:
+                case ExOperationCode.LOADBOOLEAN:
+                case ExOperationCode.LOADCOMPLEX:
+                case ExOperationCode.LOADSPACE:
+                case ExOperationCode.GET:       // Objeye ait özelliği ata
+                    {
+                        if (prev.arg0 == curr.arg1) // Önceki hedef == şimdiki kaynak
+                        {
+                            prev.arg0 = curr.arg0;  // Önceki hedef = şimdiki hedef
+                            NotSnoozed = false;     // Bir sonraki komuttan bağımsız yap
+                            Instructions[size - 1] = prev;
+                            return true;
+                        }
+                        break;
+                    }
+                case ExOperationCode.MOVE:
+                    {
+                        prev.op = ExOperationCode.DMOVE;
+                        prev.arg2 = curr.arg0;
+                        prev.arg3 = curr.arg1;
+                        Instructions[size - 1] = prev;
+                        return true;
+                    }
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcLoad(ExInstr prev, ExInstr curr, int size)
+        {
+            if (prev.op == ExOperationCode.LOAD && curr.arg1 <= ExMat.InvalidArgument)
+            {
+                prev.op = ExOperationCode.DLOAD;
+                prev.arg2 = curr.arg0;
+                prev.arg3 = curr.arg1;
+                Instructions[size - 1] = prev;
+                return true;
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcLoadConstDict(ExInstr curr, int size)
+        {
+            curr.arg1 = curr.arg1 != ExMat.InvalidArgument && curr.arg1 <= size && Instructions[size - (int)curr.arg1].op == ExOperationCode.GETK
+                ? Instructions[size - (int)curr.arg1].arg1
+                : ExMat.InvalidArgument;
+            return false;
+        }
+
+        private bool UpdateInstrOpcJumpZero(ExInstr prev, ExInstr curr, int size)
+        {
+            if (prev.op == ExOperationCode.CMP && prev.arg1 < ExMat.InvalidArgument)
+            {
+                prev.op = ExOperationCode.JCMP;
+                prev.arg0 = prev.arg1;
+                prev.arg1 = curr.arg1;
+                Instructions[size - 1] = prev;
+                return true;
+            }
+            return UpdateInstrOpcSet(curr);
+        }
+
+        private bool UpdateInstrOpcSet(ExInstr curr, bool outer = false)
+        {
+            if (outer)
+            {
+                if (curr.arg0 == curr.arg2)
+                {
+                    curr.arg0 = Invalid;
+                }
+            }
+            else if (curr.arg0 == curr.arg3)
+            {
+                curr.arg0 = Invalid;
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcReturn(ExInstr prev, ExInstr curr, int size)
+        {
+            if (ParentFState != null && curr.arg0 != ExMat.InvalidArgument && prev.op == ExOperationCode.CALL && ReturnExpressionTarget < size - 1)
+            {
+                prev.op = ExOperationCode.CALLTAIL;
+                Instructions[size - 1] = prev;
+            }
+            else if (prev.op == ExOperationCode.CLOSE)
+            {
+                Instructions[size - 1] = curr;
+                return true;
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcGet(ExInstr prev, ExInstr curr, int size)
+        {
+            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg2 && (!IsLocalArg((int)prev.arg0)))
+            {
+                prev.arg2 = curr.arg1;
+                prev.op = ExOperationCode.GETK;
+                prev.arg0 = curr.arg0;
+                Instructions[size - 1] = prev;
+                return true;
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcPrepCall(ExInstr prev, ExInstr curr, int size)
+        {
+            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
+            {
+                prev.op = ExOperationCode.PREPCALLK;
+                prev.arg0 = curr.arg0;
+                prev.arg2 = curr.arg2;
+                prev.arg3 = curr.arg3;
+                Instructions[size - 1] = prev;
+                return true;
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcAppend(ExInstr prev, ExInstr curr, int size)
+        {
+            ArrayAType idx = ArrayAType.INVALID;
+            switch (prev.op)
+            {
+                case ExOperationCode.LOAD:
+                    {
+                        idx = ArrayAType.LITERAL;
+                        break;
+                    }
+                case ExOperationCode.LOADINTEGER:
+                    {
+                        idx = ArrayAType.INTEGER;
+                        break;
+                    }
+                case ExOperationCode.LOADFLOAT:
+                    {
+                        idx = ArrayAType.FLOAT;
+                        break;
+                    }
+                case ExOperationCode.LOADBOOLEAN:
+                    {
+                        idx = ArrayAType.BOOL;
+                        break;
+                    }
+                default:
+                    break;
+            }
+
+            if (idx != ArrayAType.INVALID && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
+            {
+                prev.op = ExOperationCode.APPENDTOARRAY;
+                prev.arg0 = curr.arg0;
+                prev.arg2 = (int)idx;
+                prev.arg3 = ExMat.InvalidArgument;
+                Instructions[size - 1] = prev;
+                return true;
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcEq(ExInstr prev, ExInstr curr, int size)
+        {
+            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
+            {
+                prev.op = curr.op;
+                prev.arg0 = curr.arg0;
+                prev.arg2 = curr.arg2;
+                prev.arg3 = ExMat.InvalidArgument;
+                Instructions[size - 1] = prev;
+                return true;
+            }
+            return false;
+        }
+
+        private bool UpdateInstrOpcLoadNull(ExInstr prev, ExInstr curr, int size)
+        {
+            if (prev.op == ExOperationCode.LOADNULL && (prev.arg0 + prev.arg1 == curr.arg0))
+            {
+                prev.arg1++;
+                prev.op = ExOperationCode.LOADNULL;
+                Instructions[size - 1] = prev;
+                return true;
+            }
+            return false;
+        }
+
         // Bir önceki komut ile bağlantıları inceler, gerekli değerleri değiştirir
         public void AddInstr(ExInstr curr)
         {
             int size = Instructions.Count;
+            bool shouldReturn = false;
+
             if (size > 0 && NotSnoozed)
             {
                 ExInstr prev = Instructions[size - 1];
@@ -406,205 +613,73 @@ namespace ExMat.States
                 {
                     case ExOperationCode.MOVE:
                         {
-                            switch (prev.op)
-                            {
-                                case ExOperationCode.ADD:       // Toplama işlemi
-                                #region Diğer aritmetik komutlar
-                                case ExOperationCode.SUB:
-                                case ExOperationCode.MLT:
-                                case ExOperationCode.EXP:
-                                case ExOperationCode.DIV:
-                                case ExOperationCode.MOD:
-                                case ExOperationCode.MMLT:
-                                case ExOperationCode.TRANSPOSE:
-                                case ExOperationCode.CARTESIAN:
-                                case ExOperationCode.BITWISE:
-                                #endregion
-                                case ExOperationCode.LOAD:      // Yazı dizisi ata
-                                #region Diğer temel veri tipi yükleme komutları
-                                case ExOperationCode.LOADINTEGER:
-                                case ExOperationCode.LOADFLOAT:
-                                case ExOperationCode.LOADBOOLEAN:
-                                case ExOperationCode.LOADCOMPLEX:
-                                case ExOperationCode.LOADSPACE:
-                                #endregion
-                                case ExOperationCode.GET:       // Objeye ait özelliği ata
-                                    {
-                                        if (prev.arg0 == curr.arg1) // Önceki hedef == şimdiki kaynak
-                                        {
-                                            prev.arg0 = curr.arg0;  // Önceki hedef = şimdiki hedef
-                                            NotSnoozed = false;     // Bir sonraki komuttan bağımsız yap
-                                            Instructions[size - 1] = prev;
-                                            return;
-                                        }
-                                        break;
-                                    }
-                                case ExOperationCode.MOVE:
-                                    {
-                                        prev.op = ExOperationCode.DMOVE;
-                                        prev.arg2 = curr.arg0;
-                                        prev.arg3 = curr.arg1;
-                                        Instructions[size - 1] = prev;
-                                        return;
-                                    }
-                            }
+                            shouldReturn = UpdateInstrOpcMove(prev, curr, size);
                             break;
                         }
-                    #region Diğer işlem kodları
                     case ExOperationCode.LOAD:
                         {
-                            if (prev.op == ExOperationCode.LOAD && curr.arg1 <= ExMat.InvalidArgument)
-                            {
-                                prev.op = ExOperationCode.DLOAD;
-                                prev.arg2 = curr.arg0;
-                                prev.arg3 = curr.arg1;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
+                            shouldReturn = UpdateInstrOpcLoad(prev, curr, size);
                             break;
                         }
                     case ExOperationCode.LOADCONSTDICT:
                         {
-                            curr.arg1 = curr.arg1 != ExMat.InvalidArgument && curr.arg1 <= size && Instructions[size - (int)curr.arg1].op == ExOperationCode.GETK
-                                ? Instructions[size - (int)curr.arg1].arg1
-                                : ExMat.InvalidArgument;
+                            shouldReturn = UpdateInstrOpcLoadConstDict(curr, size);
                             break;
                         }
                     case ExOperationCode.JZ:
                         {
-                            if (prev.op == ExOperationCode.CMP && prev.arg1 < ExMat.InvalidArgument)
-                            {
-                                prev.op = ExOperationCode.JCMP;
-                                prev.arg0 = prev.arg1;
-                                prev.arg1 = curr.arg1;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
-                            goto case ExOperationCode.SET;
+                            shouldReturn = UpdateInstrOpcJumpZero(prev, curr, size);
+                            break;
                         }
                     case ExOperationCode.SET:
                         {
-                            if (curr.arg0 == curr.arg3)
-                            {
-                                curr.arg0 = ExMat.InvalidArgument;
-                            }
+                            shouldReturn = UpdateInstrOpcSet(curr);
                             break;
                         }
                     case ExOperationCode.SETOUTER:
                         {
-                            if (curr.arg0 == curr.arg2)
-                            {
-                                curr.arg0 = ExMat.InvalidArgument;
-                            }
+                            shouldReturn = UpdateInstrOpcSet(curr, true);
                             break;
                         }
                     case ExOperationCode.RETURN:
                         {
-                            if (ParentFState != null && curr.arg0 != ExMat.InvalidArgument && prev.op == ExOperationCode.CALL && ReturnExpressionTarget < size - 1)
-                            {
-                                prev.op = ExOperationCode.CALLTAIL;
-                                Instructions[size - 1] = prev;
-                            }
-                            else if (prev.op == ExOperationCode.CLOSE)
-                            {
-                                Instructions[size - 1] = curr;
-                                return;
-                            }
+                            shouldReturn = UpdateInstrOpcReturn(prev, curr, size);
                             break;
                         }
                     case ExOperationCode.GET:
                         {
-                            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg2 && (!IsLocalArg((int)prev.arg0)))
-                            {
-                                prev.arg2 = curr.arg1;
-                                prev.op = ExOperationCode.GETK;
-                                prev.arg0 = curr.arg0;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
+                            shouldReturn = UpdateInstrOpcGet(prev, curr, size);
                             break;
                         }
                     case ExOperationCode.PREPCALL:
                         {
-                            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
-                            {
-                                prev.op = ExOperationCode.PREPCALLK;
-                                prev.arg0 = curr.arg0;
-                                prev.arg2 = curr.arg2;
-                                prev.arg3 = curr.arg3;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
+                            shouldReturn = UpdateInstrOpcPrepCall(prev, curr, size);
                             break;
                         }
                     case ExOperationCode.APPENDTOARRAY:
                         {
-                            ArrayAType idx = ArrayAType.INVALID;
-                            switch (prev.op)
-                            {
-                                case ExOperationCode.LOAD:
-                                    {
-                                        idx = ArrayAType.LITERAL;
-                                        break;
-                                    }
-                                case ExOperationCode.LOADINTEGER:
-                                    {
-                                        idx = ArrayAType.INTEGER;
-                                        break;
-                                    }
-                                case ExOperationCode.LOADFLOAT:
-                                    {
-                                        idx = ArrayAType.FLOAT;
-                                        break;
-                                    }
-                                case ExOperationCode.LOADBOOLEAN:
-                                    {
-                                        idx = ArrayAType.BOOL;
-                                        break;
-                                    }
-                                default:
-                                    break;
-                            }
-
-                            if (idx != ArrayAType.INVALID && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
-                            {
-                                prev.op = ExOperationCode.APPENDTOARRAY;
-                                prev.arg0 = curr.arg0;
-                                prev.arg2 = (int)idx;
-                                prev.arg3 = ExMat.InvalidArgument;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
+                            shouldReturn = UpdateInstrOpcAppend(prev, curr, size);
                             break;
                         }
                     case ExOperationCode.EQ:
                     case ExOperationCode.NEQ:
                         {
-                            if (prev.op == ExOperationCode.LOAD && prev.arg0 == curr.arg1 && (!IsLocalArg((int)prev.arg0)))
-                            {
-                                prev.op = curr.op;
-                                prev.arg0 = curr.arg0;
-                                prev.arg2 = curr.arg2;
-                                prev.arg3 = ExMat.InvalidArgument;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
+                            shouldReturn = UpdateInstrOpcEq(prev, curr, size);
                             break;
                         }
                     case ExOperationCode.LOADNULL:
                         {
-                            if (prev.op == ExOperationCode.LOADNULL && (prev.arg0 + prev.arg1 == curr.arg0))
-                            {
-                                prev.arg1++;
-                                prev.op = ExOperationCode.LOADNULL;
-                                Instructions[size - 1] = prev;
-                                return;
-                            }
+                            shouldReturn = UpdateInstrOpcLoadNull(prev, curr, size);
                             break;
                         }
-                        #endregion
                 }
             }
+
+            if (shouldReturn)
+            {
+                return;
+            }
+
             NotSnoozed = true;      // Tekrardan bağımlılığa izin ver
             Instructions.Add(curr); // Komut listesine ekle
         }
@@ -678,55 +753,28 @@ namespace ExMat.States
 
             foreach (KeyValuePair<string, ExObject> pair in Literals)
             {
-                if (pair.Value.Type == ExObjType.WEAKREF)
+                int ind = pair.Value.Type == ExObjType.WEAKREF
+                    ? (int)pair.Value.GetWeakRef().ReferencedObject.Value.i_Int
+                    : (int)pair.Value.Value.i_Int;
+
+                while (funcPro.Literals.Count <= ind)
                 {
-                    int ind = (int)pair.Value.Value._WeakRef.ReferencedObject.Value.i_Int;
-                    while (funcPro.Literals.Count <= ind)
-                    {
-                        funcPro.Literals.Add(new(string.Empty));
-                    }
-                    funcPro.Literals[ind].Value.s_String = pair.Key;
+                    funcPro.Literals.Add(new(string.Empty));
                 }
-                else
-                {
-                    int ind = (int)pair.Value.Value.i_Int;
-                    while (funcPro.Literals.Count <= ind)
-                    {
-                        funcPro.Literals.Add(new(string.Empty));
-                    }
-                    funcPro.Literals[ind].Value.s_String = pair.Key;
-                }
+                funcPro.Literals[ind].SetString(pair.Key);
             }
 
-            int i;
-            for (i = 0; i < Functions.Count; i++)
-            {
-                funcPro.Functions.Add(Functions[i]);
-            }
-            for (i = 0; i < Parameters.Count; i++)
-            {
-                funcPro.Parameters.Add(Parameters[i]);
-            }
-            for (i = 0; i < OuterInfos.Count; i++)
-            {
-                funcPro.Outers.Add(OuterInfos[i]);
-            }
-            for (i = 0; i < LocalVariableInfos.Count; i++)
-            {
-                funcPro.LocalInfos.Add(LocalVariableInfos[i]);
-            }
-            for (i = 0; i < LineInfos.Count; i++)
-            {
-                funcPro.LineInfos.Add(LineInfos[i]);
-            }
-            for (i = 0; i < DefaultParameters.Count; i++)
-            {
-                funcPro.DefaultParameters.Add(DefaultParameters[i]);
-            }
+            ExUtils.ShallowAppend(Functions, funcPro.Functions);
+            ExUtils.ShallowAppend(Parameters, funcPro.Parameters);
+            ExUtils.ShallowAppend(OuterInfos, funcPro.Outers);
+            ExUtils.ShallowAppend(LocalVariableInfos, funcPro.LocalInfos);
+            ExUtils.ShallowAppend(LineInfos, funcPro.LineInfos);
+            ExUtils.ShallowAppend(DefaultParameters, funcPro.DefaultParameters);
+            ExUtils.ShallowAppend(Functions, funcPro.Functions);
 
             foreach (ExInstr it in Instructions)
             {
-                funcPro.Instructions.Add(new ExInstr() { op = it.op, arg0 = it.arg0, arg1 = it.arg1, arg2 = it.arg2, arg3 = it.arg3 });
+                funcPro.Instructions.Add(new(it));
             }
 
             funcPro.HasVargs = HasVargs;

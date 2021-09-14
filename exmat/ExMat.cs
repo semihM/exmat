@@ -93,6 +93,11 @@ namespace ExMat
         public const int InvalidArgument = 985;
 
         /// <summary>
+        /// Default parameter name for sequences
+        /// </summary>
+        public const string SequenceParameter = "n";
+
+        /// <summary>
         /// Function attribute, returns named parameter count
         /// </summary>
         public const string nParams = "n_params";
@@ -654,6 +659,7 @@ namespace ExMat
     /// <summary>
     /// Interactive console flags
     /// </summary>
+    [Flags]
     public enum ExInteractiveConsoleFlag
     {
         /// <summary>
@@ -675,7 +681,11 @@ namespace ExMat
         /// <summary>
         /// Has the VM just been interrupted ?
         /// </summary>
-        RECENTLYINTERRUPTED = 1 << 4
+        RECENTLYINTERRUPTED = 1 << 4,
+        /// <summary>
+        /// Did the recent interruption occured during the thread's sleep ?
+        /// </summary>
+        INTERRUPTEDINSLEEP = 1 << 5
     }
 
     /// <summary>
