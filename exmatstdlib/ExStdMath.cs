@@ -212,7 +212,11 @@ namespace ExMat.StdLib
                     }
                 case 2:
                     {
-                        return vm.CleanReturn(4, Rand.Next(ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(1).GetInt()), ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(2).GetInt())));
+                        int min = ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(1).GetInt());
+                        int max = ExUtils.LongTo32SignedIntegerRange(vm.GetArgument(2).GetInt());
+                        return min > max
+                            ? vm.CleanReturn(4, Rand.Next(max, min))
+                            : vm.CleanReturn(4, Rand.Next(min, max));
                     }
             }
         }

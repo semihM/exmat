@@ -2375,6 +2375,8 @@ namespace ExMat.API
                         vm.PrintLine("INTERNAL ERROR");
                         Console.ForegroundColor = ConsoleColor.White;
                         vm.PrintLine(vm.ErrorString);
+                        vm.PrintLine("\nPress any key to close the window...");
+                        Console.ReadKey(true);
                         break;
                     }
             }

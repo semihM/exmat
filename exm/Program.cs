@@ -388,7 +388,10 @@ namespace ExMat
                     }
                     finally
                     {
-                        HandlePostVMExecution(ret);
+                        if (!ActiveVM.HasFlag(ExInteractiveConsoleFlag.LINECARRY))
+                        {
+                            HandlePostVMExecution(ret);
+                        }
                     }
                 }
             });
