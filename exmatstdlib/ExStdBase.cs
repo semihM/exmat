@@ -35,16 +35,18 @@ namespace ExMat.StdLib
                         if (vm.RootDictionary.GetDict().ContainsKey(name))
                         {
                             ExObject found = vm.RootDictionary.GetDict()[name];
-                            if (found.Type == ExObjType.NATIVECLOSURE)
+                            if (found.Type != ExObjType.NATIVECLOSURE)
                             {
-                                docs = found.GetNClosure().Documentation;
-                                if (print)
-                                {
-                                    vm.PrintLine(docs);
-                                }
-                                return vm.CleanReturn(nargs + 2, docs);
+                                return vm.AddToErrorMessage("Expected a native function. '{0}' is not a native function, it is type '{1}'!", name, found.Type.ToString());
                             }
-                            return vm.AddToErrorMessage("Expected a native function. '{0}' is not a native function, it is type '{1}'!", name, found.Type.ToString());
+
+                            docs = found.GetNClosure().Documentation;
+
+                            if (print)
+                            {
+                                vm.PrintLine(docs);
+                            }
+                            return vm.CleanReturn(nargs + 2, docs);
                         }
                         return vm.AddToErrorMessage("Unknown native function: {0}. Perhaps it is a delegate? Try passing the function directly.", name);
                     }

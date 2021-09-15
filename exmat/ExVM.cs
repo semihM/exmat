@@ -495,7 +495,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.NULL:
                     {
-                        res = new(obj.Value.s_String ?? "null");
+                        res = new(obj.Value.s_String ?? ExMat.NullName);
                         break;
                     }
                 case ExObjType.ARRAY:
@@ -967,38 +967,44 @@ namespace ExMat.VM
             return true;
         }
 
+        private bool DoArgumentChecksInStack(ExClosure closure, int nParameters, int stackBase, int defaultsIndex, ref int nArguments)
+        {
+            bool needsDef = nParameters != nArguments;
+            for (int n = 1; n < nParameters; n++)
+            {
+                // ".." sembolü yerine ile varsayılan değeri(varsa) ata
+                if (Stack[stackBase + n].Type == ExObjType.DEFAULT)
+                {
+                    if (n >= defaultsIndex)
+                    {
+                        Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
+                    }
+                    else
+                    {
+                        AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
+                        return false;
+                    }
+                }
+                // Argümansız ve varsayılan değerli parametrele değerleri ata
+                else if (needsDef && n >= defaultsIndex)
+                {
+                    Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
+                    nArguments++;
+                }
+            }
+            return true;
+        }
+
         private bool SetDefaultValuesInStack(ExPrototype prototype, ExClosure closure, int stackBase, int nParameters, ref int nArguments)
         {
-            if (nParameters != nArguments)       // Argüman sayısı parametre sayısından farklı
+            bool valid;
+            int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
+            if (nParameters != nArguments)       // Argüman sayısı != parametre sayısından
             {
-                int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
-
                 // Minimum sayıda argüman sağlandığını kontrol et
                 if (nDefaultParams > 0 && nArguments < nParameters && (nParameters - nArguments) <= nDefaultParams)
                 {
-                    for (int n = 1; n < nParameters; n++)
-                    {
-                        // ".." sembolü yerine ile varsayılan değeri(varsa) ata
-                        if (Stack[stackBase + n].Type == ExObjType.DEFAULT)
-                        {
-                            if (n >= defaultsIndex)
-                            {
-                                Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
-                            }
-                            else
-                            {
-                                AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
-                                return false;
-                            }
-                        }
-
-                        // Argümansız ve varsayılan değerli parametrele değerleri ata
-                        else if (n >= defaultsIndex)
-                        {
-                            Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
-                            nArguments++;
-                        }
-                    }
+                    valid = DoArgumentChecksInStack(closure, nParameters, stackBase, defaultsIndex, ref nArguments);
                 }
                 // Beklenen sayıda argüman verilmedi, hata mesajı yaz
                 else
@@ -1016,88 +1022,75 @@ namespace ExMat.VM
             }
             else // Argüman sayısı == Parametre sayısı, ".." sembollerini kontrol et
             {
-                int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
-                for (int n = 1; n < nParameters; n++)
-                {
-                    if (Stack[stackBase + n].Type == ExObjType.DEFAULT) // ".." sembolü yerine ile varsayılan değeri(varsa) ata
-                    {
-                        if (n >= defaultsIndex)
-                        {
-                            Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
-                        }
-                        else
-                        {
-                            AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
-                            return false;
-                        }
-                    }
-                }
+                valid = DoArgumentChecksInStack(closure, nParameters, stackBase, defaultsIndex, ref nArguments);
             }
-            return true;
+            return valid;
         }
 
-        // TO-DO enum return
-        private int SetDefaultValuesInStackForSequence(ExClosure closure, int stackBase, int nArguments)
+        private ExFunctionStatus SetDefaultValuesInStackForSequence(ExClosure closure, int stackBase, int nArguments)
         {
             if (nArguments < 2)
             {
-                AddToErrorMessage("sequences require at least 1 argument to be called");
-                return -1;
+                return AddToErrorMessage("sequences require at least 1 argument to be called");
             }
-            else // CONTINUE HERE, ALLOW PARAMETERS FOR SEQUENCES
+            // TO-DO CONTINUE HERE, ALLOW PARAMETERS FOR SEQUENCES
+            if (!ExTypeCheck.IsNumeric(Stack[stackBase + 1]))
             {
-                if (!ExTypeCheck.IsNumeric(Stack[stackBase + 1]))
+                return AddToErrorMessage("expected integer or float as sequence argument");
+            }
+
+            double ind;
+            if (Stack[stackBase + 1].Type == ExObjType.INTEGER)
+            {
+                ind = Stack[stackBase + 1].GetInt();
+            }
+            else if (Stack[stackBase + 1].Type == ExObjType.FLOAT)
+            {
+                ind = Stack[stackBase + 1].GetFloat();
+            }
+            else
+            {
+                return AddToErrorMessage("expected INTEGER or FLOAT as sequence index");
+            }
+
+            string idx = ind.ToString(CultureInfo.CurrentCulture);
+            for (int i = 2; i < closure.Function.Parameters.Count; i++)
+            {
+                ExObject c = closure.Function.Parameters[i];
+                if (c.GetString() == idx)
                 {
-                    AddToErrorMessage("expected integer or float as sequence argument");
-                    return -1;
-                }
-                else
-                {
-                    if (Stack[stackBase + 1].Type == ExObjType.INTEGER)
-                    {
-                        long ind = Stack[stackBase + 1].GetInt();
-                        string idx = ind.ToString(CultureInfo.CurrentCulture);
-                        for (int i = 2; i < closure.Function.Parameters.Count; i++)
-                        {
-                            ExObject c = closure.Function.Parameters[i];
-                            if (c.GetString() == idx)
-                            {
-                                // TO-DO doesnt return to main, also refactor this
-                                // TO-DO optimize
-                                Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
-                                return 1;
-                            }
-                        }
-                        if (ind < 0)
-                        {
-                            AddToErrorMessage("index can't be negative, unless its a default value");
-                            return -1;
-                        }
-                    }
-                    else if (Stack[stackBase + 1].Type == ExObjType.FLOAT)
-                    {
-                        double ind = Stack[stackBase + 1].GetFloat();
-                        string idx = ind.ToString(CultureInfo.CurrentCulture);
-                        for (int i = 2; i < closure.Function.Parameters.Count; i++)
-                        {
-                            ExObject c = closure.Function.Parameters[i];
-                            if (c.GetString() == idx)
-                            {
-                                // TO-DO doesnt return to main, also refactor this
-                                // TO-DO optimize
-                                Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
-                                return 1;
-                            }
-                        }
-                        if (ind < 0)
-                        {
-                            AddToErrorMessage("index can't be negative, unless its a default value");
-                            return -1;
-                        }
-                    }
+                    // TO-DO doesnt return to main, also refactor this
+                    Stack[stackBase - 1].Assign(closure.DefaultParams[i - 2]);
+                    return ExFunctionStatus.SUCCESS;
                 }
             }
-            return 0;
+            return ind < 0 ? AddToErrorMessage("index can't be negative, unless its a default value") : ExFunctionStatus.VOID;
+        }
+
+        private ExFunctionStatus DoSpecialStartCallChecks(ExClosure closure, int nArguments, int stackBase)
+        {
+            ExPrototype prototype = closure.Function;
+            if (prototype.IsRule())
+            {
+                int t_n = prototype.LocalInfos.Count;
+                if (t_n != nArguments)
+                {
+                    return AddToErrorMessage("'" + prototype.Name.GetString() + "' takes " + (t_n - 1) + " arguments");
+                }
+            }
+            else if (prototype.IsCluster())
+            {
+                if (!DoClusterParamChecks(closure, nArguments, stackBase))
+                {
+                    return ExFunctionStatus.ERROR;
+                }
+            }
+            else if (prototype.IsSequence())
+            {
+                return SetDefaultValuesInStackForSequence(closure, stackBase, nArguments);
+            }
+
+            return ExFunctionStatus.VOID;
         }
 
         public bool StartCall(ExClosure closure, int targetIndex, int argumentCount, int stackBase, bool isTailCall)
@@ -1123,39 +1116,11 @@ namespace ExMat.VM
             }
 
             #region Küme, dizi vs. için özel kontroller
-            if (prototype.IsRule())
+            switch (DoSpecialStartCallChecks(closure, nArguments, stackBase))
             {
-                int t_n = prototype.LocalInfos.Count;
-                if (t_n != nArguments)
-                {
-                    AddToErrorMessage("'" + prototype.Name.GetString() + "' takes " + (t_n - 1) + " arguments");
-                    return false;
-                }
-            }
-            else if (prototype.IsCluster())
-            {
-                if (!DoClusterParamChecks(closure, nArguments, stackBase))
-                {
-                    return false;
-                }
-            }
-            else if (prototype.IsSequence())
-            {
-                switch (SetDefaultValuesInStackForSequence(closure, stackBase, nArguments))
-                {
-                    case -1:
-                        {
-                            return false;
-                        }
-                    case 1:
-                        {
-                            return true;
-                        }
-                    default:
-                        {
-                            break;
-                        }
-                }
+                case ExFunctionStatus.ERROR: return false;
+                case ExFunctionStatus.SUCCESS: return true;
+                default: break;
             }
 
             if (closure.WeakReference != null)
@@ -2848,54 +2813,56 @@ namespace ExMat.VM
             return true;
         }
 
+        private static bool InnerNumericTypeCmp(ExObject a, ExObject b, ref int t)
+        {
+            t = a.Type == ExObjType.INTEGER && b.Type == ExObjType.FLOAT
+                ? a.GetInt() == b.GetFloat() ? 0 : a.GetInt() < b.GetFloat() ? -1 : 1
+                : a.GetFloat() == b.GetInt() ? 0 : a.GetFloat() < b.GetInt() ? -1 : 1;
+
+            return true;
+        }
+
+        private static bool InnerSameTypeCmp(ExObject a, ExObject b, ref int t)
+        {
+            switch (a.Type)
+            {
+                case ExObjType.STRING:
+                    {
+                        t = a.GetString() == b.GetString() ? 0 : -1;
+                        return true;
+                    }
+                case ExObjType.INTEGER:
+                    {
+                        t = a.GetInt() == b.GetInt() ? 0 : a.GetInt() < b.GetInt() ? -1 : 1;
+                        return true;
+                    }
+                case ExObjType.FLOAT:
+                    {
+                        t = a.GetFloat() == b.GetFloat() ? 0 : a.GetFloat() < b.GetFloat() ? -1 : 1;
+                        return true;
+                    }
+                default:
+                    {
+                        return false;
+                    }
+            }
+        }
+
         public static bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
         {
-            ExObjType at = a.Type;
-            ExObjType bt = b.Type;
-            if (at == ExObjType.COMPLEX || bt == ExObjType.COMPLEX)
+            if (a.Type == ExObjType.COMPLEX || b.Type == ExObjType.COMPLEX)
             {
                 return false;
             }
-            if (at == bt)
+            if (a.Type == b.Type)
             {
-                switch (at)
-                {
-                    case ExObjType.STRING:
-                        {
-                            t = a.GetString() == b.GetString() ? 0 : -1;
-                            return true;
-                        }
-                    case ExObjType.INTEGER:
-                        {
-                            t = a.GetInt() == b.GetInt() ? 0 : a.GetInt() < b.GetInt() ? -1 : 1;
-                            return true;
-                        }
-                    case ExObjType.FLOAT:
-                        {
-                            t = a.GetFloat() == b.GetFloat() ? 0 : a.GetFloat() < b.GetFloat() ? -1 : 1;
-                            return true;
-                        }
-                    default:
-                        {
-                            return false;
-                        }
-                }
-
+                return InnerSameTypeCmp(a, b, ref t);
             }
-            else
+            else if (ExTypeCheck.IsNumeric(a) && ExTypeCheck.IsNumeric(b))
             {
-                if (ExTypeCheck.IsNumeric(a) && ExTypeCheck.IsNumeric(b))
-                {
-                    t = at == ExObjType.INTEGER && bt == ExObjType.FLOAT
-                        ? a.GetInt() == b.GetFloat() ? 0 : a.GetInt() < b.GetFloat() ? -1 : 1
-                        : a.GetFloat() == b.GetInt() ? 0 : a.GetFloat() < b.GetInt() ? -1 : 1;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                return InnerNumericTypeCmp(a, b, ref t);
             }
+            return false;
         }
 
         public bool DoCompareOP(CmpOP cop, ExObject a, ExObject b, ExObject res)
@@ -3254,133 +3221,103 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoArithmeticOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
+        private bool DoArithmeticOPStrings(ExOperationCode op, int a_mask, ExObject a, ExObject b, ref ExObject res)
         {
-            // Veri tiplerini maskeleyerek işlemler basitleştirilir
-            int a_mask = (int)a.Type | (int)b.Type;
+            if (op != ExOperationCode.ADD)
+            {
+                return DoArithmeticOPDefault(op, a, b, ref res);
+            }
             switch (a_mask)
             {
-                case (int)ArithmeticMask.INT:       // Tamsayılar arası aritmetik işlem
-                    {
-                        if (!InnerDoArithmeticOPInt(op, a.GetInt(), b.GetInt(), ref res))
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case (int)ArithmeticMask.INTCOMPLEX: // Tamsayı ve kompleks sayı arası aritmetik işlem
-                    {
-                        if (a.Type == ExObjType.INTEGER)
-                        {
-                            if (!InnerDoArithmeticOPComplex(op, a.GetInt(), b.GetComplex(), ref res))
-                            {
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            if (!InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetInt(), ref res))
-                            {
-                                return false;
-                            }
-                        }
-                        break;
-                    }
-                case (int)ArithmeticMask.FLOATINT:      // Ondalıklı sayı ve ondalıklı sayı/tamsayı arası
-                case (int)ArithmeticMask.FLOAT:
-                    {
-                        // GetFloat metotu, tamsayı veri tipi objelerde tamsayıyı ondalıklı olarak döner
-                        if (!InnerDoArithmeticOPFloat(op, a.GetFloat(), b.GetFloat(), ref res))
-                        {
-                            return false;
-                        }
-                        break;
-                    }
-                case (int)ArithmeticMask.FLOATCOMPLEX:
-                    {
-                        if (a.Type == ExObjType.FLOAT)
-                        {
-                            if (!InnerDoArithmeticOPComplex(op, a.GetFloat(), b.GetComplex(), ref res))
-                            {
-                                return false;
-                            }
-                        }
-                        else
-                        {
-                            if (!InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetFloat(), ref res))
-                            {
-                                return false;
-                            }
-                        }
-                        break;
-                    }
-                case (int)ArithmeticMask.COMPLEX:
-                    {
-                        if (!InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetComplex(), ref res))
-                        {
-                            return false;
-                        }
-                        break;
-                    }
                 case (int)ArithmeticMask.STRING:
                     {
-                        if (op != ExOperationCode.ADD)
-                        {
-                            goto default;
-                        }
                         res = new(a.GetString() + b.GetString());
                         break;
                     }
                 case (int)ArithmeticMask.STRINGNULL:
                     {
-                        if (op != ExOperationCode.ADD)
-                        {
-                            goto default;
-                        }
-                        res = new(ExTypeCheck.IsNull(a) ? ("null" + b.GetString()) : (a.GetString() + "null"));
+                        res = new(ExTypeCheck.IsNull(a)
+                            ? ExMat.NullName + b.GetString()
+                            : a.GetString() + ExMat.NullName);
                         break;
                     }
                 case (int)ArithmeticMask.STRINGBOOL:
                     {
-                        if (op != ExOperationCode.ADD)
-                        {
-                            goto default;
-                        }
-                        res = new(a.Type == ExObjType.BOOL ? (a.GetBool().ToString(CultureInfo.CurrentCulture).ToLower(CultureInfo.CurrentCulture) + b.GetString()) : (a.GetString() + b.GetBool().ToString(CultureInfo.CurrentCulture).ToLower(CultureInfo.CurrentCulture)));
+                        res = new(a.Type == ExObjType.BOOL
+                            ? a.GetBool().ToString(CultureInfo.CurrentCulture).ToLower(CultureInfo.CurrentCulture) + b.GetString()
+                            : a.GetString() + b.GetBool().ToString(CultureInfo.CurrentCulture).ToLower(CultureInfo.CurrentCulture));
                         break;
                     }
                 case (int)ArithmeticMask.STRINGCOMPLEX:
                     {
-                        if (op != ExOperationCode.ADD)
-                        {
-                            goto default;
-                        }
-                        res = a.Type == ExObjType.STRING ? (new(a.GetString() + b.GetComplexString())) : (new(a.GetComplexString() + b.GetString()));
+                        res = a.Type == ExObjType.STRING
+                            ? new(a.GetString() + b.GetComplexString())
+                            : new(a.GetComplexString() + b.GetString());
                         break;
                     }
                 case (int)ArithmeticMask.STRINGINT:
                 case (int)ArithmeticMask.STRINGFLOAT:
                     {
-                        if (op != ExOperationCode.ADD)
-                        {
-                            goto default;
-                        }
                         res = a.Type == ExObjType.STRING
-                            ? (new(a.GetString() + (b.Type == ExObjType.INTEGER ? b.GetInt() : b.GetFloat())))
-                            : (new((a.Type == ExObjType.INTEGER ? a.GetInt() : a.GetFloat()) + b.GetString()));
+                            ? new(a.GetString() + b.GetFloat())
+                            : new(a.GetFloat() + b.GetString());
                         break;
+                    }
+                default: return false;
+            }
+            return true;
+        }
+
+        private bool DoArithmeticOPDefault(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
+        {
+            if (DoArithmeticMetaOP(op, a, b, ref res))
+            {
+                return true;
+            }
+            AddToErrorMessage("can't do " + op.ToString() + " operation between " + a.Type.ToString() + " and " + b.Type.ToString());
+            return false;
+        }
+
+        public bool DoArithmeticOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
+        {
+            // Veri tiplerini maskeleyerek işlemler basitleştirilir
+            switch ((int)a.Type | (int)b.Type)
+            {
+                case (int)ArithmeticMask.INT:       // Tamsayılar arası aritmetik işlem
+                    {
+                        return InnerDoArithmeticOPInt(op, a.GetInt(), b.GetInt(), ref res);
+                    }
+                case (int)ArithmeticMask.FLOATCOMPLEX:
+                case (int)ArithmeticMask.INTCOMPLEX: // Tamsayı/ondalıklı ve kompleks sayı arası aritmetik işlem
+                    {
+                        return ExTypeCheck.IsRealNumber(a)
+                            ? InnerDoArithmeticOPComplex(op, a.GetFloat(), b.GetComplex(), ref res)
+                            : InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetFloat(), ref res);
+                    }
+                case (int)ArithmeticMask.FLOATINT:      // Ondalıklı sayı ve ondalıklı sayı/tamsayı arası
+                case (int)ArithmeticMask.FLOAT:
+                    {
+                        // GetFloat metotu, tamsayı veri tipi objelerde tamsayıyı ondalıklı olarak döner
+                        return InnerDoArithmeticOPFloat(op, a.GetFloat(), b.GetFloat(), ref res);
+                    }
+                case (int)ArithmeticMask.COMPLEX:
+                    {
+                        return InnerDoArithmeticOPComplex(op, a.GetComplex(), b.GetComplex(), ref res);
+                    }
+                case (int)ArithmeticMask.STRING:
+                case (int)ArithmeticMask.STRINGNULL:
+                case (int)ArithmeticMask.STRINGBOOL:
+                case (int)ArithmeticMask.STRINGCOMPLEX:
+                case (int)ArithmeticMask.STRINGINT:
+                case (int)ArithmeticMask.STRINGFLOAT:
+                    {
+                        return DoArithmeticOPStrings(op, (int)a.Type | (int)b.Type, a, b, ref res);
                     }
                 default:
                     {
-                        if (DoArithmeticMetaOP(op, a, b, ref res))
-                        {
-                            return true;
-                        }
-                        AddToErrorMessage("can't do " + op.ToString() + " operation between " + a.Type.ToString() + " and " + b.Type.ToString());
-                        return false;
+                        return DoArithmeticOPDefault(op, a, b, ref res);
                     }
             }
-            return true;
         }
         public bool DoArithmeticMetaOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
         {

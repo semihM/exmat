@@ -98,7 +98,7 @@ namespace ExMat.Lexer
         public readonly Dictionary<string, TokenType> KeyWords = new()
         {
             // Sabit değerler
-            { "null", TokenType.NULL },
+            { ExMat.NullName, TokenType.NULL },
             { "true", TokenType.TRUE },
             { "false", TokenType.FALSE },
             // Koşullu veya döngüsel
@@ -629,18 +629,23 @@ namespace ExMat.Lexer
                                 #endregion
 
                                 #region Hexadecimal \xnn \unnnn
-                                case 'u':
                                 case 'x':
                                     {
-                                        if (ReadAsHex(CurrentChar == 'u' ? 4096 : 16, out int res))
+                                        if (ReadAsHex(16, out int res))
                                         {
                                             ValTempString.Append((char)res);
                                             break;
                                         }
-                                        else
+                                        return TokenType.UNKNOWN;
+                                    }
+                                case 'u':
+                                    {
+                                        if (ReadAsHex(4096, out int res))
                                         {
-                                            return TokenType.UNKNOWN;
+                                            ValTempString.Append((char)res);
+                                            break;
                                         }
+                                        return TokenType.UNKNOWN;
                                     }
                                 #endregion
                                 default:    // Unknown
@@ -722,15 +727,25 @@ namespace ExMat.Lexer
             return c == '∞';
         }
 
+        private static TokenType ReturnComplexOrGiven(bool isComplex, TokenType given)
+        {
+            return isComplex ? TokenType.COMPLEX : given;
+        }
+
+        private static long GetBinaryFromString(string val, bool is32bit)
+        {
+            return is32bit ? Convert.ToInt32(val, 2)
+                           : Convert.ToInt64(val, 2);
+        }
+
         private TokenType ParseNumberString(TokenType typ, bool isComplex = false, bool is32bit = false)
         {
             switch (typ)
             {
                 case TokenType.BINARY:
                     {
-                        ValInteger = is32bit ? Convert.ToInt32(ValTempString.ToString(), 2)
-                                             : Convert.ToInt64(ValTempString.ToString(), 2);
-                        return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
+                        ValInteger = GetBinaryFromString(ValTempString.ToString(), is32bit);
+                        return ReturnComplexOrGiven(isComplex, TokenType.INTEGER);
                     }
                 case TokenType.HEX:
                     {
@@ -739,7 +754,7 @@ namespace ExMat.Lexer
                             ErrorString = "failed to parse as hexadecimal";
                             return TokenType.UNKNOWN;
                         }
-                        return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
+                        return ReturnComplexOrGiven(isComplex, TokenType.INTEGER);
                     }
                 case TokenType.FLOAT:
                 case TokenType.SCIENTIFIC:
@@ -749,7 +764,7 @@ namespace ExMat.Lexer
                             ErrorString = "failed to parse as float";
                             return TokenType.UNKNOWN;
                         }
-                        return isComplex ? TokenType.COMPLEX : TokenType.FLOAT;
+                        return ReturnComplexOrGiven(isComplex, TokenType.FLOAT);
                     }
                 case TokenType.INTEGER:
                     {
@@ -767,7 +782,7 @@ namespace ExMat.Lexer
                             }
                             return TokenType.FLOAT;
                         }
-                        return isComplex ? TokenType.COMPLEX : TokenType.INTEGER;
+                        return ReturnComplexOrGiven(isComplex, TokenType.INTEGER);
                     }
             }
             return TokenType.UNKNOWN;

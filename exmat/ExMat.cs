@@ -74,6 +74,11 @@ namespace ExMat
         /// </summary>
         public const string ReturnsName = "returns";
 
+        /// <summary>
+        /// String representation of a null value
+        /// </summary>
+        public const string NullName = "null";
+
         //TO-DO Add function attribute for parameter info
 
         /// <summary>
