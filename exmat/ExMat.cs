@@ -631,6 +631,32 @@ namespace ExMat
     }
 
     /// <summary>
+    /// Getter method status
+    /// </summary>
+    public enum ExSetterStatus
+    {
+        /// <summary>
+        /// Base object had issues
+        /// </summary>
+        ERROR,
+
+        /// <summary>
+        /// Setter succeeded
+        /// </summary>
+        SET,
+
+        /// <summary>
+        /// A delegate was tried to be set
+        /// </summary>
+        NOTSETDELEGATE,
+
+        /// <summary>
+        /// Unknown index or delegate tried to be set
+        /// </summary>
+        NOTSETUNKNOWN
+    }
+
+    /// <summary>
     /// Error types used for messages
     /// </summary>
     public enum ExErrorType
