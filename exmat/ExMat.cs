@@ -17,12 +17,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.12";
+        public const string Version = "ExMat v0.0.13";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 12;
+        public const int VersionNumber = 13;
 
         /// <summary>
         /// Title of the interactive console
