@@ -14,13 +14,14 @@ printl("\n------------");
 var ft = time()
 seq Factorial(0:1.0, 1:1.0) Factorial(n-1) * n
 printl(Factorial)
-print(map(Factorial, range(10)));
+print(map(Factorial, range(20)));
 printl("\n f seq time: "+(time() - ft))
+printl("------------");
 
 var fft = time();
 function FactorialF(x)  return x < 2 ? 1 : (x * FactorialF(x-1))
 printl(FactorialF)
-print(map(FactorialF, range(10)));
+print(map(FactorialF, range(20)));
 print("\n f func time: "+(time() - fft))
 
 // Arithmetic

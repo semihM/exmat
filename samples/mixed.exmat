@@ -117,7 +117,7 @@ for(var i = 0; i < 2; i++)
 		}
 		else
 		{
-			::global = 123
+			global <> 123
 		}
 
 		printl("j is: "+j)
@@ -127,9 +127,11 @@ for(var i = 0; i < 2; i++)
 }
 
 printl("-----------------------")
-::another_global = "global_two"
-this["hello"] = 999
-this.hi = 666
+another_global <> "global_two"
+this.global_slot <> 3+4i
+root().someotherglb <> "henlo"
+this["hello"] <> 999
+::hi <> 666
 
 printl(this)
 

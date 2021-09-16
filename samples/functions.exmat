@@ -56,7 +56,7 @@ printl("Ex function's default value dictionary(parameter# = def_value):\n"+strin
 printl("/////////////////////////")
 
 // Available globally
-::GlobalFunction = function(x)
+GlobalFunction <> function(x)
 {
     return x+": this function is in the root dictionary (like Ex and Bar)!"
 }
