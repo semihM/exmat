@@ -17,12 +17,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.11";
+        public const string Version = "ExMat v0.0.12";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 11;
+        public const int VersionNumber = 12;
 
         /// <summary>
         /// Title of the interactive console
@@ -628,6 +628,32 @@ namespace ExMat
         /// Object was not found in base object
         /// </summary>
         NOTFOUND
+    }
+
+    /// <summary>
+    /// Getter method status
+    /// </summary>
+    public enum ExSetterStatus
+    {
+        /// <summary>
+        /// Base object had issues
+        /// </summary>
+        ERROR,
+
+        /// <summary>
+        /// Setter succeeded
+        /// </summary>
+        SET,
+
+        /// <summary>
+        /// A delegate was tried to be set
+        /// </summary>
+        NOTSETDELEGATE,
+
+        /// <summary>
+        /// Unknown index or delegate tried to be set
+        /// </summary>
+        NOTSETUNKNOWN
     }
 
     /// <summary>

@@ -79,12 +79,6 @@ namespace ExMat.Lexer
         /// </summary>
         public TokenType TokenComplex;
 
-        public StringBuilder MacroBlock;
-        public string MacroParamName;
-        public List<ExMacroParam> MacroParams = new();
-
-        public bool IsReadingMacroBlock;
-
         /// <summary>
         /// Error message
         /// </summary>
@@ -246,7 +240,55 @@ namespace ExMat.Lexer
             return typ;
         }
 
-        private TokenType ReadSpaceDim(char curr)
+        private TokenType ReadSpaceDimInt(char curr)
+        {
+            if (ValInteger < 0)
+            {
+                ErrorString = "dimension can't be less than zero";
+                return TokenType.UNKNOWN;
+            }
+            ValSpace.Dimension = (int)ValInteger;
+            if (CurrentChar == '*')
+            {
+                ExSpace parent = new();
+                while (CurrentChar == '*')
+                {
+                    ExSpace.Copy(parent, ValSpace);
+
+                    if (ReadSpaceDim(curr) != TokenType.SPACE)
+                    {
+                        return TokenType.UNKNOWN;
+                    }
+                    parent.AddDimension(ValSpace);
+                }
+                ValSpace = parent;
+            }
+            return TokenType.SPACE;
+        }
+
+        private TokenType ReadSpaceDimAdd(char start, char currchar)
+        {
+            if (char.IsLetter(currchar))
+            {
+                ValSpace.Dimension = -1;
+            }
+
+            ExSpace parent = null;
+            while (CurrentChar == '*')
+            {
+                parent = new(-1, ValSpace.Domain, ValSpace.Sign, ValSpace.Child);
+
+                if (ReadSpaceDim(start) != TokenType.SPACE)
+                {
+                    return TokenType.UNKNOWN;
+                }
+                parent.AddDimension(ValSpace);
+            }
+            ValSpace = parent;
+            return TokenType.SPACE;
+        }
+
+        private TokenType ReadSpaceDim(char start)
         {
             NextChar();
             char currchar = CurrentChar;
@@ -254,26 +296,9 @@ namespace ExMat.Lexer
             {
                 case TokenType.INTEGER:
                     {
-                        if (ValInteger < 0)
+                        if (ReadSpaceDimInt(start) == TokenType.UNKNOWN)
                         {
-                            ErrorString = "dimension can't be less than zero";
                             return TokenType.UNKNOWN;
-                        }
-                        ValSpace.Dimension = (int)ValInteger;
-                        if (CurrentChar == '*')
-                        {
-                            ExSpace parent = new();
-                            while (CurrentChar == '*')
-                            {
-                                ExSpace.Copy(parent, ValSpace);
-
-                                if (ReadSpaceDim(curr) != TokenType.SPACE)
-                                {
-                                    return TokenType.UNKNOWN;
-                                }
-                                parent.AddDimension(ValSpace);
-                            }
-                            ValSpace = parent;
                         }
                         break;
                     }
@@ -287,23 +312,10 @@ namespace ExMat.Lexer
                         }
                         else if (CurrentChar == '*')    // @A'b*...
                         {
-                            if (char.IsLetter(currchar))
+                            if (ReadSpaceDimAdd(start, currchar) == TokenType.UNKNOWN)
                             {
-                                ValSpace.Dimension = -1;
+                                return TokenType.UNKNOWN;
                             }
-
-                            ExSpace parent = null;
-                            while (CurrentChar == '*')
-                            {
-                                parent = new(-1, ValSpace.Domain, ValSpace.Sign, ValSpace.Child);
-
-                                if (ReadSpaceDim(curr) != TokenType.SPACE)
-                                {
-                                    return TokenType.UNKNOWN;
-                                }
-                                parent.AddDimension(ValSpace);
-                            }
-                            ValSpace = parent;
                             break;
                         }
                         else
@@ -313,9 +325,9 @@ namespace ExMat.Lexer
                         }
                     }
             }
-            if (CurrentChar != curr)
+            if (CurrentChar != start)
             {
-                ErrorString = "expected '" + curr + "' to finish space reference after dimension";
+                ErrorString = "expected '" + start + "' to finish space reference after dimension";
                 return TokenType.UNKNOWN;
             }
             return TokenType.SPACE;
@@ -395,97 +407,6 @@ namespace ExMat.Lexer
             }
 
             return ReadSpaceDim(curr);
-        }
-
-        private string ReadMacroParam()
-        {
-            StringBuilder pname = new();
-            do
-            {
-                pname.Append(CurrentChar);
-                NextChar();
-
-            } while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_');
-
-            if (CurrentChar != '#')
-            {
-                return null;
-            }
-            NextChar();
-            if (CurrentChar != '#')
-            {
-                return null;
-            }
-            NextChar();
-
-            return string.IsNullOrWhiteSpace(pname.ToString()) ? null : pname.ToString();
-        }
-
-        private TokenType ReadMacroBlock()
-        {
-            MacroBlock = new();
-            StringBuilder mtag = new();
-            while (true)
-            {
-                while (CurrentChar is not ExMat.EndChar and not '#')
-                {
-                    MacroBlock.Append(CurrentChar);
-                    NextChar();
-                }
-
-                if (CurrentChar == '#')
-                {
-                    mtag.Clear();
-                    NextChar();
-
-                    string pname = string.Empty;
-                    if (CurrentChar == '#')    // ##param##
-                    {
-                        NextChar();
-                        pname = ReadMacroParam();
-                        if (pname == null)
-                        {
-                            return TokenType.UNKNOWN;
-                        }
-
-                        ExMacroParam ep;
-                        if ((ep = MacroParams.Find((ExMacroParam e) => e.Name == pname)) != null)
-                        {
-                            ep.Columns.Add(CurrentCol);
-                            ep.Lines.Add(CurrentLine);
-                        }
-                        else
-                        {
-                            MacroParams.Add(new() { Name = pname, Columns = new() { CurrentCol }, Lines = new() { CurrentLine } });
-                        }
-                        MacroBlock.Append("##" + pname + "##");
-                    }
-                    else // #end 
-                    {
-                        while (char.IsLetterOrDigit(CurrentChar) || CurrentChar == '_')
-                        {
-                            mtag.Append(CurrentChar);
-                            NextChar();
-                        }
-                    }
-
-                    switch (mtag.ToString())
-                    {
-                        case "end":
-                            {
-                                return TokenType.MACROBLOCK;
-                            }
-                        case "":
-                            {
-                                continue;
-                            }
-                        default:
-                            {
-                                return TokenType.UNKNOWN;
-                            }
-                    }
-                }
-            }
         }
 
         private static int GetHexCharVal(char curr)
@@ -788,6 +709,109 @@ namespace ExMat.Lexer
             return TokenType.UNKNOWN;
         }
 
+        private TokenType ReadHexNumber()
+        {
+            if (ValTempString[0] != '0')
+            {
+                ErrorString = "hexadecimal numbers has to start with a zero -> 0x...";
+                return TokenType.UNKNOWN;
+            }
+
+            NextChar();
+            ValTempString = new();
+
+            while (IsValidHexChar(ref CurrentChar))
+            {
+                ValTempString.Append(CurrentChar); NextChar();
+            }
+
+            int length = ValTempString.Length;
+            if (length > 16)
+            {
+                ErrorString = "hexadecimal number too long, max length is 16 for 64bit integer";
+                return TokenType.UNKNOWN;
+            }
+
+            ValTempString.Insert(0, new string('0', 16 - length));
+            return TokenType.HEX;
+        }
+
+        private TokenType ReadBinaryNumber(ref bool is32bit)
+        {
+            is32bit = CurrentChar == 'b';
+
+            if (ValTempString[0] != '0')
+            {
+                ErrorString = "binary numbers has to start with a zero -> 0b...";
+                return TokenType.UNKNOWN;
+            }
+
+            NextChar();
+            ValTempString = new();
+
+            while (CurrentChar is '0' or '1')
+            {
+                ValTempString.Append(CurrentChar); NextChar();
+            }
+
+            int length = ValTempString.Length;
+            if (is32bit)
+            {
+                if (length > 32)
+                {
+                    ErrorString = "32bit binary number too long, max length is 32";
+                    return TokenType.UNKNOWN;
+                }
+            }
+            else if (length > 64)
+            {
+                ErrorString = "64bit binary number too long, max length is 64";
+                return TokenType.UNKNOWN;
+            }
+
+            ValTempString.Insert(0, new string('0', (is32bit ? 32 : 64) - length));
+            return TokenType.BINARY;
+        }
+
+        private TokenType ReadNumberSimple()
+        {
+            TokenType ret = TokenType.INTEGER;
+            while (CurrentChar == '.' || char.IsDigit(CurrentChar) || IsExponent(CurrentChar))
+            {
+                if (CurrentChar == '.')
+                {
+                    ret = TokenType.FLOAT;
+                }
+                else if (IsExponent(CurrentChar))
+                {
+                    if (ValTempString[^1] == '.')
+                    {
+                        ErrorString = "expected digits after '.' ";
+                        return TokenType.UNKNOWN;
+                    }
+
+                    ret = TokenType.SCIENTIFIC;
+
+                    ValTempString.Append(CurrentChar); NextChar();
+
+                    if (IsSign(CurrentChar))
+                    {
+                        ValTempString.Append(CurrentChar); NextChar();
+                    }
+
+                    if (!char.IsDigit(CurrentChar))
+                    {
+                        ErrorString = "Wrong exponent value format";
+                        return TokenType.UNKNOWN;
+                    }
+                }
+
+                ValTempString.Append(CurrentChar); NextChar();
+            }
+
+            return ret;
+        }
+
         private TokenType ReadNumber(char start)
         {
             bool is32bit = false;
@@ -804,135 +828,58 @@ namespace ExMat.Lexer
             {
                 case 'x':  // Hexadecimal
                     {
-                        typ = TokenType.HEX;
-
-                        if (ValTempString[0] != '0')
-                        {
-                            ErrorString = "hexadecimal numbers has to start with a zero -> 0x...";
-                            return TokenType.UNKNOWN;
-                        }
-
-                        NextChar();
-                        ValTempString = new();
-
-                        while (IsValidHexChar(ref CurrentChar))
-                        {
-                            ValTempString.Append(CurrentChar); NextChar();
-                        }
-
-                        int length = ValTempString.Length;
-                        if (length > 16)
-                        {
-                            ErrorString = "hexadecimal number too long, max length is 16 for 64bit integer";
-                            return TokenType.UNKNOWN;
-                        }
-
-                        ValTempString.Insert(0, new string('0', 16 - length));
+                        typ = ReadHexNumber();
                         break;
                     }
                 case 'B':   // 64bit Binary
                 case 'b':   // 32bit Binary
                     {
-                        is32bit = CurrentChar == 'b';
-
-                        typ = TokenType.BINARY;
-
-                        if (ValTempString[0] != '0')
-                        {
-                            ErrorString = "binary numbers has to start with a zero -> 0b...";
-                            return TokenType.UNKNOWN;
-                        }
-
-                        NextChar();
-                        ValTempString = new();
-
-                        while (CurrentChar is '0' or '1')
-                        {
-                            ValTempString.Append(CurrentChar); NextChar();
-                        }
-
-                        int length = ValTempString.Length;
-                        if (is32bit)
-                        {
-                            if (length > 32)
-                            {
-                                ErrorString = "32bit binary number too long, max length is 32";
-                                return TokenType.UNKNOWN;
-                            }
-                        }
-                        else if (length > 64)
-                        {
-                            ErrorString = "64bit binary number too long, max length is 64";
-                            return TokenType.UNKNOWN;
-                        }
-
-                        ValTempString.Insert(0, new string('0', (is32bit ? 32 : 64) - length));
+                        typ = ReadBinaryNumber(ref is32bit);
                         break;
                     }
                 default:
                     {
-                        while (CurrentChar == '.' || char.IsDigit(CurrentChar) || IsExponent(CurrentChar))
-                        {
-                            if (CurrentChar == '.')
-                            {
-                                typ = TokenType.FLOAT;
-                            }
-                            else if (IsExponent(CurrentChar))
-                            {
-                                if (ValTempString[^1] == '.')
-                                {
-                                    ErrorString = "expected digits after '.' ";
-                                    return TokenType.UNKNOWN;
-                                }
-
-                                typ = TokenType.SCIENTIFIC;
-
-                                ValTempString.Append(CurrentChar); NextChar();
-
-                                if (IsSign(CurrentChar))
-                                {
-                                    ValTempString.Append(CurrentChar); NextChar();
-                                }
-
-                                if (!char.IsDigit(CurrentChar))
-                                {
-                                    ErrorString = "Wrong exponent value format";
-                                    return TokenType.UNKNOWN;
-                                }
-                            }
-
-                            ValTempString.Append(CurrentChar); NextChar();
-                        }
+                        typ = ReadNumberSimple();
                         break;
                     }
             }
 
-            if (ValTempString[^1] == '.')
+            if (typ == TokenType.UNKNOWN)
+            {
+                return typ;
+            }
+            else if (ValTempString[^1] == '.')
             {
                 ErrorString = "expected digits after '.' ";
                 return TokenType.UNKNOWN;
             }
             else if (CurrentChar == 'i')
             {
-                switch (typ)
-                {
-                    case TokenType.INTEGER:
-                    case TokenType.HEX:
-                    case TokenType.BINARY:
-                        {
-                            TokenComplex = TokenType.INTEGER;
-                            break;
-                        }
-                    default:
-                        {
-                            TokenComplex = TokenType.FLOAT;
-                            break;
-                        }
-                }
                 NextChar();
+
+                DecideComplexNumRealPart(typ);
                 return ParseNumberString(typ, true, is32bit);
             }
             return ParseNumberString(typ, false, is32bit);
+        }
+
+        private void DecideComplexNumRealPart(TokenType typ)
+        {
+            switch (typ)
+            {
+                case TokenType.INTEGER:
+                case TokenType.HEX:
+                case TokenType.BINARY:
+                    {
+                        TokenComplex = TokenType.INTEGER;
+                        break;
+                    }
+                default:
+                    {
+                        TokenComplex = TokenType.FLOAT;
+                        break;
+                    }
+            }
         }
 
         public TokenType GetTokenTypeForChar(char c)
@@ -997,6 +944,347 @@ namespace ExMat.Lexer
             }
         }
 
+        private TokenType LexAsg()
+        {
+            NextChar();
+            if (CurrentChar == '=')
+            {
+                NextChar();
+                return SetAndReturnToken(TokenType.EQU);
+            }
+            else if (CurrentChar == '>')
+            {
+                NextChar();
+                return SetAndReturnToken(TokenType.ELEMENTDEF);
+            }
+            else
+            {
+                return SetAndReturnToken(TokenType.ASG);
+            }
+        }
+
+        private TokenType LexLT()
+        {
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '=':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.LET);
+                    }
+                case '<':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.LSHF);
+                    }
+                case '>':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.NEWSLOT);
+                    }
+            }
+            return SetAndReturnToken(TokenType.LST);
+        }
+
+        private TokenType LexGT()
+        {
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '=':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.GET);
+                    }
+                case '>':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.RSHF);
+                    }
+            }
+            return SetAndReturnToken(TokenType.GRT);
+        }
+
+        private TokenType LexExMark()
+        {
+            NextChar();
+            if (CurrentChar == '=')
+            {
+                NextChar();
+                return SetAndReturnToken(TokenType.NEQ);
+            }
+            else
+            {
+                return SetAndReturnToken(TokenType.EXC);
+            }
+        }
+
+        private TokenType LexDollarSign()
+        {
+            NextChar();
+            if (CurrentChar == '\"')
+            {
+                TokenType res;
+                return (res = ReadVerboseString(CurrentChar)) != TokenType.UNKNOWN ? SetAndReturnToken(res) : TokenType.UNKNOWN;
+            }
+            else
+            {
+                return SetAndReturnToken(TokenType.LAMBDA);
+            }
+        }
+
+        private TokenType LexQuotationMark()
+        {
+            TokenType res;
+            return (res = ReadString(CurrentChar)) != TokenType.UNKNOWN ? SetAndReturnToken(res) : TokenType.UNKNOWN;
+        }
+
+        private TokenType LexAtSign()
+        {
+            if (ReadSpace(CurrentChar) != TokenType.UNKNOWN)
+            {
+                NextChar();
+                return SetAndReturnToken(TokenType.SPACE);
+            }
+            else
+            {
+                ErrorString = "expected the pattern @(Z|R|N|C|E)[+-]?('\\d(\\*\\d)*)?@ for spaces";
+                return TokenType.UNKNOWN;
+            }
+        }
+
+        private TokenType LexDot()
+        {
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '/':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.ATTRIBUTEFINISH);
+                    }
+                case '*':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.MATMLT);
+                    }
+                case '.':
+                    {
+                        NextChar();
+                        if (CurrentChar == '.')
+                        {
+                            NextChar();
+                            return SetAndReturnToken(TokenType.VARGS);
+                        }
+                        return SetAndReturnToken(TokenType.DEFAULT);
+                    }
+                default:
+                    {
+                        return SetAndReturnToken(TokenType.DOT);
+                    }
+            }
+        }
+
+        private TokenType LexAnd()
+        {
+            NextChar();
+            if (CurrentChar == '&')
+            {
+                NextChar();
+                return SetAndReturnToken(TokenType.AND);
+            }
+            else
+            {
+                return SetAndReturnToken(TokenType.BAND);
+            }
+        }
+
+        private TokenType LexOr()
+        {
+            NextChar();
+            if (CurrentChar == '|')
+            {
+                NextChar();
+                return SetAndReturnToken(TokenType.OR);
+            }
+            else
+            {
+                return SetAndReturnToken(TokenType.BOR);
+            }
+        }
+
+        private TokenType LexCol()
+        {
+            NextChar();
+            if (CurrentChar == ':')
+            {
+                NextChar();
+                return SetAndReturnToken(TokenType.GLOBAL);
+            }
+            else
+            {
+                return SetAndReturnToken(TokenType.COL);
+            }
+        }
+
+        private TokenType LexPlus()
+        {
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '=':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.ADDEQ);
+                    }
+                case '+':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.INC);
+                    }
+                default:
+                    {
+                        return SetAndReturnToken(TokenType.ADD);
+                    }
+            }
+        }
+
+        private TokenType LexMinus()
+        {
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '=':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.SUBEQ);
+                    }
+                case '-':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.DEC);
+                    }
+                default:
+                    {
+                        return SetAndReturnToken(TokenType.SUB);
+                    }
+            }
+        }
+
+        private TokenType LexStar()
+        {
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '.':
+                    {
+                        NextChar();
+                        if (CurrentChar != '*')
+                        {
+                            return TokenType.UNKNOWN;
+                        }
+                        NextChar();
+                        return SetAndReturnToken(TokenType.CARTESIAN);
+                    }
+                case '*':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.EXP);
+                    }
+                case '=':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.MLTEQ);
+                    }
+                default:
+                    {
+                        return SetAndReturnToken(TokenType.MLT);
+                    }
+            }
+        }
+
+        private TokenType LexFSlash(out bool skip)
+        {
+            skip = false;
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '=':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.DIVEQ);
+                    }
+                case '/':
+                    {
+                        SkipComment();
+                        skip = true;
+                        break;
+                    }
+                case '*':
+                    {
+                        NextChar();
+                        if (!SkipBlockComment())
+                        {
+                            return TokenType.UNKNOWN;
+                        }
+                        skip = true;
+                        break;
+                    }
+                case '.':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.ATTRIBUTEBEGIN);
+                    }
+                default:
+                    {
+                        return SetAndReturnToken(TokenType.DIV);
+                    }
+            }
+            return TokenType.COMMENT;
+        }
+
+        private TokenType LexPercent()
+        {
+            NextChar();
+            switch (CurrentChar)
+            {
+                case '=':
+                    {
+                        NextChar();
+                        return SetAndReturnToken(TokenType.MODEQ);
+                    }
+                default:
+                    {
+                        return SetAndReturnToken(TokenType.MOD);
+                    }
+            }
+        }
+
+        private TokenType LexOther()
+        {
+            if (char.IsDigit(CurrentChar) || IsDotNetNumberChar(CurrentChar))
+            {
+                return SetAndReturnToken(ReadNumber(CurrentChar));  // Sayı
+            }
+            else if (char.IsLetter(CurrentChar) || CurrentChar == '_')
+            {
+                return SetAndReturnToken(ReadId());     // Tanımlayıcı
+            }
+            else  // Bilinmeyen
+            {
+                char tmp = CurrentChar;
+                if (char.IsControl(tmp))
+                {
+                    ErrorString = "Unexpected control character " + tmp.ToString(CultureInfo.CurrentCulture);
+                    return TokenType.UNKNOWN;
+                }
+
+                NextChar();
+                return SetAndReturnToken(GetTokenTypeForChar(tmp));
+            }
+        }
+
         public TokenType Lex()
         {
             PrevTokenLine = CurrentLine;
@@ -1004,7 +1292,8 @@ namespace ExMat.Lexer
             {
                 switch (CurrentChar)
                 {
-                    #region Special characters
+                    case ExMat.EndChar:
+                        return TokenType.ENDLINE;
                     case '\t':
                     case '\r':
                     case ' ':
@@ -1020,156 +1309,43 @@ namespace ExMat.Lexer
                             CurrentCol = 1;
                             continue;
                         }
-                    case '#':
-                        {
-                            if (IsReadingMacroBlock)    // TO-DO
-                            {
-                                NextChar();
-                                if (CurrentChar != '#')
-                                {
-                                    // SHOULDNT GO HERE 
-                                    return TokenType.UNKNOWN;
-                                }
-
-                                MacroParamName = ReadMacroParam();
-                                return string.IsNullOrWhiteSpace(MacroParamName) ? TokenType.UNKNOWN : SetAndReturnToken(TokenType.MACROPARAM);
-                            }
-                            else
-                            {
-                                NextChar();
-                                TokenType typ = ReadId();
-                                switch (typ)
-                                {
-                                    case TokenType.MACROSTART:
-                                    case TokenType.MACROEND:
-                                        {
-                                            return SetAndReturnToken(typ);
-                                        }
-                                    case TokenType.MACROBLOCK:
-                                        {
-                                            return SetAndReturnToken(ReadMacroBlock());
-                                        }
-                                    default:
-                                        {
-                                            ErrorString = "expected 'define' or 'end' after '#'";
-                                            return TokenType.UNKNOWN;
-                                        }
-                                }
-                            }
-
-                        }
-                    case '=':
+                    case '\'':
                         {
                             NextChar();
-                            if (CurrentChar == '=')
-                            {
-                                NextChar();
-                                return SetAndReturnToken(TokenType.EQU);
-                            }
-                            else if (CurrentChar == '>')
-                            {
-                                NextChar();
-                                return SetAndReturnToken(TokenType.ELEMENTDEF);
-                            }
-                            else
-                            {
-                                return SetAndReturnToken(TokenType.ASG);
-                            }
-                        }
-                    case '<':
-                        {
-                            NextChar();
-                            switch (CurrentChar)
-                            {
-                                case '=':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.LET);
-                                    }
-                                case '<':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.LSHF);
-                                    }
-                                case '>':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.NEWSLOT);
-                                    }
-                            }
-                            return SetAndReturnToken(TokenType.LST);
-                        }
-                    case '>':
-                        {
-                            NextChar();
-                            switch (CurrentChar)
-                            {
-                                case '=':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.GET);
-                                    }
-                                case '>':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.RSHF);
-                                    }
-                            }
-                            return SetAndReturnToken(TokenType.GRT);
-                        }
-                    case '!':
-                        {
-                            NextChar();
-                            if (CurrentChar == '=')
-                            {
-                                NextChar();
-                                return SetAndReturnToken(TokenType.NEQ);
-                            }
-                            else
-                            {
-                                return SetAndReturnToken(TokenType.EXC);
-                            }
+                            return SetAndReturnToken(TokenType.MATTRANSPOSE);
                         }
                     case '\\':
                         {
                             ErrorString = "escape char outside string";
                             return TokenType.UNKNOWN;
                         }
-                    case '\'':
-                        {
-                            NextChar();
-                            return SetAndReturnToken(TokenType.MATTRANSPOSE);
-                        }
                     case '"':
                         {
-                            TokenType res;
-                            return (res = ReadString(CurrentChar)) != TokenType.UNKNOWN ? SetAndReturnToken(res) : TokenType.UNKNOWN;
+                            return LexQuotationMark();
                         }
                     case '$':
                         {
-                            NextChar();
-                            if (CurrentChar == '\"')
-                            {
-                                TokenType res;
-                                return (res = ReadVerboseString(CurrentChar)) != TokenType.UNKNOWN ? SetAndReturnToken(res) : TokenType.UNKNOWN;
-                            }
-                            else
-                            {
-                                return SetAndReturnToken(TokenType.LAMBDA);
-                            }
+                            return LexDollarSign();
+                        }
+                    case '=':
+                        {
+                            return LexAsg();
+                        }
+                    case '<':
+                        {
+                            return LexLT();
+                        }
+                    case '>':
+                        {
+                            return LexGT();
+                        }
+                    case '!':
+                        {
+                            return LexExMark();
                         }
                     case '@':
                         {
-                            if (ReadSpace(CurrentChar) != TokenType.UNKNOWN)
-                            {
-                                NextChar();
-                                return SetAndReturnToken(TokenType.SPACE);
-                            }
-                            else
-                            {
-                                ErrorString = "expected the pattern @(Z|R|N|C|E)[+-]?('\\d(\\*\\d)*)?@ for spaces";
-                                return TokenType.UNKNOWN;
-                            }
+                            return LexAtSign();
                         }
                     case '{':
                     case '}':
@@ -1188,60 +1364,15 @@ namespace ExMat.Lexer
                         }
                     case '.':
                         {
-                            NextChar();
-                            switch (CurrentChar)
-                            {
-                                case '/':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.ATTRIBUTEFINISH);
-                                    }
-                                case '*':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.MATMLT);
-                                    }
-                                case '.':
-                                    {
-                                        NextChar();
-                                        if (CurrentChar == '.')
-                                        {
-                                            NextChar();
-                                            return SetAndReturnToken(TokenType.VARGS);
-                                        }
-                                        return SetAndReturnToken(TokenType.DEFAULT);
-                                    }
-                                default:
-                                    {
-                                        return SetAndReturnToken(TokenType.DOT);
-                                    }
-                            }
+                            return LexDot();
                         }
                     case '&':
                         {
-                            NextChar();
-                            if (CurrentChar == '&')
-                            {
-                                NextChar();
-                                return SetAndReturnToken(TokenType.AND);
-                            }
-                            else
-                            {
-                                return SetAndReturnToken(TokenType.BAND);
-                            }
+                            return LexAnd();
                         }
                     case '|':
                         {
-                            NextChar();
-                            if (CurrentChar == '|')
-                            {
-                                NextChar();
-                                return SetAndReturnToken(TokenType.OR);
-                            }
-                            else
-                            {
-                                return SetAndReturnToken(TokenType.BOR);
-                            }
+                            return LexOr();
                         }
                     case '^':
                         {
@@ -1250,170 +1381,37 @@ namespace ExMat.Lexer
                         }
                     case ':':
                         {
-                            NextChar();
-                            if (CurrentChar == ':')
-                            {
-                                NextChar();
-                                return SetAndReturnToken(TokenType.GLOBAL);
-                            }
-                            else
-                            {
-                                return SetAndReturnToken(TokenType.COL);
-                            }
+                            return LexCol();
                         }
                     case '+':
                         {
-                            NextChar();
-                            switch (CurrentChar)
-                            {
-                                case '=':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.ADDEQ);
-                                    }
-                                case '+':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.INC);
-                                    }
-                                default:
-                                    {
-                                        return SetAndReturnToken(TokenType.ADD);
-                                    }
-                            }
+                            return LexPlus();
                         }
                     case '-':
                         {
-                            NextChar();
-                            switch (CurrentChar)
-                            {
-                                case '=':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.SUBEQ);
-                                    }
-                                case '-':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.DEC);
-                                    }
-                                default:
-                                    {
-                                        return SetAndReturnToken(TokenType.SUB);
-                                    }
-                            }
+                            return LexMinus();
                         }
                     case '*':
                         {
-                            NextChar();
-                            switch (CurrentChar)
-                            {
-                                case '.':
-                                    {
-                                        NextChar();
-                                        if (CurrentChar != '*')
-                                        {
-                                            return TokenType.UNKNOWN;
-                                        }
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.CARTESIAN);
-                                    }
-                                case '*':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.EXP);
-                                    }
-                                case '=':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.MLTEQ);
-                                    }
-                                default:
-                                    {
-                                        return SetAndReturnToken(TokenType.MLT);
-                                    }
-                            }
+                            return LexStar();
                         }
                     case '/':
                         {
-                            NextChar();
-                            switch (CurrentChar)
+                            TokenType temp = LexFSlash(out bool skip);
+                            if (skip)
                             {
-                                case '=':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.DIVEQ);
-                                    }
-                                case '/':
-                                    {
-                                        SkipComment();
-                                        continue;
-                                    }
-                                case '*':
-                                    {
-                                        NextChar();
-                                        if (!SkipBlockComment())
-                                        {
-                                            return TokenType.UNKNOWN;
-                                        }
-                                        continue;
-                                    }
-                                case '.':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.ATTRIBUTEBEGIN);
-                                    }
-                                default:
-                                    {
-                                        return SetAndReturnToken(TokenType.DIV);
-                                    }
+                                continue;
                             }
+                            return temp;
                         }
                     case '%':
                         {
-                            NextChar();
-                            switch (CurrentChar)
-                            {
-                                case '=':
-                                    {
-                                        NextChar();
-                                        return SetAndReturnToken(TokenType.MODEQ);
-                                    }
-                                default:
-                                    {
-                                        return SetAndReturnToken(TokenType.MOD);
-                                    }
-                            }
+                            return LexPercent();
                         }
-                    case ExMat.EndChar:
-                        return TokenType.ENDLINE;
-                    #endregion
-
-                    #region Number, Identifier, Other Special character or Unknown
                     default:
                         {
-                            if (char.IsDigit(CurrentChar) || IsDotNetNumberChar(CurrentChar))
-                            {
-                                return SetAndReturnToken(ReadNumber(CurrentChar));  // Sayı
-                            }
-                            else if (char.IsLetter(CurrentChar) || CurrentChar == '_')
-                            {
-                                return SetAndReturnToken(ReadId());     // Tanımlayıcı
-                            }
-                            else  // Bilinmeyen
-                            {
-                                char tmp = CurrentChar;
-                                if (char.IsControl(tmp))
-                                {
-                                    ErrorString = "Unexpected control character " + tmp.ToString(CultureInfo.CurrentCulture);
-                                    return TokenType.UNKNOWN;
-                                }
-
-                                NextChar();
-                                return SetAndReturnToken(GetTokenTypeForChar(tmp));
-                            }
+                            return LexOther();
                         }
-                        #endregion
                 }
             }
             return TokenType.ENDLINE;
@@ -1425,14 +1423,11 @@ namespace ExMat.Lexer
             {
                 if (disposing)
                 {
-                    ExDisposer.DisposeList(ref MacroParams);
                     ExDisposer.DisposeObjects(ValSpace);
 
                     ErrorString = null;
                     ValTempString = null;
                     ValString = null;
-                    MacroParamName = null;
-                    MacroBlock = null;
 
                     _source = null;
                 }

@@ -129,7 +129,7 @@ printl(">>> Modifying method attributes 2")
 
 printl(MyClass.get_attr("MyAttrMethod","method_atrribute_2"))
 printl(myinstance_1.MyAttrMethod.method_atrribute_2)
-myinstance_1.MyAttrMethod.method_atrribute_2 = null
+myinstance_1.set_attr("MyAttrMethod","method_atrribute_2",null)
 
 printl(myinstance_1.MyAttrMethod.method_atrribute_2)
 printl(myinstance_2.MyAttrMethod.method_atrribute_2)

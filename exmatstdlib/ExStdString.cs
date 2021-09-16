@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using ExMat.API;
-using ExMat.Lexer;
 using ExMat.Objects;
 using ExMat.VM;
 
@@ -41,19 +40,6 @@ namespace ExMat.StdLib
             return list;
         }
 
-        public static void ReplaceMacroParams(ExMacro m, List<ExObject> args)
-        {
-            string[] lines = m.Source.Split('\n');
-            for (int i = 0; i < m.Parameters.Count; i++)
-            {
-                ExMacroParam p = m.Parameters[i];
-                string val = args[i].GetString();
-                for (int j = 0; j < p.Lines.Count; j++)
-                {
-                    lines[p.Lines[j]] = lines[p.Lines[j]].Substring(0, p.Columns[j]) + val + lines[p.Lines[j]].Substring(p.Columns[j] + p.Name.Length + 4, lines[p.Lines[j]].Length);
-                }
-            }
-        }
         #endregion
 
         #region STRING FUNCTIONS

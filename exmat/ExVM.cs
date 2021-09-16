@@ -223,11 +223,11 @@ namespace ExMat.VM
         {
             if (string.IsNullOrEmpty(ErrorString))
             {
-                ErrorString = "[ERROR]" + msg;
+                ErrorString = "[ERROR] " + msg;
             }
             else
             {
-                ErrorString += "\n[ERROR]" + msg;
+                ErrorString += "\n[ERROR] " + msg;
             }
             return ExFunctionStatus.ERROR;
         }
@@ -3388,99 +3388,161 @@ namespace ExMat.VM
             return i.arg3 != 0 ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
         }
 
+        private ExSetterStatus SetterDict(Dictionary<string, ExObject> dict, string key, ExObject val)
+        {
+            if (SharedState.DictDelegate.GetDict().ContainsKey(key))
+            {
+                return ExSetterStatus.NOTSETDELEGATE;
+            }
+            if (!dict.ContainsKey(key))
+            {
+                AddToErrorMessage("use '<>' operator to create new dictionary slots");
+                return ExSetterStatus.NOTSETUNKNOWN;
+            }
+            dict[key].Assign(val);
+            return ExSetterStatus.SET;
+        }
+
+        private ExSetterStatus SetterList(List<ExObject> lis, ExObject idx, ExObject val)
+        {
+            if (ExTypeCheck.IsNumeric(idx))
+            {
+                int n = (int)idx.GetInt();
+                int l = lis.Count;
+                if (Math.Abs(n) < l)
+                {
+                    if (n < 0)
+                    {
+                        n = l + n;
+                    }
+                    lis[n].Assign(val);
+                    return ExSetterStatus.SET;
+                }
+                else
+                {
+                    AddToErrorMessage("array index error: count {0}, given index: {1}", lis.Count, idx.GetInt());
+                    return ExSetterStatus.ERROR;
+                }
+            }
+
+            if (idx.Type == ExObjType.STRING && SharedState.ListDelegate.GetDict().ContainsKey(idx.GetString()))
+            {
+                return ExSetterStatus.NOTSETDELEGATE;
+            }
+
+            AddToErrorMessage("can't index array with '{0}'", idx.Type.ToString());
+            return ExSetterStatus.ERROR;
+        }
+
+        private ExSetterStatus SetterInstance(ExInstance inst, string key, ExObject val)
+        {
+            if (inst.Class.Members.ContainsKey(key)
+                && inst.Class.Members[key].IsField())
+            {
+                inst.MemberValues[inst.Class.Members[key].GetMemberID()].Assign(new ExObject(val));
+                return ExSetterStatus.SET;
+            }
+
+            return SharedState.InstanceDelegate.GetDict().ContainsKey(key) ? ExSetterStatus.NOTSETDELEGATE : ExSetterStatus.NOTSETUNKNOWN;
+        }
+
+        private ExSetterStatus SetterString(ExObject str, ExObject k, ExObject v)
+        {
+            if (ExTypeCheck.IsNumeric(k))
+            {
+                int n = (int)k.GetInt();
+                int l = str.GetString().Length;
+                if (Math.Abs(n) < l)
+                {
+                    if (n < 0)
+                    {
+                        n = l + n;
+                    }
+
+                    if (v.GetString().Length != 1)
+                    {
+                        AddToErrorMessage("expected single character for string setter");
+                        return ExSetterStatus.ERROR;
+                    }
+
+                    str.SetString(str.GetString().Substring(0, n) + v.GetString() + str.GetString()[(n + 1)..l]);
+                    return ExSetterStatus.SET;
+                }
+                AddToErrorMessage("array index error: count {0}, given index: {1}", str.GetString().Length, k.GetInt());
+                return ExSetterStatus.ERROR;
+            }
+
+            if (k.Type == ExObjType.STRING && SharedState.StringDelegate.GetDict().ContainsKey(k.GetString()))
+            {
+                return ExSetterStatus.NOTSETDELEGATE;
+            }
+
+            AddToErrorMessage("can't index string with '{0}'", k.Type.ToString());
+            return ExSetterStatus.ERROR;
+        }
+
+        private ExSetterStatus SetterClosure(ExClosure cls, string key)
+        {
+            if (SharedState.ClosureDelegate.GetDict().ContainsKey(key))
+            {
+                return ExSetterStatus.NOTSETDELEGATE;
+            }
+            else if (cls.GetAttribute(key) != null)
+            {
+                AddToErrorMessage("can't change closure attribute '{0}'", key);
+                return ExSetterStatus.ERROR;
+            }
+
+            AddToErrorMessage("can't index CLOSURE with '{0}'", key);
+            return ExSetterStatus.ERROR;
+        }
+
         public bool Setter(ExObject self, ExObject k, ref ExObject v, ExFallback f)
         {
+            ExSetterStatus status = ExSetterStatus.ERROR;
             switch (self.Type)
             {
                 case ExObjType.DICT:
                     {
-                        if (!self.GetDict().ContainsKey(k.GetString()))
-                        {
-                            self.GetDict().Add(k.GetString(), new());
-                        }
-                        self.GetDict()[k.GetString()].Assign(v);
-                        return true;
+                        status = SetterDict(self.GetDict(), k.GetString(), v);
+                        break;
                     }
                 case ExObjType.ARRAY:
                     {
-                        if (ExTypeCheck.IsNumeric(k))
-                        {
-                            int n = (int)k.GetInt();
-                            int l = self.GetList().Count;
-                            if (Math.Abs(n) < l)
-                            {
-                                if (n < 0)
-                                {
-                                    n = l + n;
-                                }
-                                self.GetList()[n].Assign(v);
-                                return true;
-                            }
-                            else
-                            {
-                                AddToErrorMessage("array index error: count " + self.GetList().Count + " idx: " + k.GetInt());
-                                return false;
-                            }
-                        }
-                        AddToErrorMessage("can't index array with " + k.Type.ToString());
-                        return false;
+                        status = SetterList(self.GetList(), k, v);
+                        break;
                     }
                 case ExObjType.INSTANCE:
                     {
-                        if (self.GetInstance().Class.Members.ContainsKey(k.GetString())
-                            && self.GetInstance().Class.Members[k.GetString()].IsField())
-                        {
-                            self.GetInstance().MemberValues[self.GetInstance().Class.Members[k.GetString()].GetMemberID()].Assign(new ExObject(v));
-                            return true;
-                        }
+                        status = SetterInstance(self.GetInstance(), k.GetString(), v);
                         break;
                     }
                 case ExObjType.STRING:
                     {
-                        if (ExTypeCheck.IsNumeric(k))
-                        {
-                            int n = (int)k.GetInt();
-                            int l = self.GetString().Length;
-                            if (Math.Abs(n) < l)
-                            {
-                                if (n < 0)
-                                {
-                                    n = l + n;
-                                }
-
-                                if (v.GetString().Length != 1)
-                                {
-                                    AddToErrorMessage("expected single character for string setter");
-                                    return false;
-                                }
-
-                                self.SetString(self.GetString().Substring(0, n) + v.GetString() + self.GetString()[(n + 1)..l]);
-                                return true;
-                            }
-                            AddToErrorMessage("string index error. count " + self.GetString().Length + " idx " + k.GetInt());
-                            return false;
-                        }
+                        status = SetterString(self, k, v);
                         break;
                     }
                 case ExObjType.CLOSURE:
                     {
-                        if (k.Type == ExObjType.STRING)
-                        {
-                            foreach (ExClassMem c in self.GetClosure().Base.Methods)
-                            {
-                                if (c.Value.GetClosure().Function.Name.GetString() == self.GetClosure().Function.Name.GetString())
-                                {
-                                    if (c.Attributes.Type == ExObjType.DICT && c.Attributes.GetDict().ContainsKey(k.GetString()))
-                                    {
-                                        c.Attributes.GetDict()[k.GetString()].Assign(v);
-                                        return true;
-                                    }
-                                    AddToErrorMessage("unknown attribute '" + k.GetString() + "'");
-                                    return false;
-                                }
-                            }
-                        }
+                        status = SetterClosure(self.GetClosure(), k.GetString());
                         break;
+                    }
+                default:
+                    {
+                        break;
+                    }
+            }
+
+            switch (status)
+            {
+                case ExSetterStatus.ERROR:
+                    return false;
+                case ExSetterStatus.SET:
+                    return true;
+                case ExSetterStatus.NOTSETDELEGATE: // TO-DO set_delegate
+                    {
+                        AddToErrorMessage("can't overwrite delegate '{0}' via indexing type '{1}'", k.GetString(), self.Type.ToString());
+                        return false;
                     }
                 default:
                     break;
@@ -3496,14 +3558,7 @@ namespace ExMat.VM
                     return false;
             }
 
-            if (f == ExFallback.OK
-                && RootDictionary.GetDict().ContainsKey(k.GetString()))
-            {
-                RootDictionary.GetDict()[k.GetString()].Assign(v);
-                return true;
-            }
-
-            AddToErrorMessage("key error: " + k.GetString());
+            AddToErrorMessage("unknown key '{0}'", k.GetString());
             return false;
         }
 
@@ -3511,21 +3566,6 @@ namespace ExMat.VM
         {
             switch (self.Type)
             {
-                case ExObjType.DICT:
-                    {
-                        if (self.GetInstance().Delegate != null)
-                        {
-                            if (Setter(self.GetInstance().Delegate, k, ref v, ExFallback.DONT))
-                            {
-                                return ExFallback.OK;
-                            }
-                        }
-                        else
-                        {
-                            return ExFallback.NOMATCH;
-                        }
-                        goto case ExObjType.INSTANCE;
-                    }
                 case ExObjType.INSTANCE:
                     {
                         ExObject cls = null;
@@ -3618,11 +3658,6 @@ namespace ExMat.VM
         {
             switch (self.Type)
             {
-                case ExObjType.DICT:
-                    {
-                        // TO-DO Dict delegates ?
-                        return ExFallback.NOMATCH;
-                    }
                 case ExObjType.INSTANCE:
                     {
                         ExObject cls = null;
@@ -3662,7 +3697,13 @@ namespace ExMat.VM
                 return ExGetterStatus.FOUND;
             }
 
-            return ExGetterStatus.NOTFOUND;
+            if (isUsingIn || SharedState.DictDelegate.GetDict().ContainsKey(key.GetString()))
+            {
+                return ExGetterStatus.NOTFOUND;
+            }
+
+            AddToErrorMessage("unknown key '{0}'", key.GetString());
+            return ExGetterStatus.ERROR;
         }
 
 
@@ -3749,47 +3790,47 @@ namespace ExMat.VM
             return ExGetterStatus.NOTFOUND;
         }
 
+        private ExGetterStatus GetterCallCluster(ExObject fbase, ExObject key)
+        {
+            List<ExObject> lis = key.Type != ExObjType.ARRAY
+                        ? new() { key }
+                        : key.GetList();
+
+            if (!DoClusterParamChecks(fbase.GetClosure(), lis))
+            {
+                return ExGetterStatus.ERROR;
+            }
+
+            ExObject tmp = new();
+            Push(fbase);
+            Push(RootDictionary);
+
+            int nargs = 2;
+            if (fbase.GetClosure().DefaultParams.Count == 1)
+            {
+                Push(lis);
+            }
+            else
+            {
+                nargs += lis.Count - 1;
+                PushParse(lis);
+            }
+
+            if (!Call(ref fbase, nargs, StackTop - nargs, ref tmp, true))
+            {
+                Pop(nargs + 1);
+                return ExGetterStatus.ERROR;
+            }
+            Pop(nargs + 1);
+            return tmp.GetBool() ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+        }
+
         public ExGetterStatus Getter(ExObject fbase, ExObject key, ref ExObject dest, bool isUsingIn, bool isNative = false)
         {
             ExClosure func = fbase.GetClosure();
             if (!isNative && isUsingIn)
             {
-                if (!func.Function.IsCluster())
-                {
-                    return ExGetterStatus.ERROR;
-                }
-
-                List<ExObject> lis = key.Type != ExObjType.ARRAY
-                        ? new() { key }
-                        : key.GetList();
-
-                if (!DoClusterParamChecks(func, lis))
-                {
-                    return ExGetterStatus.ERROR;
-                }
-
-                ExObject tmp = new();
-                Push(fbase);
-                Push(RootDictionary);
-
-                int nargs = 2;
-                if (func.DefaultParams.Count == 1)
-                {
-                    Push(lis);
-                }
-                else
-                {
-                    nargs += lis.Count - 1;
-                    PushParse(lis);
-                }
-
-                if (!Call(ref fbase, nargs, StackTop - nargs, ref tmp, true))
-                {
-                    Pop(nargs + 1);
-                    return ExGetterStatus.ERROR;
-                }
-                Pop(nargs + 1);
-                return tmp.GetBool() ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
+                return !func.Function.IsCluster() ? ExGetterStatus.ERROR : GetterCallCluster(fbase, key);
             }
 
             if (key.Type == ExObjType.STRING)
@@ -3873,15 +3914,8 @@ namespace ExMat.VM
                     }
                 case ExObjType.SPACE:
                     {
-                        if (isUsingIn)
-                        {
-                            return IsInSpace(k, self.GetSpace(), 1, false);
-                        }
-                        else
-                        {
-                            AddToErrorMessage("can't index 'SPACE' with '" + k.Type.ToString() + "'");
-                            return false;
-                        }
+                        status = GetterSpace(self.GetSpace(), k, isUsingIn);
+                        break;
                     }
                 case ExObjType.NATIVECLOSURE:
                 case ExObjType.CLOSURE:
@@ -3917,10 +3951,10 @@ namespace ExMat.VM
                 {
                     case ExFallback.OK:
                         return true;
-                    case ExFallback.NOMATCH:
-                        break;
                     case ExFallback.ERROR:
                         return false;
+                    default:
+                        break;
                 }
                 if (InvokeDefaultDeleg(self, k, ref dest))
                 {
@@ -3939,6 +3973,19 @@ namespace ExMat.VM
                 AddToErrorMessage("index not found for type '" + self.Type.ToString() + "' named '" + k.GetString() + "'");
             }
             return false;
+        }
+
+        private ExGetterStatus GetterSpace(ExSpace self, ExObject k, bool isUsingIn)
+        {
+            if (isUsingIn)
+            {
+                return IsInSpace(k, self, 1, false) ? ExGetterStatus.FOUND : ExGetterStatus.ERROR;
+            }
+            else
+            {
+                AddToErrorMessage("can't index 'SPACE' with '" + k.Type.ToString() + "'");
+                return ExGetterStatus.ERROR;
+            }
         }
 
         public ExObject GetTargetInStack(ExInstr i)
@@ -4075,6 +4122,48 @@ namespace ExMat.VM
             return CallNative(cls, (int)narg, (int)newb, ref o);
         }
 
+        private static bool NativeCallParamCheck(int nParameterChecks, int nArguments)
+        {
+            return (nParameterChecks <= 0 || nParameterChecks == nArguments) &&
+            (nParameterChecks >= 0 || nArguments >= (-nParameterChecks));
+        }
+
+        private bool DoArgumentChecksInStackNative(ExNativeClosure cls, int nParameterChecks, int nArguments, int newBase, List<int> ts)
+        {
+            int t_n = ts.Count;
+            if (nParameterChecks < 0 && t_n < nArguments)   // Maksimum argüman sayısı kontrolü yap
+            {
+                AddToErrorMessage("'" + cls.Name.GetString() + "' takes maximum " + (t_n - 1) + " arguments");
+                return false;
+            }
+
+            for (int i = 0; i < nArguments && i < t_n; i++) // Argümanların tiplerini maskeler ile kontrol et
+            {
+                ExObjType argumentType = Stack[newBase + i].Type;
+                if (argumentType == ExObjType.DEFAULT)
+                {
+                    if (cls.DefaultValues.ContainsKey(i))
+                    {
+                        Stack[newBase + i].Assign(cls.DefaultValues[i]);
+                    }
+                    else
+                    {
+                        AddToErrorMessage("can't use non-existant default value for parameter " + i);
+                        return false;
+                    }
+                } // ".." sembollerini varsayılan değer kontrolü yaparak değiştir
+
+                // argumentType tipi tamsayı olarak ts[i] ile maskelendiğinde 0 oluyorsa beklenmedik bir tiptir 
+                else if (ts[i] != -1 && ((int)argumentType & ts[i]) == 0)
+                {
+                    AddToErrorMessage("invalid parameter type for parameter " + i + ", expected one of "
+                                      + ExApi.GetExpectedTypes(ts[i]) + ", got: " + Stack[newBase + i].Type.ToString());
+                    return false;
+                }
+            }
+            return true;
+        }
+
         public bool CallNative(ExNativeClosure cls, int nArguments, int newBase, ref ExObject result)
         {
             int nParameterChecks = cls.nParameterChecks;        // Parametre sayısı kontrolü
@@ -4087,8 +4176,7 @@ namespace ExMat.VM
 
             // nParameterChecks > 0 => tam nParameterChecks adet argüman gerekli
             // nParameterChecks < 0 => minimum (-nParameterChecks) adet argüman gerekli
-            if (((nParameterChecks > 0) && (nParameterChecks != nArguments)) ||
-            ((nParameterChecks < 0) && (nArguments < (-nParameterChecks))))
+            if (!NativeCallParamCheck(nParameterChecks, nArguments))
             {
                 if (nParameterChecks < 0)
                 {
@@ -4101,42 +4189,12 @@ namespace ExMat.VM
 
             // CompileTypeMask ile derlenen maskeler listesi
             List<int> ts = cls.TypeMasks;
-            // Maske sayısı = maksimum parametre sayısı
-            int t_n = ts.Count;
 
             // Tanımlı maske varsa argümanları maskeler ile kontrol et
-            if (t_n > 0)
+            if (ts.Count > 0
+                && !DoArgumentChecksInStackNative(cls, nParameterChecks, nArguments, newBase, ts))
             {
-                if (nParameterChecks < 0 && t_n < nArguments)   // Maksimum argüman sayısı kontrolü yap
-                {
-                    AddToErrorMessage("'" + cls.Name.GetString() + "' takes maximum " + (t_n - 1) + " arguments");
-                    return false;
-                }
-
-                for (int i = 0; i < nArguments && i < t_n; i++) // Argümanların tiplerini maskeler ile kontrol et
-                {
-                    ExObjType argumentType = Stack[newBase + i].Type;
-                    if (argumentType == ExObjType.DEFAULT)
-                    {
-                        if (cls.DefaultValues.ContainsKey(i))
-                        {
-                            Stack[newBase + i].Assign(cls.DefaultValues[i]);
-                        }
-                        else
-                        {
-                            AddToErrorMessage("can't use non-existant default value for parameter " + i);
-                            return false;
-                        }
-                    } // ".." sembollerini varsayılan değer kontrolü yaparak değiştir
-
-                    // argumentType tipi tamsayı olarak ts[i] ile maskelendiğinde 0 oluyorsa beklenmedik bir tiptir 
-                    else if (ts[i] != -1 && ((int)argumentType & ts[i]) == 0)
-                    {
-                        AddToErrorMessage("invalid parameter type for parameter " + i + ", expected one of "
-                                          + ExApi.GetExpectedTypes(ts[i]) + ", got: " + Stack[newBase + i].Type.ToString());
-                        return false;
-                    }
-                }
+                return false;
             }
 
             // Çerçeve başlat
