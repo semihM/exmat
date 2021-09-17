@@ -11,7 +11,7 @@
     <Module hash="1F-B2-EC-40-1C-1E-C1-4F-39-A9-DC-E6-E1-5B-FA-E2-A0-E2-28-6C">
       <Summary numSequencePoints="297" visitedSequencePoints="98" numBranchPoints="87" visitedBranchPoints="31" sequenceCoverage="33.00" branchCoverage="35.63" maxCyclomaticComplexity="5" minCyclomaticComplexity="0" maxCrapScore="30" minCrapScore="0" visitedClasses="2" numClasses="2" visitedMethods="19" numMethods="33" />
       <ModulePath>C:\Projects\exmat\exm\bin\Debug\net5.0\exm.dll</ModulePath>
-      <ModuleTime>2021-09-17T21:06:44.7118362Z</ModuleTime>
+      <ModuleTime>2021-09-17T22:05:27.4676702Z</ModuleTime>
       <ModuleName>exm</ModuleName>
       <Files>
         <File uid="1" fullPath="C:\Projects\exmat\exm\Program.cs" />
@@ -465,9 +465,9 @@
               <SequencePoints>
                 <SequencePoint vc="1" uspid="220" ordinal="0" offset="0" sl="427" sc="9" el="427" ec="10" bec="0" bev="0" fileid="1" />
                 <SequencePoint vc="1" uspid="221" ordinal="1" offset="1" sl="428" sc="13" el="428" ec="34" bec="0" bev="0" fileid="1" />
-                <SequencePoint vc="820989" uspid="222" ordinal="2" offset="14" sl="429" sc="42" el="429" ec="43" bec="0" bev="0" fileid="1" />
-                <SequencePoint vc="820989" uspid="223" ordinal="3" offset="15" sl="429" sc="44" el="429" ec="45" bec="0" bev="0" fileid="1" />
-                <SequencePoint vc="820990" uspid="224" ordinal="4" offset="16" sl="429" sc="13" el="429" ec="41" bec="0" bev="0" fileid="1" />
+                <SequencePoint vc="949094" uspid="222" ordinal="2" offset="14" sl="429" sc="42" el="429" ec="43" bec="0" bev="0" fileid="1" />
+                <SequencePoint vc="949094" uspid="223" ordinal="3" offset="15" sl="429" sc="44" el="429" ec="45" bec="0" bev="0" fileid="1" />
+                <SequencePoint vc="949095" uspid="224" ordinal="4" offset="16" sl="429" sc="13" el="429" ec="41" bec="0" bev="0" fileid="1" />
                 <SequencePoint vc="1" uspid="225" ordinal="5" offset="30" sl="430" sc="9" el="430" ec="10" bec="0" bev="0" fileid="1" />
               </SequencePoints>
               <BranchPoints />
@@ -761,10 +761,10 @@
       <ModuleName>System.Runtime</ModuleName>
       <Classes />
     </Module>
-    <Module hash="E5-73-68-F6-70-EB-07-E2-74-59-38-E7-AE-51-7D-F8-05-5C-EB-E3">
+    <Module hash="5F-47-15-66-F8-1E-60-EC-85-3B-59-01-82-C0-03-FE-06-DE-68-2D">
       <Summary numSequencePoints="10306" visitedSequencePoints="1845" numBranchPoints="4727" visitedBranchPoints="555" sequenceCoverage="17.90" branchCoverage="11.74" maxCyclomaticComplexity="154" minCyclomaticComplexity="1" maxCrapScore="21462" minCrapScore="1" visitedClasses="36" numClasses="62" visitedMethods="242" numMethods="816" />
       <ModulePath>C:\Projects\exmat\exm\bin\Debug\net5.0\exmat.dll</ModulePath>
-      <ModuleTime>2021-09-17T21:04:47.3479292Z</ModuleTime>
+      <ModuleTime>2021-09-17T22:05:16.208558Z</ModuleTime>
       <ModuleName>exmat</ModuleName>
       <Files>
         <File uid="5" fullPath="C:\Projects\exmat\exmat\Attributes\ExStdLibBase.cs" />
@@ -24298,10 +24298,10 @@
       <ModuleName>System.Text.RegularExpressions</ModuleName>
       <Classes />
     </Module>
-    <Module hash="2F-AD-96-EA-4F-59-04-70-2F-2F-48-EA-9C-A5-07-BF-79-25-3A-F9">
+    <Module hash="F8-A4-41-E2-33-0B-0C-BB-7A-CE-45-ED-D5-16-1F-C8-8E-2B-87-72">
       <Summary numSequencePoints="4603" visitedSequencePoints="31" numBranchPoints="1838" visitedBranchPoints="16" sequenceCoverage="0.67" branchCoverage="0.87" maxCyclomaticComplexity="103" minCyclomaticComplexity="1" maxCrapScore="10712" minCrapScore="1" visitedClasses="14" numClasses="16" visitedMethods="16" numMethods="273" />
       <ModulePath>C:\Projects\exmat\exm\bin\Debug\net5.0\exmatstdlib.dll</ModulePath>
-      <ModuleTime>2021-09-17T21:04:48.5519323Z</ModuleTime>
+      <ModuleTime>2021-09-17T22:05:23.6300382Z</ModuleTime>
       <ModuleName>exmatstdlib</ModuleName>
       <Files>
         <File uid="129" fullPath="C:\Projects\exmat\exmatstdlib\ExStdBase.cs" />
