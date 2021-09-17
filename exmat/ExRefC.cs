@@ -20,6 +20,7 @@ namespace ExMat.Objects
                 e.ReferencedObject = new();
                 e.ReferencedObject.Type = t;
                 e.ReferencedObject.Value = v;
+                e.ReferencedObject.Value._RefC = this;
                 WeakReference = e;
             }
             return WeakReference;

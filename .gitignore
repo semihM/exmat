@@ -6,6 +6,11 @@
 # Other
 *.rar
 *.vbs
+*.bat
+*.ps1
+
+# Coverage reports
+coverage/
 
 # User-specific files
 *.rsuser

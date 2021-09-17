@@ -5,14 +5,6 @@
         public ExObject ReferencedObject;   // Zayıf referans edilen obje
         private bool disposedValue;
 
-        public virtual void Release()
-        {
-            if (((int)ReferencedObject.Type & (int)ExObjFlag.COUNTREFERENCES) != 0)
-            {
-                ReferencedObject.Value._WeakRef = null;
-            }
-        }
-
         protected override void Dispose(bool disposing)
         {
             base.Dispose(disposing);

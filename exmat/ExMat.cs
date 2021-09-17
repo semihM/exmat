@@ -17,12 +17,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.12";
+        public const string Version = "ExMat v0.0.13";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 12;
+        public const int VersionNumber = 13;
 
         /// <summary>
         /// Title of the interactive console
@@ -685,6 +685,22 @@ namespace ExMat
         /// Interruption of input stream by CTRLC or CTRLBREAK
         /// </summary>
         INTERRUPTINPUT
+    }
+
+    /// <summary>
+    /// Console flags
+    /// </summary>
+    [Flags]
+    public enum ExConsoleFlag
+    {
+        /// <summary>
+        /// Don't read key input on exit
+        /// </summary>
+        DONTKEEPOPEN = 1 << 0,
+        /// <summary>
+        /// Don't print version information
+        /// </summary>
+        NOTITLE = 1 << 1
     }
 
     /// <summary>
