@@ -17,10 +17,10 @@ namespace ExMat.Objects.Tests
         {
             ExObjVal obj = new();
 
-            Assert.AreEqual(obj.b_Bool, false);
-            Assert.AreEqual(obj.i_Int, 0);
-            Assert.AreEqual(obj.f_Float, 0.0);
-            Assert.AreEqual(obj.c_Float, 0.0);
+            Assert.AreEqual(false, obj.b_Bool);
+            Assert.AreEqual(0, obj.i_Int);
+            Assert.AreEqual(0.0, obj.f_Float);
+            Assert.AreEqual(0.0, obj.c_Float);
 
             Assert.IsNull(obj.c_Space);
             Assert.IsNull(obj.s_String);
@@ -46,7 +46,7 @@ namespace ExMat.Objects.Tests
         {
             ExRefC obj = new();
 
-            Assert.AreEqual(obj.ReferenceCount, 0);
+            Assert.AreEqual(0, obj.ReferenceCount);
 
             Assert.IsNull(obj.WeakReference);
         }
@@ -56,7 +56,7 @@ namespace ExMat.Objects.Tests
         {
             ExWeakRef obj = new();
 
-            Assert.AreEqual(obj.ReferenceCount, 0);
+            Assert.AreEqual(0, obj.ReferenceCount);
 
             Assert.IsNull(obj.ReferencedObject);
 
@@ -84,7 +84,7 @@ namespace ExMat.Objects.Tests
 
             ExObjVal lookup = new();
 
-            Assert.AreEqual(obj.Type, ExObjType.NULL);
+            Assert.AreEqual(ExObjType.NULL, obj.Type);
 
             typeof(ExObjVal)
                 .GetFields()
@@ -99,7 +99,7 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.INTEGER);
+            Assert.AreEqual(ExObjType.INTEGER, obj.Type);
 
             Assert.IsNull(obj.Value._RefC);
 
@@ -115,7 +115,7 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.FLOAT);
+            Assert.AreEqual(ExObjType.FLOAT, obj.Type);
 
             Assert.IsNull(obj.Value._RefC);
 
@@ -131,7 +131,7 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.STRING);
+            Assert.AreEqual(ExObjType.STRING, obj.Type);
 
             Assert.IsNull(obj.Value._RefC);
 
@@ -147,7 +147,7 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.STRING);
+            Assert.AreEqual(ExObjType.STRING, obj.Type);
 
             Assert.IsNull(obj.Value._RefC);
 
@@ -163,7 +163,7 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.STRING);
+            Assert.AreEqual(ExObjType.STRING, obj.Type);
 
             Assert.IsNull(obj.Value._RefC);
 
@@ -179,7 +179,7 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.COMPLEX);
+            Assert.AreEqual(ExObjType.COMPLEX, obj.Type);
 
             Assert.IsNull(obj.Value._RefC);
 
@@ -196,7 +196,7 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.BOOL);
+            Assert.AreEqual(ExObjType.BOOL, obj.Type);
 
             Assert.IsNull(obj.Value._RefC);
 
@@ -212,11 +212,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.SPACE);
+            Assert.AreEqual(ExObjType.SPACE, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value.c_Space, test);
 
@@ -230,11 +230,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.ARRAY);
+            Assert.AreEqual(ExObjType.ARRAY, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value.l_List, test);
 
@@ -248,11 +248,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.DICT);
+            Assert.AreEqual(ExObjType.DICT, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value.d_Dict, test);
 
@@ -266,11 +266,11 @@ namespace ExMat.Objects.Tests
 
             ExList obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.ARRAY);
+            Assert.AreEqual(ExObjType.ARRAY, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value.l_List, test);
 
@@ -284,11 +284,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.CLASS);
+            Assert.AreEqual(ExObjType.CLASS, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value._Class, test);
 
@@ -302,11 +302,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.INSTANCE);
+            Assert.AreEqual(ExObjType.INSTANCE, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value._Instance, test);
 
@@ -320,11 +320,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.CLOSURE);
+            Assert.AreEqual(ExObjType.CLOSURE, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value._Closure, test);
 
@@ -338,11 +338,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.NATIVECLOSURE);
+            Assert.AreEqual(ExObjType.NATIVECLOSURE, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value._NativeClosure, test);
 
@@ -358,11 +358,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.FUNCPRO);
+            Assert.AreEqual(ExObjType.FUNCPRO, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value._FuncPro, test);
         }
@@ -374,11 +374,11 @@ namespace ExMat.Objects.Tests
 
             ExObject obj = new(test);
 
-            Assert.AreEqual(obj.Type, ExObjType.OUTER);
+            Assert.AreEqual(ExObjType.OUTER, obj.Type);
 
             Assert.IsNotNull(obj.Value._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.Value._RefC.ReferenceCount);
 
             Assert.AreSame(obj.Value._Outer, test);
         }
