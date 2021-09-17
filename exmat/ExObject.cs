@@ -328,12 +328,10 @@ namespace ExMat.Objects
         ///////////////////////////////
         public ExObject(Dictionary<string, ExObject> dict)
         {
-            if (dict != null)
-            {
-                Type = ExObjType.DICT;
-                Value._RefC = new();
-                Value.d_Dict = dict;
-            }
+            Type = ExObjType.DICT;
+            Value.d_Dict = dict;
+            Value._RefC = new();
+            AddReference(Type, Value, true);
         }
         public void Assign(Dictionary<string, ExObject> dict)
         {
@@ -382,25 +380,6 @@ namespace ExMat.Objects
             Value._Instance = o;
             Value._RefC = new() { ReferenceCount = Value._Instance.ReferenceCount++ };
             Type = ExObjType.INSTANCE;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
-        }
-        public ExObject(ExList o)
-        {
-            Type = ExObjType.ARRAY;
-            Value.l_List = o.Value.l_List;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
-        }
-        public void Assign(ExList o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value.l_List = o.Value.l_List;
-            Value._RefC = new() { ReferenceCount = o.Value._RefC.ReferenceCount++ };
-            Type = ExObjType.ARRAY;
 
             AddReference(Type, Value, true);
             Release(t, v);
@@ -469,6 +448,7 @@ namespace ExMat.Objects
         {
             Type = ExObjType.OUTER;
             Value._Outer = o;
+            Value._RefC = new();
             AddReference(Type, Value, true);
         }
         public void Assign(ExOuter o)
@@ -507,6 +487,7 @@ namespace ExMat.Objects
         {
             Type = ExObjType.FUNCPRO;
             Value._FuncPro = o;
+            Value._RefC = new();
             AddReference(Type, Value, true);
         }
         public void Assign(ExPrototype o)

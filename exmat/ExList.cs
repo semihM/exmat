@@ -4,36 +4,14 @@ namespace ExMat.Objects
 {
     public class ExList : ExObject
     {
-        public ExList()
+        public ExList() : base(new List<ExObject>())
         {
-            Type = ExObjType.ARRAY;
-            Value.l_List = new();
-            Value._RefC = new();
+
         }
 
-        public ExList(bool n)
+        public ExList(List<ExObject> e) : base(e)
         {
-            Type = ExObjType.ARRAY;
-            Value.l_List = n ? new() : null;
-            Value._RefC = new();
-        }
-        public ExList(char c)
-        {
-            Type = ExObjType.ARRAY;
-            Value.l_List = c != '0' ? new() : null;
-            Value._RefC = new();
-        }
-        public ExList(ExList e)
-        {
-            Type = ExObjType.ARRAY;
-            Value.l_List = e.Value.l_List;
-            Value._RefC = new();
-        }
-        public ExList(List<ExObject> e)
-        {
-            Type = ExObjType.ARRAY;
-            Value.l_List = e;
-            Value._RefC = new();
+
         }
 
         public ExList(string[] e)
@@ -48,6 +26,8 @@ namespace ExMat.Objects
             {
                 Value.l_List.Add(new(s));
             }
+
+            AddReference(Type, Value, true);
         }
 
         public ExList(List<string> e)
@@ -62,6 +42,8 @@ namespace ExMat.Objects
             {
                 Value.l_List.Add(new(s));
             }
+
+            AddReference(Type, Value, true);
         }
     }
 }

@@ -1194,7 +1194,7 @@ namespace ExMat.API
         public static void CreateConstantList(ExVM vm, string name, List<ExObject> lis)
         {
             PushString(vm, name, -1);
-            vm.Push(new ExList(lis));
+            vm.Push(new ExObject(lis));
             CreateNewSlotConts(vm, name);
         }
 
