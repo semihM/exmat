@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using ExMat.API;
@@ -49,6 +50,20 @@ namespace ExMat
         /// Amount of objects to nullify after VM completes executing
         /// </summary>
         private static int ResetInStack;
+
+        /// <summary>
+        /// Console flags
+        /// </summary>
+        private static int Flags;
+
+        /// <summary>
+        /// Expected names for the console flags
+        /// </summary>
+        private static readonly System.Collections.Generic.Dictionary<string, ExConsoleFlag> FlagNames = new()
+        {
+            { "--no-title", ExConsoleFlag.NOTITLE },
+            { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN }
+        };
 
         private static void ResetAfterCompilation(ExVM vm, int n)
         {
@@ -202,9 +217,13 @@ namespace ExMat
         private static void InitializeConsole()
         {
             // Title, Version info
-            Console.Title = ExMat.ConsoleTitle;
             Console.ResetColor();
-            ExApi.WriteInfoString(ActiveVM);
+
+            if (!HasFlag(ExConsoleFlag.NOTITLE))
+            {
+                Console.Title = ExMat.ConsoleTitle;
+                ExApi.WriteInfoString(ActiveVM);
+            }
         }
 
         private static bool Initialize()
@@ -228,12 +247,18 @@ namespace ExMat
 
         private static void KeepConsoleUpAtEnd(string msg = "")
         {
+            Console.WriteLine(string.Empty);
+
             if (!string.IsNullOrWhiteSpace(msg))
             {
                 Console.WriteLine("Error: " + msg);
             }
-            Console.WriteLine("Press any key to close the console...");
-            Console.ReadKey(false);
+
+            if (!HasFlag(ExConsoleFlag.DONTKEEPOPEN))
+            {
+                Console.WriteLine("Press any key to close the console...");
+                Console.ReadKey(false);
+            }
         }
 
         private static void HandleUserInputFunction(ref StringBuilder code)
@@ -394,11 +419,13 @@ namespace ExMat
                         }
                     }
                 }
+                KeepConsoleUpAtEnd();
             });
         }
 
         private static void LoopUntilThreadStops()
         {
+            ActiveThread.Start();
             while (ActiveThread.IsAlive) { }
         }
 
@@ -419,6 +446,39 @@ namespace ExMat
         }
 
         /// <summary>
+        /// Checks if console has the given flag
+        /// </summary>
+        /// <param name="flag">Flag to check</param>
+        private static bool HasFlag(ExConsoleFlag flag)
+        {
+            return ((int)flag & Flags) != 0;
+        }
+
+        /// <summary>
+        /// Sets given console flag
+        /// </summary>
+        /// <param name="flag">Flag to set</param>
+        private static void SetFlag(ExConsoleFlag flag)
+        {
+            Flags |= (int)flag;
+        }
+
+        private static bool SetFlagFromArgument(string arg)
+        {
+            if (FlagNames.ContainsKey(arg))
+            {
+                SetFlag(FlagNames[arg]);
+                return true;
+            }
+            return false;
+        }
+
+        private static void SetFlagsFromArguments(ref string[] args)
+        {
+            args = args.Where(a => !SetFlagFromArgument(a)).ToArray();
+        }
+
+        /// <summary>
         /// To compile and execute a script file use: <code>exmat.exe file_name.exmat</code>
         /// To start the interactive console, use: <code>exmat.exe</code>
         /// </summary>
@@ -428,6 +488,8 @@ namespace ExMat
         /// <para>If interactive console is used, only returns when <c>exit</c> function is called</para></returns>
         private static int Main(string[] args)
         {
+            SetFlagsFromArguments(ref args);
+
             // File
             if (args.Length >= 1)
             {
@@ -444,8 +506,6 @@ namespace ExMat
             {
                 SetupForInteractiveThread();
             }
-
-            ActiveThread.Start();
 
             LoopUntilThreadStops();
 

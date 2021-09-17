@@ -688,6 +688,22 @@ namespace ExMat
     }
 
     /// <summary>
+    /// Console flags
+    /// </summary>
+    [Flags]
+    public enum ExConsoleFlag
+    {
+        /// <summary>
+        /// Don't read key input on exit
+        /// </summary>
+        DONTKEEPOPEN = 1 << 0,
+        /// <summary>
+        /// Don't print version information
+        /// </summary>
+        NOTITLE = 1 << 1
+    }
+
+    /// <summary>
     /// Interactive console flags
     /// </summary>
     [Flags]
