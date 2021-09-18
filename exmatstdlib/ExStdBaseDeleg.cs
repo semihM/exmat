@@ -428,12 +428,12 @@ namespace ExMat.StdLib
             }
             else if (newsize > 0)
             {
-                res.Value.l_List = new(newsize);
+                res.ValueCustom.l_List = new(newsize);
                 ExUtils.AppendFillerNTimes(res.GetList(), filler, newsize);
             }
             else
             {
-                res.Value.l_List = new();
+                res.ValueCustom.l_List = new();
             }
 
             return vm.CleanReturn(nargs + 2, res);
@@ -906,7 +906,7 @@ namespace ExMat.StdLib
                 return vm.AddToErrorMessage("can't get reference value of non-weakref object");
             }
 
-            vm.Push(ret.Value._WeakRef.ReferencedObject);
+            vm.Push(ret.ValueCustom._WeakRef.ReferencedObject);
             return ExFunctionStatus.SUCCESS;
         }
         #endregion
@@ -927,7 +927,7 @@ namespace ExMat.StdLib
             ExObject ret = vm.GetRootArgument();
             if (ExTypeCheck.IsCountingRefs(ret))
             {
-                vm.Push(ret.Value._RefC.GetWeakRef(ret.Type, ret.Value));
+                vm.Push(ret.ValueCustom._RefC.GetWeakRef(ret.Type, ret.Value, ret.ValueCustom));
                 return ExFunctionStatus.SUCCESS;
             }
             vm.Push(ret);
@@ -950,12 +950,12 @@ namespace ExMat.StdLib
                     }
                 case ExObjType.DICT:
                     {
-                        size = obj.Value.d_Dict.Count;
+                        size = obj.GetDict().Count;
                         break;
                     }
                 case ExObjType.STRING:
                     {
-                        size = obj.Value.s_String.Length;
+                        size = obj.GetString().Length;
                         break;
                     }
             }

@@ -531,7 +531,7 @@ namespace ExMat.StdLib
                 l_list.Add(new(lines[b]));
             }
             ExObject res = new ExList();
-            res.Value.l_List = l_list;
+            res.ValueCustom.l_List = l_list;
 
             return vm.CleanReturn(nargs + 2, res);
         }
@@ -554,7 +554,7 @@ namespace ExMat.StdLib
                 blist.Add(new(bytes[b]));
             }
             ExObject res = new ExList();
-            res.Value.l_List = blist;
+            res.ValueCustom.l_List = blist;
 
             return vm.CleanReturn(nargs + 2, res);
         }

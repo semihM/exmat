@@ -512,7 +512,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.NULL:
                     {
-                        res = new(obj.Value.s_String ?? ExMat.NullName);
+                        res = new(obj.ValueCustom.s_String ?? ExMat.NullName);
                         break;
                     }
                 case ExObjType.ARRAY:
@@ -2269,14 +2269,14 @@ namespace ExMat.VM
                     case ExOperationCode.GETOUTER:
                         {
                             ExClosure currcls = CallInfo.Value.Closure.GetClosure();
-                            ExOuter outr = currcls.OutersList[(int)instruction.arg1].Value._Outer;
+                            ExOuter outr = currcls.OutersList[(int)instruction.arg1].ValueCustom._Outer;
                             GetTargetInStack(instruction).Assign(outr.ValueRef);
                             continue;
                         }
                     case ExOperationCode.SETOUTER:
                         {
                             ExClosure currcls = CallInfo.Value.Closure.GetClosure();
-                            ExOuter outr = currcls.OutersList[(int)instruction.arg1].Value._Outer;
+                            ExOuter outr = currcls.OutersList[(int)instruction.arg1].ValueCustom._Outer;
                             outr.ValueRef.Assign(GetTargetInStack(instruction.arg2));
                             if (instruction.arg0 != ExMat.InvalidArgument)
                             {
@@ -4028,10 +4028,15 @@ namespace ExMat.VM
         {
             ExObjType t = x.Type;
             ExObjVal v = x.Value;
+            ExObjValCustom vc = x.ValueCustom;
+
             x.Type = y.Type;
             x.Value = y.Value;
+            x.ValueCustom = y.ValueCustom;
+
             y.Type = t;
             y.Value = v;
+            y.ValueCustom = vc;
         }
 
         public void CloseOuters(int idx)

@@ -1453,13 +1453,13 @@ namespace ExMat.StdLib
                 }
                 if (ExApi.GetTopOfStack(vm) > 2)
                 {
-                    l.Value.l_List = new(s);
-                    ExUtils.InitList(ref l.Value.l_List, s, vm.GetArgument(2));
+                    l.ValueCustom.l_List = new(s);
+                    ExUtils.InitList(ref l.ValueCustom.l_List, s, vm.GetArgument(2));
                 }
                 else
                 {
-                    l.Value.l_List = new(s);
-                    ExUtils.InitList(ref l.Value.l_List, s);
+                    l.ValueCustom.l_List = new(s);
+                    ExUtils.InitList(ref l.ValueCustom.l_List, s);
                 }
 
                 return vm.CleanReturn(nargs + 2, l);
@@ -2153,7 +2153,7 @@ namespace ExMat.StdLib
                         }
 
                         ExObject filler = nargs == 3 ? vm.GetArgument(3) : new();
-                        l.Value.l_List = new(m);
+                        l.ValueCustom.l_List = new(m);
 
                         switch (filler.Type)
                         {
@@ -2471,6 +2471,9 @@ namespace ExMat.StdLib
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
+            ExApi.PushConstsTable(vm);
+            ExApi.CreateConstantInt(vm, "_stacksize_", vm.StackSize);
+            vm.Pop();
             return true;
         };
     }

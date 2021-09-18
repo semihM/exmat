@@ -1409,7 +1409,7 @@ namespace ExMat.API
                     }
                 case ExObjType.NULL:
                     {
-                        return obj.Value.s_String ?? "null";
+                        return obj.ValueCustom.s_String ?? "null";
                     }
                 case ExObjType.ARRAY:
                     {
@@ -1691,9 +1691,10 @@ namespace ExMat.API
             WriteErrorMessages(vm, ExErrorType.INTERNAL);
         }
 
-        public static void HandleException(ExException exp, ExVM vm, ExErrorType typeOverride = ExErrorType.DEFAULT)
+        public static void HandleException(ExException exp, ExVM vm, ExErrorType typeOverride = ExErrorType.INTERNAL)
         {
             vm.AddToErrorMessage(exp.Message);
+            vm.AddToErrorMessage(exp.StackTrace);
             WriteErrorMessages(vm, typeOverride);
         }
 
@@ -1934,7 +1935,7 @@ namespace ExMat.API
             if (c.InitializeCompiler(vm, source, ref main))
             {
                 // main'i belleğe yükle
-                vm.Push(ExClosure.Create(vm.SharedState, main.Value._FuncPro));
+                vm.Push(ExClosure.Create(vm.SharedState, main.ValueCustom._FuncPro));
                 return true;
             }
             vm.ErrorString = c.ErrorString;
@@ -2026,7 +2027,7 @@ namespace ExMat.API
                 lis.Add(new ExObject(new List<ExObject>(rows)));
                 for (int j = 0; j < rows; j++)
                 {
-                    lis[i].GetList().Add(vals[j].Value.l_List[i]);
+                    lis[i].GetList().Add(vals[j].ValueCustom.l_List[i]);
                 }
             }
             return lis;
@@ -2202,7 +2203,7 @@ namespace ExMat.API
             {
                 case ExExceptionType.BASE:
                     {
-                        return ExErrorType.DEFAULT;
+                        return ExErrorType.INTERNAL;
                     }
                 case ExExceptionType.RUNTIME:
                     {

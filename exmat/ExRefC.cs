@@ -12,7 +12,7 @@ namespace ExMat.Objects
 
         public ExRefC() { }
 
-        public ExWeakRef GetWeakRef(ExObjType t, ExObjVal v)
+        public ExWeakRef GetWeakRef(ExObjType t, ExObjVal v, ExObjValCustom vc)
         {
             if (WeakReference == null)
             {
@@ -20,7 +20,8 @@ namespace ExMat.Objects
                 e.ReferencedObject = new();
                 e.ReferencedObject.Type = t;
                 e.ReferencedObject.Value = v;
-                e.ReferencedObject.Value._RefC = this;
+                e.ReferencedObject.ValueCustom = vc;
+                e.ReferencedObject.ValueCustom._RefC = this;
                 WeakReference = e;
             }
             return WeakReference;

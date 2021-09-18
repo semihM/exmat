@@ -145,7 +145,7 @@ namespace ExMat.ExClass
                 ExObject tmpv = val;
                 if (Base != null && val.Type == ExObjType.CLOSURE)
                 {
-                    tmpv.Assign(val.Value._Closure);
+                    tmpv.Assign(val.ValueCustom._Closure);
                     tmpv.GetClosure().Base = Base;
                     Base.ReferenceCount++;
                 }

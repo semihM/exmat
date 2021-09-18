@@ -484,44 +484,30 @@ namespace ExMat
     }
 
     /// <summary>
-    /// Values stored for <see cref="ExObject"/> objects
+    /// Custom type(plus <see cref="string"/>) values stored for <see cref="ExObject"/> objects
     /// </summary>
     [StructLayout(LayoutKind.Auto)]
-    public struct ExObjVal
+    public struct ExObjValCustom
     {
-        /// <summary>
-        /// Boolean value for <see cref="ExObjType.BOOL"/>
-        /// </summary>
-        public bool b_Bool;     // Boolean
-        /// <summary>
-        /// Integer value for <see cref="ExObjType.INTEGER"/>
-        /// </summary>
-        public long i_Int;      // Tamsayı
-        /// <summary>
-        /// Float value for <see cref="ExObjType.FLOAT"/>, also stores real part of <see cref="ExObjType.COMPLEX"/>
-        /// </summary>
-        public double f_Float;  // Ondalıklı
-        /// <summary>
-        /// Imaginary part value for <see cref="ExObjType.COMPLEX"/>
-        /// </summary>
-        public double c_Float;  // Karmaşık sayı katsayısı
         /// <summary>
         /// String value for <see cref="ExObjType.STRING"/>
         /// </summary>
         public string s_String; // Yazı dizisi
 
         /// <summary>
-        /// Space value for <see cref="ExObjType.SPACE"/>
-        /// </summary>
-        public ExSpace c_Space;                     // Uzay
-        /// <summary>
         /// Array for <see cref="ExObjType.ARRAY"/>
         /// </summary>
         public List<ExObject> l_List;               // Liste
+
         /// <summary>
         /// Dictionary for <see cref="ExObjType.DICT"/>
         /// </summary>
         public Dictionary<string, ExObject> d_Dict; // Tablo
+
+        /// <summary>
+        /// Space value for <see cref="ExObjType.SPACE"/>
+        /// </summary>
+        public ExSpace c_Space;                     // Uzay
 
         /// <summary>
         /// Closure for <see cref="ExObjType.CLOSURE"/>
@@ -558,6 +544,38 @@ namespace ExMat
         /// INTERNAL: Function prototype value for <see cref="ExObjType.FUNCPRO"/>
         /// </summary>
         public ExPrototype _FuncPro;            // (Dahili)
+    }
+
+    /// <summary>
+    /// .NET type values stored for <see cref="ExObject"/> objects
+    /// </summary>
+    [StructLayout(LayoutKind.Explicit, Size = 16)]
+    public struct ExObjVal
+    {
+        /// <summary>
+        /// Boolean value for <see cref="ExObjType.BOOL"/>
+        /// </summary>
+        [FieldOffset(0)]
+        public bool b_Bool;     // Boolean
+
+        /// <summary>
+        /// Integer value for <see cref="ExObjType.INTEGER"/>
+        /// </summary>
+        [FieldOffset(0)]
+        public long i_Int;      // Tamsayı
+
+        /// <summary>
+        /// Float value for <see cref="ExObjType.FLOAT"/>, also stores real part of <see cref="ExObjType.COMPLEX"/>
+        /// </summary>
+        [FieldOffset(0)]
+        public double f_Float;  // Ondalıklı
+
+        /// <summary>
+        /// Imaginary part value for <see cref="ExObjType.COMPLEX"/>
+        /// </summary>
+        [FieldOffset(8)]
+        public double c_Float;  // Karmaşık sayı katsayısı
+
     }
 
     /// <summary>
@@ -702,6 +720,13 @@ namespace ExMat
         /// </summary>
         NOTITLE = 1 << 1
     }
+
+    /// <summary>
+    /// Delegate for methods to process console parameters
+    /// </summary>
+    /// <param name="arg">Argument to process</param>
+    /// <returns>Numeric, bool or string value</returns>
+    public delegate dynamic ExConsoleParameter(string arg);
 
     /// <summary>
     /// Interactive console flags

@@ -192,7 +192,7 @@ namespace ExMat.States
             else
             {
                 ExObject val = Literals[name];
-                v = val.Type == ExObjType.WEAKREF ? val.Value._WeakRef.ReferencedObject : val;
+                v = val.Type == ExObjType.WEAKREF ? val.ValueCustom._WeakRef.ReferencedObject : val;
             }
 
             return v.Value.i_Int;
@@ -352,7 +352,7 @@ namespace ExMat.States
             int c = OuterInfos.Count;
             for (int i = 0; i < c; i++)
             {
-                if (OuterInfos[i].Name.Value.s_String == obj.Value.s_String)
+                if (OuterInfos[i].Name.ValueCustom.s_String == obj.ValueCustom.s_String)
                 {
                     return i;
                 }
