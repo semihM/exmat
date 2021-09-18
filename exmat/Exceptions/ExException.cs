@@ -53,10 +53,6 @@ namespace ExMat.Exceptions
         {
         }
 
-        public static void WriteErrorMessagesToVM(ExVM vm, string message)
-        {
-        }
-
         public override IDictionary Data => base.Data;
 
         public override string HelpLink { get => base.HelpLink; set => base.HelpLink = value; }

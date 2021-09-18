@@ -19,7 +19,7 @@ namespace ExMat
         /// <summary>
         /// Stack size of the virtual machines. Use higher values for potentially more recursive functions 
         /// </summary>
-        public static int VM_STACK_SIZE = 2 << 14;
+        private static int VM_STACK_SIZE = 2 << 14;
 
         /// <summary>
         /// Time in ms to delay output so CTRL+C doesn't mess up
