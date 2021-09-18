@@ -932,7 +932,7 @@ namespace ExMat.StdLib
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
 
-            if (obj2 != null)
+            if (obj2 != null && obj2.Type == ExObjType.ARRAY)
             {
                 if (obj2.GetList().Count != argcount)
                 {
