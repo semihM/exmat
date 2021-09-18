@@ -103,10 +103,9 @@ namespace ExMat
             {
                 count = 0;
             }
-            for (int idx = vm.Stack.Allocated - 1; idx >= count; idx--)
+            for (int idx = vm.StackSize - 1; idx >= count; idx--)
             {
                 vm.Stack[idx].Nullify();
-                vm.Stack[idx] = new();
             }
             vm.StackBase = count;
             vm.StackTop = count;

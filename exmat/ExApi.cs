@@ -1282,7 +1282,14 @@ namespace ExMat.API
         {
             if (ExMat.TypeMasks.ContainsValue(c))
             {
-                return ExMat.TypeMasks.FirstOrDefault(p => p.Value == c).Key;
+                foreach (KeyValuePair<int, char> pair in ExMat.TypeMasks)
+                {
+                    if (pair.Value == c)
+                    {
+                        return pair.Key;
+                    }
+                }
+                return 0;
             }
             return int.MaxValue;  // bilinmeyen maske
         }

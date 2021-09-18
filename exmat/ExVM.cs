@@ -45,7 +45,11 @@ namespace ExMat.VM
         /// <summary>
         /// Virtual memory stack to do push and pop operations with objects
         /// </summary>
-        public ExStack Stack;            // Sanal bellek
+        public ExObject[] Stack;            // Sanal bellek
+        /// <summary>
+        /// Virtual memory size
+        /// </summary>
+        public int StackSize;
         /// <summary>
         /// Virtual memory stack's base index used by the current scope
         /// </summary>
@@ -170,22 +174,25 @@ namespace ExMat.VM
                 {
                     ErrorTrace.Clear();
                     ErrorTrace = null;
-
                     ErrorString = null;
 
-                    ExDisposer.DisposeObjects(RootDictionary, TempRegistery);
-                    RootDictionary = null;
-                    TempRegistery = null;
-                    ExDisposer.DisposeObjects(Outers);
-                    Outers = null;
-                    ExDisposer.DisposeObjects(SharedState);
-                    SharedState = null;
-                    ExDisposer.DisposeObjects(CallInfo);
-                    CallInfo = null;
-                    ExDisposer.DisposeObjects(Stack);
-                    Stack = null;
+                    ExDisposer.DisposeObject(ref TempRegistery);
+                    ExDisposer.DisposeObject(ref RootDictionary);
+                    ExDisposer.DisposeObject(ref Outers);
+                    ExDisposer.DisposeObject(ref SharedState);
+                    ExDisposer.DisposeObject(ref CallInfo);
 
                     ExDisposer.DisposeList(ref CallStack);
+
+                    if (Stack != null)
+                    {
+                        for (int i = 0; i < StackSize; i++)
+                        {
+                            ExDisposer.DisposeObject(ref Stack[i]);
+                        }
+
+                        Stack = null;
+                    }
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -285,8 +292,18 @@ namespace ExMat.VM
         public void Initialize(int stacksize)
         {
             // Sanal belleği oluştur
-            Stack = new();
-            Stack.Resize(stacksize);
+            if (stacksize < 0)
+            {
+                stacksize = 0;
+            }
+            StackSize = stacksize;
+
+            Stack = new ExObject[stacksize];
+
+            for (int i = 0; i < stacksize; i++)
+            {
+                Stack[i] = new();
+            }
 
             // Çağrı yığınını oluştur
             AllocatedCallSize = 4;
@@ -2642,7 +2659,7 @@ namespace ExMat.VM
 
         public int FindFirstNullInStack()
         {
-            for (int i = 0; i < Stack.Allocated; i++)
+            for (int i = 0; i < StackSize; i++)
             {
                 if (ExTypeCheck.IsNull(Stack[i]))
                 {
@@ -4058,13 +4075,9 @@ namespace ExMat.VM
             StackBase = newBase;        // yeni tabanı ata
             StackTop = newTop;          // yeni tavanı ata
 
-            if (newTop > Stack.Allocated)   // bellek yetersiz
+            if (newTop >= StackSize)   // bellek yetersiz
             {
-                if (nMetaCalls > 0)     // meta metot içerisinde ise hata ver
-                {
-                    Throw("stack overflow, cant resize while in metamethod", type: ExExceptionType.BASE);
-                }
-                Stack.Resize(Stack.Allocated + 256);
+                Throw("stack overflow!", type: ExExceptionType.BASE);
             }
             return true;
         }
@@ -4112,7 +4125,7 @@ namespace ExMat.VM
                 CloseOuters(last_base);
             }
 
-            if (last_top >= Stack.Allocated)
+            if (last_top >= StackSize)
             {
                 AddToErrorMessage("stack overflow! Allocate more stack room for these operations");
                 return false;

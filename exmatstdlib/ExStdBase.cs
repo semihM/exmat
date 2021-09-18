@@ -1123,9 +1123,9 @@ namespace ExMat.StdLib
         {
             ExObject cls = vm.GetArgument(1);
             List<ExObject> args = new ExObject(vm.GetArgument(2)).GetList();
-            if (args.Count > vm.Stack.Allocated - vm.StackTop - 3)
+            if (args.Count > vm.StackSize - vm.StackTop - 3)
             {
-                vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm.Stack.Allocated);
+                vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm.StackSize);
                 return ExFunctionStatus.ERROR;
             }
 
