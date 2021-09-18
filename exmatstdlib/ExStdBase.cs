@@ -932,7 +932,7 @@ namespace ExMat.StdLib
             bool bm = vm.IsMainCall;
             vm.IsMainCall = false;
 
-            if (obj2 != null)
+            if (obj2 != null && obj2.Type == ExObjType.ARRAY)
             {
                 if (obj2.GetList().Count != argcount)
                 {
@@ -1123,9 +1123,9 @@ namespace ExMat.StdLib
         {
             ExObject cls = vm.GetArgument(1);
             List<ExObject> args = new ExObject(vm.GetArgument(2)).GetList();
-            if (args.Count > vm.Stack.Allocated - vm.StackTop - 3)
+            if (args.Count > vm.StackSize - vm.StackTop - 3)
             {
-                vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm.Stack.Allocated);
+                vm.AddToErrorMessage("stack size is too small for parsing " + args.Count + " arguments! Current size: " + vm.StackSize);
                 return ExFunctionStatus.ERROR;
             }
 
@@ -1453,13 +1453,13 @@ namespace ExMat.StdLib
                 }
                 if (ExApi.GetTopOfStack(vm) > 2)
                 {
-                    l.Value.l_List = new(s);
-                    ExUtils.InitList(ref l.Value.l_List, s, vm.GetArgument(2));
+                    l.ValueCustom.l_List = new(s);
+                    ExUtils.InitList(ref l.ValueCustom.l_List, s, vm.GetArgument(2));
                 }
                 else
                 {
-                    l.Value.l_List = new(s);
-                    ExUtils.InitList(ref l.Value.l_List, s);
+                    l.ValueCustom.l_List = new(s);
+                    ExUtils.InitList(ref l.ValueCustom.l_List, s);
                 }
 
                 return vm.CleanReturn(nargs + 2, l);
@@ -2153,7 +2153,7 @@ namespace ExMat.StdLib
                         }
 
                         ExObject filler = nargs == 3 ? vm.GetArgument(3) : new();
-                        l.Value.l_List = new(m);
+                        l.ValueCustom.l_List = new(m);
 
                         switch (filler.Type)
                         {
@@ -2471,6 +2471,9 @@ namespace ExMat.StdLib
 
         public static ExMat.StdLibRegistery Registery => (ExVM vm) =>
         {
+            ExApi.PushConstsTable(vm);
+            ExApi.CreateConstantInt(vm, "_stacksize_", vm.StackSize);
+            vm.Pop();
             return true;
         };
     }

@@ -1282,7 +1282,14 @@ namespace ExMat.API
         {
             if (ExMat.TypeMasks.ContainsValue(c))
             {
-                return ExMat.TypeMasks.FirstOrDefault(p => p.Value == c).Key;
+                foreach (KeyValuePair<int, char> pair in ExMat.TypeMasks)
+                {
+                    if (pair.Value == c)
+                    {
+                        return pair.Key;
+                    }
+                }
+                return 0;
             }
             return int.MaxValue;  // bilinmeyen maske
         }
@@ -1402,7 +1409,7 @@ namespace ExMat.API
                     }
                 case ExObjType.NULL:
                     {
-                        return obj.Value.s_String ?? "null";
+                        return obj.ValueCustom.s_String ?? "null";
                     }
                 case ExObjType.ARRAY:
                     {
@@ -1684,9 +1691,10 @@ namespace ExMat.API
             WriteErrorMessages(vm, ExErrorType.INTERNAL);
         }
 
-        public static void HandleException(ExException exp, ExVM vm, ExErrorType typeOverride = ExErrorType.DEFAULT)
+        public static void HandleException(ExException exp, ExVM vm, ExErrorType typeOverride = ExErrorType.INTERNAL)
         {
             vm.AddToErrorMessage(exp.Message);
+            vm.AddToErrorMessage(exp.StackTrace);
             WriteErrorMessages(vm, typeOverride);
         }
 
@@ -1927,7 +1935,7 @@ namespace ExMat.API
             if (c.InitializeCompiler(vm, source, ref main))
             {
                 // main'i belleğe yükle
-                vm.Push(ExClosure.Create(vm.SharedState, main.Value._FuncPro));
+                vm.Push(ExClosure.Create(vm.SharedState, main.ValueCustom._FuncPro));
                 return true;
             }
             vm.ErrorString = c.ErrorString;
@@ -2019,7 +2027,7 @@ namespace ExMat.API
                 lis.Add(new ExObject(new List<ExObject>(rows)));
                 for (int j = 0; j < rows; j++)
                 {
-                    lis[i].GetList().Add(vals[j].Value.l_List[i]);
+                    lis[i].GetList().Add(vals[j].ValueCustom.l_List[i]);
                 }
             }
             return lis;
@@ -2195,7 +2203,7 @@ namespace ExMat.API
             {
                 case ExExceptionType.BASE:
                     {
-                        return ExErrorType.DEFAULT;
+                        return ExErrorType.INTERNAL;
                     }
                 case ExExceptionType.RUNTIME:
                     {
@@ -2244,6 +2252,7 @@ namespace ExMat.API
                     {
                         vm.Print(vm.GetAbove(-1).GetString());
                     }
+                    vm.GetAbove(-2).Release(); // Deref top
                 }
             }
             else
@@ -2375,8 +2384,6 @@ namespace ExMat.API
                         vm.PrintLine("INTERNAL ERROR");
                         Console.ForegroundColor = ConsoleColor.White;
                         vm.PrintLine(vm.ErrorString);
-                        vm.PrintLine("\nPress any key to close the window...");
-                        Console.ReadKey(true);
                         break;
                     }
             }

@@ -7,6 +7,10 @@
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
             base.Dispose(disposing);
             if (!disposedValue)
             {

@@ -19,7 +19,7 @@ namespace ExMat
         /// <summary>
         /// Stack size of the virtual machines. Use higher values for potentially more recursive functions 
         /// </summary>
-        private static readonly int VM_STACK_SIZE = 2 << 14;
+        private static int VM_STACK_SIZE = 2 << 14;
 
         /// <summary>
         /// Time in ms to delay output so CTRL+C doesn't mess up
@@ -65,6 +65,14 @@ namespace ExMat
             { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN }
         };
 
+        /// <summary>
+        /// Expected names for the console flags
+        /// </summary>
+        private static readonly System.Collections.Generic.Dictionary<System.Text.RegularExpressions.Regex, ExConsoleParameter> ConsoleParameters = new()
+        {
+            { new(@"\-stacksize:""?([\w\d\t ]+)""?"), a => int.TryParse(a, out int res) ? VM_STACK_SIZE = res : null }
+        };
+
         private static void ResetAfterCompilation(ExVM vm, int n)
         {
             FixStackTopAfterCalls(vm, n);  // Kullanılmayan değerleri temizle
@@ -99,12 +107,15 @@ namespace ExMat
         /// <param name="count">Amount of objects to skip</param>
         private static void FixStackTopAfterCalls(ExVM vm, int count)
         {
-            for (int idx = vm.Stack.Allocated - 1; idx >= count; idx--)
+            if (count < 0)
+            {
+                count = 0;
+            }
+            for (int idx = vm.StackSize - 1; idx >= count; idx--)
             {
                 vm.Stack[idx].Nullify();
-                vm.Stack[idx] = new();
             }
-            vm.StackBase = count - 1;
+            vm.StackBase = count;
             vm.StackTop = count;
         }
 
@@ -396,7 +407,6 @@ namespace ExMat
                         ContinueDelayedInput(code);
 
                         ret = CompileString(ActiveVM, TrimCode(code));  // Derle ve işle
-
                     }
                     catch (ThreadInterruptedException)
                     {
@@ -405,6 +415,7 @@ namespace ExMat
                     catch (ExException exp)
                     {
                         ExApi.HandleException(exp, ActiveVM, ExApi.GetErrorTypeFromException(exp));
+                        break;
                     }
                     catch (Exception exp)
                     {
@@ -473,14 +484,33 @@ namespace ExMat
             return false;
         }
 
-        private static void SetFlagsFromArguments(ref string[] args)
+        private static bool SetOptionFromArgument(string arg)
         {
-            args = args.Where(a => !SetFlagFromArgument(a)).ToArray();
+            foreach (System.Collections.Generic.KeyValuePair<System.Text.RegularExpressions.Regex, ExConsoleParameter> pair in ConsoleParameters)
+            {
+                System.Text.RegularExpressions.Match m = pair.Key.Match(arg);
+                if (!m.Success)
+                {
+                    continue;
+                }
+
+                return pair.Value(arg.Substring(m.Groups[1].Index, m.Groups[1].Length)) is not null;
+            }
+            return false;
+        }
+
+        private static void SetOptionsFromArguments(ref string[] args)
+        {
+            args = args.Where(a => !SetFlagFromArgument(a) && !SetOptionFromArgument(a)).ToArray();
         }
 
         /// <summary>
-        /// To compile and execute a script file use: <code>exmat.exe file_name.exmat</code>
-        /// To start the interactive console, use: <code>exmat.exe</code>
+        /// To compile and execute a script file use:
+        /// <code>    exmat.exe {file_name}.exmat [--no-title] [--no-exit-hold] [-stacksize:{integer}]</code>
+        /// 
+        /// To start the interactive console, use:
+        /// <code>    exmat.exe [--no-title] [--no-exit-hold] [-stacksize:{integer}]</code>
+        /// 
         /// </summary>
         /// <param name="args">If any arguments given, first one is taken as file name</param>
         /// <returns>If a file was given and it didn't exists: <c>-1</c>
@@ -488,12 +518,12 @@ namespace ExMat
         /// <para>If interactive console is used, only returns when <c>exit</c> function is called</para></returns>
         private static int Main(string[] args)
         {
-            SetFlagsFromArguments(ref args);
+            SetOptionsFromArguments(ref args);
 
             // File
             if (args.Length >= 1)
             {
-                if (!ReadFileContents(args[0])) // start exm.exe SCRIPT_PATH
+                if (!ReadFileContents(args[0]))
                 {
                     KeepConsoleUpAtEnd(string.Format(CultureInfo.CurrentCulture, "File '{0}' doesn't exist!", args[0]));
                     return -1;

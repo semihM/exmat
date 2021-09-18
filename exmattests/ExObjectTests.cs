@@ -15,12 +15,13 @@ namespace ExMat.Objects.Tests
         [TestMethod()]
         public void ValidateExObjVal()
         {
-            ExObjVal obj = new();
+            ExObjVal basic = new();
+            ExObjValCustom obj = new();
 
-            Assert.AreEqual(obj.b_Bool, false);
-            Assert.AreEqual(obj.i_Int, 0);
-            Assert.AreEqual(obj.f_Float, 0.0);
-            Assert.AreEqual(obj.c_Float, 0.0);
+            Assert.AreEqual(false, basic.b_Bool);
+            Assert.AreEqual(0, basic.i_Int);
+            Assert.AreEqual(0.0, basic.f_Float);
+            Assert.AreEqual(0.0, basic.c_Float);
 
             Assert.IsNull(obj.c_Space);
             Assert.IsNull(obj.s_String);
@@ -46,7 +47,7 @@ namespace ExMat.Objects.Tests
         {
             ExRefC obj = new();
 
-            Assert.AreEqual(obj.ReferenceCount, 0);
+            Assert.AreEqual(0, obj.ReferenceCount);
 
             Assert.IsNull(obj.WeakReference);
         }
@@ -56,7 +57,7 @@ namespace ExMat.Objects.Tests
         {
             ExWeakRef obj = new();
 
-            Assert.AreEqual(obj.ReferenceCount, 0);
+            Assert.AreEqual(0, obj.ReferenceCount);
 
             Assert.IsNull(obj.ReferencedObject);
 
@@ -68,28 +69,34 @@ namespace ExMat.Objects.Tests
         {
             ExRefC obj = new();
 
-            Assert.AreEqual(obj.GetWeakRef(ExObjType.NULL, new()), obj.WeakReference);
+            Assert.AreEqual(obj.GetWeakRef(ExObjType.NULL, new(), new()), obj.WeakReference);
 
             Assert.AreEqual(obj.ReferenceCount, 0);
 
-            Assert.AreSame(obj.WeakReference.ReferencedObject.Value._RefC, obj);
+            Assert.AreSame(obj.WeakReference.ReferencedObject.ValueCustom._RefC, obj);
         }
         #endregion
 
-        #region Instancing Basic Types
+        #region Instancing
         [TestMethod()]
         public void CreateNullInstance()
         {
             ExObject obj = new();
 
-            ExObjVal lookup = new();
+            ExObjVal basic = new();
+            ExObjValCustom custom = new();
 
-            Assert.AreEqual(obj.Type, ExObjType.NULL);
+            Assert.AreEqual(ExObjType.NULL, obj.Type);
 
             typeof(ExObjVal)
                 .GetFields()
                 .ToList()
-                .ForEach(fi => Assert.AreEqual(fi.GetValue(obj.Value), fi.GetValue(lookup)));
+                .ForEach(fi => Assert.AreEqual(fi.GetValue(obj.Value), fi.GetValue(basic)));
+
+            typeof(ExObjValCustom)
+                .GetFields()
+                .ToList()
+                .ForEach(fi => Assert.AreEqual(fi.GetValue(obj.ValueCustom), fi.GetValue(custom)));
         }
 
         [TestMethod()]
@@ -97,11 +104,11 @@ namespace ExMat.Objects.Tests
         {
             long test = long.MaxValue;
 
-            ExObject obj = new(test);
+            ExObject obj = new(i: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.INTEGER);
+            Assert.AreEqual(ExObjType.INTEGER, obj.Type);
 
-            Assert.IsNull(obj.Value._RefC);
+            Assert.IsNull(obj.ValueCustom._RefC);
 
             Assert.AreEqual(obj.Value.i_Int, test);
 
@@ -113,11 +120,11 @@ namespace ExMat.Objects.Tests
         {
             double test = Math.E;
 
-            ExObject obj = new(test);
+            ExObject obj = new(f: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.FLOAT);
+            Assert.AreEqual(ExObjType.FLOAT, obj.Type);
 
-            Assert.IsNull(obj.Value._RefC);
+            Assert.IsNull(obj.ValueCustom._RefC);
 
             Assert.AreEqual(obj.Value.f_Float, test);
 
@@ -129,13 +136,13 @@ namespace ExMat.Objects.Tests
         {
             string test = null;
 
-            ExObject obj = new(test);
+            ExObject obj = new(s: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.STRING);
+            Assert.AreEqual(ExObjType.STRING, obj.Type);
 
-            Assert.IsNull(obj.Value._RefC);
+            Assert.IsNull(obj.ValueCustom._RefC);
 
-            Assert.AreEqual(obj.Value.s_String, test);
+            Assert.AreEqual(obj.ValueCustom.s_String, test);
 
             Assert.AreNotEqual(obj.GetString(), test);
         }
@@ -145,13 +152,13 @@ namespace ExMat.Objects.Tests
         {
             string test = string.Empty;
 
-            ExObject obj = new(test);
+            ExObject obj = new(s: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.STRING);
+            Assert.AreEqual(ExObjType.STRING, obj.Type);
 
-            Assert.IsNull(obj.Value._RefC);
+            Assert.IsNull(obj.ValueCustom._RefC);
 
-            Assert.AreEqual(obj.Value.s_String, test);
+            Assert.AreEqual(obj.ValueCustom.s_String, test);
 
             Assert.AreEqual(obj.GetString(), test);
         }
@@ -161,13 +168,13 @@ namespace ExMat.Objects.Tests
         {
             string test = "Very cool string here!";
 
-            ExObject obj = new(test);
+            ExObject obj = new(s: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.STRING);
+            Assert.AreEqual(ExObjType.STRING, obj.Type);
 
-            Assert.IsNull(obj.Value._RefC);
+            Assert.IsNull(obj.ValueCustom._RefC);
 
-            Assert.AreEqual(obj.Value.s_String, test);
+            Assert.AreEqual(obj.ValueCustom.s_String, test);
 
             Assert.AreEqual(obj.GetString(), test);
         }
@@ -177,11 +184,11 @@ namespace ExMat.Objects.Tests
         {
             Complex test = new(3, 4);
 
-            ExObject obj = new(test);
+            ExObject obj = new(cmplx: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.COMPLEX);
+            Assert.AreEqual(ExObjType.COMPLEX, obj.Type);
 
-            Assert.IsNull(obj.Value._RefC);
+            Assert.IsNull(obj.ValueCustom._RefC);
 
             Assert.AreEqual(obj.Value.f_Float, test.Real);
             Assert.AreEqual(obj.Value.c_Float, test.Imaginary);
@@ -194,11 +201,11 @@ namespace ExMat.Objects.Tests
         {
             bool test = true;
 
-            ExObject obj = new(test);
+            ExObject obj = new(b: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.BOOL);
+            Assert.AreEqual(ExObjType.BOOL, obj.Type);
 
-            Assert.IsNull(obj.Value._RefC);
+            Assert.IsNull(obj.ValueCustom._RefC);
 
             Assert.AreEqual(obj.Value.b_Bool, test);
 
@@ -210,15 +217,15 @@ namespace ExMat.Objects.Tests
         {
             ExSpace test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(space: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.SPACE);
+            Assert.AreEqual(ExObjType.SPACE, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.AreSame(obj.ValueCustom._RefC, test);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value.c_Space, test);
+            Assert.AreSame(obj.ValueCustom.c_Space, test);
 
             Assert.AreSame(obj.GetSpace(), test);
         }
@@ -228,15 +235,15 @@ namespace ExMat.Objects.Tests
         {
             List<ExObject> test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(lis: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.ARRAY);
+            Assert.AreEqual(ExObjType.ARRAY, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.IsNotNull(obj.ValueCustom._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value.l_List, test);
+            Assert.AreSame(obj.ValueCustom.l_List, test);
 
             Assert.AreSame(obj.GetList(), test);
         }
@@ -246,15 +253,15 @@ namespace ExMat.Objects.Tests
         {
             Dictionary<string, ExObject> test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(dict: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.DICT);
+            Assert.AreEqual(ExObjType.DICT, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.IsNotNull(obj.ValueCustom._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value.d_Dict, test);
+            Assert.AreSame(obj.ValueCustom.d_Dict, test);
 
             Assert.AreSame(obj.GetDict(), test);
         }
@@ -264,15 +271,15 @@ namespace ExMat.Objects.Tests
         {
             List<ExObject> test = new();
 
-            ExList obj = new(test);
+            ExList obj = new(e: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.ARRAY);
+            Assert.AreEqual(ExObjType.ARRAY, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.IsNotNull(obj.ValueCustom._RefC);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value.l_List, test);
+            Assert.AreSame(obj.ValueCustom.l_List, test);
 
             Assert.AreSame(obj.GetList(), test);
         }
@@ -282,15 +289,15 @@ namespace ExMat.Objects.Tests
         {
             ExClass.ExClass test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(@class: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.CLASS);
+            Assert.AreEqual(ExObjType.CLASS, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.AreSame(obj.ValueCustom._RefC, test);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value._Class, test);
+            Assert.AreSame(obj.ValueCustom._Class, test);
 
             Assert.AreSame(obj.GetClass(), test);
         }
@@ -300,15 +307,15 @@ namespace ExMat.Objects.Tests
         {
             ExClass.ExInstance test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(inst: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.INSTANCE);
+            Assert.AreEqual(ExObjType.INSTANCE, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.AreSame(obj.ValueCustom._RefC, test);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value._Instance, test);
+            Assert.AreSame(obj.ValueCustom._Instance, test);
 
             Assert.AreSame(obj.GetInstance(), test);
         }
@@ -318,15 +325,15 @@ namespace ExMat.Objects.Tests
         {
             Closure.ExClosure test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(cls: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.CLOSURE);
+            Assert.AreEqual(ExObjType.CLOSURE, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.AreSame(obj.ValueCustom._RefC, test);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value._Closure, test);
+            Assert.AreSame(obj.ValueCustom._Closure, test);
 
             Assert.AreSame(obj.GetClosure(), test);
         }
@@ -336,35 +343,33 @@ namespace ExMat.Objects.Tests
         {
             Closure.ExNativeClosure test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(ncls: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.NATIVECLOSURE);
+            Assert.AreEqual(ExObjType.NATIVECLOSURE, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.AreSame(obj.ValueCustom._RefC, test);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value._NativeClosure, test);
+            Assert.AreSame(obj.ValueCustom._NativeClosure, test);
 
             Assert.AreSame(obj.GetNClosure(), test);
         }
-        #endregion
 
-        #region Instancing Internal Types
         [TestMethod()]
         public void CreateExPrototypeInstance()
         {
             FuncPrototype.ExPrototype test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(pro: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.FUNCPRO);
+            Assert.AreEqual(ExObjType.FUNCPRO, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.AreSame(obj.ValueCustom._RefC, test);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value._FuncPro, test);
+            Assert.AreSame(obj.ValueCustom._FuncPro, test);
         }
 
         [TestMethod()]
@@ -372,15 +377,597 @@ namespace ExMat.Objects.Tests
         {
             Outer.ExOuter test = new();
 
-            ExObject obj = new(test);
+            ExObject obj = new(outer: test);
 
-            Assert.AreEqual(obj.Type, ExObjType.OUTER);
+            Assert.AreEqual(ExObjType.OUTER, obj.Type);
 
-            Assert.IsNotNull(obj.Value._RefC);
+            Assert.AreSame(obj.ValueCustom._RefC, test);
 
-            Assert.AreEqual(obj.Value._RefC.ReferenceCount, 1);
+            Assert.AreEqual(1, obj.ValueCustom._RefC.ReferenceCount);
 
-            Assert.AreSame(obj.Value._Outer, test);
+            Assert.AreSame(obj.ValueCustom._Outer, test);
+        }
+        #endregion
+
+        #region ExTypeCheck Tests
+        [TestMethod()]
+        public void ValidateExObjTypeRefCheck()
+        {
+            Assert.IsFalse(ExTypeCheck.DoesTypeCountRef(ExObjType.NULL));
+            Assert.IsFalse(ExTypeCheck.DoesTypeCountRef(ExObjType.INTEGER));
+            Assert.IsFalse(ExTypeCheck.DoesTypeCountRef(ExObjType.FLOAT));
+            Assert.IsFalse(ExTypeCheck.DoesTypeCountRef(ExObjType.BOOL));
+            Assert.IsFalse(ExTypeCheck.DoesTypeCountRef(ExObjType.STRING));
+            Assert.IsFalse(ExTypeCheck.DoesTypeCountRef(ExObjType.COMPLEX));
+
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.ARRAY));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.DICT));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.SPACE));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.CLASS));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.INSTANCE));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.CLOSURE));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.NATIVECLOSURE));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.WEAKREF));
+
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.FUNCPRO));
+            Assert.IsTrue(ExTypeCheck.DoesTypeCountRef(ExObjType.OUTER));
+        }
+
+        [TestMethod()]
+        public void ValidateExTypeCheckRefCount()
+        {
+            Assert.IsFalse(ExTypeCheck.IsCountingRefs(new()));
+            Assert.IsFalse(ExTypeCheck.IsCountingRefs(new(int.MaxValue)));
+            Assert.IsFalse(ExTypeCheck.IsCountingRefs(new(Math.PI)));
+            Assert.IsFalse(ExTypeCheck.IsCountingRefs(new(false)));
+            Assert.IsFalse(ExTypeCheck.IsCountingRefs(new(string.Empty)));
+            Assert.IsFalse(ExTypeCheck.IsCountingRefs(new(new Complex(3, 4))));
+
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new List<ExObject>())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new Dictionary<string, ExObject>())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new ExSpace())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new ExClass.ExClass())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new ExClass.ExInstance())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new Closure.ExClosure())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new Closure.ExNativeClosure())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new ExWeakRef())));
+
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new FuncPrototype.ExPrototype())));
+            Assert.IsTrue(ExTypeCheck.IsCountingRefs(new(new Outer.ExOuter())));
+        }
+
+        [TestMethod()]
+        public void ValidateExTypeCheckDeleg()
+        {
+            Assert.IsFalse(ExTypeCheck.IsDelegable(new()));
+            Assert.IsFalse(ExTypeCheck.IsDelegable(new(false)));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(int.MaxValue)));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(Math.PI)));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(string.Empty)));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new Complex(3, 4))));
+
+            Assert.IsFalse(ExTypeCheck.IsDelegable(new(new ExSpace())));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new List<ExObject>())));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new Dictionary<string, ExObject>())));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new ExClass.ExClass())));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new ExClass.ExInstance())));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new Closure.ExClosure())));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new Closure.ExNativeClosure())));
+            Assert.IsTrue(ExTypeCheck.IsDelegable(new(new ExWeakRef())));
+
+            Assert.IsFalse(ExTypeCheck.IsDelegable(new(new FuncPrototype.ExPrototype())));
+            Assert.IsFalse(ExTypeCheck.IsDelegable(new(new Outer.ExOuter())));
+        }
+
+        [TestMethod()]
+        public void ValidateExTypeCheckFalseable()
+        {
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(string.Empty)));
+            Assert.IsTrue(ExTypeCheck.IsFalseable(new()));
+            Assert.IsTrue(ExTypeCheck.IsFalseable(new(false)));
+            Assert.IsTrue(ExTypeCheck.IsFalseable(new(int.MaxValue)));
+            Assert.IsTrue(ExTypeCheck.IsFalseable(new(Math.PI)));
+            Assert.IsTrue(ExTypeCheck.IsFalseable(new(new Complex(3, 4))));
+
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new ExSpace())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new List<ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new Dictionary<string, ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new ExClass.ExClass())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new ExClass.ExInstance())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new Closure.ExClosure())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new Closure.ExNativeClosure())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new ExWeakRef())));
+
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new FuncPrototype.ExPrototype())));
+            Assert.IsFalse(ExTypeCheck.IsFalseable(new(new Outer.ExOuter())));
+        }
+
+        [TestMethod()]
+        public void ValidateExTypeCheckNumeric()
+        {
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(string.Empty)));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new()));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(false)));
+            Assert.IsTrue(ExTypeCheck.IsNumeric(new(int.MaxValue)));
+            Assert.IsTrue(ExTypeCheck.IsNumeric(new(Math.PI)));
+            Assert.IsTrue(ExTypeCheck.IsNumeric(new(new Complex(3, 4))));
+
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new ExSpace())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new List<ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new Dictionary<string, ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new ExClass.ExClass())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new ExClass.ExInstance())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new Closure.ExClosure())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new Closure.ExNativeClosure())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new ExWeakRef())));
+
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new FuncPrototype.ExPrototype())));
+            Assert.IsFalse(ExTypeCheck.IsNumeric(new(new Outer.ExOuter())));
+        }
+
+        [TestMethod()]
+        public void ValidateExTypeCheckRealNumber()
+        {
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(string.Empty)));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new()));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(false)));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new Complex(3, 4))));
+            Assert.IsTrue(ExTypeCheck.IsRealNumber(new(int.MaxValue)));
+            Assert.IsTrue(ExTypeCheck.IsRealNumber(new(Math.PI)));
+
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new ExSpace())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new List<ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new Dictionary<string, ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new ExClass.ExClass())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new ExClass.ExInstance())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new Closure.ExClosure())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new Closure.ExNativeClosure())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new ExWeakRef())));
+
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new FuncPrototype.ExPrototype())));
+            Assert.IsFalse(ExTypeCheck.IsRealNumber(new(new Outer.ExOuter())));
+        }
+
+        [TestMethod()]
+        public void ValidateExTypeCheckNull()
+        {
+            Assert.IsFalse(ExTypeCheck.IsNull(new(string.Empty)));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(false)));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new Complex(3, 4))));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(int.MaxValue)));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(Math.PI)));
+            Assert.IsTrue(ExTypeCheck.IsNull(new()));
+
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new ExSpace())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new List<ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new Dictionary<string, ExObject>())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new ExClass.ExClass())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new ExClass.ExInstance())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new Closure.ExClosure())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new Closure.ExNativeClosure())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new ExWeakRef())));
+
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new FuncPrototype.ExPrototype())));
+            Assert.IsFalse(ExTypeCheck.IsNull(new(new Outer.ExOuter())));
+        }
+        #endregion
+
+        #region Assigning
+        [TestMethod()]
+        public void AssignIntegerToNull()
+        {
+            long src = char.MaxValue;
+
+            ExObject dest = new();
+
+            dest.Assign(i: src);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(ExObjType.INTEGER, dest.Type);
+
+            Assert.AreEqual(dest.Value.i_Int, src);
+
+            Assert.AreEqual(dest.GetInt(), src);
+        }
+
+        [TestMethod()]
+        public void AssignFloatToNull()
+        {
+            double src = Math.E;
+
+            ExObject dest = new();
+
+            dest.Assign(f: src);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(ExObjType.FLOAT, dest.Type);
+
+            Assert.AreEqual(dest.Value.f_Float, src);
+
+            Assert.AreEqual(dest.GetFloat(), src);
+        }
+
+        [TestMethod()]
+        public void AssignBoolToNull()
+        {
+            bool src = true;
+
+            ExObject dest = new();
+
+            dest.Assign(b: src);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(ExObjType.BOOL, dest.Type);
+
+            Assert.AreEqual(dest.Value.b_Bool, src);
+
+            Assert.AreEqual(dest.GetBool(), src);
+        }
+
+        [TestMethod()]
+        public void AssignStringToNull()
+        {
+            string src = "hmm yes, this is indeed a string...";
+
+            ExObject dest = new();
+
+            dest.Assign(s: src);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(ExObjType.STRING, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom.s_String, src);
+
+            Assert.AreSame(dest.GetString(), src);
+        }
+
+        [TestMethod()]
+        public void AssignComplexToNull()
+        {
+            Complex src = new(3, 4);
+
+            ExObject dest = new();
+
+            dest.Assign(cmplx: src);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(ExObjType.COMPLEX, dest.Type);
+
+            Assert.AreEqual(dest.Value.f_Float, src.Real);
+            Assert.AreEqual(dest.Value.c_Float, src.Imaginary);
+
+            Assert.AreEqual(dest.GetComplex(), src);
+        }
+
+        [TestMethod()]
+        public void AssignSpaceToNull()
+        {
+            ExSpace src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(space: src);
+
+            Assert.AreSame(dest.ValueCustom._RefC, src);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.SPACE, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom.c_Space, src);
+
+            Assert.AreSame(dest.GetSpace(), src);
+        }
+
+        [TestMethod()]
+        public void AssignListToNull()
+        {
+            List<ExObject> src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(lis: src);
+
+            Assert.IsNotNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.ARRAY, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom.l_List, src);
+
+            Assert.AreSame(dest.GetList(), src);
+        }
+
+        [TestMethod()]
+        public void AssignDictToNull()
+        {
+            Dictionary<string, ExObject> src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(dict: src);
+
+            Assert.IsNotNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.DICT, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom.d_Dict, src);
+
+            Assert.AreSame(dest.GetDict(), src);
+        }
+
+        [TestMethod()]
+        public void AssignClosureToNull()
+        {
+            Closure.ExClosure src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(cls: src);
+
+            Assert.AreSame(dest.ValueCustom._Closure, dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.CLOSURE, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom._Closure, src);
+
+            Assert.AreSame(dest.GetClosure(), src);
+        }
+
+        [TestMethod()]
+        public void AssignNativeClosureToNull()
+        {
+            Closure.ExNativeClosure src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(ncls: src);
+
+            Assert.AreSame(dest.ValueCustom._NativeClosure, dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.NATIVECLOSURE, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom._NativeClosure, src);
+
+            Assert.AreSame(dest.GetNClosure(), src);
+        }
+
+        [TestMethod()]
+        public void AssignClassToNull()
+        {
+            ExClass.ExClass src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(@class: src);
+
+            Assert.AreSame(dest.ValueCustom._Class, dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.CLASS, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom._Class, src);
+
+            Assert.AreSame(dest.GetClass(), src);
+        }
+
+        [TestMethod()]
+        public void AssignInstanceToNull()
+        {
+            ExClass.ExInstance src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(inst: src);
+
+            Assert.AreSame(dest.ValueCustom._Instance, dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.INSTANCE, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom._Instance, src);
+
+            Assert.AreSame(dest.GetInstance(), src);
+        }
+
+        [TestMethod()]
+        public void AssignWeakrefToNull()
+        {
+            ExWeakRef src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(wref: src);
+
+            Assert.AreSame(dest.ValueCustom._WeakRef, dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.WEAKREF, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom._WeakRef, src);
+
+            Assert.AreSame(dest.GetWeakRef(), src);
+        }
+
+        [TestMethod()]
+        public void AssignOuterToNull()
+        {
+            Outer.ExOuter src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(outer: src);
+
+            Assert.AreSame(dest.ValueCustom._Outer, dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.OUTER, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom._Outer, src);
+        }
+
+        [TestMethod()]
+        public void AssignPrototypeToNull()
+        {
+            FuncPrototype.ExPrototype src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(pro: src);
+
+            Assert.AreSame(dest.ValueCustom._FuncPro, dest.ValueCustom._RefC);
+
+            Assert.AreEqual(1, dest.ValueCustom._RefC.ReferenceCount);
+
+            Assert.AreEqual(ExObjType.FUNCPRO, dest.Type);
+
+            Assert.AreSame(dest.ValueCustom._FuncPro, src);
+        }
+
+        [TestMethod()]
+        public void AssignNullExObjectToNull()
+        {
+            ExObject src = new();
+
+            ExObject dest = new();
+
+            dest.Assign(other: src);
+
+            Assert.AreEqual(dest.Type, src.Type);
+
+            Assert.AreEqual(dest.Value, src.Value);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+        }
+
+        [TestMethod()]
+        public void AssignNullExObjectToListExObjectReferenceCount1()
+        {
+            string str = "test array";
+
+            char[] test = str.ToArray();
+
+            ExObject src = new();
+
+            ExObject dest = new ExList(test);
+
+            List<ExObject> lis = dest.GetList();
+
+            dest.Assign(other: src);
+
+            Assert.AreEqual(dest.Type, src.Type);
+
+            Assert.AreEqual(dest.Value, src.Value);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(0, lis.Count);
+
+            Assert.AreEqual(str.Length, test.Length);
+        }
+
+        [TestMethod()]
+        public void AssignNullExObjectToListExObjectReferenceCount2()
+        {
+            string str = "test array";
+
+            char[] test = str.ToArray();
+
+            ExObject src = new();
+
+            ExObject dest = new ExList(test);
+
+            ExObject temp = new(dest);
+
+            List<ExObject> lis = dest.GetList();
+
+            Assert.AreSame(lis, temp.GetList());
+
+            Assert.AreEqual(2, dest.ValueCustom._RefC.ReferenceCount);
+
+            dest.Assign(other: src);
+
+            Assert.AreEqual(dest.Type, src.Type);
+
+            Assert.AreEqual(dest.Value, src.Value);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(str.Length, lis.Count);
+
+            Assert.AreEqual(str.Length, test.Length);
+
+            lis.ForEach(o => Assert.IsNotNull(o));
+        }
+
+        [TestMethod()]
+        public void AssignNullExObjectToClosureReferenceCount1()
+        {
+            States.ExSState ss = new();
+            Closure.ExClosure closure = new() { SharedState = ss };
+
+            ExObject src = new();
+
+            ExObject dest = new(closure);
+
+            dest.Assign(other: src);
+
+            Assert.AreEqual(dest.Type, src.Type);
+
+            Assert.AreEqual(dest.Value, src.Value);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreEqual(0, closure.ReferenceCount);
+
+            Assert.IsNull(closure.SharedState);
+        }
+
+        [TestMethod()]
+        public void AssignNullExObjectToClosureReferenceCount2()
+        {
+            States.ExSState ss = new();
+            Closure.ExClosure closure = new() { SharedState = ss };
+
+            ExObject src = new();
+
+            ExObject dest = new(closure);
+
+            ExObject temp = new(dest);
+
+            Closure.ExClosure cls = dest.GetClosure();
+
+            Assert.AreSame(cls, temp.GetClosure());
+
+            Assert.AreEqual(2, dest.ValueCustom._RefC.ReferenceCount);
+
+            dest.Assign(other: src);
+
+            Assert.AreEqual(dest.Type, src.Type);
+
+            Assert.AreEqual(dest.Value, src.Value);
+
+            Assert.IsNull(dest.ValueCustom._RefC);
+
+            Assert.AreSame(cls, closure);
+
+            Assert.AreEqual(1, cls.ReferenceCount);
         }
         #endregion
     }

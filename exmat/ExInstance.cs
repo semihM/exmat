@@ -56,7 +56,7 @@ namespace ExMat.ExClass
 
         public void Init(ExSState exs)
         {
-            Delegate = new ExObject(Class.MetaFuncs); // TO-DO keep both metas and members
+            Delegate = new ExObject(Class.MetaFuncs);
             Class.ReferenceCount++;
         }
 
@@ -125,6 +125,10 @@ namespace ExMat.ExClass
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
             base.Dispose(disposing);
 
             ExDisposer.DisposeObjects(Class);

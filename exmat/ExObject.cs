@@ -15,6 +15,7 @@ namespace ExMat.Objects
     {
         public ExObjType Type = ExObjType.NULL; // Veri tipi
         public ExObjVal Value;                  // Veri değeri
+        public ExObjValCustom ValueCustom;
 
         private bool disposedValue;
 
@@ -55,7 +56,7 @@ namespace ExMat.Objects
                 case ExObjType.STRING:
                 case ExObjType.NULL:
                     {
-                        return Value.s_String ?? string.Empty;
+                        return ValueCustom.s_String ?? string.Empty;
                     }
                 default:
                     {
@@ -66,12 +67,12 @@ namespace ExMat.Objects
 
         public ExWeakRef GetWeakRef()
         {
-            return Value._WeakRef;
+            return ValueCustom._WeakRef;
         }
 
         public void SetString(string s)
         {
-            Value.s_String = s;
+            ValueCustom.s_String = s;
         }
 
         public bool GetBool()
@@ -99,37 +100,37 @@ namespace ExMat.Objects
 
         public Dictionary<string, ExObject> GetDict()
         {
-            return Value.d_Dict;
+            return ValueCustom.d_Dict;
         }
 
         public List<ExObject> GetList()
         {
-            return Value.l_List;
+            return ValueCustom.l_List;
         }
 
         public ExClosure GetClosure()
         {
-            return Value._Closure;
+            return ValueCustom._Closure;
         }
 
         public ExNativeClosure GetNClosure()
         {
-            return Value._NativeClosure;
+            return ValueCustom._NativeClosure;
         }
 
         public ExInstance GetInstance()
         {
-            return Value._Instance;
+            return ValueCustom._Instance;
         }
 
         public ExClass.ExClass GetClass()
         {
-            return Value._Class;
+            return ValueCustom._Class;
         }
 
         public ExSpace GetSpace()
         {
-            return Value.c_Space;
+            return ValueCustom.c_Space;
         }
 
         public virtual string GetDebuggerDisplay()
@@ -137,14 +138,14 @@ namespace ExMat.Objects
             string s = Type.ToString();
             switch (Type)
             {
-                case ExObjType.ARRAY: s += Value.l_List == null ? " null" : "(" + Value.l_List.Count.ToString(CultureInfo.CurrentCulture) + ")"; break;
+                case ExObjType.ARRAY: s += GetList() == null ? " null" : "(" + GetList().Count.ToString(CultureInfo.CurrentCulture) + ")"; break;
                 case ExObjType.INTEGER: s += " " + GetInt(); break;
                 case ExObjType.FLOAT: s += " " + GetFloat(); break;
                 case ExObjType.COMPLEX: s += " " + GetComplex().ToString(CultureInfo.CurrentCulture); break;
                 case ExObjType.BOOL: s += GetBool() ? " true" : " false"; break;
                 case ExObjType.STRING: s += " " + GetString(); break;
-                case ExObjType.CLOSURE: s = GetClosure() == null ? s + GetString() : Value._Closure.GetDebuggerDisplay(); break;
-                case ExObjType.NATIVECLOSURE: s = GetNClosure() == null ? s + GetString() : Value._NativeClosure.GetDebuggerDisplay(); break;
+                case ExObjType.CLOSURE: s = GetClosure() == null ? s + GetString() : GetClosure().GetDebuggerDisplay(); break;
+                case ExObjType.NATIVECLOSURE: s = GetNClosure() == null ? s + GetString() : GetNClosure().GetDebuggerDisplay(); break;
                 case ExObjType.NULL: break;
             }
             return s;
@@ -156,26 +157,7 @@ namespace ExMat.Objects
             {
                 if (disposing)
                 {
-                    Value.i_Int = 0;
-                    Value.f_Float = 0;
-                    Value.c_Float = 0;
-                    Value.s_String = null;
-
-                    Value.c_Space = null;
-                    ExDisposer.DisposeList(ref Value.l_List);
-                    ExDisposer.DisposeDict(ref Value.d_Dict);
-
-                    Value._RefC = null;
-                    Value._WeakRef = null;
-
-                    Value._Closure = null;
-                    Value._NativeClosure = null;
-
-                    Value._Class = null;
-                    Value._Instance = null;
-
-                    Value._Outer = null;
-                    Value._FuncPro = null;
+                    Release(Type, ValueCustom);
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -204,36 +186,39 @@ namespace ExMat.Objects
             return (int)GetInt() & 0x00FFFFFF;
         }
 
-        public static bool IsRefC(ExObjType t)
+        public static void AddReference(ExObjType t, ExObjValCustom v, bool forced = false)
         {
-            return ((int)t & (int)ExObjFlag.COUNTREFERENCES) > 0;
-        }
-        public static void AddReference(ExObjType t, ExObjVal v, bool forced = false)
-        {
-            if (!IsRefC(t) && !forced)
+            if (forced || ExTypeCheck.DoesTypeCountRef(t))
             {
-                return;
+                v._RefC.ReferenceCount++;
             }
-
-            if (v._RefC == null)
-            {
-                v._RefC = new();
-            }
-
-            v._RefC.ReferenceCount++;
         }
+
         public virtual void Release()
         {
-            if (IsRefC(Type) && ((--Value._RefC.ReferenceCount) == 0))
+            if (ExTypeCheck.DoesTypeCountRef(Type) && ((--ValueCustom._RefC.ReferenceCount) == 0))
             {
                 Nullify();
             }
         }
-        public static void Release(ExObjType t, ExObjVal v)
+        public static void Release(ExObjType t, ExObjValCustom v)
         {
-            if (IsRefC(t) && v._RefC != null && (--v._RefC.ReferenceCount) == 0)
+            if (ExTypeCheck.DoesTypeCountRef(t) && (--v._RefC.ReferenceCount) == 0)
             {
-                v.i_Int = 0;
+                v.s_String = null;
+
+                ExDisposer.DisposeDict(ref v.d_Dict);
+                ExDisposer.DisposeList(ref v.l_List);
+
+                ExDisposer.DisposeObject(ref v.c_Space);
+                ExDisposer.DisposeObject(ref v._Class);
+                ExDisposer.DisposeObject(ref v._Instance);
+                ExDisposer.DisposeObject(ref v._Closure);
+                ExDisposer.DisposeObject(ref v._NativeClosure);
+                ExDisposer.DisposeObject(ref v._WeakRef);
+                ExDisposer.DisposeObject(ref v._RefC);
+                ExDisposer.DisposeObject(ref v._Outer);
+                ExDisposer.DisposeObject(ref v._FuncPro);
             }
         }
 
@@ -244,23 +229,15 @@ namespace ExMat.Objects
         {
             Type = ExObjType.NULL;
             Value = new();
+            ValueCustom = new();
         }
-        public ExObject(ExObject objp)
-        {
-            Type = objp.Type;
-            Value = objp.Value;
-            AddReference(Type, Value);
-        }
-        public void Assign(ExObject o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
 
-            Value = o.Value;
-            Type = o.Type;
-
-            AddReference(Type, Value);
-            Release(t, v);
+        public ExObject(ExObject other)
+        {
+            Type = other.Type;
+            Value = other.Value;
+            ValueCustom = other.ValueCustom;
+            AddReference(Type, ValueCustom);
         }
 
         ///////////////////////////////
@@ -271,267 +248,288 @@ namespace ExMat.Objects
             Type = ExObjType.INTEGER;
             Value.i_Int = i;
         }
-        public void Assign(long i)
-        {
-            Release(Type, Value);
-            Value.i_Int = i;
-            Type = ExObjType.INTEGER;
-        }
+
         public ExObject(double f)
         {
             Type = ExObjType.FLOAT;
             Value.f_Float = f;
         }
-        public void Assign(double f)
-        {
-            Release(Type, Value);
-            Value.f_Float = f;
-            Type = ExObjType.FLOAT;
-        }
+
         public ExObject(bool b)
         {
             Type = ExObjType.BOOL;
             Value.b_Bool = b;
         }
-        public void Assign(bool b)
-        {
-            Release(Type, Value);
-            Value.b_Bool = b;
-            Type = ExObjType.BOOL;
-        }
+
         public ExObject(string s)
         {
             Type = ExObjType.STRING;
-            Value.s_String = s;
+            ValueCustom.s_String = s;
         }
-        public void Assign(string s)
-        {
-            Release(Type, Value);
-            Value.s_String = s;
-            Type = ExObjType.STRING;
-        }
-        public ExObject(Complex f)
+
+        public ExObject(Complex cmplx)
         {
             Type = ExObjType.COMPLEX;
-            Value.f_Float = f.Real;
-            Value.c_Float = f.Imaginary;
+            Value.f_Float = cmplx.Real;
+            Value.c_Float = cmplx.Imaginary;
         }
-        public void Assign(Complex f)
-        {
-            Release(Type, Value);
-            Value.f_Float = f.Real;
-            Value.c_Float = f.Imaginary;
-            Type = ExObjType.COMPLEX;
-        }
+
         ///////////////////////////////
-        /// EXREF
+        /// Ref counted
         ///////////////////////////////
         public ExObject(Dictionary<string, ExObject> dict)
         {
             Type = ExObjType.DICT;
-            Value.d_Dict = dict;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
+            ValueCustom.d_Dict = dict;
+            ValueCustom._RefC = new();
+            AddReference(Type, ValueCustom, true);
         }
-        public void Assign(Dictionary<string, ExObject> dict)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
 
-            Value.d_Dict = dict;
-            Value._RefC = new();
-            Type = ExObjType.DICT;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
-        }
-        public ExObject(List<ExObject> o)
+        public ExObject(List<ExObject> lis)
         {
             Type = ExObjType.ARRAY;
-            Value.l_List = o;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
-        }
-        public void Assign(List<ExObject> o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value.l_List = o;
-            Value._RefC = new();
-            Type = ExObjType.ARRAY;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
+            ValueCustom.l_List = lis;
+            ValueCustom._RefC = new();
+            AddReference(Type, ValueCustom, true);
         }
 
-        public ExObject(ExInstance o)
+        public ExObject(ExInstance inst)
         {
             Type = ExObjType.INSTANCE;
-            Value._Instance = o;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
+            ValueCustom._Instance = inst;
+            ValueCustom._RefC = ValueCustom._Instance;
+            AddReference(Type, ValueCustom, true);
         }
-        public void Assign(ExInstance o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
 
-            Value._Instance = o;
-            Value._RefC = new() { ReferenceCount = Value._Instance.ReferenceCount++ };
-            Type = ExObjType.INSTANCE;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
-        }
-        public ExObject(ExClass.ExClass o)
+        public ExObject(ExClass.ExClass @class)
         {
             Type = ExObjType.CLASS;
-            Value._Class = o;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
-        }
-        public void Assign(ExClass.ExClass o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value._Class = o;
-            Value._RefC = new() { ReferenceCount = Value._Class.ReferenceCount++ };
-            Type = ExObjType.CLASS;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
+            ValueCustom._Class = @class;
+            ValueCustom._RefC = ValueCustom._Class;
+            AddReference(Type, ValueCustom, true);
         }
 
-        public ExObject(ExClosure o)
+        public ExObject(ExClosure cls)
         {
             Type = ExObjType.CLOSURE;
-            Value._Closure = o;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
-        }
-        public void Assign(ExClosure o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value._Closure = o;
-            Value._RefC = new() { ReferenceCount = Value._Closure.ReferenceCount++ };
-            Type = ExObjType.CLOSURE;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
+            ValueCustom._Closure = cls;
+            ValueCustom._RefC = ValueCustom._Closure;
+            AddReference(Type, ValueCustom, true);
         }
 
-        public ExObject(ExNativeClosure o)
+        public ExObject(ExNativeClosure ncls)
         {
             Type = ExObjType.NATIVECLOSURE;
-            Value._NativeClosure = o;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
-        }
-        public void Assign(ExNativeClosure o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value._NativeClosure = o;
-            Value._RefC = new() { ReferenceCount = Value._NativeClosure.ReferenceCount++ };
-            Type = ExObjType.NATIVECLOSURE;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
+            ValueCustom._NativeClosure = ncls;
+            ValueCustom._RefC = ValueCustom._NativeClosure;
+            AddReference(Type, ValueCustom, true);
         }
 
-        public ExObject(ExOuter o)
+        public ExObject(ExOuter outer)
         {
             Type = ExObjType.OUTER;
-            Value._Outer = o;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
-        }
-        public void Assign(ExOuter o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value._Outer = o;
-            Value._RefC = new() { ReferenceCount = Value._Outer.ReferenceCount++ };
-            Type = ExObjType.OUTER;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
+            ValueCustom._Outer = outer;
+            ValueCustom._RefC = ValueCustom._Outer;
+            AddReference(Type, ValueCustom, true);
         }
 
-        public ExObject(ExWeakRef o)
+        public ExObject(ExWeakRef wref)
         {
             Type = ExObjType.WEAKREF;
-            Value._WeakRef = o;
-            AddReference(Type, Value, true);
-        }
-        public void Assign(ExWeakRef o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value._WeakRef = o;
-            Value._RefC = new() { ReferenceCount = Value._WeakRef.ReferenceCount++ };
-            Type = ExObjType.WEAKREF;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
+            ValueCustom._WeakRef = wref;
+            ValueCustom._RefC = ValueCustom._WeakRef;
+            AddReference(Type, ValueCustom, true);
         }
 
-        public ExObject(ExPrototype o)
+        public ExObject(ExPrototype pro)
         {
             Type = ExObjType.FUNCPRO;
-            Value._FuncPro = o;
-            Value._RefC = new();
-            AddReference(Type, Value, true);
-        }
-        public void Assign(ExPrototype o)
-        {
-            ExObjType t = Type;
-            ExObjVal v = Value;
-
-            Value._FuncPro = o;
-            Value._RefC = new() { ReferenceCount = Value._FuncPro.ReferenceCount++ };
-            Type = ExObjType.FUNCPRO;
-
-            AddReference(Type, Value, true);
-            Release(t, v);
+            ValueCustom._FuncPro = pro;
+            ValueCustom._RefC = ValueCustom._FuncPro;
+            AddReference(Type, ValueCustom, true);
         }
 
         public ExObject(ExSpace space)
         {
             Type = ExObjType.SPACE;
-            Value.c_Space = space;
-            Value._RefC = new();
+            ValueCustom.c_Space = space;
+            ValueCustom._RefC = ValueCustom.c_Space;
+            AddReference(Type, ValueCustom, true);
+        }
 
-            AddReference(Type, Value, true);
+        // Assignement
+        public void Assign(ExObject other)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            Value = other.Value;
+            ValueCustom = other.ValueCustom;
+            Type = other.Type;
+
+            AddReference(Type, ValueCustom);
+            Release(t, v);
+        }
+        public void Assign(long i)
+        {
+            Release(Type, ValueCustom);
+            Value.i_Int = i;
+            Type = ExObjType.INTEGER;
+        }
+        public void Assign(double f)
+        {
+            Release(Type, ValueCustom);
+            Value.f_Float = f;
+            Type = ExObjType.FLOAT;
+        }
+        public void Assign(bool b)
+        {
+            Release(Type, ValueCustom);
+            Value.b_Bool = b;
+            Type = ExObjType.BOOL;
+        }
+        public void Assign(string s)
+        {
+            Release(Type, ValueCustom);
+            ValueCustom.s_String = s;
+            Type = ExObjType.STRING;
+        }
+        public void Assign(Complex cmplx)
+        {
+            Release(Type, ValueCustom);
+            Value.f_Float = cmplx.Real;
+            Value.c_Float = cmplx.Imaginary;
+            Type = ExObjType.COMPLEX;
         }
         public void Assign(ExSpace space)
         {
             ExObjType t = Type;
-            ExObjVal v = Value;
+            ExObjValCustom v = ValueCustom;
 
-            Value.c_Space = space;
+            ValueCustom.c_Space = space;
             Type = ExObjType.SPACE;
-            Value._RefC = new();
+            ValueCustom._RefC = ValueCustom.c_Space;
 
-            AddReference(Type, Value, true);
+            AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        public void Assign(Dictionary<string, ExObject> dict)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom.d_Dict = dict;
+            ValueCustom._RefC = new();
+            Type = ExObjType.DICT;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(List<ExObject> lis)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom.l_List = lis;
+            ValueCustom._RefC = new();
+            Type = ExObjType.ARRAY;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(ExInstance inst)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom._Instance = inst;
+            ValueCustom._RefC = ValueCustom._Instance;
+            Type = ExObjType.INSTANCE;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(ExClass.ExClass @class)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom._Class = @class;
+            ValueCustom._RefC = ValueCustom._Class;
+            Type = ExObjType.CLASS;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(ExClosure cls)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom._Closure = cls;
+            ValueCustom._RefC = ValueCustom._Closure;
+            Type = ExObjType.CLOSURE;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(ExNativeClosure ncls)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom._NativeClosure = ncls;
+            ValueCustom._RefC = ValueCustom._NativeClosure;
+            Type = ExObjType.NATIVECLOSURE;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(ExOuter outer)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom._Outer = outer;
+            ValueCustom._RefC = ValueCustom._Outer;
+            Type = ExObjType.OUTER;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(ExPrototype pro)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom._FuncPro = pro;
+            ValueCustom._RefC = ValueCustom._FuncPro;
+            Type = ExObjType.FUNCPRO;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+        public void Assign(ExWeakRef wref)
+        {
+            ExObjType t = Type;
+            ExObjValCustom v = ValueCustom;
+
+            ValueCustom._WeakRef = wref;
+            ValueCustom._RefC = ValueCustom._WeakRef;
+            Type = ExObjType.WEAKREF;
+
+            AddReference(Type, ValueCustom, true);
+            Release(t, v);
+        }
+
         //
         public void Nullify()
         {
             ExObjType oldt = Type;
-            ExObjVal oldv = Value;
+            ExObjValCustom oldv = ValueCustom;
             Type = ExObjType.NULL;
-            Value = new();
+            ValueCustom = new();
             Release(oldt, oldv);
         }
-
     }
 }

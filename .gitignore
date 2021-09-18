@@ -9,6 +9,9 @@
 *.bat
 *.ps1
 
+# Sonarcloud
+.sonarqube/
+
 # Coverage reports
 coverage/
 

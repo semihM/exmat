@@ -35,6 +35,11 @@ namespace ExMat.Closure
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
+
             base.Dispose(disposing);
 
             Summary = null;
@@ -44,9 +49,6 @@ namespace ExMat.Closure
             TypeMasks = null;
             Function = null;
             SharedState = null;
-
-            nOuters = 0;
-            nParameterChecks = 0;
 
             ExDisposer.DisposeObjects(Name);
             ExDisposer.DisposeList(ref OutersList);
@@ -111,10 +113,7 @@ namespace ExMat.Closure
             }
         }
 
-        public ExNativeClosure()
-        {
-            ReferenceCount = 1;
-        }
+        public ExNativeClosure() { }
 
         public static ExNativeClosure Create(ExSState exS, ExMat.StdLibFunction f, int nout)
         {

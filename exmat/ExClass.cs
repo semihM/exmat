@@ -108,7 +108,7 @@ namespace ExMat.ExClass
         {
             if (ConstructorID != -1)
             {
-                o.Assign(Methods[ConstructorID].Value);
+                o = new(Methods[ConstructorID].Value);
                 return true;
             }
             return false;
@@ -145,7 +145,7 @@ namespace ExMat.ExClass
                 ExObject tmpv = val;
                 if (Base != null && val.Type == ExObjType.CLOSURE)
                 {
-                    tmpv.Assign(val.Value._Closure);
+                    tmpv.Assign(val.ValueCustom._Closure);
                     tmpv.GetClosure().Base = Base;
                     Base.ReferenceCount++;
                 }
@@ -226,6 +226,11 @@ namespace ExMat.ExClass
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
+
             base.Dispose(disposing);
 
             ExDisposer.DisposeObjects(Base);

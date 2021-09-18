@@ -67,7 +67,7 @@ namespace ExMat.States
 
         public void Initialize()
         {
-            MetaMethodsMap.Value.d_Dict = new();
+            MetaMethodsMap.ValueCustom.d_Dict = new();
 
             for (int i = 0; i < (int)ExMetaMethod.LAST; i++)
             {

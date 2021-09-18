@@ -59,6 +59,10 @@ namespace ExMat.Outer
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
             base.Dispose(disposing);
 
             ExDisposer.DisposeObjects(ValueRef);
