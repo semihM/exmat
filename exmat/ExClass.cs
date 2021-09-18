@@ -108,7 +108,7 @@ namespace ExMat.ExClass
         {
             if (ConstructorID != -1)
             {
-                o.Assign(Methods[ConstructorID].Value);
+                o = new(Methods[ConstructorID].Value);
                 return true;
             }
             return false;
@@ -226,6 +226,11 @@ namespace ExMat.ExClass
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
+
             base.Dispose(disposing);
 
             ExDisposer.DisposeObjects(Base);

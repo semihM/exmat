@@ -165,6 +165,10 @@ namespace ExMat.FuncPrototype
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
             base.Dispose(disposing);
 
             ExDisposer.DisposeObjects(Source, Name);
@@ -178,8 +182,11 @@ namespace ExMat.FuncPrototype
             ExDisposer.DisposeList(ref Parameters);
             ExDisposer.DisposeList(ref Literals);
 
-            Instructions.RemoveAll((ExInstr i) => true);
-            Instructions = null;
+            if (Instructions != null)
+            {
+                Instructions.Clear();
+                Instructions = null;
+            }
         }
     }
 }

@@ -396,15 +396,15 @@ namespace ExMat
         /// <summary>
         /// Integer value object
         /// </summary>
-        INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
+        INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
         /// <summary>
         /// Float value object
         /// </summary>
-        FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
+        FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
         /// <summary>
         /// Complex value object
         /// </summary>
-        COMPLEX = ExBaseType.COMPLEX | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE,
+        COMPLEX = ExBaseType.COMPLEX | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
 
         /// <summary>
         /// Bool value object
@@ -413,7 +413,7 @@ namespace ExMat
         /// <summary>
         /// String value object
         /// </summary>
-        STRING = ExBaseType.STRING,
+        STRING = ExBaseType.STRING | ExObjFlag.DELEGABLE,
 
         /// <summary>
         /// Space value object
@@ -422,25 +422,25 @@ namespace ExMat
         /// <summary>
         /// Array object
         /// </summary>
-        ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES,
+        ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
         /// <summary>
         /// Dictionary object
         /// </summary>
-        DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES,
+        DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
 
         /// <summary>
         /// Closure object
         /// </summary>
-        CLOSURE = ExBaseType.CLOSURE | ExObjFlag.COUNTREFERENCES,
+        CLOSURE = ExBaseType.CLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
         /// <summary>
         /// Native closure object
         /// </summary>
-        NATIVECLOSURE = ExBaseType.NATIVECLOSURE | ExObjFlag.COUNTREFERENCES,
+        NATIVECLOSURE = ExBaseType.NATIVECLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
 
         /// <summary>
         /// Class object
         /// </summary>
-        CLASS = ExBaseType.CLASS | ExObjFlag.COUNTREFERENCES,
+        CLASS = ExBaseType.CLASS | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
         /// <summary>
         /// Instance object
         /// </summary>
@@ -448,7 +448,7 @@ namespace ExMat
         /// <summary>
         /// Weak reference
         /// </summary>
-        WEAKREF = ExBaseType.WEAKREF | ExObjFlag.COUNTREFERENCES,
+        WEAKREF = ExBaseType.WEAKREF | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
 
         /// <summary>
         /// Default value placer for ".." token

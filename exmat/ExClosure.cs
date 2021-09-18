@@ -20,6 +20,10 @@ namespace ExMat.Closure
 
         protected override void Dispose(bool disposing)
         {
+            if (ReferenceCount > 0)
+            {
+                return;
+            }
             base.Dispose(disposing);
             Base = null;
 
@@ -27,6 +31,7 @@ namespace ExMat.Closure
             ExDisposer.DisposeObjects(Function);
             ExDisposer.DisposeList(ref OutersList);
             ExDisposer.DisposeList(ref DefaultParams);
+            SharedState = null;
         }
 
         public static ExClosure Create(ExSState exS, ExPrototype fpro)
@@ -37,10 +42,7 @@ namespace ExMat.Closure
             return cls;
         }
 
-        public ExClosure()
-        {
-            ReferenceCount = 1;
-        }
+        public ExClosure() { }
 
         public ExClosure Copy()
         {

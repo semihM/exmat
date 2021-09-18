@@ -99,12 +99,16 @@ namespace ExMat
         /// <param name="count">Amount of objects to skip</param>
         private static void FixStackTopAfterCalls(ExVM vm, int count)
         {
+            if (count < 0)
+            {
+                count = 0;
+            }
             for (int idx = vm.Stack.Allocated - 1; idx >= count; idx--)
             {
                 vm.Stack[idx].Nullify();
                 vm.Stack[idx] = new();
             }
-            vm.StackBase = count - 1;
+            vm.StackBase = count;
             vm.StackTop = count;
         }
 
@@ -396,7 +400,6 @@ namespace ExMat
                         ContinueDelayedInput(code);
 
                         ret = CompileString(ActiveVM, TrimCode(code));  // Derle ve işle
-
                     }
                     catch (ThreadInterruptedException)
                     {

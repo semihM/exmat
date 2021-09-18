@@ -330,7 +330,7 @@ namespace ExMat.VM
                     }
                 default:
                     {
-                        if (ExTypeCheck.IsDelegable(obj))
+                        if (obj.Type == ExObjType.INSTANCE)
                         {
                             ExObject c = new();
                             ExObject res = new();
@@ -525,7 +525,7 @@ namespace ExMat.VM
                     }
                 default:
                     {
-                        if (ExTypeCheck.IsDelegable(obj))
+                        if (obj.Type == ExObjType.INSTANCE)
                         {
                             ExObject c = new();
 
@@ -867,9 +867,11 @@ namespace ExMat.VM
             return SharedState.Strings[s];
         }
 
-        public static bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, ExObject cns)
+        public static bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, out ExObject cns)
         {
+            cns = null;
             o.Assign(cls.CreateInstance());
+
             if (!cls.GetConstructor(ref cns))
             {
                 cns.Nullify();
@@ -969,26 +971,23 @@ namespace ExMat.VM
 
         private bool DoArgumentChecksInStack(ExClosure closure, int nParameters, int stackBase, int defaultsIndex, ref int nArguments)
         {
-            bool needsDef = nParameters != nArguments;
-            for (int n = 1; n < nParameters; n++)
+            for (int pno = 1; pno < nParameters; pno++)
             {
-                // ".." sembolü yerine ile varsayılan değeri(varsa) ata
-                if (Stack[stackBase + n].Type == ExObjType.DEFAULT)
+                if (Stack[stackBase + pno].Type == ExObjType.DEFAULT)
                 {
-                    if (n >= defaultsIndex)
+                    if (pno >= defaultsIndex)
                     {
-                        Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
+                        Stack[stackBase + pno].Assign(closure.DefaultParams[pno - defaultsIndex]);
                     }
                     else
                     {
-                        AddToErrorMessage("can't use non-existant default value reference for parameter " + n);
+                        AddToErrorMessage("can't use non-existant default value for parameter no {0}", pno);
                         return false;
                     }
                 }
-                // Argümansız ve varsayılan değerli parametrele değerleri ata
-                else if (needsDef && n >= defaultsIndex)
+                else if (pno >= nArguments)
                 {
-                    Stack[stackBase + n].Assign(closure.DefaultParams[n - defaultsIndex]);
+                    Stack[stackBase + pno].Assign(closure.DefaultParams[pno - defaultsIndex]);
                     nArguments++;
                 }
             }
@@ -1877,7 +1876,7 @@ namespace ExMat.VM
                         }
                     case ExOperationCode.CALL:  // Fonksiyon veya başka bir obje çağrısı
                         {
-                            ExObject obj = new(GetTargetInStack(instruction.arg1));
+                            ExObject obj = GetTargetInStack(instruction.arg1);
                             switch (obj.Type)
                             {
                                 case ExObjType.CLOSURE: // Kullanıcı fonksiyonu
@@ -1904,7 +1903,7 @@ namespace ExMat.VM
                                 case ExObjType.CLASS:   // Sınıf (yeni bir obje oluşturmaya yarar)
                                     {
                                         ExObject instance = new();
-                                        if (!CreateClassInst(obj.GetClass(), ref instance, obj))
+                                        if (!CreateClassInst(obj.GetClass(), ref instance, out ExObject constructor))
                                         {
                                             return FixStackAfterError();
                                         }
@@ -1914,13 +1913,13 @@ namespace ExMat.VM
                                         }
 
                                         int sbase;
-                                        switch (obj.Type)
+                                        switch (constructor.Type)
                                         {
                                             case ExObjType.CLOSURE:
                                                 {
                                                     sbase = StackBase + (int)instruction.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!StartCall(obj.GetClosure(), -1, instruction.arg3, sbase, false))
+                                                    if (!StartCall(constructor.GetClosure(), -1, instruction.arg3, sbase, false))
                                                     {
                                                         return FixStackAfterError();
                                                     }
@@ -1930,7 +1929,7 @@ namespace ExMat.VM
                                                 {
                                                     sbase = StackBase + (int)instruction.arg2;
                                                     Stack[sbase].Assign(instance);
-                                                    if (!CallNative(obj.GetNClosure(), instruction.arg3, sbase, ref obj))
+                                                    if (!CallNative(constructor.GetNClosure(), instruction.arg3, sbase, ref constructor))
                                                     {
                                                         return FixStackAfterError();
                                                     }
@@ -2627,7 +2626,7 @@ namespace ExMat.VM
             {
                 if (Outers.ValueRef.GetInt() == sidx.GetInt())
                 {
-                    target.Assign(new ExObject(Outers));
+                    target.Assign(Outers);
                     return;
                 }
                 Outers = Outers._next;
@@ -2638,7 +2637,7 @@ namespace ExMat.VM
             tmp.Index = (int)sidx.GetInt() - FindFirstNullInStack();
             tmp.ReferenceCount++;
             Outers = tmp;
-            target.Assign(new ExObject(tmp));
+            target.Assign(tmp);
         }
 
         public int FindFirstNullInStack()
@@ -3360,7 +3359,7 @@ namespace ExMat.VM
                         break;
                     }
             }
-            if (ExTypeCheck.IsDelegable(a))
+            if (a.Type == ExObjType.INSTANCE)
             {
                 ExObject c = new();
 
@@ -3439,7 +3438,7 @@ namespace ExMat.VM
             if (inst.Class.Members.ContainsKey(key)
                 && inst.Class.Members[key].IsField())
             {
-                inst.MemberValues[inst.Class.Members[key].GetMemberID()].Assign(new ExObject(val));
+                inst.MemberValues[inst.Class.Members[key].GetMemberID()].Assign(val);
                 return ExSetterStatus.SET;
             }
 
@@ -3595,6 +3594,11 @@ namespace ExMat.VM
 
         public bool InvokeDefaultDeleg(ExObject self, ExObject k, ref ExObject dest)
         {
+            if (!ExTypeCheck.IsDelegable(self))
+            {
+                return false;
+            }
+
             Dictionary<string, ExObject> del = new();
             switch (self.Type)
             {
@@ -3693,7 +3697,7 @@ namespace ExMat.VM
 
             if (dict.ContainsKey(key.GetString()))
             {
-                dest.Assign(new ExObject(dict[key.GetString()]));
+                dest.Assign(dict[key.GetString()]);
                 return ExGetterStatus.FOUND;
             }
 
@@ -3722,7 +3726,7 @@ namespace ExMat.VM
 
                 if (idx >= 0 && lis.Count != 0 && lis.Count > idx)
                 {
-                    dest.Assign(new ExObject(lis[idx]));
+                    dest.Assign(lis[idx]);
                     return ExGetterStatus.FOUND;
                 }
                 else
@@ -3749,15 +3753,15 @@ namespace ExMat.VM
 
             if (instance.Class.Members.ContainsKey(key.GetString()))
             {
-                dest.Assign(new ExObject(instance.Class.Members[key.GetString()]));
+                dest.Assign(instance.Class.Members[key.GetString()]);
                 if (dest.IsField())
                 {
                     ExObject o = new(instance.MemberValues[dest.GetMemberID()]);
-                    dest.Assign(o.Type == ExObjType.WEAKREF ? o.GetWeakRef().ReferencedObject : o);
+                    dest = o.Type == ExObjType.WEAKREF ? o.GetWeakRef().ReferencedObject : o;
                 }
                 else
                 {
-                    dest.Assign(new ExObject(instance.Class.Methods[dest.GetMemberID()].Value));
+                    dest.Assign(instance.Class.Methods[dest.GetMemberID()].Value);
                 }
                 return ExGetterStatus.FOUND;
             }
@@ -3774,15 +3778,15 @@ namespace ExMat.VM
             }
             if (cls.Members.ContainsKey(key.GetString()))
             {
-                dest.Assign(new ExObject(cls.Members[key.GetString()]));
+                dest.Assign(cls.Members[key.GetString()]);
                 if (dest.IsField())
                 {
                     ExObject o = new(cls.DefaultValues[dest.GetMemberID()].Value);
-                    dest.Assign(o.Type == ExObjType.WEAKREF ? o.GetWeakRef().ReferencedObject : o);
+                    dest = o.Type == ExObjType.WEAKREF ? o.GetWeakRef().ReferencedObject : o;
                 }
                 else
                 {
-                    dest.Assign(new ExObject(cls.Methods[dest.GetMemberID()].Value));
+                    dest.Assign(cls.Methods[dest.GetMemberID()].Value);
                 }
                 return ExGetterStatus.FOUND;
             }
@@ -4290,10 +4294,9 @@ namespace ExMat.VM
                     }
                 case ExObjType.CLASS:           // Sınıfa ait obje oluştur
                     {
-                        ExObject cn = new();
                         ExObject tmp = new();
 
-                        CreateClassInst(cls.GetClass(), ref result, cn);
+                        CreateClassInst(cls.GetClass(), ref result, out ExObject cn);
                         if (ExTypeCheck.IsNotNull(cn))
                         {
                             Stack[stackBase].Assign(result);

@@ -42,5 +42,14 @@ namespace ExMat.Objects
                 }
             }
         }
+
+        public static void DisposeObject<T>(ref T o) where T : IDisposable, new()
+        {
+            if (o != null)
+            {
+                o.Dispose();
+                o = default;
+            }
+        }
     }
 }

@@ -5,14 +5,13 @@ using System.Globalization;
 namespace ExMat.Objects
 {
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExSpace : IDisposable
+    public class ExSpace : ExRefC
     {
         public int Dimension = 1;
         public string Domain = string.Empty;
         public char Sign = '\\';
 
         public ExSpace Child;
-        private bool disposedValue;
 
         public string GetString()
         {
@@ -96,7 +95,8 @@ namespace ExMat.Objects
             }
             return s;
         }
-        public virtual string GetDebuggerDisplay()
+
+        protected override string GetDebuggerDisplay()
         {
             return GetSpaceString();
         }
@@ -163,31 +163,21 @@ namespace ExMat.Objects
             return d;
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected override void Dispose(bool disposing)
         {
-            if (!disposedValue)
+            if (ReferenceCount > 0)
             {
-                if (disposing)
-                {
-                    Domain = null;
-                    Dimension = 0;
-                    if (Child != null)
-                    {
-                        Child.Dispose();
-                    }
-                }
-
-                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                // TODO: set large fields to null
-                disposedValue = true;
+                return;
             }
-        }
+            base.Dispose(disposing);
 
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
+            Domain = null;
+            Dimension = 0;
+
+            if (Child != null)
+            {
+                Child.Dispose();
+            }
         }
     }
 }

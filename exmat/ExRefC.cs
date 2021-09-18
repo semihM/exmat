@@ -26,7 +26,7 @@ namespace ExMat.Objects
             return WeakReference;
         }
 
-        public string GetDebuggerDisplay()
+        protected virtual string GetDebuggerDisplay()
         {
             return "REFC: " + ReferenceCount;
         }

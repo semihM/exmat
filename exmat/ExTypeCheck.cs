@@ -12,7 +12,7 @@
 
         public static bool IsNotNull(Objects.ExObject obj)
         {
-            return obj.Type != ExObjType.NULL;
+            return !IsNull(obj);
         }
 
         public static bool IsDelegable(Objects.ExObject obj)
@@ -32,7 +32,12 @@
 
         public static bool IsCountingRefs(Objects.ExObject obj)
         {
-            return ((int)obj.Type & (int)ExObjFlag.COUNTREFERENCES) != 0;
+            return DoesTypeCountRef(obj.Type);
+        }
+
+        public static bool DoesTypeCountRef(ExObjType t)
+        {
+            return ((int)t & (int)ExObjFlag.COUNTREFERENCES) != 0;
         }
 
         public static bool IsFalseable(Objects.ExObject obj)
