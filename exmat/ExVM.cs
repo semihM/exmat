@@ -1757,7 +1757,6 @@ namespace ExMat.VM
             {
                 int idx = (int)rpos.GetInt();
                 int c = idx;
-                int len = obj.GetDict().Count;
 
                 while (c >= 0)
                 {
