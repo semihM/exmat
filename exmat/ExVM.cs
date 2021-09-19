@@ -1739,6 +1739,143 @@ namespace ExMat.VM
             return true;
         }
 
+        public static int IterDictNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv) // TO-DO optimize
+        {
+            Dictionary<string, ExObject>.Enumerator e = obj.GetDict().GetEnumerator();
+            if (!e.MoveNext())
+            {
+                return -1;
+            }
+
+            if (ExTypeCheck.IsNull(rpos))
+            {
+                outk.Assign(e.Current.Key);
+                outv.Assign(e.Current.Value);
+                return 0;
+            }
+            else
+            {
+                int idx = (int)rpos.GetInt();
+                int c = idx;
+                int len = obj.GetDict().Count;
+
+                while (c >= 0)
+                {
+                    c--;
+                    if (!e.MoveNext())
+                    {
+                        return -1;
+                    }
+                }
+
+                outk.Assign(e.Current.Key);
+                outv.Assign(e.Current.Value);
+                return ++idx;
+            }
+        }
+
+        public static int IterStringNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
+        {
+            string e = obj.GetString();
+            if (e.Length == 0)
+            {
+                return -1;
+            }
+
+            if (ExTypeCheck.IsNull(rpos))
+            {
+                outk.Assign(0);
+                outv.Assign(e[0].ToString());
+                return 1;
+            }
+            else
+            {
+                int idx = (int)rpos.GetInt();
+                if (idx >= obj.GetString().Length)
+                {
+                    return -1;
+                }
+
+                outk.Assign(idx);
+                outv.Assign(e[idx].ToString());
+                return ++idx;
+            }
+        }
+
+        public static int IterArrayNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
+        {
+            List<ExObject> e = obj.GetList();
+            if (e.Count == 0)
+            {
+                return -1;
+            }
+
+            if (ExTypeCheck.IsNull(rpos))
+            {
+                outk.Assign(0);
+                outv.Assign(e[0]);
+                return 1;
+            }
+            else
+            {
+                int idx = (int)rpos.GetInt();
+                if (idx >= obj.GetList().Count)
+                {
+                    return -1;
+                }
+
+                outk.Assign(idx);
+                outv.Assign(e[idx]);
+                return ++idx;
+            }
+        }
+
+        private delegate int Iterator(ExObject obj, ExObject rpos, ExObject outk, ExObject outv);
+
+        private bool DoForeach(ExObject obj, ExObject obj2, ExObject obj3, ExObject obj4, int exit, ref int jmp)
+        {
+            int ridx;
+            Iterator iterator;
+
+            switch (obj.Type)
+            {
+                case ExObjType.DICT:
+                    {
+                        iterator = IterDictNext;
+                        break;
+                    }
+                case ExObjType.ARRAY:
+                    {
+                        iterator = IterArrayNext;
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        iterator = IterStringNext;
+                        break;
+                    }
+                case ExObjType.CLASS: // TO-DO iterable class and instances
+                case ExObjType.INSTANCE:
+                default:
+                    {
+                        AddToErrorMessage("type '{0}' is not iterable", obj.Type);
+                        return false;
+                    }
+            }
+
+
+            if ((ridx = iterator(obj, obj4, obj2, obj3)) == -1)
+            {
+                jmp = exit;
+            }
+            else
+            {
+                obj4.Assign(ridx);
+                jmp = 1;
+            }
+            return true;
+        }
+
         private ExObject FindSpaceObject(int i)
         {
             string name = CallInfo.Value.Literals[i].GetString();
@@ -2485,6 +2622,30 @@ namespace ExMat.VM
                             {
                                 return FixStackAfterError();
                             }
+                            continue;
+                        }
+                    case ExOperationCode.FOREACH:
+                        {
+                            int jidx = 0;
+                            if (!DoForeach(GetTargetInStack(instruction.arg0),
+                                            GetTargetInStack(instruction.arg2),
+                                            GetTargetInStack(instruction.arg2 + 1),
+                                            GetTargetInStack(instruction.arg2 + 2),
+                                            (int)instruction.arg1,
+                                            ref jidx))
+                            {
+                                return false;
+                            }
+                            CallInfo.Value.InstructionsIndex += jidx;
+                            continue;
+                        }
+                    case ExOperationCode.POSTFOREACH:
+                        {
+                            if (GetTargetInStack(instruction.arg1).Type != ExObjType.GENERATOR)
+                            {
+                                return false;
+                            }
+                            // TO-DO generators
                             continue;
                         }
                     case ExOperationCode.TYPEOF:

@@ -99,6 +99,7 @@ namespace ExMat.Lexer
             { "if", TokenType.IF },
             { "else", TokenType.ELSE },
             { "for", TokenType.FOR },
+            { "foreach", TokenType.FOREACH },
             { "continue", TokenType.CONTINUE },
             { "break", TokenType.BREAK },
             // Tanımsal

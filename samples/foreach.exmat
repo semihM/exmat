@@ -1,0 +1,46 @@
+foreach(val in {key1 = 2, key2 = 4, key3 = 8})
+{
+    printl(format("dict val: {0}", val))
+}
+
+var nc_count = 0;
+foreach(val in root())
+{
+    if(nc_count == 15)
+    {
+        break;
+    }
+
+    if(typeof val is "NATIVECLOSURE")
+    {
+        nc_count++;
+        printl(format("count: {0}, native func name: {1} ", nc_count, val.name))
+    }
+
+}
+
+foreach(key, val in {a = 2, b = 3, c = null, d = "noice"})
+{
+    printl(format("key: {0}, val: {1}", key, val))
+}
+
+foreach(number in range(3,9))
+{
+    printl(format("number: {0} ", number))
+}
+
+foreach(index, number in range(3,9))
+{
+    if(index % 2 == 1)
+        printl(format("index: {0}, number: {1} ", index, number))
+}
+
+foreach(ch in "iterable string!")
+{
+    printl(format("character: {0} ", ch))
+}
+
+foreach(i, ch in "another_string_to_iterate")
+{
+    printl(format("index: {0}, character: {1}", i, ch))
+}

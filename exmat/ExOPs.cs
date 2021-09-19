@@ -114,6 +114,9 @@
         LOADCONSTDICT,
         RELOADLIB,
 
+        FOREACH,
+        POSTFOREACH,
+
         CLOSE = 984
     }
 
