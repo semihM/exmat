@@ -79,7 +79,15 @@ namespace ExMat
         /// </summary>
         public const string NullName = "null";
 
-        //TO-DO Add function attribute for parameter info
+        /// <summary>
+        /// Foreach single index variable name
+        /// </summary>
+        public const string ForeachSingleIdxName = ".foreach.idx.";
+
+        /// <summary>
+        /// Foreach single index variable name
+        /// </summary>
+        public const string ForeachIteratorName = ".foreach.iterator.";
 
         /// <summary>
         /// Variable parameter count functions' argument list keyword name
@@ -357,6 +365,11 @@ namespace ExMat
         /// INTERNAL: Function prototype value
         /// </summary>
         FUNCPRO = 1 << 16,          // (Dahili tip) Fonksiyon prototipi
+
+        /// <summary>
+        /// Generator
+        /// </summary>
+        GENERATOR = 1 << 17,
     }
 
     /// <summary>
@@ -380,7 +393,7 @@ namespace ExMat
         /// <summary>
         /// Allow access delegate methods
         /// </summary>
-        DELEGABLE = 0x08000000          // Temsilci 
+        HASDELEGATES = 0x08000000          // Temsilci 
     }
 
     /// <summary>
@@ -396,15 +409,15 @@ namespace ExMat
         /// <summary>
         /// Integer value object
         /// </summary>
-        INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
+        INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Float value object
         /// </summary>
-        FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
+        FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Complex value object
         /// </summary>
-        COMPLEX = ExBaseType.COMPLEX | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
+        COMPLEX = ExBaseType.COMPLEX | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Bool value object
@@ -413,7 +426,7 @@ namespace ExMat
         /// <summary>
         /// String value object
         /// </summary>
-        STRING = ExBaseType.STRING | ExObjFlag.DELEGABLE,
+        STRING = ExBaseType.STRING | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Space value object
@@ -422,33 +435,38 @@ namespace ExMat
         /// <summary>
         /// Array object
         /// </summary>
-        ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Dictionary object
         /// </summary>
-        DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Closure object
         /// </summary>
-        CLOSURE = ExBaseType.CLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        CLOSURE = ExBaseType.CLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Native closure object
         /// </summary>
-        NATIVECLOSURE = ExBaseType.NATIVECLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        NATIVECLOSURE = ExBaseType.NATIVECLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Class object
         /// </summary>
-        CLASS = ExBaseType.CLASS | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        CLASS = ExBaseType.CLASS | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Instance object
         /// </summary>
-        INSTANCE = ExBaseType.INSTANCE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        INSTANCE = ExBaseType.INSTANCE | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Weak reference
         /// </summary>
-        WEAKREF = ExBaseType.WEAKREF | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        WEAKREF = ExBaseType.WEAKREF | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
+
+        /// <summary>
+        /// Generator
+        /// </summary>
+        GENERATOR = ExObjFlag.COUNTREFERENCES,
 
         /// <summary>
         /// Default value placer for ".." token
