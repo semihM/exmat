@@ -240,7 +240,7 @@ namespace ExMat.StdLib
 
         [ExNativeFuncBase("print_out", "Print a message or an object to a new external terminal instead of the immediate terminal. Returns true on success.")]
         [ExNativeParamBase(1, "message", ".", "Message or object to print")]
-        [ExNativeParamBase(2, "console_title", "s", "Custom external console title")]
+        [ExNativeParamBase(2, "console_title", "s", "Custom external console title", ExMat.ConsoleTitle)]
         [ExNativeParamBase(3, "depth", "n", "Depth of stringification for objects", 2)]
         public static ExFunctionStatus StdSysPrintOut(ExVM vm, int nargs)
         {
