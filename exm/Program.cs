@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using ExMat.API;
@@ -16,21 +15,6 @@ namespace ExMat
     /// </summary>
     internal static class Program
     {
-        /// <summary>
-        /// Stack size of the virtual machines. Use higher values for potentially more recursive functions 
-        /// </summary>
-        private static int VM_STACK_SIZE = 2 << 14;
-
-        /// <summary>
-        /// Console title override
-        /// </summary>
-        private static string CONSOLE_TITLE = ExMat.ConsoleTitle;
-
-        /// <summary>
-        /// Time in ms to delay output so CTRL+C doesn't mess up
-        /// </summary>
-        private static readonly int CANCELKEY_THREAD_TIMER = 50;
-
         /// <summary>
         /// Active virtual machine
         /// </summary>
@@ -65,51 +49,6 @@ namespace ExMat
         /// Console flags
         /// </summary>
         private static int Flags;
-
-        /// <summary>
-        /// Expected names for the console flags
-        /// <para>Don't display information banner: <code>--no-info</code></para>
-        /// <para>Don't use custom console title: <code>--no-title</code></para>
-        /// <para>Don't wait post exit: <code>--no-exit-hold</code></para>
-        /// <para>Don't write IN and OUT prefix: <code>--no-inout</code></para>
-        /// <para>Delete the given file post execution: <code>--delete-onpost</code></para>
-        /// </summary>
-        private static readonly System.Collections.Generic.Dictionary<string, ExConsoleFlag> FlagNames = new()
-        {
-            { "--no-info", ExConsoleFlag.NOINFO },
-            { "--no-title", ExConsoleFlag.NOTITLE },
-            { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN },
-            { "--no-inout", ExConsoleFlag.NOINOUT },
-            { "--delete-onpost", ExConsoleFlag.DELETEONPOST }
-        };
-
-        /// <summary>
-        /// Expected names for the console flags
-        /// <para>Custom stack size: <code>-stacksize:"?([\w\d\t ]+)"?</code></para>
-        /// <para>Custom console title: <code>-title:"?(.*)"?</code></para>
-        /// <para>Plugin library path: <code>-plugin:"?(.*)"?</code></para>
-        /// </summary>
-        private static readonly System.Collections.Generic.Dictionary<System.Text.RegularExpressions.Regex, ExConsoleParameter> ConsoleParameters = new()
-        {
-            {
-                new(@"\-stacksize:""?([\w\d\t ]+)""?"),
-                a => int.TryParse(a.TrimEnd('\"'), out int res)
-                    ? VM_STACK_SIZE = res
-                    : null
-            },
-
-            {
-                new(@"\-title:""?(.*)""?"),
-                a => CONSOLE_TITLE = a.TrimEnd('\"')
-            },
-
-            {
-                new(@"\-plugin:""?(.*)""?"),
-                a => ExMat.Assemblies.TryAdd(a.TrimEnd('\"'), ExMat.ExAssemblyType.PLUGIN)
-                    ? a
-                    : null
-            }
-        };
 
         private static void ResetAfterCompilation(ExVM vm, int n)
         {
@@ -232,10 +171,10 @@ namespace ExMat
                     ActiveVM.IsSleeping = false;
                     while (ActiveVM.ActiveThread.ThreadState != ThreadState.Running)
                     {
-                        ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+                        ExApi.SleepVM(ActiveVM, ExMat.CANCELKEYTHREADTIMER);
                     }
                 }
-                ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+                ExApi.SleepVM(ActiveVM, ExMat.CANCELKEYTHREADTIMER);
                 ResetAfterCompilation(ActiveVM, ResetInStack);
             }
             else
@@ -256,19 +195,19 @@ namespace ExMat
             if (ActiveVM.HasFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED))
             {
                 ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.RECENTLYINTERRUPTED);
-                ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+                ExApi.SleepVM(ActiveVM, ExMat.CANCELKEYTHREADTIMER);
             }
         }
 
         private static void ContinueDelayedInput(StringBuilder code)
         {
-            ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+            ExApi.SleepVM(ActiveVM, ExMat.CANCELKEYTHREADTIMER);
 
             while (ActiveVM.HasFlag(ExInteractiveConsoleFlag.CANCELEVENT))
             {
                 ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.CANCELEVENT);
                 code.Append(GetInput());
-                ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+                ExApi.SleepVM(ActiveVM, ExMat.CANCELKEYTHREADTIMER);
             }
         }
 
@@ -278,7 +217,7 @@ namespace ExMat
 
             if (!HasFlag(ExConsoleFlag.NOTITLE))
             {
-                Console.Title = CONSOLE_TITLE;
+                Console.Title = ExMat.PreferredConsoleTitle;
             }
 
             if (!HasFlag(ExConsoleFlag.NOINFO))
@@ -289,7 +228,7 @@ namespace ExMat
 
         private static bool Initialize()
         {
-            ActiveVM = ExApi.Start(VM_STACK_SIZE, true); // Sanal makineyi başlat
+            ActiveVM = ExApi.Start(ExMat.PreferredStackSize, true); // Sanal makineyi başlat
             ActiveVM.ActiveThread = ActiveThread;
 
             if (!ExApi.RegisterStdLibraries(ActiveVM)) // Standard kütüphaneler
@@ -325,7 +264,7 @@ namespace ExMat
 
             if (!string.IsNullOrWhiteSpace(msg))
             {
-                Console.WriteLine("Error: " + msg);
+                Console.WriteLine(msg);
             }
 
             if (!HasFlag(ExConsoleFlag.DONTKEEPOPEN))
@@ -415,7 +354,7 @@ namespace ExMat
                 ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERRUPT);
                 ActiveVM.RemoveFlag(ExInteractiveConsoleFlag.INTERRUPTEDINSLEEP);
             }
-            ExApi.SleepVM(ActiveVM, CANCELKEY_THREAD_TIMER);
+            ExApi.SleepVM(ActiveVM, ExMat.CANCELKEYTHREADTIMER);
 
             ActiveVM.ForceThrow = false;
             ResetAfterCompilation(ActiveVM, ResetInStack);
@@ -548,50 +487,14 @@ namespace ExMat
         }
 
         /// <summary>
-        /// Sets given console flag
-        /// </summary>
-        /// <param name="flag">Flag to set</param>
-        private static void SetFlag(ExConsoleFlag flag)
-        {
-            Flags |= (int)flag;
-        }
-
-        private static bool SetFlagFromArgument(string arg)
-        {
-            if (FlagNames.ContainsKey(arg))
-            {
-                SetFlag(FlagNames[arg]);
-                return true;
-            }
-            return false;
-        }
-
-        private static bool SetOptionFromArgument(string arg)
-        {
-            foreach (System.Collections.Generic.KeyValuePair<System.Text.RegularExpressions.Regex, ExConsoleParameter> pair in ConsoleParameters)
-            {
-                System.Text.RegularExpressions.Match m = pair.Key.Match(arg);
-                if (!m.Success)
-                {
-                    continue;
-                }
-
-                return pair.Value(arg.Substring(m.Groups[1].Index, m.Groups[1].Length)) is not null;
-            }
-            return false;
-        }
-
-        private static void SetOptionsFromArguments(ref string[] args)
-        {
-            args = args.Where(a => !SetFlagFromArgument(a) && !SetOptionFromArgument(a)).ToArray();
-        }
-
-        /// <summary>
         /// To compile and execute a script file use:
-        /// <code>    exmat {file_name}.exmat [flag] [parameter:"argument"]</code>
+        /// <code>    exm {file_name}.exmat [flag] [parameter:"argument"]</code>
         /// 
         /// To start the interactive console, use:
-        /// <code>    exmat [flag] [parameter:"argument"]</code>
+        /// <code>    exm [flag] [parameter:"argument"]</code>
+        /// 
+        /// To get help:
+        /// <code>    exm --help</code>
         /// 
         /// <para>Available flags: <see cref="FlagNames"/></para>
         /// <para>Available parameters: <see cref="ConsoleParameters"/></para>
@@ -602,7 +505,20 @@ namespace ExMat
         /// <para>If interactive console is used, only returns when <c>exit</c> function is called</para></returns>
         private static int Main(string[] args)
         {
-            SetOptionsFromArguments(ref args);
+            ExApi.SetOptionsFromArguments(ref args, ref Flags);
+
+            if (HasFlag(ExConsoleFlag.HELP))
+            {
+                Console.WriteLine("To compile and execute a script file use the format:\n\texm {file_name}.exmat [flag] [parameter:\"argument\"]"
+                                + "\n\nTo start the interactive console use the format:\n\texm [flag] [parameter:\"argument\"]"
+                                + "\n\nAvailable flags:\n\t"
+                                + string.Join("\n\t", ExApi.GetConsoleFlagHelperValues())
+                                + "\n\nAvailable parameters:\n\t"
+                                + string.Join("\n\t", ExApi.GetConsoleParameterHelperValues()));
+
+                KeepConsoleUpAtEnd();
+                return 0;
+            }
 
             // File
             if (args.Length >= 1)

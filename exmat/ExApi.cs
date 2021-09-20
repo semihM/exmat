@@ -848,7 +848,7 @@ namespace ExMat.API
         /// Get all assemblies defined in <see cref="ExMat.Assemblies"/> into an array
         /// </summary>
         /// <returns>An array of assembly information</returns>
-        internal static Assembly[] GetAllAssemblies()
+        private static Assembly[] GetAllAssemblies()
         {
             return ExMat.Assemblies
                 .Select(p => p.Value == ExMat.ExAssemblyType.NATIVE ? Assembly.Load(p.Key) : TryLoadingPlugin(p.Key))
@@ -866,6 +866,80 @@ namespace ExMat.API
             {
                 return null;
             }
+        }
+
+        private static bool SetFlagFromArgument(string arg, ref int flags)
+        {
+            if (ExMat.ConsoleFlags.ContainsKey(arg))
+            {
+                flags |= (int)ExMat.ConsoleFlags[arg];
+                return true;
+            }
+            return false;
+        }
+
+        public static void SetOptionsFromArguments(ref string[] args, ref int flags)
+        {
+            List<string> lis = new();
+            foreach (string arg in args)
+            {
+                if (!SetFlagFromArgument(arg, ref flags) && !SetOptionFromArgument(arg))
+                {
+                    lis.Add(arg);
+                }
+            }
+            args = lis.ToArray();
+        }
+
+        private static bool SetOptionFromArgument(string arg)
+        {
+            foreach (KeyValuePair<System.Text.RegularExpressions.Regex, ExConsoleParameter> pair in ExMat.ConsoleParameters)
+            {
+                System.Text.RegularExpressions.Match m = pair.Key.Match(arg);
+                if (!m.Success)
+                {
+                    continue;
+                }
+
+                return pair.Value(arg.Substring(m.Groups[1].Index, m.Groups[1].Length)) is not null;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Get console flag information
+        /// </summary>
+        /// <returns></returns>
+        public static string[] GetConsoleFlagHelperValues()
+        {
+            return GetConsoleHelperValues(nameof(ExMat.ConsoleFlags), ExMat.ConsoleFlags.Keys);
+        }
+
+        /// <summary>
+        /// Get console parameter information
+        /// </summary>
+        /// <returns></returns>
+        public static string[] GetConsoleParameterHelperValues()
+        {
+            return GetConsoleHelperValues(nameof(ExMat.ConsoleParameters), ExMat.ConsoleParameters.Keys.Select(r => r.ToString()));
+        }
+
+        private static string[] GetConsoleHelperValues(string propname, IEnumerable<string> e)
+        {
+            MemberInfo fi = typeof(ExApi).GetField(propname);
+            if (fi == null)
+            {
+                fi = typeof(ExApi).GetProperty(propname);
+            }
+
+            if (fi == null || !Attribute.IsDefined(fi, typeof(ExConsoleHelper)))
+            {
+                return Array.Empty<string>();
+            }
+
+            List<object> attrs = fi.GetCustomAttributes(typeof(ExConsoleHelper), false).ToList();
+
+            return e.Select(k => $"{k}\t->\t{((ExConsoleHelper)attrs.First(a => ((ExConsoleHelper)a).Source == k)).Help}").ToArray();
         }
 
         /// <summary>

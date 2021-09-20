@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using ExMat.Closure;
 using ExMat.ExClass;
 using ExMat.FuncPrototype;
@@ -17,12 +18,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.15";
+        public const string Version = "ExMat v0.0.16";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 15;
+        public const int VersionNumber = 16;
 
         /// <summary>
         /// Title of the interactive console
@@ -33,6 +34,15 @@ namespace ExMat
         /// Help information to print at the beginning
         /// </summary>
         public const string HelpInfoString = "Use 'help' for function information, 'root' for global variables, 'consts' for constants";
+
+        public static int PreferredStackSize { get; set; } = 1 << 15;
+
+        public static string PreferredConsoleTitle { get; set; } = ConsoleTitle;
+
+        /// <summary>
+        /// Time in ms to delay output so CTRL+C doesn't mess up
+        /// </summary>
+        public const int CANCELKEYTHREADTIMER = 50;
 
         /// <summary>
         /// String and file terminator character
@@ -287,7 +297,7 @@ namespace ExMat
         /// <summary>
         /// Standard library method signature pattern, this is for matching <see cref="StdLibFunction"/>'s signature
         /// </summary>
-        private static string StdLibFunctionPattern => System.Text.RegularExpressions.Regex.Escape(
+        private static string StdLibFunctionPattern => Regex.Escape(
                                                             typeof(StdLibFunction)
                                                             .GetMethod(StdLibFunctionPatternMethodName)
                                                             .ToString())
@@ -319,7 +329,67 @@ namespace ExMat
         /// <summary>
         /// Regex object to use while finding standard library functions
         /// </summary>
-        public static readonly System.Text.RegularExpressions.Regex StdLibFunctionRegex = new(StdLibFunctionPattern);
+        public static readonly Regex StdLibFunctionRegex = new(StdLibFunctionPattern);
+
+        /// <summary>
+        /// Expected names for the console flags
+        /// <para>Don't display information banner: <code>--no-info</code></para>
+        /// <para>Don't use custom console title: <code>--no-title</code></para>
+        /// <para>Don't wait post exit: <code>--no-exit-hold</code></para>
+        /// <para>Don't write IN and OUT prefix: <code>--no-inout</code></para>
+        /// <para>Delete the given file post execution: <code>--delete-onpost</code></para>
+        /// <para>Print help string: <code>--help</code></para>
+        /// </summary>
+        [ExConsoleHelper("--no-info", "Don't display information banner")]
+        [ExConsoleHelper("--no-title", "Don't use custom console title")]
+        [ExConsoleHelper("--no-exit-hold", "Don't wait for input post exit (after an exit function call or an internal error)")]
+        [ExConsoleHelper("--no-inout", "Don't write IN and OUT prefixes")]
+        [ExConsoleHelper("--delete-onpost", "Delete the given file post execution")]
+        [ExConsoleHelper("--help", "Print help information")]
+        private static readonly Dictionary<string, ExConsoleFlag> consoleFlags = new()
+        {
+            { "--no-info", ExConsoleFlag.NOINFO },
+            { "--no-title", ExConsoleFlag.NOTITLE },
+            { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN },
+            { "--no-inout", ExConsoleFlag.NOINOUT },
+            { "--delete-onpost", ExConsoleFlag.DELETEONPOST },
+            { "--help", ExConsoleFlag.HELP }
+        };
+
+        internal static Dictionary<string, ExConsoleFlag> ConsoleFlags => consoleFlags;
+
+        /// <summary>
+        /// Expected names for the console flags
+        /// <para>Custom stack size: <code>-stacksize:"?([\w\d\t ]+)"?</code></para>
+        /// <para>Custom console title: <code>-title:"?(.*)"?</code></para>
+        /// <para>Plugin library path: <code>-plugin:"?(.*)"?</code></para>
+        /// </summary>
+        [ExConsoleHelper(@"\-stacksize:""?([\w\d\t ]+)""?", "Custom virtual stack size")]
+        [ExConsoleHelper(@"\-title:""?(.*)""?", "Custom console title")]
+        [ExConsoleHelper(@"\-plugin:""?(.*)""?", "Plugin dll path to include")]
+        private static readonly Dictionary<Regex, ExConsoleParameter> consoleParameters = new()
+        {
+            {
+                new(@"\-stacksize:""?([\w\d\t ]+)""?"),
+                a => int.TryParse(a.TrimEnd('\"'), out int res)
+                    ? PreferredStackSize = res
+                    : null
+            },
+
+            {
+                new(@"\-title:""?(.*)""?"),
+                a => PreferredConsoleTitle = a.TrimEnd('\"')
+            },
+
+            {
+                new(@"\-plugin:""?(.*)""?"),
+                a => Assemblies.TryAdd(a.TrimEnd('\"'), ExAssemblyType.PLUGIN)
+                    ? a
+                    : null
+            }
+        };
+
+        internal static Dictionary<Regex, ExConsoleParameter> ConsoleParameters => consoleParameters;
     }
 
     /// <summary>
@@ -787,6 +857,10 @@ namespace ExMat
         /// Don't print version information
         /// </summary>
         NOINFO = 1 << 4,
+        /// <summary>
+        /// Short console help
+        /// </summary>
+        HELP = 1 << 5
     }
 
     /// <summary>
