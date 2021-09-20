@@ -149,7 +149,7 @@
 				},
 				{
 					"name": "entity.name.function.exmat",
-					"match": "\\b(print|printl|type|time|date|string|float|integer|complex|complex2|list|range|rangei|matrix|bytes|hex|bits|bits32|binary|binary32)\\b"
+					"match": "\\b(print|printl|printf|type|time|date|string|float|integer|complex|complex2|list|range|rangei|matrix|bytes|hex|bits|bits32|binary|binary32)\\b"
 				},
 				{
 					"name": "entity.name.function.exmat",
