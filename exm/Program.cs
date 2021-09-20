@@ -22,6 +22,11 @@ namespace ExMat
         private static int VM_STACK_SIZE = 2 << 14;
 
         /// <summary>
+        /// Console title override
+        /// </summary>
+        private static string CONSOLE_TITLE = ExMat.ConsoleTitle;
+
+        /// <summary>
         /// Time in ms to delay output so CTRL+C doesn't mess up
         /// </summary>
         private static readonly int CANCELKEY_THREAD_TIMER = 50;
@@ -40,6 +45,11 @@ namespace ExMat
         /// Value returned from <see cref="ActiveThread"/>
         /// </summary>
         private static ExObject ReturnValue;
+
+        /// <summary>
+        /// File contents path
+        /// </summary>
+        private static string FilePath;
 
         /// <summary>
         /// File contents read from console call
@@ -61,8 +71,11 @@ namespace ExMat
         /// </summary>
         private static readonly System.Collections.Generic.Dictionary<string, ExConsoleFlag> FlagNames = new()
         {
+            { "--no-info", ExConsoleFlag.NOINFO },
             { "--no-title", ExConsoleFlag.NOTITLE },
-            { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN }
+            { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN },
+            { "--no-inout", ExConsoleFlag.NOINOUT },
+            { "--delete-onpost", ExConsoleFlag.DELETEONPOST }
         };
 
         /// <summary>
@@ -70,7 +83,8 @@ namespace ExMat
         /// </summary>
         private static readonly System.Collections.Generic.Dictionary<System.Text.RegularExpressions.Regex, ExConsoleParameter> ConsoleParameters = new()
         {
-            { new(@"\-stacksize:""?([\w\d\t ]+)""?"), a => int.TryParse(a, out int res) ? VM_STACK_SIZE = res : null }
+            { new(@"\-stacksize:""?([\w\d\t ]+)""?"), a => int.TryParse(a, out int res) ? VM_STACK_SIZE = res : null },
+            { new(@"\-title:""?(.*)""?"), a => CONSOLE_TITLE = a }
         };
 
         private static void ResetAfterCompilation(ExVM vm, int n)
@@ -125,7 +139,16 @@ namespace ExMat
         /// <returns>Cleaned user input</returns>
         private static string GetInput()
         {
-            string code = Console.ReadLine();
+            string code = null;
+            if (ActiveVM.HasLineReader)
+            {
+                code = ActiveVM.LineReader();
+            }
+            else
+            {
+                Console.WriteLine("No input line reader found!");
+                Console.ReadKey(false);
+            }
 
             if (string.IsNullOrWhiteSpace(code))
             {
@@ -201,7 +224,7 @@ namespace ExMat
 
         private static void Indent(int n = 1)
         {
-            Console.Write(new string('\t', n));
+            ActiveVM.Printer(new string('\t', n));
         }
 
         private static void DelayAfterInterruption()
@@ -227,12 +250,15 @@ namespace ExMat
 
         private static void InitializeConsole()
         {
-            // Title, Version info
             Console.ResetColor();
 
             if (!HasFlag(ExConsoleFlag.NOTITLE))
             {
-                Console.Title = ExMat.ConsoleTitle;
+                Console.Title = CONSOLE_TITLE;
+            }
+
+            if (!HasFlag(ExConsoleFlag.NOINFO))
+            {
                 ExApi.WriteInfoString(ActiveVM);
             }
         }
@@ -246,6 +272,19 @@ namespace ExMat
             {
                 return false;
             }
+
+            if (HasFlag(ExConsoleFlag.NOINOUT))
+            {
+                ActiveVM.SetFlag(ExInteractiveConsoleFlag.DONTPRINTOUTPREFIX);
+            }
+
+            // Printer
+            ActiveVM.Printer = Console.Write;
+
+            // Reader
+            ActiveVM.IntKeyReader = Console.Read;
+            ActiveVM.KeyReader = Console.ReadKey;
+            ActiveVM.LineReader = Console.ReadLine;
 
             // Event handlers
             AddCancelEventHandler();
@@ -267,7 +306,7 @@ namespace ExMat
 
             if (!HasFlag(ExConsoleFlag.DONTKEEPOPEN))
             {
-                Console.WriteLine("Press any key to close the console...");
+                Console.WriteLine("Press any key to exit the virtual machine...");
                 Console.ReadKey(false);
             }
         }
@@ -294,7 +333,10 @@ namespace ExMat
             }
             else
             {
-                ExApi.WriteIn(ActiveVM.InputCount); // Girdi numarası yaz
+                if (!HasFlag(ExConsoleFlag.NOINOUT))
+                {
+                    ExApi.WriteIn(ActiveVM); // Girdi numarası yaz
+                }
 
                 code = new(GetInput());
                 ContinueDelayedInput(code);
@@ -315,6 +357,11 @@ namespace ExMat
         private static void HandlePostVMExecution(int ret)
         {
             ActiveVM.Flags = 0;
+
+            if (HasFlag(ExConsoleFlag.NOINOUT))
+            {
+                ActiveVM.SetFlag(ExInteractiveConsoleFlag.DONTPRINTOUTPREFIX);
+            }
 
             ExApi.CollectGarbage(); // Çöp toplayıcıyı çağır
 
@@ -350,6 +397,15 @@ namespace ExMat
             ResetAfterCompilation(ActiveVM, ResetInStack);
         }
 
+        private static void CheckFileDelete()
+        {
+            if (HasFlag(ExConsoleFlag.DELETEONPOST))
+            {
+                File.Delete(FilePath);
+            }
+
+            KeepConsoleUpAtEnd();
+        }
         private static void CreateSimpleVMThread()
         {
             ActiveThread = new(() =>
@@ -377,7 +433,8 @@ namespace ExMat
                         ExApi.HandleException(exp, ActiveVM);
                     }
                 }
-                KeepConsoleUpAtEnd();
+
+                CheckFileDelete();
             });
         }
         private static void CreateInteractiveVMThread()
@@ -442,6 +499,7 @@ namespace ExMat
 
         private static bool ReadFileContents(string path)
         {
+            FilePath = path;
             FileContents = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
             return !string.IsNullOrWhiteSpace(FileContents);
         }

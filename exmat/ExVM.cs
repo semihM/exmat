@@ -167,6 +167,82 @@ namespace ExMat.VM
         /// Interactive console flags using <see cref="ExInteractiveConsoleFlag"/>
         /// </summary>
         public int Flags;
+
+        /// <summary>
+        /// Printer method
+        /// </summary>
+        public ExMat.PrinterMethod Printer;
+
+        /// <summary>
+        /// Wheter <see cref="Printer"/> is not null
+        /// </summary>
+        public bool HasPrinter => Printer != null;
+
+        /// <summary>
+        /// Line reader method
+        /// </summary>
+        public ExMat.LineReaderMethod LineReader;
+
+        /// <summary>
+        /// Wheter <see cref="LineReader"/> is not null
+        /// </summary>
+        public bool HasLineReader => LineReader != null;
+
+        /// <summary>
+        /// Key reader method
+        /// </summary>
+        public ExMat.KeyReaderMethod KeyReader;
+
+        /// <summary>
+        /// Wheter <see cref="KeyReader"/> is not null
+        /// </summary>
+        public bool HasKeyReader => KeyReader != null;
+
+        /// <summary>
+        /// Key reader method
+        /// </summary>
+        public ExMat.IntKeyReaderMethod IntKeyReader;
+
+        /// <summary>
+        /// Wheter <see cref="IntKeyReader"/> is not null
+        /// </summary>
+        public bool HasIntKeyReader => IntKeyReader != null;
+
+
+        private Process _ExternalProcess;
+
+        /// <summary>
+        /// External console for printing
+        /// </summary>
+        public Process ExternalConsole
+        {
+            get
+            {
+                if (_ExternalProcess == null)
+                {
+                    return null;
+                }
+                else if (_ExternalProcess.HasExited)
+                {
+                    return _ExternalProcess = null;
+                }
+                return _ExternalProcess;
+            }
+            set
+            {
+                if (HasExternalConsole)
+                {
+                    ExternalConsole.Kill();
+                }
+                _ExternalProcess = value;
+            }
+        }
+
+        /// <summary>
+        /// Wheter <see cref="ExternalConsole"/> is not null
+        /// </summary>
+        public bool HasExternalConsole => ExternalConsole != null;
+
         private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)
@@ -210,18 +286,24 @@ namespace ExMat.VM
         /// <param name="str">Message to print</param>
         public void Print(string str)
         {
-            Console.Write(str);
-            PrintedToConsole = true;
+            if (HasPrinter)
+            {
+                Printer(str);
+                PrintedToConsole = true;
+            }
         }
 
         /// <summary>
         /// Print given string with new-line at the end
         /// </summary>
         /// <param name="str">Message to print</param>
-        public void PrintLine(string str)
+        public void PrintLine(string str = "")
         {
-            Console.WriteLine(str);
-            PrintedToConsole = true;
+            if (HasPrinter)
+            {
+                Printer(str + '\n');
+                PrintedToConsole = true;
+            }
         }
 
         /// <summary>

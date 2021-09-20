@@ -2150,50 +2150,55 @@ namespace ExMat.API
             int width = 120;
 
             Console.BackgroundColor = ConsoleColor.DarkBlue;
-
             Console.ForegroundColor = ConsoleColor.White;
-            Console.WriteLine(new string('/', width + 2));
 
-            Console.Write(FitConsoleString(width, version));
-            Console.Write(FitConsoleString(width, date));
-            Console.Write(FitConsoleString(width, ExMat.HelpInfoString));
+            vm.Printer(new string('/', width + 2) + '\n');
 
-            Console.WriteLine(new string('/', width + 2));
+            vm.Printer(FitConsoleString(width, version));
+            vm.Printer(FitConsoleString(width, date));
+            vm.Printer(FitConsoleString(width, ExMat.HelpInfoString));
+
+            vm.Printer(new string('/', width + 2) + '\n');
 
             Console.ResetColor();
         }
 
         /// <summary>
-        /// Writes <c>OUT[<paramref name="line"/>]</c> for <c><paramref name="line"/></c>th output line's beginning
+        /// Writes <see cref="ExVM.InputCount"/>th output line's beginning
         /// </summary>
-        /// <param name="line">Output line number</param>
-        public static void WriteOut(int line)
+        /// <param name="vm">Virtual machine to write to</param>
+        public static void WriteOut(ExVM vm)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("OUT[");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(line);
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("]: ");
-            Console.ResetColor();
-        }
-
-        /// <summary>
-        /// Writes <c>IN [<paramref name="line"/>]</c> for <c><paramref name="line"/></c>th input line's beginning
-        /// </summary>
-        /// <param name="line">Input line number</param>
-        public static void WriteIn(int line)
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            if (line > 0)
+            if (vm.HasPrinter && !vm.HasFlag(ExInteractiveConsoleFlag.DONTPRINTOUTPREFIX))
             {
-                Console.Write("\n");
+                Console.ForegroundColor = ConsoleColor.Red;
+                vm.Print("OUT[");
+                Console.ForegroundColor = ConsoleColor.White;
+                vm.Print(vm.InputCount++.ToString(CultureInfo.CurrentCulture));
+                Console.ForegroundColor = ConsoleColor.Red;
+                vm.Print("]: ");
+                Console.ResetColor();
             }
-            Console.Write("\nIN [");
-            Console.ForegroundColor = ConsoleColor.White;
-            Console.Write(line);
+        }
+
+        /// <summary>
+        /// Writes <see cref="ExVM.InputCount"/>th input line's beginning
+        /// </summary>
+        /// <param name="vm">Virtual machine to write to</param>
+        public static void WriteIn(ExVM vm)
+        {
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("]: ");
+            if (vm.InputCount > 0)
+            {
+                vm.Printer("\n");
+            }
+
+            vm.Printer("\nIN [");
+            Console.ForegroundColor = ConsoleColor.White;
+            vm.Printer(vm.InputCount.ToString(CultureInfo.CurrentCulture));
+            Console.ForegroundColor = ConsoleColor.Green;
+            vm.Printer("]: ");
+
             Console.ResetColor();
         }
 
@@ -2228,9 +2233,29 @@ namespace ExMat.API
             vm.IsSleeping = false;
         }
 
-        public static string GetEscapedFormattedString(string raw)
+        public static string GetEscapedFormattedString(string raw, bool isString = false)
         {
-            return string.Format(CultureInfo.CurrentCulture, "\'{0}\'", Escape(raw));
+            return isString ? string.Format(CultureInfo.CurrentCulture, "\'{0}\'", Escape(raw)) : raw;
+        }
+
+        public static ExFunctionStatus GetFormatStringAndObjects(ExVM vm, int nargs, out string format, out object[] ps)
+        {
+            format = vm.GetArgument(1).GetString();
+            ps = new object[nargs - 1];
+            ExObject[] args = GetNObjects(vm, nargs - 1, 3);
+            for (int i = 0; i < nargs - 1; i++)
+            {
+                ExObject st = new();
+                if (vm.ToString(args[i], ref st))
+                {
+                    ps[i] = st.GetString();
+                }
+                else
+                {
+                    return vm.AddToErrorMessage("failed to stringify the object type '{0}'", args[i].Type.ToString());
+                }
+            }
+            return ExFunctionStatus.SUCCESS;
         }
 
         public static int CallTop(ExVM vm)
@@ -2238,22 +2263,28 @@ namespace ExMat.API
             PushRootTable(vm);            // Global tabloyu belleğe yükle
             if (Call(vm, 1, true, true))
             {
+
+                if (!vm.HasPrinter)
+                {
+                    vm.GetAbove(-2).Release(); // Deref top
+                    return 0;
+                }
+
                 bool isString = vm.GetAbove(-1).Type == ExObjType.STRING;
 
                 if (ShouldPrintTop(vm)
                     && ToString(vm, -1, 2))
                 {
-                    WriteOut(vm.InputCount++);
-                    if (isString)
-                    {
-                        vm.Print(GetEscapedFormattedString(vm.GetAbove(-1).GetString()));
-                    }
-                    else
-                    {
-                        vm.Print(vm.GetAbove(-1).GetString());
-                    }
-                    vm.GetAbove(-2).Release(); // Deref top
+                    WriteOut(vm);
+                    vm.Print(GetEscapedFormattedString(vm.GetAbove(-1).GetString(), isString));
                 }
+
+                if (vm.HasFlag(ExInteractiveConsoleFlag.DONTPRINTOUTPREFIX))
+                {
+                    vm.PrintLine();
+                }
+
+                vm.GetAbove(-2).Release(); // Deref top
             }
             else
             {

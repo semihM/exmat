@@ -256,6 +256,30 @@ namespace ExMat
         public delegate ExFunctionStatus StdLibFunction(VM.ExVM vm, int nargs);
 
         /// <summary>
+        /// Printer method delegate, no line terminator at the end
+        /// </summary>
+        /// <param name="message">Message to print</param>
+        public delegate void PrinterMethod(string message);
+
+        /// <summary>
+        /// Input line reader method delegate
+        /// </summary>
+        /// <returns>Line read</returns>
+        public delegate string LineReaderMethod();
+
+        /// <summary>
+        /// Input key reader method delegate
+        /// </summary>
+        /// <returns>Key read</returns>
+        public delegate ConsoleKeyInfo KeyReaderMethod(bool intercept);
+
+        /// <summary>
+        /// Input key reader method delegate
+        /// </summary>
+        /// <returns>Key read as integer</returns>
+        public delegate int IntKeyReaderMethod();
+
+        /// <summary>
         /// Method name of delegate <see cref="StdLibFunction"/> to get standard library method signature pattern from
         /// </summary>
         private const string StdLibFunctionPatternMethodName = "Invoke"; // TO-DO find a better way!
@@ -734,9 +758,21 @@ namespace ExMat
         /// </summary>
         DONTKEEPOPEN = 1 << 0,
         /// <summary>
+        /// Don't use custom console title
+        /// </summary>
+        NOTITLE = 1 << 1,
+        /// <summary>
+        /// Don't print In and Out
+        /// </summary>
+        NOINOUT = 1 << 2,
+        /// <summary>
+        /// Wheter to delete file read after attempting to execute
+        /// </summary>
+        DELETEONPOST = 1 << 3,
+        /// <summary>
         /// Don't print version information
         /// </summary>
-        NOTITLE = 1 << 1
+        NOINFO = 1 << 4,
     }
 
     /// <summary>
@@ -775,7 +811,11 @@ namespace ExMat
         /// <summary>
         /// Did the recent interruption occured during the thread's sleep ?
         /// </summary>
-        INTERRUPTEDINSLEEP = 1 << 5
+        INTERRUPTEDINSLEEP = 1 << 5,
+        /// <summary>
+        /// Wheter to block printing OUT[n] prefix
+        /// </summary>
+        DONTPRINTOUTPREFIX = 1 << 6
     }
 
     /// <summary>
