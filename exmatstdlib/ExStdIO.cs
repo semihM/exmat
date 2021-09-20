@@ -190,12 +190,12 @@ namespace ExMat.StdLib
             AnalyzeInitialCsvRows = 0,
         };
 
-        private static void GetUserInput(ref string res, bool single = false, bool intercept = false)
+        private static void GetUserInput(ExVM vm, ref string res, bool single = false, bool intercept = false)
         {
             char ch;
             if (single)
             {
-                if (!char.IsControl(ch = Console.ReadKey(intercept).KeyChar))
+                if (!char.IsControl(ch = vm.KeyReader(intercept).KeyChar))
                 {
                     res = ch.ToString(CultureInfo.CurrentCulture);
                 }
@@ -203,7 +203,7 @@ namespace ExMat.StdLib
             else
             {
                 StringBuilder s = new();
-                while (!char.IsControl(ch = (char)Console.Read()))
+                while (!char.IsControl(ch = (char)vm.IntKeyReader()))
                 {
                     s.Append(ch);
                 }
@@ -841,7 +841,7 @@ namespace ExMat.StdLib
             }
 
             string input = string.Empty;
-            GetUserInput(ref input);
+            GetUserInput(vm, ref input);
 
             vm.GotUserInput = true;
             vm.PrintedToConsole = true;
@@ -866,10 +866,10 @@ namespace ExMat.StdLib
             }
 
             string input = string.Empty;
-            GetUserInput(ref input, true, intercept);
+            GetUserInput(vm, ref input, true, intercept);
 
             vm.GotUserInput = true;
-            vm.PrintedToConsole = true;
+            vm.PrintedToConsole = !intercept;
 
             return vm.CleanReturn(nargs + 2, new ExObject(input.ToString(CultureInfo.CurrentCulture)));
         }

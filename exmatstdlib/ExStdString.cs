@@ -194,20 +194,9 @@ namespace ExMat.StdLib
         [ExNativeFuncBase("format", ExBaseType.STRING, "Replace given {x} patterns in the first string with the (x+2)th argument passed.\n\tExample: format(\"{0}, {1}\", \"first\", \"second\") == \"first, second\"", -2)]
         public static ExFunctionStatus StdStringFormat(ExVM vm, int nargs)
         {
-            string format = vm.GetArgument(1).GetString();
-            object[] ps = new object[nargs - 1];
-            ExObject[] args = ExApi.GetNObjects(vm, nargs - 1, 3);
-            for (int i = 0; i < nargs - 1; i++)
+            if (ExApi.GetFormatStringAndObjects(vm, nargs, out string format, out object[] ps) == ExFunctionStatus.ERROR)
             {
-                ExObject st = new();
-                if (vm.ToString(args[i], ref st))
-                {
-                    ps[i] = st.GetString();
-                }
-                else
-                {
-                    return ExFunctionStatus.ERROR;
-                }
+                return ExFunctionStatus.ERROR;
             }
 
             try
