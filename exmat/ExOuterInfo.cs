@@ -1,10 +1,14 @@
 ﻿using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using ExMat.Objects;
 
 namespace ExMat.InfoVar
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExOuterInfo : IDisposable
     {
         public ExObject Name = new();   // Değişken ismi
@@ -26,10 +30,12 @@ namespace ExMat.InfoVar
             Type = o.Type;
         }
 
+#if DEBUG
         private string GetDebuggerDisplay()
         {
             return "::(" + Type.ToString() + ")" + Name.GetDebuggerDisplay();
         }
+#endif
 
         protected virtual void Dispose(bool disposing)
         {

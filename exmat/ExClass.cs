@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.Utils;
@@ -7,7 +9,9 @@ using ExMat.Utils;
 namespace ExMat.ExClass
 {
 
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExClass : ExRefC
     {
         public ExClass Base;    // TO-DO Sınıf hiyerarşisi
@@ -217,12 +221,14 @@ namespace ExMat.ExClass
             return bdict ? AddMethod(exs, k, val, tmp) : AddMember(k, val);
         }
 
+#if DEBUG
         public new string GetDebuggerDisplay()
         {
             return Base != null
                 ? "[" + Base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")"
                 : "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
         }
+#endif
 
         protected override void Dispose(bool disposing)
         {

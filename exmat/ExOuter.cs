@@ -1,10 +1,14 @@
-﻿using System.Diagnostics;
+﻿#if DEBUG
+using System.Diagnostics;
+#endif
 using ExMat.Objects;
 using ExMat.States;
 
 namespace ExMat.Outer
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExOuter : ExRefC
     {
         public int Index;
@@ -52,10 +56,12 @@ namespace ExMat.Outer
             }
         }
 
+#if DEBUG
         public new string GetDebuggerDisplay()
         {
             return "OUTER(" + Index + ", " + (ValueRef == null ? "null" : ValueRef.GetInt()) + ")";
         }
+#endif
 
         protected override void Dispose(bool disposing)
         {

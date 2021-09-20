@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿#if DEBUG
+using System.Diagnostics;
+#endif
 
 namespace ExMat.States
 {
@@ -12,17 +14,21 @@ namespace ExMat.States
         OUTER       // Bilinmeyen(dışarıda aranacak) değişken
     }
 
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExEState
     {
         public ExEType Type;        // İfade tipi
         public int Position;        // İfade hedef bellek pozisyonu
         public bool ShouldStopDeref;    // İfade değeri bekletilmeli
 
+#if DEBUG
         public string GetDebuggerDisplay()
         {
             return Type + " " + Position + " " + ShouldStopDeref;
         }
+#endif
         public ExEState()
         {
 

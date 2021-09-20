@@ -1,8 +1,12 @@
-﻿using System.Diagnostics;
+﻿#if DEBUG
+using System.Diagnostics;
+#endif
 
 namespace ExMat.InfoVar
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExLineInfo
     {
         public int Position;
@@ -10,9 +14,11 @@ namespace ExMat.InfoVar
 
         public ExLineInfo() { }
 
+#if DEBUG
         private string GetDebuggerDisplay()
         {
             return ">>> LINE " + Line + "(" + Position + ")";
         }
+#endif
     }
 }

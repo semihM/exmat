@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 
 namespace ExMat.Objects
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExStack : IDisposable
     {
         public List<ExObject> Values;   // Yığındaki objeler
@@ -14,10 +18,12 @@ namespace ExMat.Objects
 
         private bool disposedValue;
 
+#if DEBUG
         public string GetDebuggerDisplay()
         {
             return "STACK(" + Allocated + "): " + Size + (Values == null ? " null" : " " + Values.Count);
         }
+#endif
 
         public ExStack() { Size = 0; Allocated = 0; Values = null; }
 

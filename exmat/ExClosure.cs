@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Globalization;
 using ExMat.FuncPrototype;
 using ExMat.Interfaces;
@@ -9,7 +11,9 @@ using ExMat.Utils;
 
 namespace ExMat.Closure
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExClosure : ExRefC, IExClosure
     {
         public ExClass.ExClass Base;                // Ait olunan sınıf(varsa)
@@ -113,7 +117,8 @@ namespace ExMat.Closure
                             string mem = Function.Name.GetString();
                             int memid = Base.Members[mem].GetMemberID();
 
-                            if (Base.Methods[memid].Attributes.GetDict().ContainsKey(attr))
+                            if (ExTypeCheck.IsNotNull(Base.Methods[memid].Attributes)
+                                && Base.Methods[memid].Attributes.GetDict().ContainsKey(attr))
                             {
                                 return Base.Methods[memid].Attributes.GetDict()[attr];
                             }
@@ -147,7 +152,7 @@ namespace ExMat.Closure
             string s = string.Empty;
             switch (Function.ClosureType)
             {
-                case ExClosureType.FUNCTION:
+                case ExClosureType.DEFAULT:
                     {
                         string name = Function.Name.GetString();
                         s = string.IsNullOrWhiteSpace(name) ? "LAMBDA(" : "FUNCTION(" + name + ", ";
@@ -187,13 +192,14 @@ namespace ExMat.Closure
             return s;
         }
 
+#if DEBUG
         public new string GetDebuggerDisplay()
         {
             return Function.Name == null || ExTypeCheck.IsNull(Function.Name)
                 ? "CLOSURE"
                 : Base != null ? "[HAS BASE] CLOSURE(" + Function.Name.GetString() + ")" : "CLOSURE(" + Function.Name.GetString() + ")";
         }
-
+#endif
 
     }
 

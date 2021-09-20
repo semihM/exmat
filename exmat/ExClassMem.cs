@@ -1,10 +1,14 @@
 ﻿using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using ExMat.Objects;
 
 namespace ExMat.ExClass
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExClassMem : IDisposable
     {
         public ExObject Value = new();      // Özellik değeri
@@ -24,10 +28,12 @@ namespace ExMat.ExClass
             Attributes.Nullify();
         }
 
+#if DEBUG
         public string GetDebuggerDisplay()
         {
             return "CMEM(" + Value.GetDebuggerDisplay() + ")";
         }
+#endif
 
         protected virtual void Dispose(bool disposing)
         {

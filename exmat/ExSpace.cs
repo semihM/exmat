@@ -1,10 +1,14 @@
 ﻿using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Globalization;
 
 namespace ExMat.Objects
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExSpace : ExRefC
     {
         public int Dimension = 1;
@@ -96,11 +100,12 @@ namespace ExMat.Objects
             return s;
         }
 
+#if DEBUG
         protected override string GetDebuggerDisplay()
         {
             return GetSpaceString();
         }
-
+#endif
         public static void Copy(ExSpace p, ExSpace ch)
         {
             p.Dimension = ch.Dimension;

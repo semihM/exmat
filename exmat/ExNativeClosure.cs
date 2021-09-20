@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Globalization;
 using System.Text;
 using ExMat.Interfaces;
@@ -9,7 +11,9 @@ using ExMat.Utils;
 
 namespace ExMat.Closure
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExNativeClosure : ExRefC, IExClosure
     {
         public ExSState SharedState;            // Ortak değerler
@@ -191,9 +195,11 @@ namespace ExMat.Closure
             return s;
         }
 
+#if DEBUG
         public new string GetDebuggerDisplay()
         {
             return "NATIVECLOSURE(" + Name.GetString() + ")";
         }
+#endif
     }
 }

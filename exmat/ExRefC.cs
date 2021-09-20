@@ -1,9 +1,13 @@
 ﻿using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 
 namespace ExMat.Objects
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExRefC : IDisposable
     {
         public int ReferenceCount;      // Referans sayısı
@@ -27,10 +31,12 @@ namespace ExMat.Objects
             return WeakReference;
         }
 
+#if DEBUG
         protected virtual string GetDebuggerDisplay()
         {
             return "REFC: " + ReferenceCount;
         }
+#endif
 
         protected virtual void Dispose(bool disposing)
         {

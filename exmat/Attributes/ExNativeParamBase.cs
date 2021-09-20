@@ -1,5 +1,7 @@
 ﻿using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 
 namespace ExMat.Objects
 {
@@ -7,7 +9,9 @@ namespace ExMat.Objects
     /// Attribute to register a native function parameter
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = false)]
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExNativeParamBase : Attribute
     {
         /// <summary>
@@ -90,9 +94,11 @@ namespace ExMat.Objects
             DefaultValue = new(def);
         }
 
+#if DEBUG
         private string GetDebuggerDisplay()
         {
             return "ExRegParam: " + Name;
         }
+#endif
     }
 }

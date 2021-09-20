@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+#endif
 using System.Globalization;
 using System.IO;
 using System.Numerics;
@@ -24,7 +25,9 @@ namespace ExMat.VM
     /// <summary>
     /// A virtual machine model to execute instructions which use <see cref="ExOperationCode"/>
     /// </summary>
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExVM : IDisposable
     {
         /// <summary>
@@ -871,27 +874,44 @@ namespace ExMat.VM
             long val = GetArgument(idx).GetInt();
             return val <= min ? min : val >= max ? max : val;
         }
-        public ExObject CreateString(string s, int len = -1)
+
+        public ExObject CreateString(string s)
         {
             if (!SharedState.Strings.ContainsKey(s))
             {
-                ExObject str = new() { Type = ExObjType.STRING };
-                str.SetString(s);
-
+                ExObject str = new(s);
                 SharedState.Strings.Add(s, str);
                 return str;
             }
             return SharedState.Strings[s];
         }
 
-        public static bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, out ExObject cns)
+        public bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, out ExObject cns)
         {
             cns = null;
             o.Assign(cls.CreateInstance());
 
             if (!cls.GetConstructor(ref cns))
             {
-                cns.Nullify();
+                ExObject typeofmethod = new();
+                if (o.GetInstance().GetMetaM(this, ExMetaMethod.TYPEOF, ref typeofmethod))
+                {
+                    ExObject res = new();
+                    Push(o);
+                    if (!CallMeta(ref typeofmethod, ExMetaMethod.TYPEOF, 1, ref res))
+                    {
+                        AddToErrorMessage("TYPEOF meta method failed call");
+                        return false;
+                    }
+                    AddToErrorMessage("'{0}' type class doesn't have a constructor!", res.GetString());
+                    return false;
+
+                }
+                else
+                {
+                    AddToErrorMessage("'CLASS' type class doesn't have a constructor!");
+                    return false;
+                }
             }
             return true;
         }
@@ -1769,7 +1789,7 @@ namespace ExMat.VM
 
                 outk.Assign(e.Current.Key);
                 outv.Assign(e.Current.Value);
-                return ++idx;
+                return idx + 1;
             }
         }
 
@@ -1790,14 +1810,14 @@ namespace ExMat.VM
             else
             {
                 int idx = (int)rpos.GetInt();
-                if (idx >= obj.GetString().Length)
+                if (idx >= e.Length)
                 {
                     return -1;
                 }
 
                 outk.Assign(idx);
                 outv.Assign(e[idx].ToString());
-                return ++idx;
+                return idx + 1;
             }
         }
 
@@ -1818,14 +1838,14 @@ namespace ExMat.VM
             else
             {
                 int idx = (int)rpos.GetInt();
-                if (idx >= obj.GetList().Count)
+                if (idx >= e.Count)
                 {
                     return -1;
                 }
 
                 outk.Assign(idx);
                 outv.Assign(e[idx]);
-                return ++idx;
+                return idx + 1;
             }
         }
 
@@ -3146,7 +3166,6 @@ namespace ExMat.VM
             return true;
         }
 
-        [ExcludeFromCodeCoverage]
         private static double HandleZeroInDivision(double a)
         {
             return a > 0 ? double.PositiveInfinity : a == 0 ? double.NaN : double.NegativeInfinity;
@@ -3221,7 +3240,6 @@ namespace ExMat.VM
             return true;
         }
 
-        [ExcludeFromCodeCoverage]
         private static bool InnerDoArithmeticOPComplex(ExOperationCode op, Complex a, double b, ref ExObject res)
         {
             switch (op)
@@ -3249,7 +3267,6 @@ namespace ExMat.VM
             return true;
         }
 
-        [ExcludeFromCodeCoverage]
         private static bool InnerDoArithmeticOPComplex(ExOperationCode op, double a, Complex b, ref ExObject res)
         {
             switch (op)
@@ -3872,6 +3889,12 @@ namespace ExMat.VM
                 return ExGetterStatus.ERROR;
             }
 
+            if (key.Type != ExObjType.STRING)
+            {
+                AddToErrorMessage("can't index dictionary with non-string key");
+                return ExGetterStatus.ERROR;
+            }
+
             if (dict.ContainsKey(key.GetString()))
             {
                 dest.Assign(dict[key.GetString()]);
@@ -4491,10 +4514,12 @@ namespace ExMat.VM
 
         }
 
+#if DEBUG
         private object GetDebuggerDisplay()
         {
             return "VM" + (IsMainCall ? "<main>" : "<inner>") + "(Base: " + StackBase + ", Top: " + StackTop + ")";
         }
+#endif
 
         public void Dispose()
         {

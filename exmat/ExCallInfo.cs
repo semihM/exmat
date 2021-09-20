@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using ExMat.Objects;
 using ExMat.OPs;
 
 namespace ExMat.InfoVar
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExCallInfo : IDisposable
     {
         public List<ExObject> Literals; // Değişken isimleri, yazı dizileri vs.
@@ -29,11 +33,13 @@ namespace ExMat.InfoVar
         {
             return new() { nCalls = nCalls, Closure = Closure, Literals = Literals, PrevBase = PrevBase, PrevTop = PrevTop, IsRootCall = IsRootCall, Target = Target };
         }
+#if DEBUG
         private string GetDebuggerDisplay()
         {
             string i = Instructions == null ? " null" : " " + Instructions.Count;
             return ">>CALLINFO (n_instr:" + i + ", n_idx" + InstructionsIndex + ")";
         }
+#endif
 
         protected virtual void Dispose(bool disposing)
         {

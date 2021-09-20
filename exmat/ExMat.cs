@@ -103,7 +103,7 @@ namespace ExMat
         /// <summary>
         /// INTERNAL: Used to check for some special cases
         /// </summary>
-        public const int InvalidArgument = 985;
+        public const int InvalidArgument = int.MinValue;
 
         /// <summary>
         /// Default parameter name for sequences
@@ -832,10 +832,55 @@ namespace ExMat
         DONT = 999
     }
 
+    /// <summary>
+    /// Internal, for safer process data getter
+    /// </summary>
     public enum ExProcessInfo
     {
         DATE,
         MODULE,
         ARGS
+    }
+
+    /// <summary>
+    /// Types of functions
+    /// </summary>
+    public enum ExClosureType
+    {
+        /// <summary>
+        /// Default function type
+        /// </summary>
+        DEFAULT,   // Varsayılan fonksiyon türü
+        /// <summary>
+        /// Rule definition
+        /// </summary>
+        RULE,       // Kural, her zaman boolean dönen tür
+        /// <summary>
+        /// Cluster definition
+        /// </summary>
+        CLUSTER,    // Küme, tanım kümesindeki bir değerin görüntü kümesi karşılığını dönen tür 
+        /// <summary>
+        /// Sequence definition
+        /// </summary>
+        SEQUENCE    // Dizi, optimize edilmiş tekrarlı fonksiyon türü
+    }
+
+    /// <summary>
+    /// <see cref="ExClosureType.DEFAULT"/> closure's function declaration type
+    /// </summary>
+    public enum ExFuncType
+    {
+        /// <summary>
+        /// Default, nothing special
+        /// </summary>
+        DEFAULT,
+        /// <summary>
+        /// Lambda function
+        /// </summary>
+        LAMBDA,
+        /// <summary>
+        /// Class constructor method
+        /// </summary>
+        CONSTRUCTOR
     }
 }

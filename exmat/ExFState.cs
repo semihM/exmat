@@ -130,37 +130,41 @@ namespace ExMat.States
 
         public void SetInstrParams(int pos, int p1, int p2, int p3, int p4)
         {
-            Instructions[pos].arg0 = p1;
-            Instructions[pos].arg1 = p2;
-            Instructions[pos].arg2 = p3;
-            Instructions[pos].arg3 = p4;
+            ExInstr inst = Instructions[pos];
+            inst.arg0 = p1;
+            inst.arg1 = p2;
+            inst.arg2 = p3;
+            inst.arg3 = p4;
+            Instructions[pos] = inst;
         }
         public void UpdateInstructionArgument(int pos, int pno, int val)
         {
+            ExInstr inst = Instructions[pos];
             switch (pno)
             {
                 case 0:
                     {
-                        Instructions[pos].arg0 = val;
+                        inst.arg0 = val;
                         break;
                     }
                 case 1:
                 case 4:
                     {
-                        Instructions[pos].arg1 = val;
+                        inst.arg1 = val;
                         break;
                     }
                 case 2:
                     {
-                        Instructions[pos].arg2 = val;
+                        inst.arg2 = val;
                         break;
                     }
                 case 3:
                     {
-                        Instructions[pos].arg3 = val;
+                        inst.arg3 = val;
                         break;
                     }
             }
+            Instructions[pos] = inst;
         }
 
         public bool IsConst(ExObject idx, out ExObject cnst)
@@ -464,7 +468,7 @@ namespace ExMat.States
 
         private bool UpdateInstrOpcJumpZero(ExInstr prev, ExInstr curr, int size)
         {
-            if (prev.op == ExOperationCode.CMP && prev.arg1 < ExMat.InvalidArgument)
+            if (prev.op == ExOperationCode.CMP && prev.arg1 != ExMat.InvalidArgument)
             {
                 prev.op = ExOperationCode.JCMP;
                 prev.arg0 = prev.arg1;

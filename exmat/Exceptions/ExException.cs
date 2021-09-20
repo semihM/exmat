@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Runtime.Serialization;
 using ExMat.VM;
 
@@ -18,7 +20,9 @@ namespace ExMat.Exceptions
     /// <summary>
     /// Base class for exceptions
     /// </summary>
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExException : Exception
     {
         public virtual ExExceptionType Type => ExExceptionType.BASE;
@@ -78,9 +82,11 @@ namespace ExMat.Exceptions
             return base.ToString();
         }
 
+#if DEBUG
         public string GetDebuggerDisplay()
         {
             return "Exception: " + Type.ToString();
         }
+#endif
     }
 }

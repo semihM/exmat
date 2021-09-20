@@ -433,7 +433,7 @@ namespace ExMat.Compiler
             }
 
             DoOuterControl();   // Dış değişken referansları varsa referansları azalt
-            FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, ExMat.InvalidArgument, 0, 0);
             // Komut indeksini listeye ekle
             FunctionState.BreakList.Add(FunctionState.GetCurrPos());
 
@@ -448,7 +448,7 @@ namespace ExMat.Compiler
                 return false;
             }
             DoOuterControl();   // Dış değişken referansları varsa referansları azalt
-            FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, ExMat.InvalidArgument, 0, 0);
             // Komut indeksini listeye ekle
             FunctionState.ContinueList.Add(FunctionState.GetCurrPos());
 
@@ -3189,7 +3189,7 @@ namespace ExMat.Compiler
 
             FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
 
-            if (!ExFuncCreate(o))
+            if (!ExFuncCreate(o, typ == TokenType.FUNCTION ? ExFuncType.DEFAULT : ExFuncType.CONSTRUCTOR))
             {
                 return false;
             }
@@ -3364,17 +3364,31 @@ namespace ExMat.Compiler
             }
         }
 
+        public ExFuncType GetFuncTypeFromToken()
+        {
+            switch (CurrentToken)
+            {
+                case TokenType.LAMBDA:
+                    {
+                        return ExFuncType.LAMBDA;
+                    }
+                default:
+                    {
+                        return ExFuncType.DEFAULT;
+                    }
+            }
+        }
 
         public bool ExFuncResolveExp(TokenType typ)
         {
-            bool lambda = CurrentToken == TokenType.LAMBDA;
+            ExFuncType ftyp = GetFuncTypeFromToken();
             if (!ReadAndSetToken() || Expect(TokenType.ROUNDOPEN) == null)
             {
                 return false;
             }
 
             ExObject d = new();
-            if (!ExFuncCreate(d, lambda))
+            if (!ExFuncCreate(d, ftyp))
             {
                 return false;
             }
@@ -3507,26 +3521,38 @@ namespace ExMat.Compiler
             return true;
         }
 
-        private bool FuncCreateProcessBody(bool lambda, ExFState f_state)
+        private bool FuncCreateProcessBody(ExFuncType typ, ExFState f_state)
         {
-            if (lambda)     // Lambda ifadesi ise sıradaki ifadeyi derle ve OPC.RETURN ile sonucu döndür
+            switch (typ)
             {
-                if (!ExExp())
-                {
+                case ExFuncType.DEFAULT:
+                    return ProcessStatement(false);
+                case ExFuncType.LAMBDA:
+                    {
+                        if (!ExExp())
+                        {
+                            return false;
+                        }
+                        f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
+                        return true;
+                    }
+                case ExFuncType.CONSTRUCTOR:
+                    {
+                        bool status = ProcessStatement(false);
+                        if (!status)
+                        {
+                            return false;
+                        }
+                        f_state.AddInstr(ExOperationCode.RETURN, 1, 0, 0, 0);
+                        return true;
+                    }
+                default:
                     return false;
-                }
-                f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
-                return true;
-            }
-            else
-            {
-                // Normal fonksiyon ise bütün ifadeleri derle
-                return ProcessStatement(false);
             }
         }
 
         // Fonksiyon takipçisine ait bir alt fonksiyon oluştur
-        public bool ExFuncCreate(ExObject o, bool lambda = false)
+        public bool ExFuncCreate(ExObject o, ExFuncType typ = ExFuncType.DEFAULT)
         {
             // Bir alt fonksiyon takipçisi oluştur ve istenen fonksiyon ismini ver
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
@@ -3564,7 +3590,7 @@ namespace ExMat.Compiler
             ExFState tmp = FunctionState.Copy();    // Fonksiyon takipçisinin kopyasını al
             FunctionState = f_state;
 
-            if (!FuncCreateProcessBody(lambda, f_state))
+            if (!FuncCreateProcessBody(typ, f_state))
             {
                 return false;
             }
