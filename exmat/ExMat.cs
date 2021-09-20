@@ -17,12 +17,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.14";
+        public const string Version = "ExMat v0.0.15";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 14;
+        public const int VersionNumber = 15;
 
         /// <summary>
         /// Title of the interactive console
@@ -79,7 +79,15 @@ namespace ExMat
         /// </summary>
         public const string NullName = "null";
 
-        //TO-DO Add function attribute for parameter info
+        /// <summary>
+        /// Foreach single index variable name
+        /// </summary>
+        public const string ForeachSingleIdxName = ".foreach.idx.";
+
+        /// <summary>
+        /// Foreach single index variable name
+        /// </summary>
+        public const string ForeachIteratorName = ".foreach.iterator.";
 
         /// <summary>
         /// Variable parameter count functions' argument list keyword name
@@ -95,7 +103,7 @@ namespace ExMat
         /// <summary>
         /// INTERNAL: Used to check for some special cases
         /// </summary>
-        public const int InvalidArgument = 985;
+        public const int InvalidArgument = int.MinValue;
 
         /// <summary>
         /// Default parameter name for sequences
@@ -248,6 +256,30 @@ namespace ExMat
         public delegate ExFunctionStatus StdLibFunction(VM.ExVM vm, int nargs);
 
         /// <summary>
+        /// Printer method delegate, no line terminator at the end
+        /// </summary>
+        /// <param name="message">Message to print</param>
+        public delegate void PrinterMethod(string message);
+
+        /// <summary>
+        /// Input line reader method delegate
+        /// </summary>
+        /// <returns>Line read</returns>
+        public delegate string LineReaderMethod();
+
+        /// <summary>
+        /// Input key reader method delegate
+        /// </summary>
+        /// <returns>Key read</returns>
+        public delegate ConsoleKeyInfo KeyReaderMethod(bool intercept);
+
+        /// <summary>
+        /// Input key reader method delegate
+        /// </summary>
+        /// <returns>Key read as integer</returns>
+        public delegate int IntKeyReaderMethod();
+
+        /// <summary>
         /// Method name of delegate <see cref="StdLibFunction"/> to get standard library method signature pattern from
         /// </summary>
         private const string StdLibFunctionPatternMethodName = "Invoke"; // TO-DO find a better way!
@@ -357,6 +389,11 @@ namespace ExMat
         /// INTERNAL: Function prototype value
         /// </summary>
         FUNCPRO = 1 << 16,          // (Dahili tip) Fonksiyon prototipi
+
+        /// <summary>
+        /// Generator
+        /// </summary>
+        GENERATOR = 1 << 17,
     }
 
     /// <summary>
@@ -380,7 +417,7 @@ namespace ExMat
         /// <summary>
         /// Allow access delegate methods
         /// </summary>
-        DELEGABLE = 0x08000000          // Temsilci 
+        HASDELEGATES = 0x08000000          // Temsilci 
     }
 
     /// <summary>
@@ -396,15 +433,15 @@ namespace ExMat
         /// <summary>
         /// Integer value object
         /// </summary>
-        INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
+        INTEGER = ExBaseType.INTEGER | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Float value object
         /// </summary>
-        FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
+        FLOAT = ExBaseType.FLOAT | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Complex value object
         /// </summary>
-        COMPLEX = ExBaseType.COMPLEX | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.DELEGABLE,
+        COMPLEX = ExBaseType.COMPLEX | ExObjFlag.NUMERIC | ExObjFlag.CANBEFALSE | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Bool value object
@@ -413,7 +450,7 @@ namespace ExMat
         /// <summary>
         /// String value object
         /// </summary>
-        STRING = ExBaseType.STRING | ExObjFlag.DELEGABLE,
+        STRING = ExBaseType.STRING | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Space value object
@@ -422,33 +459,38 @@ namespace ExMat
         /// <summary>
         /// Array object
         /// </summary>
-        ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        ARRAY = ExBaseType.ARRAY | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Dictionary object
         /// </summary>
-        DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        DICT = ExBaseType.DICT | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Closure object
         /// </summary>
-        CLOSURE = ExBaseType.CLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        CLOSURE = ExBaseType.CLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Native closure object
         /// </summary>
-        NATIVECLOSURE = ExBaseType.NATIVECLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        NATIVECLOSURE = ExBaseType.NATIVECLOSURE | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
 
         /// <summary>
         /// Class object
         /// </summary>
-        CLASS = ExBaseType.CLASS | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        CLASS = ExBaseType.CLASS | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Instance object
         /// </summary>
-        INSTANCE = ExBaseType.INSTANCE | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        INSTANCE = ExBaseType.INSTANCE | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
         /// <summary>
         /// Weak reference
         /// </summary>
-        WEAKREF = ExBaseType.WEAKREF | ExObjFlag.COUNTREFERENCES | ExObjFlag.DELEGABLE,
+        WEAKREF = ExBaseType.WEAKREF | ExObjFlag.COUNTREFERENCES | ExObjFlag.HASDELEGATES,
+
+        /// <summary>
+        /// Generator
+        /// </summary>
+        GENERATOR = ExObjFlag.COUNTREFERENCES,
 
         /// <summary>
         /// Default value placer for ".." token
@@ -716,9 +758,21 @@ namespace ExMat
         /// </summary>
         DONTKEEPOPEN = 1 << 0,
         /// <summary>
+        /// Don't use custom console title
+        /// </summary>
+        NOTITLE = 1 << 1,
+        /// <summary>
+        /// Don't print In and Out
+        /// </summary>
+        NOINOUT = 1 << 2,
+        /// <summary>
+        /// Wheter to delete file read after attempting to execute
+        /// </summary>
+        DELETEONPOST = 1 << 3,
+        /// <summary>
         /// Don't print version information
         /// </summary>
-        NOTITLE = 1 << 1
+        NOINFO = 1 << 4,
     }
 
     /// <summary>
@@ -757,7 +811,11 @@ namespace ExMat
         /// <summary>
         /// Did the recent interruption occured during the thread's sleep ?
         /// </summary>
-        INTERRUPTEDINSLEEP = 1 << 5
+        INTERRUPTEDINSLEEP = 1 << 5,
+        /// <summary>
+        /// Wheter to block printing OUT[n] prefix
+        /// </summary>
+        DONTPRINTOUTPREFIX = 1 << 6
     }
 
     /// <summary>
@@ -814,10 +872,55 @@ namespace ExMat
         DONT = 999
     }
 
+    /// <summary>
+    /// Internal, for safer process data getter
+    /// </summary>
     public enum ExProcessInfo
     {
         DATE,
         MODULE,
         ARGS
+    }
+
+    /// <summary>
+    /// Types of functions
+    /// </summary>
+    public enum ExClosureType
+    {
+        /// <summary>
+        /// Default function type
+        /// </summary>
+        DEFAULT,   // Varsayılan fonksiyon türü
+        /// <summary>
+        /// Rule definition
+        /// </summary>
+        RULE,       // Kural, her zaman boolean dönen tür
+        /// <summary>
+        /// Cluster definition
+        /// </summary>
+        CLUSTER,    // Küme, tanım kümesindeki bir değerin görüntü kümesi karşılığını dönen tür 
+        /// <summary>
+        /// Sequence definition
+        /// </summary>
+        SEQUENCE    // Dizi, optimize edilmiş tekrarlı fonksiyon türü
+    }
+
+    /// <summary>
+    /// <see cref="ExClosureType.DEFAULT"/> closure's function declaration type
+    /// </summary>
+    public enum ExFuncType
+    {
+        /// <summary>
+        /// Default, nothing special
+        /// </summary>
+        DEFAULT,
+        /// <summary>
+        /// Lambda function
+        /// </summary>
+        LAMBDA,
+        /// <summary>
+        /// Class constructor method
+        /// </summary>
+        CONSTRUCTOR
     }
 }

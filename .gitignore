@@ -8,6 +8,7 @@
 *.vbs
 *.bat
 *.ps1
+test.txt
 
 # Sonarcloud
 .sonarqube/

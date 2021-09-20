@@ -1,5 +1,7 @@
 ﻿using System;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Runtime.Serialization;
 using ExMat.VM;
 
@@ -8,7 +10,9 @@ namespace ExMat.Exceptions
     /// <summary>
     /// <see cref="ExVM"/> exception class
     /// </summary>
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExRuntimeException : ExException
     {
         public override ExExceptionType Type => ExExceptionType.RUNTIME;

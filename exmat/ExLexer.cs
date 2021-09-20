@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Globalization;
 using System.Text;
 using ExMat.Objects;
@@ -9,7 +11,9 @@ using ExMat.Token;
 namespace ExMat.Lexer
 {
 
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExLexer : IDisposable
     {
         /// <summary>
@@ -99,6 +103,7 @@ namespace ExMat.Lexer
             { "if", TokenType.IF },
             { "else", TokenType.ELSE },
             { "for", TokenType.FOR },
+            { "foreach", TokenType.FOREACH },
             { "continue", TokenType.CONTINUE },
             { "break", TokenType.BREAK },
             // Tanımsal
@@ -1445,9 +1450,11 @@ namespace ExMat.Lexer
             GC.SuppressFinalize(this);
         }
 
+#if DEBUG
         private object GetDebuggerDisplay()
         {
             return string.Format(CultureInfo.CurrentCulture, "Line: {0}, Column: {1}, Char: {2}, Token: {3}", CurrentLine, CurrentCol, CurrentChar, TokenCurr);
         }
+#endif
     }
 }

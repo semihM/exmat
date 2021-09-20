@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Numerics;
@@ -24,7 +23,9 @@ namespace ExMat.VM
     /// <summary>
     /// A virtual machine model to execute instructions which use <see cref="ExOperationCode"/>
     /// </summary>
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExVM : IDisposable
     {
         /// <summary>
@@ -164,6 +165,82 @@ namespace ExMat.VM
         /// Interactive console flags using <see cref="ExInteractiveConsoleFlag"/>
         /// </summary>
         public int Flags;
+
+        /// <summary>
+        /// Printer method
+        /// </summary>
+        public ExMat.PrinterMethod Printer;
+
+        /// <summary>
+        /// Wheter <see cref="Printer"/> is not null
+        /// </summary>
+        public bool HasPrinter => Printer != null;
+
+        /// <summary>
+        /// Line reader method
+        /// </summary>
+        public ExMat.LineReaderMethod LineReader;
+
+        /// <summary>
+        /// Wheter <see cref="LineReader"/> is not null
+        /// </summary>
+        public bool HasLineReader => LineReader != null;
+
+        /// <summary>
+        /// Key reader method
+        /// </summary>
+        public ExMat.KeyReaderMethod KeyReader;
+
+        /// <summary>
+        /// Wheter <see cref="KeyReader"/> is not null
+        /// </summary>
+        public bool HasKeyReader => KeyReader != null;
+
+        /// <summary>
+        /// Key reader method
+        /// </summary>
+        public ExMat.IntKeyReaderMethod IntKeyReader;
+
+        /// <summary>
+        /// Wheter <see cref="IntKeyReader"/> is not null
+        /// </summary>
+        public bool HasIntKeyReader => IntKeyReader != null;
+
+
+        private Process _ExternalProcess;
+
+        /// <summary>
+        /// External console for printing
+        /// </summary>
+        public Process ExternalConsole
+        {
+            get
+            {
+                if (_ExternalProcess == null)
+                {
+                    return null;
+                }
+                else if (_ExternalProcess.HasExited)
+                {
+                    return _ExternalProcess = null;
+                }
+                return _ExternalProcess;
+            }
+            set
+            {
+                if (HasExternalConsole)
+                {
+                    ExternalConsole.Kill();
+                }
+                _ExternalProcess = value;
+            }
+        }
+
+        /// <summary>
+        /// Wheter <see cref="ExternalConsole"/> is not null
+        /// </summary>
+        public bool HasExternalConsole => ExternalConsole != null;
+
         private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)
@@ -207,18 +284,24 @@ namespace ExMat.VM
         /// <param name="str">Message to print</param>
         public void Print(string str)
         {
-            Console.Write(str);
-            PrintedToConsole = true;
+            if (HasPrinter)
+            {
+                Printer(str);
+                PrintedToConsole = true;
+            }
         }
 
         /// <summary>
         /// Print given string with new-line at the end
         /// </summary>
         /// <param name="str">Message to print</param>
-        public void PrintLine(string str)
+        public void PrintLine(string str = "")
         {
-            Console.WriteLine(str);
-            PrintedToConsole = true;
+            if (HasPrinter)
+            {
+                Printer(str + '\n');
+                PrintedToConsole = true;
+            }
         }
 
         /// <summary>
@@ -871,27 +954,44 @@ namespace ExMat.VM
             long val = GetArgument(idx).GetInt();
             return val <= min ? min : val >= max ? max : val;
         }
-        public ExObject CreateString(string s, int len = -1)
+
+        public ExObject CreateString(string s)
         {
             if (!SharedState.Strings.ContainsKey(s))
             {
-                ExObject str = new() { Type = ExObjType.STRING };
-                str.SetString(s);
-
+                ExObject str = new(s);
                 SharedState.Strings.Add(s, str);
                 return str;
             }
             return SharedState.Strings[s];
         }
 
-        public static bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, out ExObject cns)
+        public bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, out ExObject cns)
         {
             cns = null;
             o.Assign(cls.CreateInstance());
 
             if (!cls.GetConstructor(ref cns))
             {
-                cns.Nullify();
+                ExObject typeofmethod = new();
+                if (o.GetInstance().GetMetaM(this, ExMetaMethod.TYPEOF, ref typeofmethod))
+                {
+                    ExObject res = new();
+                    Push(o);
+                    if (!CallMeta(ref typeofmethod, ExMetaMethod.TYPEOF, 1, ref res))
+                    {
+                        AddToErrorMessage("TYPEOF meta method failed call");
+                        return false;
+                    }
+                    AddToErrorMessage("'{0}' type class doesn't have a constructor!", res.GetString());
+                    return false;
+
+                }
+                else
+                {
+                    AddToErrorMessage("'CLASS' type class doesn't have a constructor!");
+                    return false;
+                }
             }
             return true;
         }
@@ -1739,6 +1839,142 @@ namespace ExMat.VM
             return true;
         }
 
+        public static int IterDictNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv) // TO-DO optimize
+        {
+            Dictionary<string, ExObject>.Enumerator e = obj.GetDict().GetEnumerator();
+            if (!e.MoveNext())
+            {
+                return -1;
+            }
+
+            if (ExTypeCheck.IsNull(rpos))
+            {
+                outk.Assign(e.Current.Key);
+                outv.Assign(e.Current.Value);
+                return 0;
+            }
+            else
+            {
+                int idx = (int)rpos.GetInt();
+                int c = idx;
+
+                while (c >= 0)
+                {
+                    c--;
+                    if (!e.MoveNext())
+                    {
+                        return -1;
+                    }
+                }
+
+                outk.Assign(e.Current.Key);
+                outv.Assign(e.Current.Value);
+                return idx + 1;
+            }
+        }
+
+        public static int IterStringNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
+        {
+            string e = obj.GetString();
+            if (e.Length == 0)
+            {
+                return -1;
+            }
+
+            if (ExTypeCheck.IsNull(rpos))
+            {
+                outk.Assign(0);
+                outv.Assign(e[0].ToString());
+                return 1;
+            }
+            else
+            {
+                int idx = (int)rpos.GetInt();
+                if (idx >= e.Length)
+                {
+                    return -1;
+                }
+
+                outk.Assign(idx);
+                outv.Assign(e[idx].ToString());
+                return idx + 1;
+            }
+        }
+
+        public static int IterArrayNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
+        {
+            List<ExObject> e = obj.GetList();
+            if (e.Count == 0)
+            {
+                return -1;
+            }
+
+            if (ExTypeCheck.IsNull(rpos))
+            {
+                outk.Assign(0);
+                outv.Assign(e[0]);
+                return 1;
+            }
+            else
+            {
+                int idx = (int)rpos.GetInt();
+                if (idx >= e.Count)
+                {
+                    return -1;
+                }
+
+                outk.Assign(idx);
+                outv.Assign(e[idx]);
+                return idx + 1;
+            }
+        }
+
+        private delegate int Iterator(ExObject obj, ExObject rpos, ExObject outk, ExObject outv);
+
+        private bool DoForeach(ExObject obj, ExObject obj2, ExObject obj3, ExObject obj4, int exit, ref int jmp)
+        {
+            int ridx;
+            Iterator iterator;
+
+            switch (obj.Type)
+            {
+                case ExObjType.DICT:
+                    {
+                        iterator = IterDictNext;
+                        break;
+                    }
+                case ExObjType.ARRAY:
+                    {
+                        iterator = IterArrayNext;
+                        break;
+                    }
+                case ExObjType.STRING:
+                    {
+                        iterator = IterStringNext;
+                        break;
+                    }
+                case ExObjType.CLASS: // TO-DO iterable class and instances
+                case ExObjType.INSTANCE:
+                default:
+                    {
+                        AddToErrorMessage("type '{0}' is not iterable", obj.Type);
+                        return false;
+                    }
+            }
+
+
+            if ((ridx = iterator(obj, obj4, obj2, obj3)) == -1)
+            {
+                jmp = exit;
+            }
+            else
+            {
+                obj4.Assign(ridx);
+                jmp = 1;
+            }
+            return true;
+        }
+
         private ExObject FindSpaceObject(int i)
         {
             string name = CallInfo.Value.Literals[i].GetString();
@@ -2487,6 +2723,30 @@ namespace ExMat.VM
                             }
                             continue;
                         }
+                    case ExOperationCode.FOREACH:
+                        {
+                            int jidx = 0;
+                            if (!DoForeach(GetTargetInStack(instruction.arg0),
+                                            GetTargetInStack(instruction.arg2),
+                                            GetTargetInStack(instruction.arg2 + 1),
+                                            GetTargetInStack(instruction.arg2 + 2),
+                                            (int)instruction.arg1,
+                                            ref jidx))
+                            {
+                                return false;
+                            }
+                            CallInfo.Value.InstructionsIndex += jidx;
+                            continue;
+                        }
+                    case ExOperationCode.POSTFOREACH:
+                        {
+                            if (GetTargetInStack(instruction.arg1).Type != ExObjType.GENERATOR)
+                            {
+                                return false;
+                            }
+                            // TO-DO generators
+                            continue;
+                        }
                     case ExOperationCode.TYPEOF:
                         {
                             ExObject obj = GetTargetInStack(instruction.arg1);
@@ -2986,7 +3246,6 @@ namespace ExMat.VM
             return true;
         }
 
-        [ExcludeFromCodeCoverage]
         private static double HandleZeroInDivision(double a)
         {
             return a > 0 ? double.PositiveInfinity : a == 0 ? double.NaN : double.NegativeInfinity;
@@ -3061,7 +3320,6 @@ namespace ExMat.VM
             return true;
         }
 
-        [ExcludeFromCodeCoverage]
         private static bool InnerDoArithmeticOPComplex(ExOperationCode op, Complex a, double b, ref ExObject res)
         {
             switch (op)
@@ -3089,7 +3347,6 @@ namespace ExMat.VM
             return true;
         }
 
-        [ExcludeFromCodeCoverage]
         private static bool InnerDoArithmeticOPComplex(ExOperationCode op, double a, Complex b, ref ExObject res)
         {
             switch (op)
@@ -3712,6 +3969,12 @@ namespace ExMat.VM
                 return ExGetterStatus.ERROR;
             }
 
+            if (key.Type != ExObjType.STRING)
+            {
+                AddToErrorMessage("can't index dictionary with non-string key");
+                return ExGetterStatus.ERROR;
+            }
+
             if (dict.ContainsKey(key.GetString()))
             {
                 dest.Assign(dict[key.GetString()]);
@@ -4331,10 +4594,12 @@ namespace ExMat.VM
 
         }
 
+#if DEBUG
         private object GetDebuggerDisplay()
         {
             return "VM" + (IsMainCall ? "<main>" : "<inner>") + "(Base: " + StackBase + ", Top: " + StackTop + ")";
         }
+#endif
 
         public void Dispose()
         {

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Globalization;
 using System.Numerics;
 using ExMat.Closure;
@@ -10,7 +12,9 @@ using ExMat.Outer;
 
 namespace ExMat.Objects
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExObject : IDisposable
     {
         public ExObjType Type = ExObjType.NULL; // Veri tipi
@@ -133,6 +137,7 @@ namespace ExMat.Objects
             return ValueCustom.c_Space;
         }
 
+#if DEBUG
         public virtual string GetDebuggerDisplay()
         {
             string s = Type.ToString();
@@ -150,6 +155,7 @@ namespace ExMat.Objects
             }
             return s;
         }
+#endif
 
         protected virtual void Dispose(bool disposing)
         {

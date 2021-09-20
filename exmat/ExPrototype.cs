@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using ExMat.InfoVar;
 using ExMat.Objects;
 using ExMat.OPs;
@@ -7,15 +9,9 @@ using ExMat.States;
 
 namespace ExMat.FuncPrototype
 {
-    public enum ExClosureType
-    {
-        FUNCTION,   // Varsayılan fonksiyon türü
-        RULE,       // Kural, her zaman boolean dönen tür
-        CLUSTER,    // Küme, tanım kümesindeki bir değerin görüntü kümesi karşılığını dönen tür 
-        SEQUENCE    // Dizi, optimize edilmiş tekrarlı fonksiyon türü
-    }
-
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExPrototype : ExRefC
     {
         public ExClosureType ClosureType;   // Fonksiyon türü 
@@ -87,7 +83,7 @@ namespace ExMat.FuncPrototype
 
         public ExPrototype()
         {
-            ClosureType = ExClosureType.FUNCTION;
+            ClosureType = ExClosureType.DEFAULT;
 
             StackSize = 0;
             Functions = new();
@@ -102,15 +98,17 @@ namespace ExMat.FuncPrototype
 
         public ExPrototype(ExSState ss)
         {
-            ClosureType = ExClosureType.FUNCTION;
+            ClosureType = ExClosureType.DEFAULT;
             StackSize = 0;
             SharedState = ss;
         }
 
+#if DEBUG
         public new string GetDebuggerDisplay()
         {
             return "FPRO(" + Name.GetString() + ", n_func: " + nFuncs + ", n_lits: " + nLits + ", n_instr: " + nInstr + ")";
         }
+#endif
 
         public ExLineInfo FindLineInfo(int idx)
         {
@@ -148,7 +146,7 @@ namespace ExMat.FuncPrototype
 
         public bool IsFunction()
         {
-            return ClosureType == ExClosureType.FUNCTION;
+            return ClosureType == ExClosureType.DEFAULT;
         }
         public bool IsCluster()
         {

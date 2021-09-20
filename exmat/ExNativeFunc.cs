@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -10,7 +12,9 @@ namespace ExMat.Objects
     /// <summary>
     /// Native function registery class
     /// </summary>
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExNativeFunc : ExNativeFuncBase, IDisposable
     {
         /// <summary>
@@ -177,9 +181,11 @@ namespace ExMat.Objects
             GC.SuppressFinalize(this);
         }
 
+#if DEBUG
         private object GetDebuggerDisplay()
         {
             return string.Format(CultureInfo.CurrentCulture, "RegFunc {0}", Name);
         }
+#endif
     }
 }

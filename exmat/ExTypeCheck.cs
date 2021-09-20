@@ -17,7 +17,7 @@
 
         public static bool IsDelegable(Objects.ExObject obj)
         {
-            return ((int)obj.Type & (int)ExObjFlag.DELEGABLE) != 0;
+            return ((int)obj.Type & (int)ExObjFlag.HASDELEGATES) != 0;
         }
 
         public static bool IsRealNumber(Objects.ExObject obj)

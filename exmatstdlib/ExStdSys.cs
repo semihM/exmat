@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using ExMat.API;
 using ExMat.Objects;
 using ExMat.VM;
@@ -239,9 +238,10 @@ namespace ExMat.StdLib
             }
         }
 
-        [ExNativeFuncBase("print_out", "Print a message or an object to a new external terminal instead of the immediate terminal")]
+        [ExNativeFuncBase("print_out", "Print a message or an object to a new external terminal instead of the immediate terminal. Returns true on success.")]
         [ExNativeParamBase(1, "message", ".", "Message or object to print")]
-        [ExNativeParamBase(2, "depth", "n", "Depth of stringification for objects", 2)]
+        [ExNativeParamBase(2, "console_title", "s", "Custom external console title", ExMat.ConsoleTitle)]
+        [ExNativeParamBase(3, "depth", "n", "Depth of stringification for objects", 2)]
         public static ExFunctionStatus StdSysPrintOut(ExVM vm, int nargs)
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -249,43 +249,52 @@ namespace ExMat.StdLib
                 return vm.AddToErrorMessage($"'{nameof(StdSysPrintOut)}' function is only available for Windows operating systems");
             }
 
-            if (!ExApi.ConvertAndGetString(vm, 1, nargs == 2 ? (int)vm.GetPositiveIntegerArgument(2, 1) : 2, out string output))
+            int depth = nargs == 3 ? (int)vm.GetPositiveIntegerArgument(3, 1) : 2;
+
+            if (!ExApi.ConvertAndGetString(vm, 1, depth, out string output))
             {
                 return ExFunctionStatus.ERROR;
             }
+            ExFunctionStatus stat;
 
-            StringBuilder echostr = new();
-            foreach (string line in ("echo " + ExApi.EscapeCmdEchoString(output.Trim())).Split("\n", StringSplitOptions.RemoveEmptyEntries))
-            {
-                if (echostr.Length + line.Length > ExMat.ECHOLIMIT)
-                {
-                    echostr.Append("&&echo ... (TOO LONG TO ECHO)");
-                    break;
-                }
-                else if (echostr.Length == 0)
-                {
-                    echostr.Append(line.TrimEnd());
-                }
-                else
-                {
-                    echostr.Append($"&&echo {line.TrimEnd()}");
-                }
-            }
+            Process p = new();
+
+            string fname = vm.StartDirectory + "\\" + ExApi.RandomString(48);
+            File.WriteAllText(fname,
+                string.Format(CultureInfo.CurrentCulture, "// This file is a temporary file for created by 'print_out'\nprint(\"{0}\".slice(1,-1));exit()", ExApi.GetEscapedFormattedString(output, true)));
+
+            File.SetAttributes(fname, FileAttributes.ReadOnly | FileAttributes.Hidden);
 
             try
             {
-                Process.Start(new ProcessStartInfo()
+                if (vm.HasExternalConsole)
                 {
-                    FileName = "cmd.exe",
-                    Arguments = $"/k \"{echostr}\"",
-                    UseShellExecute = true
-                });
+                    vm.ExternalConsole = null;
+                }
+
+                p.StartInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
+                p.StartInfo.Arguments = $"{fname} --no-inout --no-info --delete-onpost -stacksize:16 -title:\"{(nargs >= 2 ? vm.GetArgument(2).GetString() : ExMat.ConsoleTitle)}\"";
+                p.StartInfo.UseShellExecute = true;
+                p.Start();
+
+                vm.ExternalConsole = p;
+
+                stat = vm.CleanReturn(nargs + 2, true);
             }
             catch (Exception exp)
             {
-                return vm.AddToErrorMessage("Error printing: " + exp.Message);
+                if (p != null)
+                {
+                    vm.ExternalConsole = null;
+                }
+                stat = vm.AddToErrorMessage("Error printing: " + exp.Message);
             }
-            return vm.CleanReturn(nargs + 2, true);
+            finally
+            {
+                FileInfo fileInfo = new(fname);
+                fileInfo.IsReadOnly = false;
+            }
+            return stat;
         }
 
         [ExNativeFuncBase("env_info", ExBaseType.DICT, "Get information about the runtime and the current enviroment in a dictionary")]

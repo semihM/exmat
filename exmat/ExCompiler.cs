@@ -263,7 +263,7 @@ namespace ExMat.Compiler
                 return null;    // boş değer dönerek hata bildir
             }
 
-            ExObject res = new();
+            ExObject res;
             switch (expected)       // Sembol ayırıcıdan denk gelen değeri al
             {
                 case TokenType.IDENTIFIER:
@@ -290,6 +290,11 @@ namespace ExMat.Compiler
                 case TokenType.SPACE:
                     {
                         res = new(Lexer.ValSpace);
+                        break;
+                    }
+                default:
+                    {
+                        res = new();
                         break;
                     }
             }
@@ -428,7 +433,7 @@ namespace ExMat.Compiler
             }
 
             DoOuterControl();   // Dış değişken referansları varsa referansları azalt
-            FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, ExMat.InvalidArgument, 0, 0);
             // Komut indeksini listeye ekle
             FunctionState.BreakList.Add(FunctionState.GetCurrPos());
 
@@ -443,7 +448,7 @@ namespace ExMat.Compiler
                 return false;
             }
             DoOuterControl();   // Dış değişken referansları varsa referansları azalt
-            FunctionState.AddInstr(ExOperationCode.JMP, 0, -ExMat.InvalidArgument, 0, 0);
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, ExMat.InvalidArgument, 0, 0);
             // Komut indeksini listeye ekle
             FunctionState.ContinueList.Add(FunctionState.GetCurrPos());
 
@@ -491,6 +496,11 @@ namespace ExMat.Compiler
                         processed = ProcessForStatement();
                         break;
                     }
+                case TokenType.FOREACH:     // for
+                    {
+                        processed = ProcessForEachStatement();
+                        break;
+                    }
                 case TokenType.RULE:
                     {
                         processed = ProcessRuleAsgStatement();
@@ -529,7 +539,13 @@ namespace ExMat.Compiler
                 default:
                     {
                         processed = ExSepExp();
-                        break;
+                        if (processed)
+                        {
+                            FunctionState.DiscardTopTarget();
+                            FunctionState.NotSnoozed = false;
+                            return true;
+                        }
+                        return false;
                     }
             }
 
@@ -750,6 +766,80 @@ namespace ExMat.Compiler
                     FunctionState.Instructions.RemoveAt(FunctionState.Instructions.Count - 1);
                 }
             }
+
+            return true;
+        }
+
+        public bool ProcessForEachStatement()
+        {
+            ExObject indexname, idname;
+            if (!ReadAndSetToken()
+                || Expect(TokenType.ROUNDOPEN) == null
+                || (idname = Expect(TokenType.IDENTIFIER)) == null)
+            {
+                return false;
+            }
+
+            if (CurrentToken is TokenType.SEP)
+            {
+                indexname = new(idname);
+                if (!ReadAndSetToken()
+                    || (idname = Expect(TokenType.IDENTIFIER)) == null)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                indexname = new(FunctionState.CreateString(ExMat.ForeachSingleIdxName));
+            }
+
+            if (Expect(TokenType.IN) == null)
+            {
+                return false;
+            }
+
+            ExScope scp = CreateScope();
+
+            if (!ExExp()
+                || Expect(TokenType.ROUNDCLOSE) == null)
+            {
+                return false;
+            }
+
+            int block = FunctionState.TopTarget();
+
+            int index = FunctionState.PushVar(indexname);
+            FunctionState.AddInstr(ExOperationCode.LOADNULL, index, 1, 0, 0);
+
+            int id = FunctionState.PushVar(idname);
+            FunctionState.AddInstr(ExOperationCode.LOADNULL, id, 1, 0, 0);
+
+            int iter = FunctionState.PushVar(FunctionState.CreateString(ExMat.ForeachIteratorName));
+            FunctionState.AddInstr(ExOperationCode.LOADNULL, iter, 1, 0, 0);
+
+            int jmp = FunctionState.GetCurrPos();
+            FunctionState.AddInstr(ExOperationCode.FOREACH, block, 0, index, 0);
+
+            int fpos = FunctionState.GetCurrPos();
+            FunctionState.AddInstr(ExOperationCode.POSTFOREACH, block, 0, index, 0);
+
+            List<int> bc = CreateBreakableBlock();
+
+            if (!ProcessStatement())
+            {
+                return false;
+            }
+
+            FunctionState.AddInstr(ExOperationCode.JMP, 0, jmp - FunctionState.GetCurrPos() - 1, 0, 0);
+            FunctionState.UpdateInstructionArgument(fpos, 1, FunctionState.GetCurrPos() - fpos);
+            FunctionState.UpdateInstructionArgument(fpos + 1, 1, FunctionState.GetCurrPos() - fpos);
+
+            ReleaseBreakableBlock(bc, fpos - 1);
+
+            FunctionState.PopTarget();
+
+            ReleaseScope(scp);
 
             return true;
         }
@@ -2528,7 +2618,7 @@ namespace ExMat.Compiler
         }
         private bool FactorIdentifiers(ref int pos)
         {
-            ExObject idx = new();
+            ExObject idx;
             switch (CurrentToken)
             {
                 case TokenType.IDENTIFIER:
@@ -2544,6 +2634,11 @@ namespace ExMat.Compiler
                 case TokenType.CONSTRUCTOR:
                     {
                         idx = FunctionState.CreateString(ExMat.ConstructorName);
+                        break;
+                    }
+                default:
+                    {
+                        idx = new();
                         break;
                     }
             }
@@ -3094,7 +3189,7 @@ namespace ExMat.Compiler
 
             FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(o), 0, 0);
 
-            if (!ExFuncCreate(o))
+            if (!ExFuncCreate(o, typ == TokenType.FUNCTION ? ExFuncType.DEFAULT : ExFuncType.CONSTRUCTOR))
             {
                 return false;
             }
@@ -3269,17 +3364,31 @@ namespace ExMat.Compiler
             }
         }
 
+        public ExFuncType GetFuncTypeFromToken()
+        {
+            switch (CurrentToken)
+            {
+                case TokenType.LAMBDA:
+                    {
+                        return ExFuncType.LAMBDA;
+                    }
+                default:
+                    {
+                        return ExFuncType.DEFAULT;
+                    }
+            }
+        }
 
         public bool ExFuncResolveExp(TokenType typ)
         {
-            bool lambda = CurrentToken == TokenType.LAMBDA;
+            ExFuncType ftyp = GetFuncTypeFromToken();
             if (!ReadAndSetToken() || Expect(TokenType.ROUNDOPEN) == null)
             {
                 return false;
             }
 
             ExObject d = new();
-            if (!ExFuncCreate(d, lambda))
+            if (!ExFuncCreate(d, ftyp))
             {
                 return false;
             }
@@ -3412,26 +3521,38 @@ namespace ExMat.Compiler
             return true;
         }
 
-        private bool FuncCreateProcessBody(bool lambda, ExFState f_state)
+        private bool FuncCreateProcessBody(ExFuncType typ, ExFState f_state)
         {
-            if (lambda)     // Lambda ifadesi ise sıradaki ifadeyi derle ve OPC.RETURN ile sonucu döndür
+            switch (typ)
             {
-                if (!ExExp())
-                {
+                case ExFuncType.DEFAULT:
+                    return ProcessStatement(false);
+                case ExFuncType.LAMBDA:
+                    {
+                        if (!ExExp())
+                        {
+                            return false;
+                        }
+                        f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
+                        return true;
+                    }
+                case ExFuncType.CONSTRUCTOR:
+                    {
+                        bool status = ProcessStatement(false);
+                        if (!status)
+                        {
+                            return false;
+                        }
+                        f_state.AddInstr(ExOperationCode.RETURN, 1, 0, 0, 0);
+                        return true;
+                    }
+                default:
                     return false;
-                }
-                f_state.AddInstr(ExOperationCode.RETURN, 1, FunctionState.PopTarget(), 0, 0);
-                return true;
-            }
-            else
-            {
-                // Normal fonksiyon ise bütün ifadeleri derle
-                return ProcessStatement(false);
             }
         }
 
         // Fonksiyon takipçisine ait bir alt fonksiyon oluştur
-        public bool ExFuncCreate(ExObject o, bool lambda = false)
+        public bool ExFuncCreate(ExObject o, ExFuncType typ = ExFuncType.DEFAULT)
         {
             // Bir alt fonksiyon takipçisi oluştur ve istenen fonksiyon ismini ver
             ExFState f_state = FunctionState.PushChildState(VM.SharedState);
@@ -3469,7 +3590,7 @@ namespace ExMat.Compiler
             ExFState tmp = FunctionState.Copy();    // Fonksiyon takipçisinin kopyasını al
             FunctionState = f_state;
 
-            if (!FuncCreateProcessBody(lambda, f_state))
+            if (!FuncCreateProcessBody(typ, f_state))
             {
                 return false;
             }

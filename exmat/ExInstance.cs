@@ -1,12 +1,16 @@
 ﻿using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using ExMat.Objects;
 using ExMat.States;
 using ExMat.VM;
 
 namespace ExMat.ExClass
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
+#endif
     public class ExInstance : ExRefC
     {
         public ExObject Delegate;
@@ -118,10 +122,12 @@ namespace ExMat.ExClass
             }
         }
 
+#if DEBUG
         public new string GetDebuggerDisplay()
         {
             return "INSTANCE(n_vals: " + MemberValues.Count + ")";
         }
+#endif
 
         protected override void Dispose(bool disposing)
         {

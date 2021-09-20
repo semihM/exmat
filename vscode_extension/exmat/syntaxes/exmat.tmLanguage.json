@@ -127,7 +127,7 @@
 			[
 				{
 					"name": "keyword.control.exmat",
-					"match": "\\b(if|else|break|continue|for|return)\\b"
+					"match": "\\b(if|else|break|continue|for|foreach|return)\\b"
 				},
 				{
 					"name": "keyword.control.exmat",
@@ -149,7 +149,7 @@
 				},
 				{
 					"name": "entity.name.function.exmat",
-					"match": "\\b(print|printl|type|time|date|string|float|integer|complex|complex2|list|range|rangei|matrix|bytes|hex|bits|bits32|binary|binary32)\\b"
+					"match": "\\b(print|printl|printf|type|time|date|string|float|integer|complex|complex2|list|range|rangei|matrix|bytes|hex|bits|bits32|binary|binary32)\\b"
 				},
 				{
 					"name": "entity.name.function.exmat",
@@ -177,7 +177,7 @@
 				},
 				{
 					"name": "entity.name.function.exmat",
-					"match": "\\b(help|root|clean|sleep|paint_print|to_base64|from_base64)\\b"
+					"match": "\\b(help|root|consts|clean|sleep|paint_print|to_base64|from_base64)\\b"
 				},
 				{
 					"name": "entity.name.function.exmat",

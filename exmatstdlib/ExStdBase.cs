@@ -142,6 +142,24 @@ namespace ExMat.StdLib
             return ExFunctionStatus.VOID;
         }
 
+        [ExNativeFuncBase("printf", ExBaseType.NULL, "Print messages or objects to immediate console with given format string and objects to replace.\n\tExample: printf(\"{0}, {1}\", \"first\", \"second\") == print(\"first, second\")", -2)]
+        public static ExFunctionStatus StdPrintf(ExVM vm, int nargs)
+        {
+            if (ExApi.GetFormatStringAndObjects(vm, nargs, out string format, out object[] ps) == ExFunctionStatus.ERROR)
+            {
+                return ExFunctionStatus.ERROR;
+            }
+
+            try
+            {
+                vm.Print(string.Format(CultureInfo.CurrentCulture, format, ps));
+                return ExFunctionStatus.VOID;
+            }
+            catch
+            {
+                return vm.AddToErrorMessage("not enough arguments given for format string");
+            }
+        }
         [ExNativeFuncBase("type", ExBaseType.STRING, "Get the type of an object as a string.")]
         [ExNativeParamBase(1, "object", ".", "Object to get the type of")]
         public static ExFunctionStatus StdType(ExVM vm, int nargs)

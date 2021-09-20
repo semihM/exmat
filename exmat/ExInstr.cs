@@ -1,17 +1,19 @@
-﻿using System.Diagnostics;
+﻿#if DEBUG
+using System.Diagnostics;
+#endif
 
 namespace ExMat.OPs
 {
+#if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
-    public class ExInstr
+#endif
+    public struct ExInstr
     {
         public ExOperationCode op;
         public long arg0;
         public long arg1;
         public long arg2;
         public long arg3;
-
-        public ExInstr() { }
 
         public ExInstr(ExInstr other)
         {
@@ -30,9 +32,11 @@ namespace ExMat.OPs
             arg2 = a2;
             arg3 = a3;
         }
+#if DEBUG
         public string GetDebuggerDisplay()
         {
             return op.ToString() + ": " + arg0 + ", " + arg1 + ", " + arg2 + ", " + arg3;
         }
+#endif
     }
 }
