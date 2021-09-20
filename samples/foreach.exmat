@@ -1,6 +1,6 @@
 foreach(val in {key1 = 2, key2 = 4, key3 = 8})
 {
-    printf("dict val: {0}", val)
+    printf("dict val: {0}\n", val)
 }
 
 var nc_count = 0;
@@ -14,33 +14,33 @@ foreach(val in root())
     if(typeof val is "NATIVECLOSURE")
     {
         nc_count++;
-        printf("count: {0}, native func name: {1} ", nc_count, val.name)
+        printf("count: {0}, native func name: {1}\n", nc_count, val.name)
     }
 
 }
 
 foreach(key, val in {a = 2, b = 3, c = null, d = "noice"})
 {
-    printf("key: {0}, val: {1}", key, val)
+    printf("key: {0}, val: {1}\n", key, val)
 }
 
 foreach(number in range(3,9))
 {
-    printf("number: {0} ", number)
+    printf("number: {0}\n", number)
 }
 
 foreach(index, number in range(3,9))
 {
     if(index % 2 == 1)
-        printf("index: {0}, number: {1} ", index, number)
+        printf("index: {0}, number: {1}\n", index, number)
 }
 
 foreach(ch in "iterable string!")
 {
-    printf("character: {0} ", ch)
+    printf("character: {0}\n", ch)
 }
 
 foreach(i, ch in "another_string_to_iterate")
 {
-    printf("index: {0}, character: {1}", i, ch)
+    printf("index: {0}, character: {1}\n", i, ch)
 }

@@ -1,107 +1,107 @@
 printl("-".repeat(40))
 // Complex number delegates
 var c1 = 3 + 4i
-printf("c1.real() -> {0}", c1.real())
-printf("c1.img() -> {0}", c1.img())
-printf("c1.abs() -> {0}", c1.abs())
-printf("c1.phase() -> {0}", c1.phase())
-printf("c1.conj() -> {0}", c1.conj())
+printf("c1.real() -> {0}\n", c1.real())
+printf("c1.img() -> {0}\n", c1.img())
+printf("c1.abs() -> {0}\n", c1.abs())
+printf("c1.phase() -> {0}\n", c1.phase())
+printf("c1.conj() -> {0}\n", c1.conj())
 
 printl("-".repeat(40))
 // Real number delegates
 var r1 = E
-printf("r1.real() -> {0}", r1.real())
-printf("r1.img() -> {0}", r1.img()) // Always zero
+printf("r1.real() -> {0}\n", r1.real())
+printf("r1.img() -> {0}\n", r1.img()) // Always zero
 
 printl("-".repeat(40))
 // String delegates
 var str = "This is, as you can see, a STRING!"
 
-printf("str.len() -> {0}", str.len())
+printf("str.len() -> {0}\n", str.len())
 
-printf("str.index_of(\"you\") -> {0}", str.index_of("you"))
+printf("str.index_of(\"you\") -> {0}\n", str.index_of("you"))
 
-printf("str.to_upper() -> {0}", str.to_upper())
-printf("\tstr -> {0}", str)
+printf("str.to_upper() -> {0}\n", str.to_upper())
+printf("\tstr -> {0}\n", str)
 
-printf("str.to_lower() -> {0}", str.to_lower())
-printf("\tstr -> {0}", str)
+printf("str.to_lower() -> {0}\n", str.to_lower())
+printf("\tstr -> {0}\n", str)
 
-printf("str.reverse() -> {0}", str.reverse()
-printf("\tstr -> {0}", str)
+printf("str.reverse() -> {0}\n", str.reverse())
+printf("\tstr -> {0}\n", str)
 
-printf("str.repeat(2) -> {0}", str.repeat(2))
-printf("\tstr -> {0}", str)
+printf("str.repeat(2) -> {0}\n", str.repeat(2))
+printf("\tstr -> {0}\n", str)
 
-printf("str.replace(\"you\",\"I\") -> {0}", str.replace("you","I"))
-printf("\tstr -> {0}", str)
+printf("str.replace(\"you\",\"I\") -> {0}\n", str.replace("you","I"))
+printf("\tstr -> {0}\n", str)
 
-printf("str.slice(8) -> {0}", str.slice(8))
+printf("str.slice(8) -> {0}\n", str.slice(8))
 
-printf("str.slice(4,11) -> {0}", str.slice(4,11))
+printf("str.slice(4,11) -> {0}\n", str.slice(4,11))
 
-printf("str.isAlphabetic() -> {0}", str.isAlphabetic())
-printf("str.isNumeric() -> {0}", str.isNumeric())
-printf("str.isAlphaNumeric() -> {0}", str.isAlphaNumeric())
-printf("str.isLower() -> {0}", str.isLower())
-printf("str.isUpper() -> {0}", str.isUpper())
-printf("str.isSymbol() -> {0}", str.isSymbol())
+printf("str.isAlphabetic() -> {0}\n", str.isAlphabetic())
+printf("str.isNumeric() -> {0}\n", str.isNumeric())
+printf("str.isAlphaNumeric() -> {0}\n", str.isAlphaNumeric())
+printf("str.isLower() -> {0}\n", str.isLower())
+printf("str.isUpper() -> {0}\n", str.isUpper())
+printf("str.isSymbol() -> {0}\n", str.isSymbol())
 
 printl("-".repeat(40))
 // Array delegates
 var arr = [1,2,2,4,3,6,4]
 
-printf("arr.len() -> {0}", arr.len())
+printf("arr.len() -> {0}\n", arr.len())
 
-printf("arr.index_of(6) -> {0}", arr.index_of(6))
-printf("arr.index_of(999) -> {0}", arr.index_of(999))
+printf("arr.index_of(6) -> {0}\n", arr.index_of(6))
+printf("arr.index_of(999) -> {0}\n", arr.index_of(999))
 
-printf("arr.count(2) -> {0}", arr.count(2))
+printf("arr.count(2) -> {0}\n", arr.count(2))
 
-printf("arr.slice(4) -> {0}", arr.slice(4))
-printf("arr.slice(2,6) -> {0}", arr.slice(2,6))
+printf("arr.slice(4) -> {0}\n", arr.slice(4))
+printf("arr.slice(2,6) -> {0}\n", arr.slice(2,6))
 
-printf("arr.copy() -> {0}", arr.copy())
+printf("arr.copy() -> {0}\n", arr.copy())
 
-printf("arr.append(99) -> {0}", arr.append(99))
-printf("\tarr -> {0}", arr)
+printf("arr.append(99) -> {0}\n", arr.append(99))
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.remove_at(0) -> {0}", arr.remove_at(0))
-printf("\tarr -> {0}", arr)
+printf("arr.remove_at(0) -> {0}\n", arr.remove_at(0))
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.push(-50) -> {0}", arr.push(-50))
-printf("\tarr -> {0}", arr)
+printf("arr.push(-50) -> {0}\n", arr.push(-50))
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.pop() -> {0}", arr.pop())
-printf("\tarr -> {0}", arr)
+printf("arr.pop() -> {0}\n", arr.pop())
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.expand([-1,-2]) -> {0}", arr.expand([-1,-2]))
-printf("\tarr -> {0}", arr)
+printf("arr.expand([-1,-2]) -> {0}\n", arr.expand([-1,-2]))
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.extend([-1,-2]) -> {0}", arr.extend([-1,-2]))
-printf("\tarr -> {0}", arr)
+printf("arr.extend([-1,-2]) -> {0}\n", arr.extend([-1,-2]))
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.resize(7) -> {0}", arr.resize(7))
-printf("\tarr -> {0}", arr)
+printf("arr.resize(7) -> {0}\n", arr.resize(7))
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.reverse() -> {0}", arr.reverse())
-printf("\tarr -> {0}", arr)
+printf("arr.reverse() -> {0}\n", arr.reverse())
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.shuffle() -> {0}", arr.shuffle())
-printf("\tarr -> {0}", arr)
+printf("arr.shuffle() -> {0}\n", arr.shuffle())
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.random() -> {0}", arr.random())
-printf("arr.random(4) -> {0}", arr.random(4))
+printf("arr.random() -> {0}\n", arr.random())
+printf("arr.random(4) -> {0}\n", arr.random(4))
 
-printf("[arr].transpose() -> {0}", [arr].transpose())
+printf("[arr].transpose() -> {0}\n", [arr].transpose())
 
-printf("arr.unique() -> {0}", arr.unique())
+printf("arr.unique() -> {0}\n", arr.unique())
 
-printf("arr.order_asc() -> {0}", arr.order_asc())
-printf("\tarr -> {0}", arr)
+printf("arr.order_asc() -> {0}\n", arr.order_asc())
+printf("\tarr -> {0}\n", arr)
 
-printf("arr.order_des() -> {0}", arr.order_des())
-printf("\tarr -> {0}", arr)
+printf("arr.order_des() -> {0}\n", arr.order_des())
+printf("\tarr -> {0}\n", arr)
 
 printl("-".repeat(40))
 // Dictionary delegates
@@ -113,18 +113,18 @@ var tbl =
     key4 = [-1, null, PI]
 }
 
-printf("tbl.len() -> {0}", tbl.len())
+printf("tbl.len() -> {0}\n", tbl.len())
 
-printf("tbl.get_keys() -> {0}", tbl.get_keys())
+printf("tbl.get_keys() -> {0}\n", tbl.get_keys())
 
-printf("tbl.get_values() -> {0}", tbl.get_values())
+printf("tbl.get_values() -> {0}\n", tbl.get_values())
 
-printf("tbl.has_key(\"key2\") -> {0}", tbl.has_key("key2"))
-printf("\"key2\" in tbl -> {0}", "key2" in tbl)
+printf("tbl.has_key(\"key2\") -> {0}\n", tbl.has_key("key2"))
+printf("\"key2\" in tbl -> {0}\n", "key2" in tbl)
 
-printf("tbl.has_key(\"key999\") -> {0}", tbl.has_key("key999"))
-printf("\"key999\" in tbl -> {0}", "key999" in tbl)
+printf("tbl.has_key(\"key999\") -> {0}\n", tbl.has_key("key999"))
+printf("\"key999\" in tbl -> {0}\n", "key999" in tbl)
 
-printf("tbl.random_key() -> {0}", tbl.random_key())
+printf("tbl.random_key() -> {0}\n", tbl.random_key())
 
-printf("tbl.random_val() -> {0}", tbl.random_val())
+printf("tbl.random_val() -> {0}\n", tbl.random_val())
