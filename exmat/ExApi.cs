@@ -52,7 +52,7 @@ namespace ExMat.API
         /// Find all methods with <see cref="ExNativeFuncDelegate"/> attribute defined in the current assembly
         /// </summary>
         /// <returns>List of native delegate functions found in the assembly</returns>
-        public static List<ExNativeFunc> FindDelegateNativeFunctions()
+        internal static List<ExNativeFunc> FindDelegateNativeFunctions()
         {
             List<ExNativeFunc> funcs = new();
             foreach (Type lib in GetStandardLibraryTypes(GetAllAssemblies()))
@@ -848,9 +848,24 @@ namespace ExMat.API
         /// Get all assemblies defined in <see cref="ExMat.Assemblies"/> into an array
         /// </summary>
         /// <returns>An array of assembly information</returns>
-        public static Assembly[] GetAllAssemblies()
+        internal static Assembly[] GetAllAssemblies()
         {
-            return ExMat.Assemblies.Select(p => Assembly.Load(p.Key)).ToArray();
+            return ExMat.Assemblies
+                .Select(p => p.Value == ExMat.ExAssemblyType.NATIVE ? Assembly.Load(p.Key) : TryLoadingPlugin(p.Key))
+                .Where(a => a != null)
+                .ToArray();
+        }
+
+        private static Assembly TryLoadingPlugin(string file)
+        {
+            try
+            {
+                return Assembly.LoadFile(file);
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         /// <summary>
@@ -883,7 +898,7 @@ namespace ExMat.API
         /// Register std libs from given assembly
         /// </summary>
         /// <param name="vm">Virtual machine to register libraries to<param>
-        public static bool RegisterStdLibraries(ExVM vm) // TO-DO Allow plugins/external libraries
+        public static bool RegisterStdLibraries(ExVM vm)
         {
             try
             {

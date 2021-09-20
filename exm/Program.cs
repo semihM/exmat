@@ -68,6 +68,11 @@ namespace ExMat
 
         /// <summary>
         /// Expected names for the console flags
+        /// <para>Don't display information banner: <code>--no-info</code></para>
+        /// <para>Don't use custom console title: <code>--no-title</code></para>
+        /// <para>Don't wait post exit: <code>--no-exit-hold</code></para>
+        /// <para>Don't write IN and OUT prefix: <code>--no-inout</code></para>
+        /// <para>Delete the given file post execution: <code>--delete-onpost</code></para>
         /// </summary>
         private static readonly System.Collections.Generic.Dictionary<string, ExConsoleFlag> FlagNames = new()
         {
@@ -80,11 +85,30 @@ namespace ExMat
 
         /// <summary>
         /// Expected names for the console flags
+        /// <para>Custom stack size: <code>-stacksize:"?([\w\d\t ]+)"?</code></para>
+        /// <para>Custom console title: <code>-title:"?(.*)"?</code></para>
+        /// <para>Plugin library path: <code>-plugin:"?(.*)"?</code></para>
         /// </summary>
         private static readonly System.Collections.Generic.Dictionary<System.Text.RegularExpressions.Regex, ExConsoleParameter> ConsoleParameters = new()
         {
-            { new(@"\-stacksize:""?([\w\d\t ]+)""?"), a => int.TryParse(a, out int res) ? VM_STACK_SIZE = res : null },
-            { new(@"\-title:""?(.*)""?"), a => CONSOLE_TITLE = a }
+            {
+                new(@"\-stacksize:""?([\w\d\t ]+)""?"),
+                a => int.TryParse(a.TrimEnd('\"'), out int res)
+                    ? VM_STACK_SIZE = res
+                    : null
+            },
+
+            {
+                new(@"\-title:""?(.*)""?"),
+                a => CONSOLE_TITLE = a.TrimEnd('\"')
+            },
+
+            {
+                new(@"\-plugin:""?(.*)""?"),
+                a => ExMat.Assemblies.TryAdd(a.TrimEnd('\"'), ExMat.ExAssemblyType.PLUGIN)
+                    ? a
+                    : null
+            }
         };
 
         private static void ResetAfterCompilation(ExVM vm, int n)
@@ -564,11 +588,13 @@ namespace ExMat
 
         /// <summary>
         /// To compile and execute a script file use:
-        /// <code>    exmat.exe {file_name}.exmat [--no-title] [--no-exit-hold] [-stacksize:{integer}]</code>
+        /// <code>    exmat {file_name}.exmat [flag] [parameter:"argument"]</code>
         /// 
         /// To start the interactive console, use:
-        /// <code>    exmat.exe [--no-title] [--no-exit-hold] [-stacksize:{integer}]</code>
+        /// <code>    exmat [flag] [parameter:"argument"]</code>
         /// 
+        /// <para>Available flags: <see cref="FlagNames"/></para>
+        /// <para>Available parameters: <see cref="ConsoleParameters"/></para>
         /// </summary>
         /// <param name="args">If any arguments given, first one is taken as file name</param>
         /// <returns>If a file was given and it didn't exists: <c>-1</c>

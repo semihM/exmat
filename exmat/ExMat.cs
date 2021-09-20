@@ -295,17 +295,31 @@ namespace ExMat
                                                         .Replace("\\ ", " ");
 
         /// <summary>
+        /// Assembly type to decide wheter to load directly or from a file
+        /// </summary>
+        public enum ExAssemblyType
+        {
+            /// <summary>
+            /// Built-in assembly
+            /// </summary>
+            NATIVE,
+            /// <summary>
+            /// External plugin
+            /// </summary>
+            PLUGIN
+        }
+
+        public static Dictionary<string, ExAssemblyType> Assemblies { get; } = new()
+        {
+            { "exm", ExAssemblyType.NATIVE },
+            { "exmat", ExAssemblyType.NATIVE },
+            { "exmatstdlib", ExAssemblyType.NATIVE }
+        };
+
+        /// <summary>
         /// Regex object to use while finding standard library functions
         /// </summary>
         public static readonly System.Text.RegularExpressions.Regex StdLibFunctionRegex = new(StdLibFunctionPattern);
-
-        public static readonly Dictionary<string, string> Assemblies = new()
-        {
-            { "exm", "Entering assembly project" },
-            { "exmat", "Core project" },
-            { "exmatstdlib", "Built-in standard libraries" },
-        };
-
     }
 
     /// <summary>
