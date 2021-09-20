@@ -206,41 +206,6 @@ namespace ExMat.VM
         /// </summary>
         public bool HasIntKeyReader => IntKeyReader != null;
 
-
-        private Process _ExternalProcess;
-
-        /// <summary>
-        /// External console for printing
-        /// </summary>
-        public Process ExternalConsole
-        {
-            get
-            {
-                if (_ExternalProcess == null)
-                {
-                    return null;
-                }
-                else if (_ExternalProcess.HasExited)
-                {
-                    return _ExternalProcess = null;
-                }
-                return _ExternalProcess;
-            }
-            set
-            {
-                if (HasExternalConsole)
-                {
-                    ExternalConsole.Kill();
-                }
-                _ExternalProcess = value;
-            }
-        }
-
-        /// <summary>
-        /// Wheter <see cref="ExternalConsole"/> is not null
-        /// </summary>
-        public bool HasExternalConsole => ExternalConsole != null;
-
         private bool disposedValue;
 
         protected virtual void Dispose(bool disposing)

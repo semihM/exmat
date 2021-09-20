@@ -28,7 +28,7 @@ namespace ExMat
         /// <summary>
         /// Value returned from <see cref="ActiveThread"/>
         /// </summary>
-        private static ExObject ReturnValue;
+        private static int ReturnValue = -1;
 
         /// <summary>
         /// File contents path
@@ -330,7 +330,7 @@ namespace ExMat
 
             if (ActiveVM.ExitCalled)  // exit fonksiyonu çağırıldıysa bitir
             {
-                ReturnValue = new(ret);
+                ReturnValue = ret;
             }
 
             ActiveVM.nNativeCalls = 0;
@@ -381,7 +381,7 @@ namespace ExMat
                 {
                     try
                     {
-                        ReturnValue = new(CompileString(ActiveVM, FileContents));
+                        ReturnValue = CompileString(ActiveVM, FileContents);
                     }
                     catch (ThreadInterruptedException)
                     {
@@ -457,7 +457,14 @@ namespace ExMat
         private static void LoopUntilThreadStops()
         {
             ActiveThread.Start();
+
             while (ActiveThread.IsAlive) { }
+
+            ExDisposer.DisposeObject(ref ActiveVM);
+            ActiveThread = null;
+            FilePath = null;
+            FileContents = null;
+
         }
 
         private static bool ReadFileContents(string path)
@@ -511,9 +518,9 @@ namespace ExMat
             {
                 Console.WriteLine("To compile and execute a script file use the format:\n\texm {file_name}.exmat [flag] [parameter:\"argument\"]"
                                 + "\n\nTo start the interactive console use the format:\n\texm [flag] [parameter:\"argument\"]"
-                                + "\n\nAvailable flags:\n\t"
+                                + "\n\nAvailable flags (--flag):\n\t"
                                 + string.Join("\n\t", ExApi.GetConsoleFlagHelperValues())
-                                + "\n\nAvailable parameters:\n\t"
+                                + "\n\nAvailable parameters (-parameter:\"argument\"):\n\t"
                                 + string.Join("\n\t", ExApi.GetConsoleParameterHelperValues()));
 
                 KeepConsoleUpAtEnd();
@@ -539,7 +546,7 @@ namespace ExMat
 
             LoopUntilThreadStops();
 
-            return ReturnValue != null ? (int)ReturnValue.GetInt() : -1;
+            return ReturnValue;
         }
     }
 }

@@ -267,32 +267,23 @@ namespace ExMat.StdLib
 
             try
             {
-                if (vm.HasExternalConsole)
-                {
-                    vm.ExternalConsole = null;
-                }
-
                 p.StartInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
                 p.StartInfo.Arguments = $"{fname} --no-inout --no-info --delete-onpost -stacksize:16 -title:\"{(nargs >= 2 ? vm.GetArgument(2).GetString() : ExMat.ConsoleTitle)}\"";
                 p.StartInfo.UseShellExecute = true;
                 p.Start();
 
-                vm.ExternalConsole = p;
-
                 stat = vm.CleanReturn(nargs + 2, true);
             }
             catch (Exception exp)
             {
-                if (p != null)
-                {
-                    vm.ExternalConsole = null;
-                }
                 stat = vm.AddToErrorMessage("Error printing: " + exp.Message);
             }
             finally
             {
                 FileInfo fileInfo = new(fname);
                 fileInfo.IsReadOnly = false;
+
+                System.Threading.Thread.Sleep(250); // To prevent spam in infinite loops
             }
             return stat;
         }

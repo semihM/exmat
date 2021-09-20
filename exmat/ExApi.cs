@@ -893,9 +893,11 @@ namespace ExMat.API
 
         private static bool SetOptionFromArgument(string arg)
         {
-            foreach (KeyValuePair<System.Text.RegularExpressions.Regex, ExConsoleParameter> pair in ExMat.ConsoleParameters)
+            foreach (KeyValuePair<string, ExConsoleParameter> pair in ExMat.ConsoleParameters)
             {
-                System.Text.RegularExpressions.Match m = pair.Key.Match(arg);
+                System.Text.RegularExpressions.Regex r = new(pair.Key + "\"?(.*)\"?");
+                System.Text.RegularExpressions.Match m = r.Match(arg);
+
                 if (!m.Success)
                 {
                     continue;
@@ -926,20 +928,15 @@ namespace ExMat.API
 
         private static string[] GetConsoleHelperValues(string propname, IEnumerable<string> e)
         {
-            MemberInfo fi = typeof(ExApi).GetField(propname);
-            if (fi == null)
-            {
-                fi = typeof(ExApi).GetProperty(propname);
-            }
-
+            MemberInfo fi = typeof(ExMat).GetMembers().FirstOrDefault(m => m.Name == propname && (m.MemberType is MemberTypes.Property or MemberTypes.Field));
             if (fi == null || !Attribute.IsDefined(fi, typeof(ExConsoleHelper)))
             {
                 return Array.Empty<string>();
             }
 
             List<object> attrs = fi.GetCustomAttributes(typeof(ExConsoleHelper), false).ToList();
-
-            return e.Select(k => $"{k}\t->\t{((ExConsoleHelper)attrs.First(a => ((ExConsoleHelper)a).Source == k)).Help}").ToArray();
+            ExConsoleHelper m = null;
+            return e.Select(k => $"{k}\t->\t{((m = (ExConsoleHelper)attrs.FirstOrDefault(a => ((ExConsoleHelper)a).Source == k)) == null ? string.Empty : m.Help)}").ToArray();
         }
 
         /// <summary>
@@ -2245,7 +2242,11 @@ namespace ExMat.API
 
             vm.Printer(FitConsoleString(width, version));
             vm.Printer(FitConsoleString(width, date));
-            vm.Printer(FitConsoleString(width, ExMat.HelpInfoString));
+
+            foreach (string help in ExMat.HelpInfoString)
+            {
+                vm.Printer(FitConsoleString(width, help));
+            }
 
             vm.Printer(new string('/', width + 2) + '\n');
 

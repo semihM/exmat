@@ -33,7 +33,11 @@ namespace ExMat
         /// <summary>
         /// Help information to print at the beginning
         /// </summary>
-        public const string HelpInfoString = "Use 'help' for function information, 'root' for global variables, 'consts' for constants";
+        public static readonly string[] HelpInfoString = new string[2]
+        {
+            "Use 'help' for function information, 'root' for global variables, 'consts' for constants",
+            "Use 'exm --help' in your terminal to view startup options",
+        };
 
         public static int PreferredStackSize { get; set; } = 1 << 15;
 
@@ -340,56 +344,52 @@ namespace ExMat
         /// <para>Delete the given file post execution: <code>--delete-onpost</code></para>
         /// <para>Print help string: <code>--help</code></para>
         /// </summary>
+        [ExConsoleHelper("--help", "Print help information")]
         [ExConsoleHelper("--no-info", "Don't display information banner")]
         [ExConsoleHelper("--no-title", "Don't use custom console title")]
         [ExConsoleHelper("--no-exit-hold", "Don't wait for input post exit (after an exit function call or an internal error)")]
         [ExConsoleHelper("--no-inout", "Don't write IN and OUT prefixes")]
         [ExConsoleHelper("--delete-onpost", "Delete the given file post execution")]
-        [ExConsoleHelper("--help", "Print help information")]
-        private static readonly Dictionary<string, ExConsoleFlag> consoleFlags = new()
+        public static readonly Dictionary<string, ExConsoleFlag> ConsoleFlags = new()
         {
+            { "--help", ExConsoleFlag.HELP },
             { "--no-info", ExConsoleFlag.NOINFO },
             { "--no-title", ExConsoleFlag.NOTITLE },
             { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN },
             { "--no-inout", ExConsoleFlag.NOINOUT },
-            { "--delete-onpost", ExConsoleFlag.DELETEONPOST },
-            { "--help", ExConsoleFlag.HELP }
+            { "--delete-onpost", ExConsoleFlag.DELETEONPOST }
         };
 
-        internal static Dictionary<string, ExConsoleFlag> ConsoleFlags => consoleFlags;
-
         /// <summary>
-        /// Expected names for the console flags
-        /// <para>Custom stack size: <code>-stacksize:"?([\w\d\t ]+)"?</code></para>
+        /// Expected names for the console flags. Make <see cref="ExConsoleParameter"/> invoke return <see langword="null"/> to keep the parameter in the referenced array
+        /// <para>Custom stack size: <code>-stacksize:"?(.*)"?</code></para>
         /// <para>Custom console title: <code>-title:"?(.*)"?</code></para>
         /// <para>Plugin library path: <code>-plugin:"?(.*)"?</code></para>
         /// </summary>
-        [ExConsoleHelper(@"\-stacksize:""?([\w\d\t ]+)""?", "Custom virtual stack size")]
-        [ExConsoleHelper(@"\-title:""?(.*)""?", "Custom console title")]
-        [ExConsoleHelper(@"\-plugin:""?(.*)""?", "Plugin dll path to include")]
-        private static readonly Dictionary<Regex, ExConsoleParameter> consoleParameters = new()
+        [ExConsoleHelper("-title:", "Custom console title")]
+        [ExConsoleHelper("-stacksize:", "Custom virtual stack size")]
+        [ExConsoleHelper("-plugin:", "Plugin dll path to include")]
+        public static readonly Dictionary<string, ExConsoleParameter> ConsoleParameters = new()
         {
             {
-                new(@"\-stacksize:""?([\w\d\t ]+)""?"),
+                "-title:",
+                a => PreferredConsoleTitle = a.TrimEnd('\"')
+            },
+
+            {
+                "-stacksize:",
                 a => int.TryParse(a.TrimEnd('\"'), out int res)
                     ? PreferredStackSize = res
                     : null
             },
 
             {
-                new(@"\-title:""?(.*)""?"),
-                a => PreferredConsoleTitle = a.TrimEnd('\"')
-            },
-
-            {
-                new(@"\-plugin:""?(.*)""?"),
+                "-plugin:",
                 a => Assemblies.TryAdd(a.TrimEnd('\"'), ExAssemblyType.PLUGIN)
                     ? a
                     : null
             }
         };
-
-        internal static Dictionary<Regex, ExConsoleParameter> ConsoleParameters => consoleParameters;
     }
 
     /// <summary>
