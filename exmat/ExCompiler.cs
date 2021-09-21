@@ -1675,7 +1675,6 @@ namespace ExMat.Compiler
         {
             switch (etyp)    // İfade tipini kontrol et
             {
-                case ExEType.CONSTDELEG: return AddToErrorMessage("can't modify a constant's delegate");
                 case ExEType.EXPRESSION: return AddToErrorMessage("can't assing an expression");
                 case ExEType.BASE: return AddToErrorMessage("can't modify 'base'");
                 default: return true;
@@ -2331,10 +2330,6 @@ namespace ExMat.Compiler
 
             switch (ExpressionState.Type)
             {
-                case ExEType.CONSTDELEG:
-                    {
-                        return AddToErrorMessage("can't increment or decrement a delegate");
-                    }
                 case ExEType.EXPRESSION:
                     {
                         return AddToErrorMessage("can't increment or decrement an expression");
@@ -2986,10 +2981,6 @@ namespace ExMat.Compiler
 
             switch (ExpressionState.Type)
             {
-                case ExEType.CONSTDELEG:
-                    {
-                        return AddToErrorMessage("can't increment or decrement a delegate!");
-                    }
                 case ExEType.EXPRESSION:
                     {
                         return AddToErrorMessage("can't increment or decrement an expression!");
