@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Objects;
 using ExMat.Utils;
 using ExMat.VM;

@@ -1,9 +1,10 @@
 ﻿using System;
+using ExMat.Objects;
 #if DEBUG
 using System.Diagnostics;
 #endif
 
-namespace ExMat.Objects
+namespace ExMat.Attributes
 {
     /// <summary>
     /// Attribute to register a native function parameter
@@ -25,7 +26,7 @@ namespace ExMat.Objects
         public string Name;
 
         /// <summary>
-        /// Parameter type mask string. See <see cref="API.ExApi.CompileTypeMask(string, System.Collections.Generic.List{int})"/>
+        /// Parameter type mask string. See <see cref="ExMat.TypeMasks"/>
         /// </summary>
         public string TypeMask;
 
@@ -39,8 +40,18 @@ namespace ExMat.Objects
         /// </summary>
         public ExObject DefaultValue;
 
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExNativeParamBase() { }
 
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, no default value
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, see <see cref="ExMat.TypeMasks"/> docs</param>
+        /// <param name="description">Parameter description</param>
         public ExNativeParamBase(int idx, string name, string typeMask, string description)
         {
             Index = idx;
@@ -49,6 +60,15 @@ namespace ExMat.Objects
             Description = description;
         }
 
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.NULL"/>
+        /// <paramref name="nullDefault"/> value doesn't matter!
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, see <see cref="ExMat.TypeMasks"/> docsoperator</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="nullDefault">Any character, <see cref="ExObjType.NULL"/> is used as default value in any case</param>
         public ExNativeParamBase(int idx, string name, string typeMask, string description, char nullDefault)
         {
             Index = idx;
@@ -58,6 +78,14 @@ namespace ExMat.Objects
             DefaultValue = new();
         }
 
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.STRING"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, see <see cref="ExMat.TypeMasks"/> docs</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">String default value</param>
         public ExNativeParamBase(int idx, string name, string typeMask, string description, string def)
         {
             Index = idx;
@@ -67,6 +95,14 @@ namespace ExMat.Objects
             DefaultValue = def == null ? (new()) : (new(def));
         }
 
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.INTEGER"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, see <see cref="ExMat.TypeMasks"/> docs</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">Integer default value</param>
         public ExNativeParamBase(int idx, string name, string typeMask, string description, long def)
         {
             Index = idx;
@@ -76,6 +112,14 @@ namespace ExMat.Objects
             DefaultValue = new(def);
         }
 
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.FLOAT"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, see <see cref="ExMat.TypeMasks"/> docs</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">Float default value</param>
         public ExNativeParamBase(int idx, string name, string typeMask, string description, double def)
         {
             Index = idx;
@@ -85,11 +129,120 @@ namespace ExMat.Objects
             DefaultValue = new(def);
         }
 
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.BOOL"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, see <see cref="ExMat.TypeMasks"/> docs</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">Boolean default value</param>
         public ExNativeParamBase(int idx, string name, string typeMask, string description, bool def)
         {
             Index = idx;
             Name = name;
             TypeMask = typeMask;
+            Description = description;
+            DefaultValue = new(def);
+        }
+
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, no default value
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, allows combinations with <c>|</c> operator</param>
+        /// <param name="description">Parameter description</param>
+        public ExNativeParamBase(int idx, string name, ExBaseType typeMask, string description)
+        {
+            Index = idx;
+            Name = name;
+            TypeMask = API.ExApi.DecompileTypeMaskChar(typeMask);
+            Description = description;
+        }
+
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.NULL"/>
+        /// <paramref name="nullDefault"/> value doesn't matter!
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, allows combinations with <c>|</c> operator</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="nullDefault">Any character, <see cref="ExObjType.NULL"/> is used as default value in any case</param>
+        public ExNativeParamBase(int idx, string name, ExBaseType typeMask, string description, char nullDefault)
+        {
+            Index = idx;
+            Name = name;
+            TypeMask = API.ExApi.DecompileTypeMaskChar(typeMask);
+            Description = description;
+            DefaultValue = new();
+        }
+
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.STRING"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, allows combinations with <c>|</c> operator</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">String default value</param>
+        public ExNativeParamBase(int idx, string name, ExBaseType typeMask, string description, string def)
+        {
+            Index = idx;
+            Name = name;
+            TypeMask = API.ExApi.DecompileTypeMaskChar(typeMask);
+            Description = description;
+            DefaultValue = def == null ? (new()) : (new(def));
+        }
+
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.INTEGER"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, allows combinations with <c>|</c> operator</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">Integer default value</param>
+        public ExNativeParamBase(int idx, string name, ExBaseType typeMask, string description, long def)
+        {
+            Index = idx;
+            Name = name;
+            TypeMask = API.ExApi.DecompileTypeMaskChar(typeMask);
+            Description = description;
+            DefaultValue = new(def);
+        }
+
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.FLOAT"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, allows combinations with <c>|</c> operator</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">Float default value</param>
+        public ExNativeParamBase(int idx, string name, ExBaseType typeMask, string description, double def)
+        {
+            Index = idx;
+            Name = name;
+            TypeMask = API.ExApi.DecompileTypeMaskChar(typeMask);
+            Description = description;
+            DefaultValue = new(def);
+        }
+
+        /// <summary>
+        /// Parameter no #<paramref name="idx"/>, named <paramref name="name"/>, accepting types <paramref name="typeMask"/>, described as <paramref name="description"/>, default value <see cref="ExObjType.BOOL"/> <paramref name="def"/>
+        /// </summary>
+        /// <param name="idx">Parameter no</param>
+        /// <param name="name">Parameter name</param>
+        /// <param name="typeMask">Parameter type mask, allows combinations with <c>|</c> operator</param>
+        /// <param name="description">Parameter description</param>
+        /// <param name="def">Boolean default value</param>
+        public ExNativeParamBase(int idx, string name, ExBaseType typeMask, string description, bool def)
+        {
+            Index = idx;
+            Name = name;
+            TypeMask = API.ExApi.DecompileTypeMaskChar(typeMask);
             Description = description;
             DefaultValue = new(def);
         }

@@ -4,21 +4,41 @@ using System.Diagnostics;
 #endif
 using ExMat.Objects;
 using ExMat.States;
-using ExMat.VM;
 
 namespace ExMat.ExClass
 {
+    /// <summary>
+    /// Instance object model
+    /// </summary>
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
     public class ExInstance : ExRefC
     {
+        /// <summary>
+        /// Meta methods and other delegates dictionary
+        /// </summary>
         public ExObject Delegate;
+        /// <summary>
+        /// Shared state
+        /// </summary>
         public ExSState SharedState;
+        /// <summary>
+        /// Class instanced from
+        /// </summary>
         public ExClass Class;
+        /// <summary>
+        /// Members list
+        /// </summary>
         public List<ExObject> MemberValues;
+        /// <summary>
+        /// Unique hash value
+        /// </summary>
         public readonly ulong Hash;
 
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExInstance()
         {
             MemberValues = new();
@@ -26,18 +46,19 @@ namespace ExMat.ExClass
             Hash = (((ulong)(int)dt.Kind) << 62) | ((ulong)dt.Ticks);
         }
 
-        public static new ExObjType GetType()
-        {
-            return ExObjType.INSTANCE;
-        }
-
-        public bool GetMetaM(ExVM vm, ExMetaMethod m, ref ExObject res)
+        /// <summary>
+        /// Get a meta method from <see cref="Delegate"/> dictionary
+        /// </summary>
+        /// <param name="m">Neta method</param>
+        /// <param name="res">Result closure object</param>
+        /// <returns>Wheter meta method was defined and found</returns>
+        public bool GetMetaM(ExMetaMethod m, ref ExObject res)
         {
             if (Delegate != null)
             {
                 if (Delegate.Type == ExObjType.DICT)
                 {
-                    string k = vm.SharedState.MetaMethods[(int)m].GetString();
+                    string k = SharedState.MetaMethods[(int)m].GetString();
                     if (Delegate.GetDict().ContainsKey(k))
                     {
                         res.Assign(Delegate.GetDict()[k]);
@@ -46,7 +67,7 @@ namespace ExMat.ExClass
                 }
                 else if (Delegate.Type == ExObjType.ARRAY)
                 {
-                    int k = vm.SharedState.GetMetaIdx(vm.SharedState.MetaMethods[(int)m].GetString());
+                    int k = SharedState.GetMetaIdx(SharedState.MetaMethods[(int)m].GetString());
                     if (ExTypeCheck.IsNotNull(Delegate.GetList()[k]))
                     {
                         res.Assign(Delegate.GetList()[k]);
@@ -58,23 +79,23 @@ namespace ExMat.ExClass
             return false;
         }
 
+        /// <summary>
+        /// Initialize <see cref="Delegate"/> and increment <see cref="Class"/> reference count
+        /// </summary>
+        /// <param name="exs">Shared state</param>
         public void Init(ExSState exs)
         {
+            SharedState = exs;
             Delegate = new ExObject(Class.MetaFuncs);
             Class.ReferenceCount++;
         }
 
-        public static ExInstance Create(ExSState exS, ExInstance inst)
-        {
-            ExInstance ins = new() { SharedState = exS, Class = inst.Class };
-            for (int i = 0; i < inst.Class.DefaultValues.Count; i++)
-            {
-                ins.MemberValues.Add(new ExObject(inst.Class.DefaultValues[i].Value));
-            }
-            ins.Init(exS);
-            return ins;
-        }
-
+        /// <summary>
+        /// Create and initialize instance from given class
+        /// </summary>
+        /// <param name="exS">Shared state</param>
+        /// <param name="cls">Class to instance from</param>
+        /// <returns>Created instance</returns>
         public static ExInstance Create(ExSState exS, ExClass cls)
         {
             ExInstance ins = new() { SharedState = exS, Class = cls };
@@ -86,16 +107,11 @@ namespace ExMat.ExClass
             return ins;
         }
 
-        public bool GetMeta(int midx, ref ExObject res)
-        {
-            if (ExTypeCheck.IsNotNull(Class.MetaFuncs[midx]))
-            {
-                res = Class.MetaFuncs[midx];
-                return true;
-            }
-            return false;
-        }
-
+        /// <summary>
+        /// Check if the instance is an instance of given class
+        /// </summary>
+        /// <param name="cls">Class to check</param>
+        /// <returns>Wheter the instance was instanced from <paramref name="cls"/> class</returns>
         public bool IsInstanceOf(ExClass cls)
         {
             ExClass p = Class;
@@ -110,26 +126,14 @@ namespace ExMat.ExClass
             return false;
         }
 
-        public virtual void Release()
-        {
-            if ((--ReferenceCount) == 0)
-            {
-                if (Class != null)
-                {
-                    Class.Release();
-                }
-                MemberValues.RemoveAll((ExObject e) => true); MemberValues = null;
-            }
-        }
-
 #if DEBUG
-        public new string GetDebuggerDisplay()
+        private new string GetDebuggerDisplay()
         {
             return "INSTANCE(n_vals: " + MemberValues.Count + ")";
         }
 #endif
 
-        protected override void Dispose(bool disposing)
+        internal override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {
@@ -137,7 +141,8 @@ namespace ExMat.ExClass
             }
             base.Dispose(disposing);
 
-            ExDisposer.DisposeObjects(Class);
+            Class.Release();
+
             ExDisposer.DisposeList(ref MemberValues);
         }
     }

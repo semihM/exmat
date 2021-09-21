@@ -9,7 +9,7 @@ namespace ExMat.Objects
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExStack : IDisposable
+    internal class ExStack : IDisposable
     {
         public List<ExObject> Values;   // Yığındaki objeler
 

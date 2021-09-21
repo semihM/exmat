@@ -6,23 +6,42 @@ using System.Globalization;
 
 namespace ExMat.Objects
 {
+    /// <summary>
+    /// Space object model
+    /// </summary>
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
     public class ExSpace : ExRefC
     {
+        /// <summary>
+        /// Dimension
+        /// </summary>
         public int Dimension = 1;
+        /// <summary>
+        /// Domain: R, Z, C, E ; Lower case to exclude zero (except for E)
+        /// </summary>
         public string Domain = string.Empty;
+        /// <summary>
+        /// Sign: +, -, \\ (Any)
+        /// </summary>
         public char Sign = '\\';
 
+        /// <summary>
+        /// Inner space for extra dimensions
+        /// </summary>
         public ExSpace Child;
 
+        /// <summary>
+        /// Get string representation
+        /// </summary>
+        /// <returns></returns>
         public string GetString()
         {
             return "@" + Domain + "@" + Sign + "@" + Dimension + (Child == null ? "" : "$$" + Child.GetString());
         }
 
-        public static ExSpace GetSpaceFromString(string s)
+        internal static ExSpace GetSpaceFromString(string s)
         {
             ExSpace spc = new();
             ExSpace curr = spc;
@@ -38,7 +57,17 @@ namespace ExMat.Objects
             }
             return spc.Child;
         }
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExSpace() { }
+        /// <summary>
+        /// Space with given dimension, domain, sign and inner space
+        /// </summary>
+        /// <param name="dim">Dimension</param>
+        /// <param name="dom">Domain</param>
+        /// <param name="sign">Sign</param>
+        /// <param name="ch">Extras</param>
         public ExSpace(int dim, string dom, char sign, ExSpace ch)
         {
             Dimension = dim;
@@ -47,11 +76,12 @@ namespace ExMat.Objects
             Child = ch;
         }
 
-        public void AddDimension(ExSpace ch)
-        {
-            Child = new(ch.Dimension, ch.Domain, ch.Sign, ch.Child);
-        }
-
+        /// <summary>
+        /// Space with given domain, dimension, sign
+        /// </summary>
+        /// <param name="spc">Domain</param>
+        /// <param name="d">Dimension</param>
+        /// <param name="s">Sign</param>
         public ExSpace(string spc, int d, char s = '\\')
         {
             Domain = spc;
@@ -59,12 +89,28 @@ namespace ExMat.Objects
             Sign = s;
         }
 
+        /// <summary>
+        /// Add given space as dimension
+        /// </summary>
+        /// <param name="ch"></param>
+        public void AddDimension(ExSpace ch)
+        {
+            Child = new(ch.Dimension, ch.Domain, ch.Sign, ch.Child);
+        }
+
+        /// <summary>
+        /// Return a new space instance with given values
+        /// </summary>
+        /// <param name="spc"></param>
+        /// <param name="s"></param>
+        /// <param name="dims"></param>
+        /// <returns></returns>
         public static ExObject Create(string spc, char s, params int[] dims)
         {
             return new(CreateSpace(spc, s, dims));
         }
 
-        public static ExSpace CreateSpace(string spc, char s, params int[] dims)
+        private static ExSpace CreateSpace(string spc, char s, params int[] dims)
         {
             if (dims.Length == 0)
             {
@@ -90,6 +136,10 @@ namespace ExMat.Objects
             return p;
         }
 
+        /// <summary>
+        /// Get informational string represtation
+        /// </summary>
+        /// <returns></returns>
         public string GetSpaceString()
         {
             string s = "SPACE(" + Domain + ", " + (Dimension == -1 ? "var" : Dimension) + (Sign == '\\' ? ")" : ", " + Sign + ")");
@@ -101,19 +151,28 @@ namespace ExMat.Objects
         }
 
 #if DEBUG
-        protected override string GetDebuggerDisplay()
+        internal override string GetDebuggerDisplay()
         {
             return GetSpaceString();
         }
 #endif
-        public static void Copy(ExSpace p, ExSpace ch)
+        /// <summary>
+        /// Get a copy of the given space
+        /// </summary>
+        /// <param name="to">Destination</param>
+        /// <param name="from">Source</param>
+        public static void Copy(ExSpace to, ExSpace from)
         {
-            p.Dimension = ch.Dimension;
-            p.Sign = ch.Sign;
-            p.Domain = ch.Domain;
-            p.Child = ch.Child;
+            to.Dimension = from.Dimension;
+            to.Sign = from.Sign;
+            to.Domain = from.Domain;
+            to.Child = from.Child;
         }
 
+        /// <summary>
+        /// Get a new and exact copy of the space
+        /// </summary>
+        /// <returns></returns>
         public ExSpace DeepCopy()
         {
             ExSpace s = new();
@@ -130,21 +189,7 @@ namespace ExMat.Objects
             return s;
         }
 
-        public ExSpace this[int i]
-        {
-            get
-            {
-                ExSpace ch = Child;
-                while (i > 0 && ch != null)
-                {
-                    i--;
-                    ch = ch.Child;
-                }
-                return ch;
-            }
-        }
-
-        public int VarCount()
+        internal int VarCount()
         {
             int d = Dimension == -1 ? 1 : 0;
             ExSpace ch = Child;
@@ -156,19 +201,7 @@ namespace ExMat.Objects
             return d;
         }
 
-        public int Depth()
-        {
-            int d = 1;
-            ExSpace ch = Child;
-            while (ch != null)
-            {
-                d++;
-                ch = ch.Child;
-            }
-            return d;
-        }
-
-        protected override void Dispose(bool disposing)
+        internal override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

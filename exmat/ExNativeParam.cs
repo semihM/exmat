@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using ExMat.Attributes;
 
 namespace ExMat.Objects
 {
     /// <summary>
-    /// Function parameter class
+    /// Native function parameter class
     /// </summary>
-    public class ExNativeParam : ExNativeParamBase, IDisposable
+    internal class ExNativeParam : ExNativeParamBase, IDisposable
     {
         /// <summary>
         /// Parameter type mask using <see cref="ExObjType"/> combinations
@@ -30,8 +31,15 @@ namespace ExMat.Objects
 
         private bool disposedValue;
 
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExNativeParam() { }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="ex"></param>
         public ExNativeParam(ExNativeParamBase ex)
         {
             Initialize(ex.Name, ex.TypeMask, ex.Description, ex.DefaultValue, ex.Index);

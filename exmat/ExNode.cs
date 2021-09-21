@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ExMat.InfoVar
 {
-    public class ExNode<T> : IDisposable
+    internal class ExNode<T> : IDisposable
         where T : class, IDisposable, new()
     {
         public ExNode<T> Prev;

@@ -6,33 +6,54 @@ using ExMat.States;
 
 namespace ExMat.Outer
 {
+    /// <summary>
+    /// Internal object for outer value references
+    /// </summary>
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
     public class ExOuter : ExRefC
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public int Index;
+        /// <summary>
+        /// 
+        /// </summary>
         public ExObject ValueRef;
-
+        /// <summary>
+        /// 
+        /// </summary>
         public ExOuter _prev;
+        /// <summary>
+        /// 
+        /// </summary>
         public ExOuter _next;
+        /// <summary>
+        /// 
+        /// </summary>
         public ExSState SharedState;
-
+        /// <summary>
+        /// 
+        /// </summary>
         public ExOuter()
         {
         }
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="exS"></param>
+        /// <param name="o"></param>
+        /// <returns></returns>
         public static ExOuter Create(ExSState exS, ExObject o)
         {
             ExOuter exo = new() { SharedState = exS, ValueRef = new(o) };
             return exo;
         }
-
-        public static new ExObjType GetType()
-        {
-            return ExObjType.OUTER;
-        }
-
+        /// <summary>
+        /// 
+        /// </summary>
         public virtual void Release()
         {
             if (--ReferenceCount == 0)
@@ -57,13 +78,13 @@ namespace ExMat.Outer
         }
 
 #if DEBUG
-        public new string GetDebuggerDisplay()
+        internal new string GetDebuggerDisplay()
         {
             return "OUTER(" + Index + ", " + (ValueRef == null ? "null" : ValueRef.GetInt()) + ")";
         }
 #endif
 
-        protected override void Dispose(bool disposing)
+        internal override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

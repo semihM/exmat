@@ -14,7 +14,7 @@ namespace ExMat.Lexer
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExLexer : IDisposable
+    internal class ExLexer : IDisposable
     {
         /// <summary>
         /// Source code

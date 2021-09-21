@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ExMat.Objects
+namespace ExMat.Attributes
 {
     /// <summary>
     /// Common delegate native function types, used for template <see cref="ExNativeFuncDelegate(ExCommonDelegateType, char)"/> constructor
@@ -24,6 +24,9 @@ namespace ExMat.Objects
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
     public class ExNativeFuncDelegate : ExNativeFuncBase
     {
+        /// <summary>
+        /// Initialize <see cref="ExNativeFuncBase"/> as delegate
+        /// </summary>
         public ExNativeFuncDelegate()
         {
             IsDelegateFunction = true;
@@ -45,25 +48,49 @@ namespace ExMat.Objects
             IsDelegateFunction = true;
         }
 
+        /// <summary>
+        /// Construct delegate  from common delegate types
+        /// </summary>
+        /// <param name="commonDelegateType">Template type</param>
+        /// <param name="basetype">Delegate base type mask</param>
         public ExNativeFuncDelegate(ExCommonDelegateType commonDelegateType, char basetype)
         {
             IsDelegateFunction = true;
             BaseTypeMask = basetype;
+            Init(this, commonDelegateType);
+        }
 
+        /// <summary>
+        /// Construct delegate  from common delegate types
+        /// </summary>
+        /// <param name="commonDelegateType">Template type</param>
+        /// <param name="basetype">Delegate base type mask</param>
+        public ExNativeFuncDelegate(ExCommonDelegateType commonDelegateType, ExBaseType basetype)
+        {
+            string mask = API.ExApi.DecompileTypeMaskChar(basetype);
+            BaseTypeMask = string.IsNullOrWhiteSpace(mask) ? '.' : mask[0];
+
+            IsDelegateFunction = true;
+
+            Init(this, commonDelegateType);
+        }
+
+        private static void Init(ExNativeFuncDelegate attr, ExCommonDelegateType commonDelegateType)
+        {
             switch (commonDelegateType)
             {
                 case ExCommonDelegateType.LENGTH:
                     {
-                        Name = "len";
-                        Returns = ExBaseType.INTEGER;
-                        Description = "Returns the 'length' of the object";
+                        attr.Name = "len";
+                        attr.Returns = ExBaseType.INTEGER;
+                        attr.Description = "Returns the 'length' of the object";
                         break;
                     }
                 case ExCommonDelegateType.WEAKREF:
                     {
-                        Name = "weakref";
-                        Returns = ExBaseType.WEAKREF;
-                        Description = "Returns a weak reference of the object";
+                        attr.Name = "weakref";
+                        attr.Returns = ExBaseType.WEAKREF;
+                        attr.Description = "Returns a weak reference of the object";
                         break;
                     }
             }

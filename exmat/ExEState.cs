@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace ExMat.States
 {
-    public enum ExEType
+    internal enum ExEType
     {
         EXPRESSION, // İfade
         OBJECT,     // Obje
@@ -17,7 +17,7 @@ namespace ExMat.States
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExEState
+    internal class ExEState
     {
         public ExEType Type;        // İfade tipi
         public int Position;        // İfade hedef bellek pozisyonu

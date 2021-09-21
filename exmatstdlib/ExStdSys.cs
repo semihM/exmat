@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Objects;
 using ExMat.VM;
 
@@ -257,11 +258,11 @@ namespace ExMat.StdLib
             }
             ExFunctionStatus stat;
 
-            Process p = new();
+            using Process p = new();
 
             string fname = vm.StartDirectory + "\\" + ExApi.RandomString(48);
             File.WriteAllText(fname,
-                string.Format(CultureInfo.CurrentCulture, "// This file is a temporary file for created by 'print_out'\nprint(\"{0}\".slice(1,-1));exit()", ExApi.GetEscapedFormattedString(output, true)));
+                string.Format(CultureInfo.CurrentCulture, "// This file is a temporary file for created by 'print_out'\nprint(\"{0}\");exit()", ExApi.Escape(output)));
 
             File.SetAttributes(fname, FileAttributes.ReadOnly | FileAttributes.Hidden);
 

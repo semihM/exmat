@@ -1,5 +1,8 @@
 ﻿namespace ExMat.Token
 {
+    /// <summary>
+    /// Source code tokens
+    /// </summary>
     public enum TokenType
     {
         // Okuma süreci kontrolü
@@ -95,7 +98,7 @@
         /// </summary>
         DEC,        // --
         /// <summary>
-        /// "<<" characters
+        /// "&lt;&lt;" characters
         /// </summary>
         LSHF,       // <<
         /// <summary>
@@ -125,7 +128,7 @@
         /// </summary>
         BNOT,       // ~
         /// <summary>
-        /// '&' character
+        /// '&amp;' character
         /// </summary>
         BAND,       // &
         /// <summary>
@@ -137,7 +140,7 @@
         /// </summary>
         BXOR,       // ^
         /// <summary>
-        /// "&&" characters or "and" named keyword 
+        /// "&amp;&amp;" characters or "and" named keyword 
         /// </summary>
         AND,        // &&
         /// <summary>
@@ -164,7 +167,7 @@
         /// </summary>
         QMARK,  // ?
         /// <summary>
-        /// '<' character
+        /// '&lt;' character
         /// </summary>
         LST,    // <
         /// <summary>
@@ -172,7 +175,7 @@
         /// </summary>
         GRT,    // >
         /// <summary>
-        /// "<=" characters
+        /// "&lt;=" characters
         /// </summary>
         LET,    // <=
         /// <summary>
@@ -339,7 +342,7 @@
         /// </summary>
         DEFAULT,
         /// <summary>
-        /// "<>" characters, new dictionary slot or class member
+        /// "&lt;>" characters, new dictionary slot or class member
         /// </summary>
         NEWSLOT,
         /// <summary>

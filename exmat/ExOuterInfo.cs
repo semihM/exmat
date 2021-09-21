@@ -9,7 +9,7 @@ namespace ExMat.InfoVar
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExOuterInfo : IDisposable
+    internal class ExOuterInfo : IDisposable
     {
         public ExObject Name = new();   // Değişken ismi
         public ExObject Index = new();  // Sanal bellekteki indeks

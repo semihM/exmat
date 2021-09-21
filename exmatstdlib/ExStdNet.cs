@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using ExMat.Attributes;
 using ExMat.Objects;
 using ExMat.VM;
 using HtmlAgilityPack;

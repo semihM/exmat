@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace ExMat.Objects
+namespace ExMat.Attributes
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true, Inherited = true)]
-    public class ExConsoleHelper : Attribute
+    internal class ExConsoleHelper : Attribute
     {
         public string Source = string.Empty;
         public string Help = string.Empty;

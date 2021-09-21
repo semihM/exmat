@@ -12,36 +12,70 @@ using ExMat.Outer;
 
 namespace ExMat.Objects
 {
+    /// <summary>
+    /// Base object model
+    /// </summary>
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
     public class ExObject : IDisposable
     {
+        /// <summary>
+        /// Object type
+        /// </summary>
         public ExObjType Type = ExObjType.NULL; // Veri tipi
+        /// <summary>
+        /// Basic values: integer, float, boolean, complex(imaginary factor)
+        /// </summary>
         public ExObjVal Value;                  // Veri değeri
+        /// <summary>
+        /// Custom values
+        /// </summary>
         public ExObjValCustom ValueCustom;
 
         private bool disposedValue;
 
+        /// <summary>
+        /// Get the integer value stored
+        /// </summary>
+        /// <returns>If <see cref="Type"/> is <see cref="ExObjType.INTEGER"/> -> returns <see cref="ExObjVal.i_Int"/> from <see cref="Value"/>
+        /// <para>Otherwise -> returns <see cref="ExObjVal.f_Float"/> from <see cref="Value"/> as integer (unsafe limits)</para></returns>
         public long GetInt()
         {
             return Type == ExObjType.INTEGER ? Value.i_Int : (long)Value.f_Float;
         }
 
+        /// <summary>
+        /// Get the float value stored
+        /// </summary>
+        /// <returns>If <see cref="Type"/> is <see cref="ExObjType.FLOAT"/> -> returns <see cref="ExObjVal.f_Float"/> from <see cref="Value"/>
+        /// <para>Otherwise -> returns <see cref="ExObjVal.i_Int"/> from <see cref="Value"/> as float</para></returns>
         public double GetFloat()
         {
             return Type == ExObjType.FLOAT ? Value.f_Float : Value.i_Int;
         }
 
+        /// <summary>
+        /// Get the complex value stored
+        /// </summary>
+        /// <returns>New <see cref="Complex"/> struct using <see cref="ExObjVal.f_Float"/> and <see cref="ExObjVal.c_Float"/> for real and imaginary parts respectively</returns>
         public Complex GetComplex()
         {
             return new(Value.f_Float, Value.c_Float);
         }
+        /// <summary>
+        /// Get the complex value stored conjugated
+        /// </summary>
+        /// <returns>New <see cref="Complex"/> struct using <see cref="ExObjVal.f_Float"/> and <c>-</c><see cref="ExObjVal.c_Float"/> for real and imaginary parts respectively</returns>
         public Complex GetComplexConj()
         {
             return new(Value.f_Float, -Value.c_Float);
         }
 
+        /// <summary>
+        /// Get the string represtation of the complex value stored, zero values not used unless both parts are zero => 0i
+        /// </summary>
+        /// <returns>String in format <c>{<see cref="ExObjVal.f_Float"/>} +/- {<see cref="ExObjVal.c_Float"/>}i</c></returns>
         public string GetComplexString()
         {
             return Value.f_Float == 0.0
@@ -53,6 +87,10 @@ namespace ExMat.Objects
                                     : Value.f_Float + Value.c_Float.ToString(CultureInfo.CurrentCulture) + "i";
         }
 
+        /// <summary>
+        /// Get string value stored, never returns <see langword="null"/>, uses <see cref="string.Empty"/> instead.
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom.s_String"/></returns>
         public string GetString()
         {
             switch (Type)
@@ -69,16 +107,24 @@ namespace ExMat.Objects
             }
         }
 
+        /// <summary>
+        /// Gets the weak reference object stored
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom._WeakRef"/></returns>
         public ExWeakRef GetWeakRef()
         {
             return ValueCustom._WeakRef;
         }
 
-        public void SetString(string s)
+        internal void SetString(string s)
         {
             ValueCustom.s_String = s;
         }
 
+        /// <summary>
+        /// Gets the boolean value of for any type
+        /// </summary>
+        /// <returns>Returns bool represtation of the current value stored for the <see cref="Type"/></returns>
         public bool GetBool()
         {
             if (ExTypeCheck.IsFalseable(this))
@@ -102,43 +148,72 @@ namespace ExMat.Objects
             return true;
         }
 
+
+        /// <summary>
+        /// Gets the <see cref="Dictionary{TKey, TVal}"/> stored (&lt;<see cref="string"/>,<see cref="ExObject"/>&gt;)
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom.d_Dict"/></returns>
         public Dictionary<string, ExObject> GetDict()
         {
             return ValueCustom.d_Dict;
         }
 
+        /// <summary>
+        /// Gets the <see cref="List{T}"/> stored (&lt;<see cref="ExObject"/>&gt;)
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom.l_List"/></returns>
         public List<ExObject> GetList()
         {
             return ValueCustom.l_List;
         }
 
+        /// <summary>
+        /// Gets the closure stored
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom._Closure"/></returns>
         public ExClosure GetClosure()
         {
             return ValueCustom._Closure;
         }
 
+        /// <summary>
+        /// Gets the native closure stored
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom._NativeClosure"/></returns>
         public ExNativeClosure GetNClosure()
         {
             return ValueCustom._NativeClosure;
         }
 
+        /// <summary>
+        /// Gets the instance stored
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom._Instance"/></returns>
         public ExInstance GetInstance()
         {
             return ValueCustom._Instance;
         }
 
+        /// <summary>
+        /// Gets the class stored
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom._Class"/></returns>
         public ExClass.ExClass GetClass()
         {
             return ValueCustom._Class;
         }
 
+        /// <summary>
+        /// Gets the space object stored
+        /// </summary>
+        /// <returns>Returns <see cref="ExObjValCustom.c_Space"/></returns>
         public ExSpace GetSpace()
         {
             return ValueCustom.c_Space;
         }
 
 #if DEBUG
-        public virtual string GetDebuggerDisplay()
+        internal virtual string GetDebuggerDisplay()
         {
             string s = Type.ToString();
             switch (Type)
@@ -157,7 +232,7 @@ namespace ExMat.Objects
         }
 #endif
 
-        protected virtual void Dispose(bool disposing)
+        internal virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -172,6 +247,9 @@ namespace ExMat.Objects
             }
         }
 
+        /// <summary>
+        /// Disposer
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
@@ -179,19 +257,38 @@ namespace ExMat.Objects
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Wheter this object is a field in an <see cref="ExClass.ExClass"/> object
+        /// </summary>
+        /// <returns></returns>
         public bool IsField()
         {
             return (GetInt() & (int)ExMemberFlag.FIELD) > 0;
         }
+        /// <summary>
+        /// Wheter this object is a method in an <see cref="ExClass.ExClass"/> object
+        /// </summary>
+        /// <returns></returns>
         public bool IsMethod()
         {
             return (GetInt() & (int)ExMemberFlag.METHOD) > 0;
         }
+
+        /// <summary>
+        /// Get the member index of this object in an <see cref="ExClass.ExClass"/> object
+        /// </summary>
+        /// <returns></returns>
         public int GetMemberID()
         {
             return (int)GetInt() & 0x00FFFFFF;
         }
 
+        /// <summary>
+        /// Increment reference count to this object, can be forced with <paramref name="forced"/> to skip type check, requires <paramref name="t"/> to be reference counting type
+        /// </summary>
+        /// <param name="t">Object type</param>
+        /// <param name="v">Object value storing reference counter</param>
+        /// <param name="forced">Wheter to skip type check</param>
         public static void AddReference(ExObjType t, ExObjValCustom v, bool forced = false)
         {
             if (forced || ExTypeCheck.DoesTypeCountRef(t))
@@ -200,6 +297,9 @@ namespace ExMat.Objects
             }
         }
 
+        /// <summary>
+        /// Decrement reference count to this object, if reference count hits <c>0</c>, object will be disposed
+        /// </summary>
         public virtual void Release()
         {
             if (ExTypeCheck.DoesTypeCountRef(Type) && ((--ValueCustom._RefC.ReferenceCount) == 0))
@@ -207,7 +307,8 @@ namespace ExMat.Objects
                 Nullify();
             }
         }
-        public static void Release(ExObjType t, ExObjValCustom v)
+
+        internal static void Release(ExObjType t, ExObjValCustom v)
         {
             if (ExTypeCheck.DoesTypeCountRef(t) && (--v._RefC.ReferenceCount) == 0)
             {
@@ -229,8 +330,11 @@ namespace ExMat.Objects
         }
 
         ///////////////////////////////
-        /// BASIC
+        // BASIC
         ///////////////////////////////
+        /// <summary>
+        /// Null constructor
+        /// </summary>
         public ExObject()
         {
             Type = ExObjType.NULL;
@@ -238,6 +342,10 @@ namespace ExMat.Objects
             ValueCustom = new();
         }
 
+        /// <summary>
+        /// Copy and reference to given object
+        /// </summary>
+        /// <param name="other">Object to increment reference of</param>
         public ExObject(ExObject other)
         {
             Type = other.Type;
@@ -247,32 +355,52 @@ namespace ExMat.Objects
         }
 
         ///////////////////////////////
-        /// SCALAR
+        // SCALAR
         ///////////////////////////////
+        /// <summary>
+        /// Integer constructor
+        /// </summary>
+        /// <param name="i">Value to store</param>
         public ExObject(long i)
         {
             Type = ExObjType.INTEGER;
             Value.i_Int = i;
         }
 
+        /// <summary>
+        /// Float constructor
+        /// </summary>
+        /// <param name="f">Value to store</param>
         public ExObject(double f)
         {
             Type = ExObjType.FLOAT;
             Value.f_Float = f;
         }
 
+        /// <summary>
+        /// Bool constructor
+        /// </summary>
+        /// <param name="b">Value to store</param>
         public ExObject(bool b)
         {
             Type = ExObjType.BOOL;
             Value.b_Bool = b;
         }
 
+        /// <summary>
+        /// String constructor
+        /// </summary>
+        /// <param name="s">Value to store</param>
         public ExObject(string s)
         {
             Type = ExObjType.STRING;
             ValueCustom.s_String = s;
         }
 
+        /// <summary>
+        /// Complex number constructor
+        /// </summary>
+        /// <param name="cmplx">Value to store</param>
         public ExObject(Complex cmplx)
         {
             Type = ExObjType.COMPLEX;
@@ -281,8 +409,12 @@ namespace ExMat.Objects
         }
 
         ///////////////////////////////
-        /// Ref counted
+        // Ref counted
         ///////////////////////////////
+        /// <summary>
+        /// Dictionary constructor
+        /// </summary>
+        /// <param name="dict">Value to store</param>
         public ExObject(Dictionary<string, ExObject> dict)
         {
             Type = ExObjType.DICT;
@@ -291,6 +423,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// List constructor
+        /// </summary>
+        /// <param name="lis">Value to store</param>
         public ExObject(List<ExObject> lis)
         {
             Type = ExObjType.ARRAY;
@@ -299,6 +435,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Instance constructor
+        /// </summary>
+        /// <param name="inst">Value to store</param>
         public ExObject(ExInstance inst)
         {
             Type = ExObjType.INSTANCE;
@@ -307,6 +447,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Class constructor
+        /// </summary>
+        /// <param name="class">Value to store</param>
         public ExObject(ExClass.ExClass @class)
         {
             Type = ExObjType.CLASS;
@@ -315,6 +459,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Closure constructor
+        /// </summary>
+        /// <param name="cls">Value to store</param>
         public ExObject(ExClosure cls)
         {
             Type = ExObjType.CLOSURE;
@@ -323,6 +471,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Native closure constructor
+        /// </summary>
+        /// <param name="ncls">Value to store</param>
         public ExObject(ExNativeClosure ncls)
         {
             Type = ExObjType.NATIVECLOSURE;
@@ -331,6 +483,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Outer constructor
+        /// </summary>
+        /// <param name="outer">Value to store</param>
         public ExObject(ExOuter outer)
         {
             Type = ExObjType.OUTER;
@@ -339,6 +495,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Weakreference constructor
+        /// </summary>
+        /// <param name="wref">Value to store</param>
         public ExObject(ExWeakRef wref)
         {
             Type = ExObjType.WEAKREF;
@@ -347,6 +507,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Prototype constructor
+        /// </summary>
+        /// <param name="pro">Value to store</param>
         public ExObject(ExPrototype pro)
         {
             Type = ExObjType.FUNCPRO;
@@ -355,6 +519,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Space constructor
+        /// </summary>
+        /// <param name="space">Value to store</param>
         public ExObject(ExSpace space)
         {
             Type = ExObjType.SPACE;
@@ -363,6 +531,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
         }
 
+        /// <summary>
+        /// Reference to another object, deref current values stored
+        /// </summary>
+        /// <param name="other">Other object</param>
         // Assignement
         public void Assign(ExObject other)
         {
@@ -376,30 +548,51 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom);
             Release(t, v);
         }
+
+        /// <summary>
+        /// Assing integer, deref current values stored
+        /// </summary>
+        /// <param name="i">New value</param>
         public void Assign(long i)
         {
             Release(Type, ValueCustom);
             Value.i_Int = i;
             Type = ExObjType.INTEGER;
         }
+        /// <summary>
+        /// Assing float, deref current values stored
+        /// </summary>
+        /// <param name="f">New value</param>
         public void Assign(double f)
         {
             Release(Type, ValueCustom);
             Value.f_Float = f;
             Type = ExObjType.FLOAT;
         }
+        /// <summary>
+        /// Assing bool, deref current values stored
+        /// </summary>
+        /// <param name="b">New value</param>
         public void Assign(bool b)
         {
             Release(Type, ValueCustom);
             Value.b_Bool = b;
             Type = ExObjType.BOOL;
         }
+        /// <summary>
+        /// Assing string, deref current values stored
+        /// </summary>
+        /// <param name="s">New value</param>
         public void Assign(string s)
         {
             Release(Type, ValueCustom);
             ValueCustom.s_String = s;
             Type = ExObjType.STRING;
         }
+        /// <summary>
+        /// Assing complex number, deref current values stored
+        /// </summary>
+        /// <param name="cmplx">New value</param>
         public void Assign(Complex cmplx)
         {
             Release(Type, ValueCustom);
@@ -407,6 +600,10 @@ namespace ExMat.Objects
             Value.c_Float = cmplx.Imaginary;
             Type = ExObjType.COMPLEX;
         }
+        /// <summary>
+        /// Assing space, deref current values stored
+        /// </summary>
+        /// <param name="space">New value</param>
         public void Assign(ExSpace space)
         {
             ExObjType t = Type;
@@ -419,6 +616,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing dictionary, deref current values stored
+        /// </summary>
+        /// <param name="dict">New value</param>
         public void Assign(Dictionary<string, ExObject> dict)
         {
             ExObjType t = Type;
@@ -431,6 +632,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing list, deref current values stored
+        /// </summary>
+        /// <param name="lis">New value</param>
         public void Assign(List<ExObject> lis)
         {
             ExObjType t = Type;
@@ -443,6 +648,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing instance, deref current values stored
+        /// </summary>
+        /// <param name="inst">New value</param>
         public void Assign(ExInstance inst)
         {
             ExObjType t = Type;
@@ -455,6 +664,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing class, deref current values stored
+        /// </summary>
+        /// <param name="class">New value</param>
         public void Assign(ExClass.ExClass @class)
         {
             ExObjType t = Type;
@@ -467,6 +680,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing closure, deref current values stored
+        /// </summary>
+        /// <param name="cls">New value</param>
         public void Assign(ExClosure cls)
         {
             ExObjType t = Type;
@@ -479,6 +696,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing native closure, deref current values stored
+        /// </summary>
+        /// <param name="ncls">New value</param>
         public void Assign(ExNativeClosure ncls)
         {
             ExObjType t = Type;
@@ -491,6 +712,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing outer variable, deref current values stored
+        /// </summary>
+        /// <param name="outer">New value</param>
         public void Assign(ExOuter outer)
         {
             ExObjType t = Type;
@@ -503,6 +728,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing prototype, deref current values stored
+        /// </summary>
+        /// <param name="pro">New value</param>
         public void Assign(ExPrototype pro)
         {
             ExObjType t = Type;
@@ -515,6 +744,10 @@ namespace ExMat.Objects
             AddReference(Type, ValueCustom, true);
             Release(t, v);
         }
+        /// <summary>
+        /// Assing weak reference, deref current values stored
+        /// </summary>
+        /// <param name="wref">New value</param>
         public void Assign(ExWeakRef wref)
         {
             ExObjType t = Type;
@@ -528,7 +761,9 @@ namespace ExMat.Objects
             Release(t, v);
         }
 
-        //
+        /// <summary>
+        /// Nullify the object, deref current value
+        /// </summary>
         public void Nullify()
         {
             ExObjType oldt = Type;

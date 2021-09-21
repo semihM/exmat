@@ -185,6 +185,29 @@ namespace ExMat
             }
         }
 
+        private static ExErrorType GetErrorTypeFromException(ExException exp)
+        {
+            switch (exp.Type)
+            {
+                case ExExceptionType.BASE:
+                    {
+                        return ExErrorType.INTERNAL;
+                    }
+                case ExExceptionType.RUNTIME:
+                    {
+                        return ExErrorType.RUNTIME;
+                    }
+                case ExExceptionType.COMPILER:
+                    {
+                        return ExErrorType.COMPILE;
+                    }
+                default:
+                    {
+                        return ExErrorType.INTERNAL;
+                    }
+            }
+        }
+
         private static void Indent(int n = 1)
         {
             ActiveVM.Printer(new string('\t', n));
@@ -217,7 +240,7 @@ namespace ExMat
 
             if (!HasFlag(ExConsoleFlag.NOTITLE))
             {
-                Console.Title = ExMat.PreferredConsoleTitle;
+                ExApi.ApplyPreferredConsoleTitle();
             }
 
             if (!HasFlag(ExConsoleFlag.NOINFO))
@@ -226,9 +249,9 @@ namespace ExMat
             }
         }
 
-        private static bool Initialize()
+        private static bool Initialize(bool interactive = false)
         {
-            ActiveVM = ExApi.Start(ExMat.PreferredStackSize, true); // Sanal makineyi başlat
+            ActiveVM = ExApi.Start(interactive); // Sanal makineyi başlat
             ActiveVM.ActiveThread = ActiveThread;
 
             if (!ExApi.RegisterStdLibraries(ActiveVM)) // Standard kütüphaneler
@@ -360,6 +383,20 @@ namespace ExMat
             ResetAfterCompilation(ActiveVM, ResetInStack);
         }
 
+        public static void HandleException(Exception exp, ExVM vm)
+        {
+            vm.AddToErrorMessage(exp.Message);
+            vm.AddToErrorMessage(exp.StackTrace);
+            ExApi.WriteErrorMessages(vm, ExErrorType.INTERNAL);
+        }
+
+        public static void HandleException(ExException exp, ExVM vm, ExErrorType typeOverride = ExErrorType.INTERNAL)
+        {
+            vm.AddToErrorMessage(exp.Message);
+            vm.AddToErrorMessage(exp.StackTrace);
+            ExApi.WriteErrorMessages(vm, typeOverride);
+        }
+
         private static void CheckFileDelete()
         {
             if (HasFlag(ExConsoleFlag.DELETEONPOST))
@@ -369,6 +406,7 @@ namespace ExMat
 
             KeepConsoleUpAtEnd();
         }
+
         private static void CreateSimpleVMThread()
         {
             ActiveThread = new(() =>
@@ -389,11 +427,11 @@ namespace ExMat
                     }
                     catch (ExException exp)
                     {
-                        ExApi.HandleException(exp, ActiveVM, ExApi.GetErrorTypeFromException(exp));
+                        HandleException(exp, ActiveVM, GetErrorTypeFromException(exp));
                     }
                     catch (Exception exp)
                     {
-                        ExApi.HandleException(exp, ActiveVM);
+                        HandleException(exp, ActiveVM);
                     }
                 }
 
@@ -407,7 +445,7 @@ namespace ExMat
                 int ret = -1;
                 StringBuilder code = new();
 
-                if (!Initialize())
+                if (!Initialize(true))
                 {
                     ExApi.WriteErrorMessages(ActiveVM, ExErrorType.INTERNAL);
                     return;
@@ -434,12 +472,12 @@ namespace ExMat
                     }
                     catch (ExException exp)
                     {
-                        ExApi.HandleException(exp, ActiveVM, ExApi.GetErrorTypeFromException(exp));
+                        HandleException(exp, ActiveVM, GetErrorTypeFromException(exp));
                         break;
                     }
                     catch (Exception exp)
                     {
-                        ExApi.HandleException(exp, ActiveVM);
+                        HandleException(exp, ActiveVM);
                         break;
                     }
                     finally

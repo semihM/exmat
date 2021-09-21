@@ -10,31 +10,52 @@ using ExMat.Utils;
 
 namespace ExMat.States
 {
-    public class ExFState : IDisposable
+    /// <summary>
+    /// Function state tracking for compiler
+    /// </summary>
+    internal class ExFState : IDisposable
     {
+        /// <summary>
+        /// Shared state
+        /// </summary>
         public ExSState SharedState;
 
+        /// <summary>
+        /// Source code
+        /// </summary>
         // Kod dizisi kopyası
         public ExObject Source;
 
+        /// <summary>
+        /// Current closure's name
+        /// </summary>
         // İçinde bulunulan fonksiyon ismi
         public ExObject Name;
 
+        /// <summary>
+        /// Literals and objects storing the literals
+        /// </summary>
         // Kullanılan değişken isimleri ve yazı dizileri
         public Dictionary<string, ExObject> Literals = new();
+        /// <summary>
+        /// Literals count
+        /// </summary>
         public int nLiterals;
 
+        /// <summary>
+        /// Local variable information
+        /// </summary>
         // Değişken bilgisi listeleri
-        public List<ExLocalInfo> LocalVariables = new();
-        public List<ExLocalInfo> LocalVariableInfos = new();
+        private List<ExLocalInfo> LocalVariables = new();
+        private List<ExLocalInfo> LocalVariableInfos = new();
 
         // Bilinmeyen değişken bilgisi listesi
-        public int nOuters;
-        public List<ExOuterInfo> OuterInfos = new();
+        internal int nOuters;
+        internal List<ExOuterInfo> OuterInfos = new();
 
         // Parametre bilgileri
-        public List<ExObject> Parameters = new();
-        public List<int> DefaultParameters = new();
+        private List<ExObject> Parameters = new();
+        private List<int> DefaultParameters = new();
 
         // Fonksiyon(lar)
         public List<ExPrototype> Functions = new();
@@ -68,7 +89,7 @@ namespace ExMat.States
         private const int MAX_STACK_SIZE = 255;
         private const int MAX_LITERALS = ushort.MaxValue;
 
-        public List<ExLineInfo> LineInfos = new();
+        internal List<ExLineInfo> LineInfos = new();
         public int LastLine;
 
         private readonly int Invalid = ExMat.InvalidArgument; // To get rid of CA1822 warnings
@@ -249,7 +270,7 @@ namespace ExMat.States
 
         public void AddLineInfo(int line, bool op, bool forced)
         {
-            if (LastLine != line || forced)
+            if (LastLine != line || op || forced)
             {
                 ExLineInfo li = new();
                 li.Line = line;

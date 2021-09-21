@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using ExMat.Attributes;
 using ExMat.Closure;
 using ExMat.ExClass;
 using ExMat.FuncPrototype;
@@ -39,9 +40,9 @@ namespace ExMat
             "Use 'exm --help' in your terminal to view startup options",
         };
 
-        public static int PreferredStackSize { get; set; } = 1 << 15;
+        internal static int PreferredStackSize { get; set; } = 1 << 15;
 
-        public static string PreferredConsoleTitle { get; set; } = ConsoleTitle;
+        internal static string PreferredConsoleTitle { get; set; } = ConsoleTitle;
 
         /// <summary>
         /// Time in ms to delay output so CTRL+C doesn't mess up
@@ -323,7 +324,7 @@ namespace ExMat
             PLUGIN
         }
 
-        public static Dictionary<string, ExAssemblyType> Assemblies { get; } = new()
+        internal static Dictionary<string, ExAssemblyType> Assemblies { get; } = new()
         {
             { "exm", ExAssemblyType.NATIVE },
             { "exmat", ExAssemblyType.NATIVE },
@@ -598,12 +599,18 @@ namespace ExMat
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct DoubleLong
     {
+        /// <summary>
+        /// Float value
+        /// </summary>
         [FieldOffset(0)] public double f;
+        /// <summary>
+        /// Integer value
+        /// </summary>
         [FieldOffset(0)] public long i;
     }
 
     [Flags]
-    public enum ExMemberFlag
+    internal enum ExMemberFlag
     {
         METHOD = 0x01000000,
         FIELD = 0x02000000
@@ -705,29 +712,126 @@ namespace ExMat
     }
 
     /// <summary>
+    /// Types for standard libraries
+    /// </summary>
+    public enum ExStdLibType
+    {
+        /// <summary>
+        /// Unknown library, for internal use only
+        /// </summary>
+        UNKNOWN,
+        /// <summary>
+        /// External custom library
+        /// </summary>
+        EXTERNAL,
+        /// <summary>
+        /// Base library
+        /// </summary>
+        BASE,
+        /// <summary>
+        /// Math library
+        /// </summary>
+        MATH,
+        /// <summary>
+        /// Input-output library
+        /// </summary>
+        IO,
+        /// <summary>
+        /// String library
+        /// </summary>
+        STRING,
+        /// <summary>
+        /// Networking library
+        /// </summary>
+        NETWORK,
+        /// <summary>
+        /// System library
+        /// </summary>
+        SYSTEM,
+        /// <summary>
+        /// Statistics library
+        /// </summary>
+        STATISTICS
+    }
+
+    /// <summary>
     /// Meta methods
+    /// <para>Meta methods' names are derived from this enum class as<code>ENUMVAL -&gt; function _ENUMVAL(...)</code></para>
     /// </summary>
     public enum ExMetaMethod
     {
+        /// <summary>
+        /// Addition ( other )
+        /// </summary>
         ADD,    // +
+        /// <summary>
+        /// Subtraction ( other )
+        /// </summary>
         SUB,    // -
+        /// <summary>
+        /// Multiplication ( other )
+        /// </summary>
         MLT,    // *
+        /// <summary>
+        /// Division ( other )
+        /// </summary>
         DIV,    // /
+        /// <summary>
+        /// Exponential ( other )
+        /// </summary>
         EXP,    // **
+        /// <summary>
+        /// Modulo ( other )
+        /// </summary>
         MOD,    // %
+        /// <summary>
+        /// Negate ( )
+        /// </summary>
         NEG,    // -
+        /// <summary>
+        /// Setter ( key, value )
+        /// </summary>
         SET,    // []
+        /// <summary>
+        /// Getter ( key )
+        /// </summary>
         GET,    // []
+        /// <summary>
+        /// typeof ( )
+        /// </summary>
         TYPEOF,    // typeof
+        /// <summary>
+        /// WIP
+        /// </summary>
         NEXT,       // TO-DO Add remaining methods
+        /// <summary>
+        /// WIP
+        /// </summary>
         COMPARE,
+        /// <summary>
+        /// WIP
+        /// </summary>
         CALL,
+        /// <summary>
+        /// WIP
+        /// </summary>
         NEWSLOT,
+        /// <summary>
+        /// WIP
+        /// </summary>
         DELSLOT,
+        /// <summary>
+        /// WIP
+        /// </summary>
         NEWMEMBER,
+        /// <summary>
+        /// WIP
+        /// </summary>
         INHERIT,
-        STRING,
-        LAST
+        /// <summary>
+        /// WIP
+        /// </summary>
+        STRING
     }
 
     /// <summary>
@@ -911,7 +1015,13 @@ namespace ExMat
     /// </summary>
     public enum ExOuterType
     {
+        /// <summary>
+        /// Local var
+        /// </summary>
         LOCAL,
+        /// <summary>
+        /// Outer val
+        /// </summary>
         OUTER
     }
 
@@ -920,20 +1030,56 @@ namespace ExMat
     /// </summary>
     public enum ArithmeticMask
     {
+        /// <summary>
+        /// Integers
+        /// </summary>
         INT = ExObjType.INTEGER,
+        /// <summary>
+        /// Integer-complex
+        /// </summary>
         INTCOMPLEX = ExObjType.COMPLEX | ExObjType.INTEGER,
 
+        /// <summary>
+        /// Floats
+        /// </summary>
         FLOAT = ExObjType.FLOAT,
+        /// <summary>
+        /// Float-integer
+        /// </summary>
         FLOATINT = ExObjType.INTEGER | ExObjType.FLOAT,
+        /// <summary>
+        /// Float-complex
+        /// </summary>
         FLOATCOMPLEX = ExObjType.COMPLEX | ExObjType.FLOAT,
 
+        /// <summary>
+        /// Complex numbers
+        /// </summary>
         COMPLEX = ExObjType.COMPLEX,
 
+        /// <summary>
+        /// Strings
+        /// </summary>
         STRING = ExObjType.STRING,
+        /// <summary>
+        /// String-integer
+        /// </summary>
         STRINGINT = ExObjType.STRING | ExObjType.INTEGER,
+        /// <summary>
+        /// String-float
+        /// </summary>
         STRINGFLOAT = ExObjType.STRING | ExObjType.FLOAT,
+        /// <summary>
+        /// String-complex
+        /// </summary>
         STRINGCOMPLEX = ExObjType.STRING | ExObjType.COMPLEX,
+        /// <summary>
+        /// String-bool
+        /// </summary>
         STRINGBOOL = ExObjType.STRING | ExObjType.BOOL,
+        /// <summary>
+        /// String-null
+        /// </summary>
         STRINGNULL = ExObjType.STRING | ExObjType.NULL
     }
 
@@ -965,8 +1111,17 @@ namespace ExMat
     /// </summary>
     public enum ExProcessInfo
     {
+        /// <summary>
+        /// Start date of the process
+        /// </summary>
         DATE,
+        /// <summary>
+        /// Main module of the process
+        /// </summary>
         MODULE,
+        /// <summary>
+        /// Start arguments of the process
+        /// </summary>
         ARGS
     }
 

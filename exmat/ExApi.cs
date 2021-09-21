@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using ExMat.Attributes;
 using ExMat.Closure;
 using ExMat.Compiler;
 using ExMat.Exceptions;
@@ -19,7 +20,7 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace ExMat.API
 {
     /// <summary>
-    /// A middle-ground class for <see cref="ExVM"/> and standard library registeration related methods
+    /// ExMat API method provider
     /// </summary>
     public static class ExApi
     {
@@ -120,16 +121,11 @@ namespace ExMat.API
             return str.ToString();
         }
 
-        public static List<ExObject> ListObjFromStringArray(IEnumerable<string> arr)
-        {
-            List<ExObject> lis = new();
-            foreach (string s in arr)
-            {
-                lis.Add(new(s));
-            }
-            return lis;
-        }
-
+        /// <summary>
+        /// Create a list of objects from given array of strings
+        /// </summary>
+        /// <param name="arr">String array</param>
+        /// <returns>A list of <see cref="ExObjType.STRING"/> objects with string values from <paramref name="arr"/></returns>
         public static List<ExObject> ListObjFromStringArray(string[] arr)
         {
             List<ExObject> lis = new(arr.Length);
@@ -176,11 +172,21 @@ namespace ExMat.API
 
         private static Thread Beeper;
 
+        /// <summary>
+        /// Check if console beeping method is available
+        /// </summary>
+        /// <returns>Wheter <see cref="Console.Beep()"/> can work</returns>
         public static bool CanBeep()
         {
             return Beeper == null || !Beeper.IsAlive;
         }
 
+        /// <summary>
+        /// Invoke console beep method with given frequency and duration async
+        /// </summary>
+        /// <param name="freq">Frequency to beep at</param>
+        /// <param name="dur">Duration to beep for</param>
+        /// <returns>Returns true when the beeping starts</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public static bool BeepAsync(int freq, int dur)
         {
@@ -198,6 +204,10 @@ namespace ExMat.API
             return true;
         }
 
+        /// <summary>
+        /// Invoke console beep method async
+        /// </summary>
+        /// <returns>Returns true when the beeping starts</returns>
         public static bool BeepAsync()
         {
             Beeper = new(() =>
@@ -209,6 +219,12 @@ namespace ExMat.API
             return true;
         }
 
+        /// <summary>
+        /// Invoke console beep method with given frequency and duration
+        /// </summary>
+        /// <param name="freq">Frequency to beep at</param>
+        /// <param name="dur">Duration to beep for</param>
+        /// <returns>Returns true when the beeping ends</returns>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
         public static bool Beep(int freq, int dur)
         {
@@ -216,6 +232,10 @@ namespace ExMat.API
             return true;
         }
 
+        /// <summary>
+        /// Invoke console beep method
+        /// </summary>
+        /// <returns>Returns true when the beeping ends</returns>
         public static bool Beep()
         {
             Console.Beep();
@@ -246,7 +266,7 @@ namespace ExMat.API
             return true;
         }
 
-        public static bool ToFloat(ExVM vm, ExObject obj, ref ExObject res)
+        internal static bool ToFloat(ExVM vm, ExObject obj, ref ExObject res)
         {
             switch (obj.Type)
             {
@@ -296,7 +316,13 @@ namespace ExMat.API
             return true;
         }
 
-
+        /// <summary>
+        /// Convert given object to an integer
+        /// </summary>
+        /// <param name="vm">Virtual machine to report errors to</param>
+        /// <param name="obj">Object to convert</param>
+        /// <param name="res">Resulting integer</param>
+        /// <returns>Wheter conversion was successful</returns>
         public static bool ToInteger(ExVM vm, ExObject obj, ref ExObject res)
         {
             switch (obj.Type)
@@ -390,9 +416,9 @@ namespace ExMat.API
         /// <summary>
         /// Returns string format of a float
         /// </summary>
-        /// <param name="a">Value to get the string of</param>
+        /// <param name="obj">Value to get the string of</param>
         /// <returns>A formatted string</returns>
-        public static string GetFloatString(ExObject obj)
+        internal static string GetFloatString(ExObject obj)
         {
             double r = obj.GetFloat();
             return r % 1 == 0.0
@@ -402,12 +428,12 @@ namespace ExMat.API
                     : r < 1e+14 ? obj.GetFloat().ToString(CultureInfo.CurrentCulture) : obj.GetFloat().ToString("E14", CultureInfo.CurrentCulture);
         }
 
-        public static bool CheckEqualFloat(double x, double y)
+        internal static bool CheckEqualFloat(double x, double y)
         {
             return double.IsNaN(x) ? double.IsNaN(y) : x == y;
         }
 
-        public static bool CheckEqualArray(List<ExObject> x, List<ExObject> y)
+        internal static bool CheckEqualArray(List<ExObject> x, List<ExObject> y)
         {
             if (x.Count != y.Count)
             {
@@ -431,7 +457,7 @@ namespace ExMat.API
             return true;
         }
 
-        public static void CheckEqualForSameType(ExObject x, ExObject y, ref bool res)
+        internal static void CheckEqualForSameType(ExObject x, ExObject y, ref bool res)
         {
             switch (x.Type)
             {
@@ -484,7 +510,7 @@ namespace ExMat.API
             }
         }
 
-        public static void CheckEqualForDifferingTypes(ExObject x, ExObject y, ref bool res)
+        internal static void CheckEqualForDifferingTypes(ExObject x, ExObject y, ref bool res)
         {
             bool bx = ExTypeCheck.IsNumeric(x);
             bool by = ExTypeCheck.IsNumeric(y);
@@ -555,6 +581,12 @@ namespace ExMat.API
             return false;
         }
 
+        /// <summary>
+        /// Get console color from color name
+        /// </summary>
+        /// <param name="name">Color name</param>
+        /// <param name="def">Backup value in case given <paramref name="name"/> didnt match anything.</param>
+        /// <returns>Color represented by <paramref name="name"/></returns>
         public static ConsoleColor GetColorFromName(string name, ConsoleColor def = ConsoleColor.Black)
         {
             switch (name.Trim().ToLower(CultureInfo.CurrentCulture))
@@ -632,6 +664,11 @@ namespace ExMat.API
             }
         }
 
+        /// <summary>
+        /// Get encoding from a string representation
+        /// </summary>
+        /// <param name="enc">String represtation of an encoding, use <see cref="string.Empty"/> for default encoding or one of (utf8, utf32, latin, unicode, ascii)</param>
+        /// <returns>Encoding represented by <paramref name="enc"/></returns>
         public static Encoding DecideEncodingFromString(string enc)
         {
             Encoding e;
@@ -766,12 +803,11 @@ namespace ExMat.API
         /// Reload a native function in roottable
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
-        /// <param name="fs">List of native functions</param>
+        /// <param name="lib">Library to search in</param>
         /// <param name="name">Name of the function to reload</param>
-        /// <param name="libtype">Library the <paramref name="name"/> function is based on</param>
         /// <param name="pop">Wheter to pop the root from stack after searching</param>
-        /// <returns><see langword="true"/> if <paramref name="name"/> was found in <paramref name="fs"/> and reloaded
-        /// <para><see langword="false"/> if there was no function named <paramref name="name"/> in <paramref name="fs"/></para></returns>
+        /// <returns><see langword="true"/> if <paramref name="name"/> was found in <paramref name="lib"/> and reloaded
+        /// <para><see langword="false"/> if there was no function named <paramref name="name"/> in <paramref name="lib"/></para></returns>
         public static bool ReloadNativeFunction(ExVM vm, Type lib, string name, bool pop = false)
         {
             List<ExNativeFunc> fs = GetNonDelegateNativeFunctions(lib);
@@ -815,7 +851,7 @@ namespace ExMat.API
         }
 
         /// <summary>
-        /// Invoke <see cref="IExStdLib.Register(ExVM)"/> of given type on given virtual machine
+        /// Invoke <see cref="ExMat.StdLibRegistery"/> of given type on given virtual machine
         /// </summary>
         /// <param name="vm">Virtual machine to invoke the method with</param>
         /// <param name="type">Standard library type</param>
@@ -878,6 +914,11 @@ namespace ExMat.API
             return false;
         }
 
+        /// <summary>
+        /// Process given list of console parameters and flags
+        /// </summary>
+        /// <param name="args">List of console arguments</param>
+        /// <param name="flags">Flag to update</param>
         public static void SetOptionsFromArguments(ref string[] args, ref int flags)
         {
             List<string> lis = new();
@@ -942,7 +983,9 @@ namespace ExMat.API
         /// <summary>
         /// Register a standard library
         /// </summary>
-        /// <param name="vm">Virtual machine to register the library to<param>
+        /// <param name="vm">Virtual machine to register the library to</param>
+        /// <param name="lib">Standard library to register</param>
+        /// <returns>Wheter registery was successful</returns>
         public static bool RegisterStdLibrary(ExVM vm, Type lib)
         {
             if (lib == null)
@@ -968,7 +1011,8 @@ namespace ExMat.API
         /// <summary>
         /// Register std libs from given assembly
         /// </summary>
-        /// <param name="vm">Virtual machine to register libraries to<param>
+        /// <param name="vm">Virtual machine to register libraries to</param>
+        /// <returns>Wheter registery process was completed successfully</returns>
         public static bool RegisterStdLibraries(ExVM vm)
         {
             try
@@ -989,7 +1033,7 @@ namespace ExMat.API
             }
         }
 
-        public static bool RegisterConstantsFromDict(Dictionary<string, ExObject> consts, ExVM toVM)
+        internal static bool RegisterConstantsFromDict(Dictionary<string, ExObject> consts, ExVM toVM)
         {
             PushConstsTable(toVM);
 
@@ -1015,17 +1059,21 @@ namespace ExMat.API
         /// Get all types defined in the executing assembly
         /// </summary>
         /// <returns>List of types defined in assembly</returns>
-        public static List<Type> GetTypesFromAssemblies()
+        internal static List<Type> GetTypesFromAssemblies()
         {
             return new(Assembly.GetExecutingAssembly().GetTypes());
         }
 
+        /// <summary>
+        /// Get all classes which are valid standard libraries
+        /// </summary>
+        /// <returns>List of standard library classes</returns>
         public static List<Type> GetStandardLibraryTypes()
         {
             return GetStandardLibraryTypes(GetAllAssemblies());
         }
 
-        public static Type GetStandardLibraryFromName(string name)
+        internal static Type GetStandardLibraryFromName(string name)
         {
             return GetStandardLibraryTypes(GetAllAssemblies()).FirstOrDefault(l => GetLibraryNameFromStdClass(l) == name);
         }
@@ -1061,13 +1109,13 @@ namespace ExMat.API
                 : 0;
         }
 
-        public static ExStdLibType GetLibraryTypeFromName(string name)
+        internal static ExStdLibType GetLibraryTypeFromName(string name)
         {
             Type t = GetStandardLibraryFromName(name);
             return t == null ? ExStdLibType.UNKNOWN : GetLibraryTypeFromStdClass(t);
         }
 
-        public static bool ReloadLibrary(ExVM vm, string libname)
+        internal static bool ReloadLibrary(ExVM vm, string libname)
         {
             return RegisterStdLibrary(vm, GetStandardLibraryTypes(GetAllAssemblies()).FirstOrDefault(l => GetLibraryNameFromStdClass(l) == libname));
         }
@@ -1117,10 +1165,10 @@ namespace ExMat.API
         }
 
         /// <summary>
-        /// Get the <see cref="ExStdLibConstDict"/> named constants dictionary of a standard library which is stored in a <see cref="Dictionary{TKey=String, TVal=ExObject}"/> property
+        /// Get the <see cref="ExStdLibConstDict"/> named constants dictionary of a standard library which is stored in a <see cref="Dictionary{TKey, TVal}"/> property (&lt;<see cref="string"/>,<see cref="ExObject"/>&gt;)
         /// </summary>
         /// <param name="stdClass">Standard library type object</param>
-        /// <returns>Given stdlib type's <see cref="Dictionary{TKey=String, TVal=ExObject}"/> property with <see cref="ExStdLibConstDict"/> name or <see langword="null"/> if it doesn't exist</returns>
+        /// <returns>Given stdlib type's <see cref="Dictionary{TKey, TVal}"/> property (&lt;<see cref="string"/>,<see cref="ExObject"/>&gt;) with <see cref="ExStdLibConstDict"/> name or <see langword="null"/> if it doesn't exist</returns>
         public static Dictionary<string, ExObject> GetStdLibraryConstsDict(Type stdClass)
         {
             string cname = GetStdLibraryConstsName(stdClass);
@@ -1152,7 +1200,7 @@ namespace ExMat.API
         /// Get the <see cref="ExStdLibRegister.RegisterMethodName"/> of a standard library 
         /// </summary>
         /// <param name="stdClass">Standard library type object</param>
-        /// <returns>Given stdlib type's <see cref="ExStdLibRegister"/> register name or <see cref="string.Empty"/> if attribute doesn't exist/returns>
+        /// <returns>Given stdlib type's <see cref="ExStdLibRegister"/> register name or <see cref="string.Empty"/> if attribute doesn't exist</returns>
         public static string GetStdLibraryRegisteryName(Type stdClass)
         {
             return IsStdLib(stdClass) && Attribute.IsDefined(stdClass, typeof(ExStdLibRegister))
@@ -1164,7 +1212,7 @@ namespace ExMat.API
         /// Get the <see cref="ExStdLibConstDict.Name"/> of a standard library 
         /// </summary>
         /// <param name="stdClass">Standard library type object</param>
-        /// <returns>Given stdlib type's <see cref="ExStdLibConstDict"/> constants dictionary name or <see cref="string.Empty"/> if attribute doesn't exist/returns>
+        /// <returns>Given stdlib type's <see cref="ExStdLibConstDict"/> constants dictionary name or <see cref="string.Empty"/> if attribute doesn't exist</returns>
         public static string GetStdLibraryConstsName(Type stdClass)
         {
             return IsStdLib(stdClass) && Attribute.IsDefined(stdClass, typeof(ExStdLibConstDict))
@@ -1201,7 +1249,7 @@ namespace ExMat.API
             vm.Pop();
         }
 
-        public static void CreateNewSlotConts(ExVM vm, string name)
+        internal static void CreateNewSlotConst(ExVM vm, string name)
         {
             CreateNewSlot(vm, -3, true, name);
         }
@@ -1216,7 +1264,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(val);
-            CreateNewSlotConts(vm, name);
+            CreateNewSlotConst(vm, name);
         }
 
         /// <summary>
@@ -1229,7 +1277,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(val);
-            CreateNewSlotConts(vm, name);
+            CreateNewSlotConst(vm, name);
         }
 
         /// <summary>
@@ -1242,7 +1290,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             PushString(vm, val, -1);
-            CreateNewSlotConts(vm, name);
+            CreateNewSlotConst(vm, name);
         }
 
         /// <summary>
@@ -1255,7 +1303,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(new ExObject(val));
-            CreateNewSlotConts(vm, name);
+            CreateNewSlotConst(vm, name);
         }
 
         /// <summary>
@@ -1268,7 +1316,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(new ExObject(dict));
-            CreateNewSlotConts(vm, name);
+            CreateNewSlotConst(vm, name);
         }
 
         /// <summary>
@@ -1281,7 +1329,7 @@ namespace ExMat.API
         {
             PushString(vm, name, -1);
             vm.Push(new ExObject(lis));
-            CreateNewSlotConts(vm, name);
+            CreateNewSlotConst(vm, name);
         }
 
         /// <summary>
@@ -1362,6 +1410,7 @@ namespace ExMat.API
         /// <summary>
         /// Get the integer <see cref="ExBaseType"/> representation of a given character mask. Refer to <see cref="ExMat.TypeMasks"/>
         /// <param name="c">Character mask</param>
+        /// </summary>
         /// <returns>Integer parsed representation of given mask <paramref name="c"/>
         /// <para> If mask is unknown, returns <see cref="int.MaxValue"/></para></returns>
         private static int CompileTypeChar(char c)
@@ -1380,7 +1429,22 @@ namespace ExMat.API
             return int.MaxValue;  // bilinmeyen maske
         }
 
-        private static string DecompileTypeMaskChar(int c)
+        /// <summary>
+        /// Get string representation of a object type mask
+        /// </summary>
+        /// <param name="mask">Mask to decompile to string form</param>
+        /// <returns>String form of given mask</returns>
+        public static string DecompileTypeMaskChar(ExBaseType mask)
+        {
+            return DecompileTypeMaskChar((int)mask);
+        }
+
+        /// <summary>
+        /// Get string representation of a object type mask, same as <see cref="DecompileTypeMaskChar(ExBaseType)"/>
+        /// </summary>
+        /// <param name="c">Integer mask to decompile to string form</param>
+        /// <returns>String form of given mask</returns>
+        public static string DecompileTypeMaskChar(int c)
         {
             if (ExMat.TypeMasks.ContainsKey(c))
             {
@@ -1405,7 +1469,7 @@ namespace ExMat.API
         /// <summary>
         /// Compile a string mask into list of parameter masks for expected types
         /// </summary>
-        /// <param name="mask">String mask for expected types for parameters, refer to <see cref="ExMat.TypeMasks)"/> method</param>
+        /// <param name="mask">String mask for expected types for parameters, refer to <see cref="ExMat.TypeMasks"/> method</param>
         /// <param name="results">Compilation results from <paramref name="mask"/> for each parameter</param>
         /// <returns><see langword="true"/> if mask was compiled successfully, otherwise <see langword="false"/></returns>
         public static bool CompileTypeMask(string mask, List<int> results)
@@ -1447,7 +1511,7 @@ namespace ExMat.API
             return true;
         }
 
-        public static string GetNClosureDefaultParamInfo(int i, int paramsleft, List<string> infos, Dictionary<string, ExObject> defs)
+        internal static string GetNClosureDefaultParamInfo(int i, int paramsleft, List<string> infos, Dictionary<string, ExObject> defs)
         {
             StringBuilder s = new();
             for (; i < paramsleft; i++)
@@ -1468,6 +1532,11 @@ namespace ExMat.API
             }
             return s.ToString();
         }
+        /// <summary>
+        /// Get a simple stringification of given object
+        /// </summary>
+        /// <param name="obj">Object to stringify</param>
+        /// <returns>Resulting stringification of <paramref name="obj"/></returns>
         public static string GetSimpleString(ExObject obj)
         {
             switch (obj.Type)
@@ -1521,6 +1590,11 @@ namespace ExMat.API
             }
         }
 
+        /// <summary>
+        /// Get a dictionary of object repeat counts in a list
+        /// </summary>
+        /// <param name="lis">List of objects to iterate</param>
+        /// <returns>A dictionary with elements of <paramref name="lis"/> as keys, and how many times they appear in <paramref name="lis"/> as values</returns>
         public static Dictionary<ExObject, int> GetRepeatCounts(List<ExObject> lis)
         {
             Dictionary<ExObject, int> counts = new();
@@ -1552,7 +1626,7 @@ namespace ExMat.API
             return counts;
         }
 
-        public static string GetTypeMaskInfo(int mask)
+        internal static string GetTypeMaskInfo(int mask)
         {
             switch (mask)
             {
@@ -1578,7 +1652,7 @@ namespace ExMat.API
             }
         }
 
-        public static bool GetTypeMaskInfos(List<int> masks, List<string> info)
+        internal static bool GetTypeMaskInfos(List<int> masks, List<string> info)
         {
             if (masks == null || info == null)
             {
@@ -1592,17 +1666,17 @@ namespace ExMat.API
             return true;
         }
 
-        public static ExNativeFuncBase GetNativeFunc(MethodBase method)
+        internal static ExNativeFuncBase GetNativeFunc(MethodBase method)
         {
             return (ExNativeFuncBase)method.GetCustomAttributes(typeof(ExNativeFuncBase), true).FirstOrDefault();
         }
 
-        public static ExNativeParamBase GetNativeParam(MethodBase method, int index)
+        internal static ExNativeParamBase GetNativeParam(MethodBase method, int index)
         {
             return (ExNativeParamBase)method.GetCustomAttributes(typeof(ExNativeParamBase), true).FirstOrDefault(a => a is ExNativeParamBase p && p.Index == index);
         }
 
-        public static ExObject GetNativeParamDefault(MethodBase method, int index)
+        internal static ExObject GetNativeParamDefault(MethodBase method, int index)
         {
             return ((ExNativeParamBase)method.GetCustomAttributes(typeof(ExNativeParamBase), true).FirstOrDefault(a => a is ExNativeParamBase p && p.Index == index)).DefaultValue;
         }
@@ -1639,7 +1713,7 @@ namespace ExMat.API
         /// </summary>
         /// <param name="ps">List of parameters</param>
         /// <returns>Parameter index and default value filled dictionary</returns>
-        public static Dictionary<int, ExObject> GetDefaultValuesFromParameters(List<ExNativeParam> ps)
+        internal static Dictionary<int, ExObject> GetDefaultValuesFromParameters(List<ExNativeParam> ps)
         {
             Dictionary<int, ExObject> d = new();    // TO-DO change how default values are handled
             if (ps == null)
@@ -1661,8 +1735,8 @@ namespace ExMat.API
         /// Set default values for parameters
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
-        /// <param name="d">Dictionary of integer keys for parameter numbers and <see cref="ExObject"/> values for default values</param>
-        public static void SetDefaultValues(ExVM vm, List<ExNativeParam> ps)
+        /// <param name="ps">List of native parameters</param>
+        private static void SetDefaultValues(ExVM vm, List<ExNativeParam> ps)
         {
             ExObject o = GetFromStack(vm, -1);
             if (o.Type == ExObjType.NATIVECLOSURE)
@@ -1671,7 +1745,7 @@ namespace ExMat.API
             }
         }
 
-        public static void SetDocumentation(ExVM vm, ExNativeFunc reg)
+        internal static void SetDocumentation(ExVM vm, ExNativeFunc reg)
         {
             ExObject o = GetFromStack(vm, -1);
             if (o.Type == ExObjType.NATIVECLOSURE)
@@ -1683,18 +1757,18 @@ namespace ExMat.API
             }
         }
 
-        public static ExStdLibType GetStdLibTypeFromSimpleLibName(string name)
+        internal static ExStdLibType GetStdLibTypeFromSimpleLibName(string name)
         {
             string n = Enum.GetNames(typeof(ExStdLibType)).FirstOrDefault(t => GetSimpleLibNameFromStdLibType(Enum.Parse<ExStdLibType>(t)) == name);
             return string.IsNullOrWhiteSpace(n) ? ExStdLibType.UNKNOWN : Enum.Parse<ExStdLibType>(n);
         }
 
-        public static string GetSimpleLibNameFromStdLibType(ExStdLibType type)
+        internal static string GetSimpleLibNameFromStdLibType(ExStdLibType type)
         {
             return type.ToString().ToLower(CultureInfo.CurrentCulture);
         }
 
-        public static string GetParameterInfoString(ExNativeParam param, int pno)
+        internal static string GetParameterInfoString(ExNativeParam param, int pno)
         {
             return param.HasDefaultValue
                 ? string.Format(CultureInfo.CurrentCulture, "\n\t{0}. [<{1}> {2} = {3}] : {4}",
@@ -1708,7 +1782,7 @@ namespace ExMat.API
                 : string.Format(CultureInfo.CurrentCulture, "\n\t{0}. <{1}> {2} : {3}", pno, GetTypeMaskInfo(param.Type), param.Name, param.Description);
         }
 
-        public static string CreateDocStringFromRegFunc(ExNativeFunc reg, bool hasVargs)
+        internal static string CreateDocStringFromRegFunc(ExNativeFunc reg, bool hasVargs)
         {
             StringBuilder s = new();
 
@@ -1755,7 +1829,7 @@ namespace ExMat.API
             return s.ToString();
         }
 
-        public static void Throw(string msg, ExVM vm, ExExceptionType type = ExExceptionType.BASE)
+        internal static void Throw(string msg, ExVM vm, ExExceptionType type = ExExceptionType.BASE)
         {
             switch (type)
             {
@@ -1770,26 +1844,14 @@ namespace ExMat.API
             }
         }
 
-        public static void HandleException(Exception exp, ExVM vm)
-        {
-            vm.AddToErrorMessage(exp.Message);
-            vm.AddToErrorMessage(exp.StackTrace);
-            WriteErrorMessages(vm, ExErrorType.INTERNAL);
-        }
-
-        public static void HandleException(ExException exp, ExVM vm, ExErrorType typeOverride = ExErrorType.INTERNAL)
-        {
-            vm.AddToErrorMessage(exp.Message);
-            vm.AddToErrorMessage(exp.StackTrace);
-            WriteErrorMessages(vm, typeOverride);
-        }
-
         /// <summary>
         /// Creates a new key-value pair in a dictionary or a member in a class
         /// </summary>
         /// <param name="vm">Virtual machine to use the stack of</param>
         /// <param name="idx">Stack index of target object to create a new slot on:
         /// <para><see cref="ExVM.StackBase"/><c> + <paramref name="idx"/> - 1</c></para></param>
+        /// <param name="isConst">Wheter this is a const slot</param>
+        /// <param name="name">Name of the constant if <paramref name="isConst"/> is true</param>
         public static void CreateNewSlot(ExVM vm, int idx, bool isConst = false, string name = "")
         {
             if (GetTopOfStack(vm) < 3)
@@ -2164,10 +2226,16 @@ namespace ExMat.API
             return true;
         }
 
-
-
-        public static bool ConvertIntegerStringArrayToString(List<ExObject> lis, StringBuilder str)
+        /// <summary>
+        /// Convert a list of strings or integers to a single string
+        /// </summary>
+        /// <param name="lis">List of strings or integers in range [0,<see cref="char.MaxValue"/>]</param>
+        /// <param name="str">Output string</param>
+        /// <returns>Wheter given list was valid and operations were completed successfully</returns>
+        public static bool ConvertIntegerStringArrayToString(List<ExObject> lis, out StringBuilder str)
         {
+            str = new(lis.Count);
+
             foreach (ExObject o in lis)
             {
                 if (o.Type == ExObjType.STRING) // && o.GetString().Length == 1)
@@ -2186,27 +2254,14 @@ namespace ExMat.API
             return true;
         }
 
+        /// <summary>
+        /// Escape the non-printable characters in given string
+        /// </summary>
+        /// <param name="str">String to use</param>
+        /// <returns>A new string with non-printable characters escaped</returns>
         public static string Escape(string str)
         {
             return SymbolDisplay.FormatLiteral(str, false);
-        }
-
-        public static string EscapeCmdEchoString(string str)
-        {
-            return str.Replace("%", "%%")
-                    .Replace("^", "^^")
-                    .Replace("&", "^&")
-                    .Replace("<", "^<")
-                    .Replace(">", "^>")
-                    .Replace("|", "^|")
-                    .Replace("'", "^'")
-                    .Replace(",", "^,")
-                    .Replace(";", "^;")
-                    .Replace("=", "^=")
-                    .Replace("(", "^(")
-                    .Replace(")", "^)")
-                    .Replace("!", "^!")
-                    .Replace("\"", "^\"");
         }
 
         private static bool ShouldPrintTop(ExVM vm)
@@ -2219,6 +2274,15 @@ namespace ExMat.API
         {
             int slen = source.Length;
             return "/" + new string(' ', (width - slen) / 2) + source + new string(' ', ((width - slen) / 2) + (slen % 2 == 1 ? 1 : 0)) + "/\n";
+        }
+
+        /// <summary>
+        /// Change console title
+        /// </summary>
+        /// <param name="title">New title</param>
+        public static void ApplyPreferredConsoleTitle(string title = null)
+        {
+            Console.Title = string.IsNullOrWhiteSpace(title) ? ExMat.PreferredConsoleTitle : title;
         }
 
         /// <summary>
@@ -2292,30 +2356,11 @@ namespace ExMat.API
             Console.ResetColor();
         }
 
-        public static ExErrorType GetErrorTypeFromException(ExException exp)
-        {
-            switch (exp.Type)
-            {
-                case ExExceptionType.BASE:
-                    {
-                        return ExErrorType.INTERNAL;
-                    }
-                case ExExceptionType.RUNTIME:
-                    {
-                        return ExErrorType.RUNTIME;
-                    }
-                case ExExceptionType.COMPILER:
-                    {
-                        return ExErrorType.COMPILE;
-                    }
-                default:
-                    {
-                        return ExErrorType.INTERNAL;
-                    }
-            }
-        }
-
-
+        /// <summary>
+        /// Sleep the main thread for given amount of miliseconds
+        /// </summary>
+        /// <param name="vm">Virtual machine to track sleeping</param>
+        /// <param name="time">Miliseconds to sleep</param>
         public static void SleepVM(ExVM vm, int time)
         {
             vm.IsSleeping = true;
@@ -2323,11 +2368,19 @@ namespace ExMat.API
             vm.IsSleeping = false;
         }
 
-        public static string GetEscapedFormattedString(string raw, bool isString = false)
+        internal static string GetEscapedFormattedString(string raw, bool isString = false)
         {
             return isString ? string.Format(CultureInfo.CurrentCulture, "\'{0}\'", Escape(raw)) : raw;
         }
 
+        /// <summary>
+        /// Get formatted string and objects to pass to it from given virtual machine's stack
+        /// </summary>
+        /// <param name="vm">Virtual machine to use</param>
+        /// <param name="nargs">Amount of arguments for formatted string</param>
+        /// <param name="format">Output formatted string</param>
+        /// <param name="ps">Array of objects to pass to formatted string</param>
+        /// <returns><see cref="ExFunctionStatus.SUCCESS"/> if all objects successfully get stringified, otherwise <see cref="ExFunctionStatus.ERROR"/></returns>
         public static ExFunctionStatus GetFormatStringAndObjects(ExVM vm, int nargs, out string format, out object[] ps)
         {
             format = vm.GetArgument(1).GetString();
@@ -2348,6 +2401,13 @@ namespace ExMat.API
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Call the closure on top of the virtual stack
+        /// </summary>
+        /// <param name="vm">Virtual machine to use the stack of</param>
+        /// <returns><code>-1</code> if there was an error
+        /// <para><code>0</code> if call was successful</para>
+        /// <para><see cref="ExVM.ExitCode"/> of <paramref name="vm"/> if exit was requested</para></returns>
         public static int CallTop(ExVM vm)
         {
             PushRootTable(vm);            // Global tabloyu belleğe yükle
@@ -2419,10 +2479,9 @@ namespace ExMat.API
         /// <summary>
         /// Initialize a virtual machine with given stack size
         /// </summary>
-        /// <param name="stacksize">Stack size</param>
         /// <param name="interacive">Wheter to make the virtual machine interactive</param>
-        /// <returns>A new virtual machine instance with stack size <paramref name="stacksize"/></returns>
-        public static ExVM Start(int stacksize, bool interacive = false)
+        /// <returns>A new virtual machine instance with stack size <see cref="ExMat.PreferredStackSize"/></returns>
+        public static ExVM Start(bool interacive = false)
         {
             ExSState exS = new();
             exS.Initialize();
@@ -2430,10 +2489,19 @@ namespace ExMat.API
 
             exS.Root = vm;
 
-            vm.Initialize(stacksize);
+            vm.Initialize(ExMat.PreferredStackSize);
             vm.IsInteractive = interacive;
             vm.InputCount = 0;
             return vm;
+        }
+
+        /// <summary>
+        /// Clear error messages in the vm
+        /// </summary>
+        /// <param name="vm">VM to clear messages from</param>
+        public static void ClearErrorMessages(ExVM vm)
+        {
+            vm.ErrorString = string.Empty;
         }
 
         /// <summary>

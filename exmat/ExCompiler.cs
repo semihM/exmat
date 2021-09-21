@@ -13,7 +13,7 @@ using ExMat.VM;
 
 namespace ExMat.Compiler
 {
-    public class ExCompiler : IDisposable
+    internal class ExCompiler : IDisposable
     {
         private ExVM VM;                // Derleyicinin hedef sanal makinesi
 

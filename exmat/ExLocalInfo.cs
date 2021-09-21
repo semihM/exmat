@@ -9,7 +9,7 @@ namespace ExMat.InfoVar
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExLocalInfo : IDisposable
+    internal class ExLocalInfo : IDisposable
     {
         public ExObject Name = new();   // Değişken ismi
         public int StartOPC;            // Değişkenin tanımlandığı komut indeksi

@@ -13,7 +13,7 @@ namespace ExMat.Exceptions
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExCompilerException : ExException
+    internal class ExCompilerException : ExException
     {
         public override ExExceptionType Type => ExExceptionType.COMPILER;
 

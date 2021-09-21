@@ -11,18 +11,30 @@ using ExMat.Utils;
 
 namespace ExMat.Closure
 {
+    /// <summary>
+    /// Closure model, can return values and can be called
+    /// </summary>
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
     public class ExClosure : ExRefC, IExClosure
     {
+        /// <summary>
+        /// Base object this closure belongs to or null
+        /// </summary>
         public ExClass.ExClass Base;                // Ait olunan sınıf(varsa)
+        /// <summary>
+        /// Function prototype
+        /// </summary>
         public ExPrototype Function;        // Fonksiyon prototipi
-        public List<ExObject> OutersList;   // Dış değişken bilgisi
-        public List<ExObject> DefaultParams;// Varsayılan parametre değerleri
+        internal List<ExObject> OutersList;   // Dış değişken bilgisi
+        internal List<ExObject> DefaultParams;// Varsayılan parametre değerleri
+        /// <summary>
+        /// Shared state
+        /// </summary>
         public ExSState SharedState;        // Ortak değerler
 
-        protected override void Dispose(bool disposing)
+        internal override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {
@@ -38,6 +50,12 @@ namespace ExMat.Closure
             SharedState = null;
         }
 
+        /// <summary>
+        /// Initialize a closure using given shared state and the prototype
+        /// </summary>
+        /// <param name="exS">Shared state</param>
+        /// <param name="fpro">Prototype</param>
+        /// <returns>A new closure</returns>
         public static ExClosure Create(ExSState exS, ExPrototype fpro)
         {
             ExClosure cls = new() { SharedState = exS, Function = fpro };
@@ -46,30 +64,25 @@ namespace ExMat.Closure
             return cls;
         }
 
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExClosure() { }
 
-        public ExClosure Copy()
-        {
-            ExPrototype fp = Function;
-            ExClosure res = Create(SharedState, fp);
-
-            res.WeakReference = WeakReference;
-            if (res.WeakReference != null)
-            {
-                res.WeakReference.ReferenceCount++;
-            }
-
-            for (int i = 0; i < fp.nOuters; i++)
-            {
-                res.OutersList[i].Assign(OutersList[i]);
-            }
-            for (int i = 0; i < fp.nDefaultParameters; i++)
-            {
-                res.DefaultParams[i].Assign(DefaultParams[i]);
-            }
-            return res;
-        }
-
+        /// <summary>
+        /// Get an attribute of the closure
+        /// <para>Built in names:</para>
+        /// <para><see cref="ExMat.FuncName"/></para>
+        /// <para><see cref="ExMat.VargsName"/></para>
+        /// <para><see cref="ExMat.DelegName"/></para>
+        /// <para><see cref="ExMat.nParams"/></para>
+        /// <para><see cref="ExMat.nDefParams"/></para>
+        /// <para><see cref="ExMat.nMinArgs"/></para>
+        /// <para><see cref="ExMat.DefParams"/></para>
+        /// <para>Or checks <see cref="Base"/> class's attribute if nothing has matches</para>
+        /// </summary>
+        /// <param name="attr">Attribute name</param>
+        /// <returns>Depends on the attribute requested</returns>
         public dynamic GetAttribute(string attr)
         {
             switch (attr)
@@ -128,26 +141,8 @@ namespace ExMat.Closure
                     }
             }
         }
-        public virtual void Release()
-        {
-            foreach (ExObject o in OutersList)
-            {
-                o.Nullify();
-            }
-            OutersList = null;
 
-            foreach (ExObject o in DefaultParams)
-            {
-                o.Nullify();
-            }
-            DefaultParams = null;
-        }
-        public static new ExObjType GetType()
-        {
-            return ExObjType.CLOSURE;
-        }
-
-        public string GetInfoString()
+        internal string GetInfoString()
         {
             string s = string.Empty;
             switch (Function.ClosureType)
@@ -193,7 +188,7 @@ namespace ExMat.Closure
         }
 
 #if DEBUG
-        public new string GetDebuggerDisplay()
+        private new string GetDebuggerDisplay()
         {
             return Function.Name == null || ExTypeCheck.IsNull(Function.Name)
                 ? "CLOSURE"

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Exceptions;
 using ExMat.Objects;
 using ExMat.Utils;
@@ -2377,9 +2378,7 @@ namespace ExMat.StdLib
         {
             if (obj.Type == ExObjType.ARRAY)
             {
-                StringBuilder str = new(obj.GetList().Count);
-
-                return !ExApi.ConvertIntegerStringArrayToString(obj.GetList(), str)
+                return !ExApi.ConvertIntegerStringArrayToString(obj.GetList(), out StringBuilder str)
                     ? vm.AddToErrorMessage("failed to create string, list must contain all positive integers within 'char' range or strings")
                     : vm.CleanReturn(nargs + 2, str.ToString());
             }
