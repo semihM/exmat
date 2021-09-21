@@ -17,7 +17,7 @@ namespace ExMat.States
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    internal class ExEState
+    internal sealed class ExEState
     {
         public ExEType Type;        // İfade tipi
         public int Position;        // İfade hedef bellek pozisyonu

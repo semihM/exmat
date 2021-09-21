@@ -2,7 +2,6 @@
 #if DEBUG
 using System.Diagnostics;
 #endif
-using System.Runtime.Serialization;
 using ExMat.VM;
 
 namespace ExMat.Exceptions
@@ -13,7 +12,7 @@ namespace ExMat.Exceptions
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    internal class ExCompilerException : ExException
+    internal sealed class ExCompilerException : ExException
     {
         public override ExExceptionType Type => ExExceptionType.COMPILER;
 
@@ -34,14 +33,6 @@ namespace ExMat.Exceptions
         }
 
         public ExCompilerException(ExVM vm, string message, Exception innerException) : base(vm, message, innerException)
-        {
-        }
-
-        protected ExCompilerException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
-
-        protected ExCompilerException(ExVM vm, SerializationInfo info, StreamingContext context) : base(vm, info, context)
         {
         }
     }

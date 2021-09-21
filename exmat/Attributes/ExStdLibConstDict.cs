@@ -9,7 +9,7 @@ namespace ExMat.Attributes
     /// <para>Use <see langword="nameof"/> for best practice of getting the property name</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class ExStdLibConstDict : Attribute
+    public sealed class ExStdLibConstDict : Attribute
     {
         /// <summary>
         /// Dictionary name

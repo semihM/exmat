@@ -2178,8 +2178,8 @@ namespace ExMat.StdLib
                         {
                             case ExObjType.CLOSURE:
                                 {
-                                    if (filler.GetClosure().Function.nParams != 3
-                                        && (filler.GetClosure().Function.nParams - filler.GetClosure().Function.nDefaultParameters) > 3)
+                                    if (filler.GetClosure().Function.Info.nParams != 3
+                                        && (filler.GetClosure().Function.Info.nParams - filler.GetClosure().Function.Info.nDefaultParameters) > 3)
                                     {
                                         return vm.AddToErrorMessage("given function must allow 2-argument calls");
                                     }

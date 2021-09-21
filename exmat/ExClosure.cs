@@ -17,7 +17,7 @@ namespace ExMat.Closure
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExClosure : ExRefC, IExClosure
+    public sealed class ExClosure : ExRefC, IExClosure
     {
         /// <summary>
         /// Base object this closure belongs to or null
@@ -34,7 +34,11 @@ namespace ExMat.Closure
         /// </summary>
         public ExSState SharedState;        // Ortak değerler
 
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {
@@ -59,8 +63,8 @@ namespace ExMat.Closure
         public static ExClosure Create(ExSState exS, ExPrototype fpro)
         {
             ExClosure cls = new() { SharedState = exS, Function = fpro };
-            ExUtils.InitList(ref cls.OutersList, fpro.nOuters);
-            ExUtils.InitList(ref cls.DefaultParams, fpro.nDefaultParameters);
+            ExUtils.InitList(ref cls.OutersList, fpro.Info.nOuters);
+            ExUtils.InitList(ref cls.DefaultParams, fpro.Info.nDefaultParameters);
             return cls;
         }
 
@@ -101,20 +105,20 @@ namespace ExMat.Closure
                     }
                 case ExMat.nParams:
                     {
-                        return Function.nParams - 1 - (Function.HasVargs ? 1 : 0);
+                        return Function.Info.nParams - 1 - (Function.HasVargs ? 1 : 0);
                     }
                 case ExMat.nDefParams:
                     {
-                        return Function.nDefaultParameters;
+                        return Function.Info.nDefaultParameters;
                     }
                 case ExMat.nMinArgs:
                     {
-                        return Function.nParams - 1 - Function.nDefaultParameters - (Function.HasVargs ? 1 : 0);
+                        return Function.Info.nParams - 1 - Function.Info.nDefaultParameters - (Function.HasVargs ? 1 : 0);
                     }
                 case ExMat.DefParams:
                     {
-                        int ndef = Function.nDefaultParameters;
-                        int npar = Function.nParams - 1;
+                        int ndef = Function.Info.nDefaultParameters;
+                        int npar = Function.Info.nParams - 1;
                         int start = npar - ndef;
                         Dictionary<string, ExObject> dict = new();
                         foreach (ExObject d in DefaultParams)
@@ -152,30 +156,30 @@ namespace ExMat.Closure
                         string name = Function.Name.GetString();
                         s = string.IsNullOrWhiteSpace(name) ? "LAMBDA(" : "FUNCTION(" + name + ", ";
 
-                        if (Function.nDefaultParameters > 0)
+                        if (Function.Info.nDefaultParameters > 0)
                         {
-                            s += Function.nParams - 1 + " params (min:" + (Function.nParams - Function.nDefaultParameters - 1) + "))";
+                            s += Function.Info.nParams - 1 + " params (min:" + (Function.Info.nParams - Function.Info.nDefaultParameters - 1) + "))";
                         }
                         else if (Function.HasVargs)
                         {
-                            s += "vargs, min:" + (Function.nParams - 2) + " params)";
+                            s += "vargs, min:" + (Function.Info.nParams - 2) + " params)";
                         }
                         else
                         {
-                            s += Function.nParams - 1 + " params)";
+                            s += Function.Info.nParams - 1 + " params)";
                         }
                         break;
                     }
                 case ExClosureType.RULE:
                     {
                         s = "RULE(" + Function.Name.GetString() + ", ";
-                        s += Function.nParams - 1 + " params)";
+                        s += Function.Info.nParams - 1 + " params)";
                         break;
                     }
                 case ExClosureType.CLUSTER:
                     {
                         s = "CLUSTER(" + Function.Name.GetString() + ", ";
-                        s += Function.nParams - 1 + " params)";
+                        s += Function.Info.nParams - 1 + " params)";
                         break;
                     }
                 case ExClosureType.SEQUENCE:

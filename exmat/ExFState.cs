@@ -13,7 +13,7 @@ namespace ExMat.States
     /// <summary>
     /// Function state tracking for compiler
     /// </summary>
-    internal class ExFState : IDisposable
+    internal sealed class ExFState : IDisposable
     {
         /// <summary>
         /// Shared state
@@ -96,7 +96,7 @@ namespace ExMat.States
 
         private bool disposedValue;
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -762,15 +762,17 @@ namespace ExMat.States
 
         public ExPrototype CreatePrototype()
         {
-            ExPrototype funcPro = ExPrototype.Create(SharedState,
-                                                 Instructions.Count,
-                                                 nLiterals,
-                                                 Parameters.Count,
-                                                 Functions.Count,
-                                                 OuterInfos.Count,
-                                                 LineInfos.Count,
-                                                 LocalVariableInfos.Count,
-                                                 DefaultParameters.Count);
+            ExPrototype funcPro = ExPrototype.Create(SharedState, new()
+            {
+                nInstr = Instructions.Count,
+                nLits = nLiterals,
+                nParams = Parameters.Count,
+                nFuncs = Functions.Count,
+                nOuters = OuterInfos.Count,
+                nLineInfos = LineInfos.Count,
+                nLocalInfos = LocalVariableInfos.Count,
+                nDefaultParameters = DefaultParameters.Count
+            });
 
             funcPro.StackSize = StackSize;
             funcPro.Source = Source;

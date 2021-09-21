@@ -57,7 +57,11 @@ namespace ExMat.Objects
         }
 #endif
 
-        internal virtual void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

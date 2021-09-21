@@ -9,7 +9,7 @@ namespace ExMat.InfoVar
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    internal class ExLocalInfo : IDisposable
+    internal sealed class ExLocalInfo : IDisposable
     {
         public ExObject Name = new();   // Değişken ismi
         public int StartOPC;            // Değişkenin tanımlandığı komut indeksi
@@ -32,7 +32,7 @@ namespace ExMat.InfoVar
         }
 #endif
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

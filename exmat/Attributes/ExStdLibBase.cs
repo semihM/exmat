@@ -6,7 +6,7 @@ namespace ExMat.Attributes
     /// Attribute to mark a class as a standard library of given <see cref="ExStdLibType"/> type
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class ExStdLibBase : Attribute
+    public sealed class ExStdLibBase : Attribute
     {
         /// <summary>
         /// Library type

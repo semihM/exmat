@@ -3,7 +3,7 @@
 namespace ExMat.Attributes
 {
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true, Inherited = true)]
-    internal class ExConsoleHelper : Attribute
+    internal sealed class ExConsoleHelper : Attribute
     {
         public string Source = string.Empty;
         public string Help = string.Empty;

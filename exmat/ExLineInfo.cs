@@ -7,7 +7,7 @@ namespace ExMat.InfoVar
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    internal class ExLineInfo
+    internal sealed class ExLineInfo
     {
         public int Position;
         public int Line;

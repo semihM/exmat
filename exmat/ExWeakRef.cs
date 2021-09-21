@@ -3,7 +3,7 @@
     /// <summary>
     /// Weak reference object
     /// </summary>
-    public class ExWeakRef : ExRefC
+    public sealed class ExWeakRef : ExRefC
     {
         /// <summary>
         /// Weakly refernced object
@@ -11,7 +11,11 @@
         public ExObject ReferencedObject;   // Zayıf referans edilen obje
         private bool disposedValue;
 
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

@@ -12,7 +12,7 @@ namespace ExMat.Objects
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExSpace : ExRefC
+    public sealed class ExSpace : ExRefC
     {
         /// <summary>
         /// Dimension
@@ -201,7 +201,11 @@ namespace ExMat.Objects
             return d;
         }
 
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

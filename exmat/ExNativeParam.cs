@@ -7,7 +7,7 @@ namespace ExMat.Objects
     /// <summary>
     /// Native function parameter class
     /// </summary>
-    internal class ExNativeParam : ExNativeParamBase, IDisposable
+    internal sealed class ExNativeParam : ExNativeParamBase, IDisposable
     {
         /// <summary>
         /// Parameter type mask using <see cref="ExObjType"/> combinations
@@ -74,7 +74,7 @@ namespace ExMat.Objects
             return fp.Valid ? fp : null;
         }
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

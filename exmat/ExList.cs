@@ -5,7 +5,7 @@ namespace ExMat.Objects
     /// <summary>
     /// Class to create <see cref="ExObject(List{ExObject})"/>
     /// </summary>
-    public class ExList : ExObject
+    public sealed class ExList : ExObject
     {
         /// <summary>
         /// Empty list constructor

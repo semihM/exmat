@@ -13,7 +13,7 @@ using ExMat.VM;
 
 namespace ExMat.Compiler
 {
-    internal class ExCompiler : IDisposable
+    internal sealed class ExCompiler : IDisposable
     {
         private ExVM VM;                // Derleyicinin hedef sanal makinesi
 
@@ -31,7 +31,7 @@ namespace ExMat.Compiler
         private readonly bool StoreLineInfos;
         private bool disposedValue;
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

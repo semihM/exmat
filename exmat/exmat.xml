@@ -1206,16 +1206,6 @@
             Exception constructor
             </summary>
         </member>
-        <member name="M:ExMat.Exceptions.ExRuntimeException.#ctor(System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
-            Exception constructor
-            </summary>
-        </member>
-        <member name="M:ExMat.Exceptions.ExRuntimeException.#ctor(ExMat.VM.ExVM,System.Runtime.Serialization.SerializationInfo,System.Runtime.Serialization.StreamingContext)">
-            <summary>
-            Exception constructor
-            </summary>
-        </member>
         <member name="T:ExMat.ExClass.ExClass">
             <summary>
             Class object
@@ -1312,6 +1302,12 @@
             <param name="val">New value</param>
             <returns>Wheter an attribute of given name <paramref name="key"/> existed and updated</returns>
         </member>
+        <member name="M:ExMat.ExClass.ExClass.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
+        </member>
         <member name="T:ExMat.ExClass.ExClassMem">
             <summary>
             Class member class
@@ -1407,6 +1403,12 @@
             <param name="cls">Class to check</param>
             <returns>Wheter the instance was instanced from <paramref name="cls"/> class</returns>
         </member>
+        <member name="M:ExMat.ExClass.ExInstance.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
+        </member>
         <member name="T:ExMat.Closure.ExClosure">
             <summary>
             Closure model, can return values and can be called
@@ -1426,6 +1428,12 @@
             <summary>
             Shared state
             </summary>
+        </member>
+        <member name="M:ExMat.Closure.ExClosure.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
         </member>
         <member name="M:ExMat.Closure.ExClosure.Create(ExMat.States.ExSState,ExMat.FuncPrototype.ExPrototype)">
             <summary>
@@ -1528,6 +1536,12 @@
             <summary>
             Base object type
             </summary>
+        </member>
+        <member name="M:ExMat.Closure.ExNativeClosure.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
         </member>
         <member name="M:ExMat.Closure.ExNativeClosure.GetAttribute(System.String)">
             <summary>
@@ -1830,6 +1844,12 @@
             </summary>
             <returns>Returns <see cref="F:ExMat.ExObjValCustom.c_Space"/></returns>
         </member>
+        <member name="M:ExMat.Objects.ExObject.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
+        </member>
         <member name="M:ExMat.Objects.ExObject.Dispose">
             <summary>
             Disposer
@@ -2097,6 +2117,12 @@
             <param name="vc">If there is no weakref, assign this custom value</param>
             <returns>Weak reference found or constructed</returns>
         </member>
+        <member name="M:ExMat.Objects.ExRefC.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
+        </member>
         <member name="M:ExMat.Objects.ExRefC.Dispose">
             <summary>
             Disposer
@@ -2189,6 +2215,12 @@
             </summary>
             <returns></returns>
         </member>
+        <member name="M:ExMat.Objects.ExSpace.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
+        </member>
         <member name="T:ExMat.Objects.ExWeakRef">
             <summary>
             Weak reference object
@@ -2198,6 +2230,12 @@
             <summary>
             Weakly refernced object
             </summary>
+        </member>
+        <member name="M:ExMat.Objects.ExWeakRef.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
         </member>
         <member name="T:ExMat.States.ExFState">
             <summary>
@@ -2325,6 +2363,12 @@
             </summary>
             <param name="mname">Meta method name</param>
             <returns></returns>
+        </member>
+        <member name="M:ExMat.States.ExSState.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
         </member>
         <member name="M:ExMat.States.ExSState.Dispose">
             <summary>
@@ -4027,8 +4071,14 @@
         </member>
         <member name="M:ExMat.Outer.ExOuter.Release">
             <summary>
-            
+            Deref
             </summary>
+        </member>
+        <member name="M:ExMat.Outer.ExOuter.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
         </member>
         <member name="T:ExMat.FuncPrototype.ExPrototype">
             <summary>
@@ -4090,49 +4140,19 @@
             For tracking
             </summary>
         </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototype.Info">
+            <summary>
+            Count information for fields
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototype.StackSize">
+            <summary>
+            Stack size for the function callstack
+            </summary>
+        </member>
         <member name="F:ExMat.FuncPrototype.ExPrototype.HasVargs">
             <summary>
             Does the closure have vargs enabled ?
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nInstr">
-            <summary>
-            Number of instructions
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nLits">
-            <summary>
-            Number of literals
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nParams">
-            <summary>
-            Number of parameters
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nFuncs">
-            <summary>
-            Number of functions
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nOuters">
-            <summary>
-            Number of outers
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nLineInfos">
-            <summary>
-            Number of line infos
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nLocalInfos">
-            <summary>
-            Number of local var infos
-            </summary>
-        </member>
-        <member name="F:ExMat.FuncPrototype.ExPrototype.nDefaultParameters">
-            <summary>
-            Number of default values
             </summary>
         </member>
         <member name="M:ExMat.FuncPrototype.ExPrototype.#ctor">
@@ -4163,6 +4183,57 @@
             Returns <see cref="F:ExMat.FuncPrototype.ExPrototype.ClosureType"/> == <see cref="F:ExMat.ExClosureType.SEQUENCE"/>
             </summary>
             <returns></returns>
+        </member>
+        <member name="M:ExMat.FuncPrototype.ExPrototype.Dispose(System.Boolean)">
+            <summary>
+            Disposer
+            </summary>
+            <param name="disposing"></param>
+        </member>
+        <member name="T:ExMat.FuncPrototype.ExPrototypeInfo">
+            <summary>
+            Prototype information
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nInstr">
+            <summary>
+            Number of instructions
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nLits">
+            <summary>
+            Number of literals
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nParams">
+            <summary>
+            Number of parameters
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nFuncs">
+            <summary>
+            Number of functions
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nOuters">
+            <summary>
+            Number of outers
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nLineInfos">
+            <summary>
+            Number of line infos
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nLocalInfos">
+            <summary>
+            Number of local var infos
+            </summary>
+        </member>
+        <member name="F:ExMat.FuncPrototype.ExPrototypeInfo.nDefaultParameters">
+            <summary>
+            Number of default values
+            </summary>
         </member>
         <member name="T:ExMat.Token.TokenType">
             <summary>

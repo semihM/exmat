@@ -16,7 +16,7 @@ namespace ExMat.ExClass
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExClass : ExRefC
+    public sealed class ExClass : ExRefC
     {
         /// <summary>
         /// WIP, base class
@@ -124,7 +124,7 @@ namespace ExMat.ExClass
             return new(exs, b);
         }
 
-        internal virtual void Release()
+        internal void Release()
         {
             if ((--ReferenceCount) == 0)
             {
@@ -294,8 +294,11 @@ namespace ExMat.ExClass
                 : "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
         }
 #endif
-
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

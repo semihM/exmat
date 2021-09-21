@@ -15,7 +15,7 @@ namespace ExMat.FuncPrototype
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExPrototype : ExRefC
+    public sealed class ExPrototype : ExRefC
     {
         /// <summary>
         /// Type of closure
@@ -25,45 +25,53 @@ namespace ExMat.FuncPrototype
         /// <summary>
         /// Name of the prototype
         /// </summary>
-        public ExObject Name;               // Fonksiyon ismi
+        public ExObject Name = new();               // Fonksiyon ismi
         /// <summary>
         /// Source code
         /// </summary>
-        public ExObject Source;             // Kaynak kod dizisi
+        public ExObject Source = new();             // Kaynak kod dizisi
         /// <summary>
         /// Shared state
         /// </summary>
-        public ExSState SharedState;        // Ortak değerler
+        public ExSState SharedState = new();        // Ortak değerler
         /// <summary>
         /// Instructions
         /// </summary>
-        internal List<ExInstr> Instructions;  // Komut listesi
+        internal List<ExInstr> Instructions = new();  // Komut listesi
         /// <summary>
         /// Literals
         /// </summary>
-        public List<ExObject> Literals;     // Yazı dizileri ve isimler listesi
+        public List<ExObject> Literals = new();     // Yazı dizileri ve isimler listesi
         /// <summary>
         /// Parameters
         /// </summary>
-        public List<ExObject> Parameters;   // Parametreler
+        public List<ExObject> Parameters = new();   // Parametreler
         /// <summary>
         /// Default values' indices of parameters
         /// </summary>
-        public List<int> DefaultParameters; // Varsayılan değerler
+        public List<int> DefaultParameters = new(); // Varsayılan değerler
         /// <summary>
         /// List of prototypes in a chain
         /// </summary>
-        public List<ExPrototype> Functions; // Fonksiyon(lar)
+        public List<ExPrototype> Functions = new(); // Fonksiyon(lar)
         /// <summary>
         /// Local variable information
         /// </summary>
-        internal List<ExLocalInfo> LocalInfos;// Fonksiyon içindeki değişken bilgileri
-        internal List<ExOuterInfo> Outers;    // Dışarıdaki değişkenlere referanslar
+        internal List<ExLocalInfo> LocalInfos = new();// Fonksiyon içindeki değişken bilgileri
+        internal List<ExOuterInfo> Outers = new();    // Dışarıdaki değişkenlere referanslar
         /// <summary>
         /// For tracking
         /// </summary>
-        internal List<ExLineInfo> LineInfos;  // Komutların satır ve indeks bilgisi
+        internal List<ExLineInfo> LineInfos = new();  // Komutların satır ve indeks bilgisi
 
+        /// <summary>
+        /// Count information for fields
+        /// </summary>
+        public ExPrototypeInfo Info;
+
+        /// <summary>
+        /// Stack size for the function callstack
+        /// </summary>
         internal int StackSize;               // Fonksiyon komutlarının ihtiyacı olan yığın boyutu
 
         /// <summary>
@@ -71,77 +79,11 @@ namespace ExMat.FuncPrototype
         /// </summary>
         public bool HasVargs;               // Belirsiz sayıda parametreye sahip ?
 
-        #region Fields for storing sizes of List<T> fields 
-        /// <summary>
-        /// Number of instructions
-        /// </summary>
-        public int nInstr;
-        /// <summary>
-        /// Number of literals
-        /// </summary>
-        public int nLits;
-        /// <summary>
-        /// Number of parameters
-        /// </summary>
-        public int nParams;
-        /// <summary>
-        /// Number of functions
-        /// </summary>
-        public int nFuncs;
-        /// <summary>
-        /// Number of outers
-        /// </summary>
-        public int nOuters;
-        /// <summary>
-        /// Number of line infos
-        /// </summary>
-        public int nLineInfos;
-        /// <summary>
-        /// Number of local var infos
-        /// </summary>
-        public int nLocalInfos;
-        /// <summary>
-        /// Number of default values
-        /// </summary>
-        public int nDefaultParameters;
-        #endregion
 
-        internal static ExPrototype Create(ExSState sState,
-                                       int nInstr,
-                                       int nLits,
-                                       int nParams,
-                                       int nFuncs,
-                                       int nOuters,
-                                       int nLineinfos,
-                                       int nLocalinfos,
-                                       int nDefparams)
+        internal static ExPrototype Create(ExSState sState, ExPrototypeInfo info)
         {
             ExPrototype funcPro = new(sState);
-
-            funcPro.nInstr = nInstr;
-            funcPro.Instructions = new();
-
-            funcPro.nLits = nLits;
-            funcPro.Literals = new();
-
-            funcPro.nFuncs = nFuncs;
-            funcPro.Functions = new();
-
-            funcPro.nParams = nParams;
-            funcPro.Parameters = new();
-
-            funcPro.nOuters = nOuters;
-            funcPro.Outers = new();
-
-            funcPro.nLineInfos = nLineinfos;
-            funcPro.LineInfos = new();
-
-            funcPro.nLocalInfos = nLocalinfos;
-            funcPro.LocalInfos = new();
-
-            funcPro.nDefaultParameters = nDefparams;
-            funcPro.DefaultParameters = new();
-
+            funcPro.Info = info;
             return funcPro;
         }
 
@@ -173,7 +115,7 @@ namespace ExMat.FuncPrototype
 #if DEBUG
         internal new string GetDebuggerDisplay()
         {
-            return "FPRO(" + Name.GetString() + ", n_func: " + nFuncs + ", n_lits: " + nLits + ", n_instr: " + nInstr + ")";
+            return "FPRO(" + Name.GetString() + ", n_func: " + Info.nFuncs + ", n_lits: " + Info.nLits + ", n_instr: " + Info.nInstr + ")";
         }
 #endif
 
@@ -184,7 +126,7 @@ namespace ExMat.FuncPrototype
                 return new() { Line = 1, Position = 0 };
             }
 
-            int low = 0, mid = 0, high = nLineInfos - 1;
+            int low = 0, mid = 0, high = Info.nLineInfos - 1;
 
             while (low <= high)
             {
@@ -196,7 +138,7 @@ namespace ExMat.FuncPrototype
                 }
                 else if (cop < idx)
                 {
-                    if (mid < (nLineInfos - 1) && LineInfos[mid + 1].Position >= idx)
+                    if (mid < (Info.nLineInfos - 1) && LineInfos[mid + 1].Position >= idx)
                     {
                         break;
                     }
@@ -244,7 +186,11 @@ namespace ExMat.FuncPrototype
             return ClosureType == ExClosureType.SEQUENCE;
         }
 
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

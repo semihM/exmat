@@ -17,7 +17,7 @@ namespace ExMat.Closure
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExNativeClosure : ExRefC, IExClosure
+    public sealed class ExNativeClosure : ExRefC, IExClosure
     {
         /// <summary>
         /// Shared state
@@ -83,7 +83,11 @@ namespace ExMat.Closure
         /// </summary>
         public string Base = string.Empty;
 
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

@@ -9,7 +9,7 @@ namespace ExMat.Objects
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    internal class ExStack : IDisposable
+    internal sealed class ExStack : IDisposable
     {
         public List<ExObject> Values;   // Yığındaki objeler
 
@@ -177,7 +177,7 @@ namespace ExMat.Objects
             Size--;
         }
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

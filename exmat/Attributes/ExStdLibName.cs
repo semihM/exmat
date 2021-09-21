@@ -7,7 +7,7 @@ namespace ExMat.Attributes
     /// <para>This name is used by the users to refer to this library</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class ExStdLibName : Attribute
+    public sealed class ExStdLibName : Attribute
     {
         /// <summary>
         /// Library name

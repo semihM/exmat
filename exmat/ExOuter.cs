@@ -12,7 +12,7 @@ namespace ExMat.Outer
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExOuter : ExRefC
+    public sealed class ExOuter : ExRefC
     {
         /// <summary>
         /// 
@@ -52,9 +52,9 @@ namespace ExMat.Outer
             return exo;
         }
         /// <summary>
-        /// 
+        /// Deref
         /// </summary>
-        public virtual void Release()
+        internal void Release()
         {
             if (--ReferenceCount == 0)
             {
@@ -83,8 +83,11 @@ namespace ExMat.Outer
             return "OUTER(" + Index + ", " + (ValueRef == null ? "null" : ValueRef.GetInt()) + ")";
         }
 #endif
-
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {

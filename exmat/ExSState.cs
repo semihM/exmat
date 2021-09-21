@@ -11,7 +11,7 @@ namespace ExMat.States
     /// <summary>
     /// Shared state model to keep track of common values
     /// </summary>
-    public class ExSState : IDisposable
+    public sealed class ExSState : IDisposable
     {
         /// <summary>
         /// Owner VM
@@ -192,7 +192,11 @@ namespace ExMat.States
             return MetaMethodsMap != null && MetaMethodsMap.GetDict() != null && MetaMethodsMap.GetDict().ContainsKey(mname) ? (int)MetaMethodsMap.GetDict()[mname].GetInt() : -1;
         }
 
-        internal virtual void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

@@ -12,7 +12,7 @@ namespace ExMat.ExClass
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExClassMem : IDisposable
+    public sealed class ExClassMem : IDisposable
     {
         /// <summary>
         /// Value stored
@@ -45,7 +45,7 @@ namespace ExMat.ExClass
         }
 #endif
 
-        internal virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

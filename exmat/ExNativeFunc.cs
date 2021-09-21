@@ -16,7 +16,7 @@ namespace ExMat.Objects
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExNativeFunc : ExNativeFuncBase, IDisposable
+    public sealed class ExNativeFunc : ExNativeFuncBase, IDisposable
     {
         /// <summary>
         /// Library of which this function is a part of 
@@ -166,7 +166,7 @@ namespace ExMat.Objects
             SetReturnInfo();
         }
 
-        internal virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

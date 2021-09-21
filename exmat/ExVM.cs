@@ -28,7 +28,7 @@ namespace ExMat.VM
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExVM : IDisposable
+    public sealed class ExVM : IDisposable
     {
         /// <summary>
         /// Time when the virtual machine was first initialized
@@ -210,7 +210,7 @@ namespace ExMat.VM
 
         private bool disposedValue;
 
-        internal virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -1280,7 +1280,7 @@ namespace ExMat.VM
         private bool SetDefaultValuesInStack(ExPrototype prototype, ExClosure closure, int stackBase, int nParameters, ref int nArguments)
         {
             bool valid;
-            int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
+            int nDefaultParams = prototype.Info.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
             if (nParameters != nArguments)       // Argüman sayısı != parametre sayısından
             {
                 // Minimum sayıda argüman sağlandığını kontrol et
@@ -1379,7 +1379,7 @@ namespace ExMat.VM
         {
             ExPrototype prototype = closure.Function;     // Fonksiyon bilgisi
 
-            int nParameters = prototype.nParams;           // Parametre sayısı kontrolü
+            int nParameters = prototype.Info.nParams;           // Parametre sayısı kontrolü
             int newTop = stackBase + prototype.StackSize; // Yeni tavan indeksi
             int nArguments = argumentCount;               // Argüman sayısı
 
@@ -3090,7 +3090,7 @@ namespace ExMat.VM
             int nout;
             ExClosure cl = ExClosure.Create(SharedState, fp);
 
-            if ((nout = fp.nOuters) > 0)
+            if ((nout = fp.Info.nOuters) > 0)
             {
                 for (int i = 0; i < nout; i++)
                 {
@@ -3111,7 +3111,7 @@ namespace ExMat.VM
                 }
             }
             int ndefpars;
-            if ((ndefpars = fp.nDefaultParameters) > 0)
+            if ((ndefpars = fp.Info.nDefaultParameters) > 0)
             {
                 for (int i = 0; i < ndefpars; i++)
                 {
@@ -4576,11 +4576,11 @@ namespace ExMat.VM
                 List<ExObject> dp = new();
                 List<ExObject> ps = new();
 
-                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nParams; i++)
+                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.Info.nParams; i++)
                 {
                     ps.Add(new(CallInfo.Value.Closure.GetClosure().Function.Parameters[i]));
                 }
-                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nDefaultParameters; i++)
+                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.Info.nDefaultParameters; i++)
                 {
                     dp.Add(new(CallInfo.Value.Closure.GetClosure().DefaultParams[i]));
                 }

@@ -14,7 +14,7 @@ namespace ExMat.Lexer
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    internal class ExLexer : IDisposable
+    internal sealed class ExLexer : IDisposable
     {
         /// <summary>
         /// Source code
@@ -1422,7 +1422,7 @@ namespace ExMat.Lexer
             return TokenType.ENDLINE;
         }
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

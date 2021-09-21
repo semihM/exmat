@@ -13,7 +13,7 @@ namespace ExMat.ExClass
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExInstance : ExRefC
+    public sealed class ExInstance : ExRefC
     {
         /// <summary>
         /// Meta methods and other delegates dictionary
@@ -132,8 +132,11 @@ namespace ExMat.ExClass
             return "INSTANCE(n_vals: " + MemberValues.Count + ")";
         }
 #endif
-
-        internal override void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
             {
