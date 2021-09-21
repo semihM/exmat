@@ -7,7 +7,7 @@ namespace ExMat.OPs
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExTrap
+    internal sealed class ExTrap
     {
         public int StackBase;
         public int StackSize;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 #if DEBUG
 using System.Diagnostics;
 #endif
@@ -9,38 +10,84 @@ using ExMat.Utils;
 namespace ExMat.ExClass
 {
 
+    /// <summary>
+    /// Class object
+    /// </summary>
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExClass : ExRefC
+    public sealed class ExClass : ExRefC
     {
+        /// <summary>
+        /// WIP, base class
+        /// </summary>
         public ExClass Base;    // TO-DO Sınıf hiyerarşisi
+        /// <summary>
+        /// Member names and values
+        /// </summary>
         public Dictionary<string, ExObject> Members = new();// Özellikler
+        /// <summary>
+        /// Meta methods list
+        /// </summary>
         public List<ExObject> MetaFuncs = new();            // Meta metotlar
+        /// <summary>
+        /// Default values for members used for instancing
+        /// </summary>
         public List<ExClassMem> DefaultValues = new();      // Özelliklerin varsayılan değerleri
+        /// <summary>
+        /// Methods defined
+        /// </summary>
         public List<ExClassMem> Methods = new();            // Metotlar
+        /// <summary>
+        /// Attributes dictionary
+        /// </summary>
         public ExObject Attributes = new();                 // Özelliklerin alt-özellikleri
 
-        public bool GotInstanced;           // Örneklendi ?
-        public int ConstructorID;           // İnşa metotunun metotlar listesindeki indeksi 
-        public ExSState SharedState;        // Ortak değerler
+        /// <summary>
+        /// Has this class ever been instanced ?
+        /// </summary>
+        public bool HasInstances => GotInstanced;
 
+        internal bool GotInstanced;           // Örneklendi ?
+
+        /// <summary>
+        /// Method list index of the constructor
+        /// </summary>
+        public int ConstructorIndex => ConstructorID;
+
+        internal int ConstructorID;           // İnşa metotunun metotlar listesindeki indeksi
+
+        /// <summary>
+        /// Shared state of the VM
+        /// </summary>
+        public ExSState SharedState;        // Ortak değerler
+        /// <summary>
+        /// Unique hash value for the class for comparison
+        /// </summary>
         public readonly ulong Hash;
 
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExClass()
         {
-            System.DateTime dt = System.DateTime.Now;
+            DateTime dt = DateTime.Now;
             Hash = (((ulong)(int)dt.Kind) << 62) | ((ulong)dt.Ticks);
 
             GotInstanced = false;
             ConstructorID = -1;
 
-            ExUtils.InitList(ref MetaFuncs, (int)ExMetaMethod.LAST);
+            ExUtils.InitList(ref MetaFuncs, Enum.GetNames(typeof(ExMetaMethod)).Length);
         }
 
+        /// <summary>
+        /// Class within given shared state and base class
+        /// </summary>
+        /// <param name="exS">Shared state</param>
+        /// <param name="b">Base class or <see langword="null"/></param>
         public ExClass(ExSState exS, ExClass b)
         {
-            System.DateTime dt = System.DateTime.Now;
+            DateTime dt = DateTime.Now;
             Hash = (((ulong)(int)dt.Kind) << 62) | ((ulong)dt.Ticks);
 
             SharedState = exS;
@@ -48,7 +95,7 @@ namespace ExMat.ExClass
 
             GotInstanced = false;
             ConstructorID = -1;
-            ExUtils.InitList(ref MetaFuncs, (int)ExMetaMethod.LAST);
+            ExUtils.InitList(ref MetaFuncs, Enum.GetNames(typeof(ExMetaMethod)).Length);
 
             if (b != null)
             {
@@ -66,16 +113,18 @@ namespace ExMat.ExClass
             }
         }
 
+        /// <summary>
+        /// Static method to call the constructor
+        /// </summary>
+        /// <param name="exs">Shared state</param>
+        /// <param name="b">Base class</param>
+        /// <returns>A new class</returns>
         public static ExClass Create(ExSState exs, ExClass b)
         {
             return new(exs, b);
         }
 
-        public static new ExObjType GetType()
-        {
-            return ExObjType.CLASS;
-        }
-        public virtual void Release()
+        internal void Release()
         {
             if ((--ReferenceCount) == 0)
             {
@@ -91,7 +140,7 @@ namespace ExMat.ExClass
             }
         }
 
-        public void LockCls()
+        private void LockCls()
         {
             GotInstanced = true;
             if (Base != null)
@@ -99,6 +148,11 @@ namespace ExMat.ExClass
                 Base.LockCls();
             }
         }
+
+        /// <summary>
+        /// Create an instance of this class
+        /// </summary>
+        /// <returns>A new instance</returns>
         public ExInstance CreateInstance()
         {
             if (!GotInstanced)
@@ -108,6 +162,11 @@ namespace ExMat.ExClass
             return ExInstance.Create(SharedState, this);
         }
 
+        /// <summary>
+        /// Get the constructor method of the class if any. <paramref name="o"/> will be <see langword="null"/> if there is no constructor
+        /// </summary>
+        /// <param name="o">Result method</param>
+        /// <returns>Wheter there were a constructor method</returns>
         public bool GetConstructor(ref ExObject o)
         {
             if (ConstructorID != -1)
@@ -118,6 +177,12 @@ namespace ExMat.ExClass
             return false;
         }
 
+        /// <summary>
+        /// Set an attribute to given value
+        /// </summary>
+        /// <param name="key">Attribute name</param>
+        /// <param name="val">New value</param>
+        /// <returns>Wheter an attribute of given name <paramref name="key"/> existed and updated</returns>
         public bool SetAttrs(ExObject key, ExObject val)
         {
             if (Members.ContainsKey(key.GetString()))
@@ -190,7 +255,7 @@ namespace ExMat.ExClass
             return true;
         }
 
-        public bool NewSlot(ExSState exs, ExObject key, ExObject val, bool bstat)
+        internal bool NewSlot(ExSState exs, ExObject key, ExObject val, bool bstat)
         {
             bool bdict = (val.Type is ExObjType.CLOSURE or ExObjType.NATIVECLOSURE) || bstat;
             if (GotInstanced && !bdict)
@@ -222,14 +287,17 @@ namespace ExMat.ExClass
         }
 
 #if DEBUG
-        public new string GetDebuggerDisplay()
+        private new string GetDebuggerDisplay()
         {
             return Base != null
                 ? "[" + Base.GetDebuggerDisplay() + "]" + "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")"
                 : "CLASS(c_idx: " + ConstructorID + ", n_mem: " + Members.Count + ")";
         }
 #endif
-
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)

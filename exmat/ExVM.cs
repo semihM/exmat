@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if DEBUG
 using System.Diagnostics;
+#endif
 using System.Globalization;
 using System.IO;
 using System.Numerics;
@@ -26,7 +28,7 @@ namespace ExMat.VM
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExVM : IDisposable
+    public sealed class ExVM : IDisposable
     {
         /// <summary>
         /// Time when the virtual machine was first initialized
@@ -39,7 +41,7 @@ namespace ExMat.VM
         public readonly string StartDirectory = Directory.GetCurrentDirectory();
 
         /// <summary>
-        /// Shared state model to access some of compilation time variables
+        /// Shared state used across objects
         /// </summary>
         public ExSState SharedState = new();
 
@@ -63,19 +65,19 @@ namespace ExMat.VM
         /// <summary>
         /// Call stack for scoped instructions
         /// </summary>
-        public List<ExCallInfo> CallStack;      // Çağrı yığını
+        private List<ExCallInfo> CallStack;      // Çağrı yığını
         /// <summary>
         /// Call stack as linked list
         /// </summary>
-        public ExNode<ExCallInfo> CallInfo;       // Çağrı bağlı listesi
+        private ExNode<ExCallInfo> CallInfo;       // Çağrı bağlı listesi
         /// <summary>
         /// Allocated initial size for call stack
         /// </summary>
-        public int AllocatedCallSize;           // Yığının ilk boyutu
+        private int AllocatedCallSize;           // Yığının ilk boyutu
         /// <summary>
         /// Current size of call stack
         /// </summary>
-        public int CallStackSize;               // Yığının anlık boyutu
+        private int CallStackSize;               // Yığının anlık boyutu
 
         /// <summary>
         /// Global(root) dictionary
@@ -84,16 +86,16 @@ namespace ExMat.VM
         /// <summary>
         /// Temporary value
         /// </summary>
-        public ExObject TempRegistery = new();  // Geçici değer
+        private ExObject TempRegistery = new();  // Geçici değer
         /// <summary>
         /// Outer variable information
         /// </summary>
-        public ExOuter Outers;                  // Bilinmeyen değişken takibi
+        private ExOuter Outers;                  // Bilinmeyen değişken takibi
 
         /// <summary>
         /// Error message
         /// </summary>
-        public string ErrorString;                  // Hata mesajı
+        internal string ErrorString;                  // Hata mesajı
         /// <summary>
         /// Error traces
         /// </summary>
@@ -206,44 +208,9 @@ namespace ExMat.VM
         /// </summary>
         public bool HasIntKeyReader => IntKeyReader != null;
 
-
-        private Process _ExternalProcess;
-
-        /// <summary>
-        /// External console for printing
-        /// </summary>
-        public Process ExternalConsole
-        {
-            get
-            {
-                if (_ExternalProcess == null)
-                {
-                    return null;
-                }
-                else if (_ExternalProcess.HasExited)
-                {
-                    return _ExternalProcess = null;
-                }
-                return _ExternalProcess;
-            }
-            set
-            {
-                if (HasExternalConsole)
-                {
-                    ExternalConsole.Kill();
-                }
-                _ExternalProcess = value;
-            }
-        }
-
-        /// <summary>
-        /// Wheter <see cref="ExternalConsole"/> is not null
-        /// </summary>
-        public bool HasExternalConsole => ExternalConsole != null;
-
         private bool disposedValue;
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -322,11 +289,23 @@ namespace ExMat.VM
             return ExFunctionStatus.ERROR;
         }
 
+        /// <summary>
+        /// Add new error messages
+        /// </summary>
+        /// <param name="format">Format string</param>
+        /// <param name="msgs">Objects to replace in <paramref name="format"/></param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.ERROR"/></returns>
         public ExFunctionStatus AddToErrorMessage(string format, params object[] msgs)
         {
             return AddToErrorMessage(string.Format(CultureInfo.CurrentCulture, format, msgs));
         }
 
+        /// <summary>
+        /// Throws an exception with given message and type
+        /// </summary>
+        /// <param name="msg">Message</param>
+        /// <param name="vm">VM to report with</param>
+        /// <param name="type">Exception type</param>
         public void Throw(string msg, ExVM vm = null, ExExceptionType type = ExExceptionType.RUNTIME)
         {
             ExApi.Throw(msg, vm ?? this, type);
@@ -410,6 +389,11 @@ namespace ExMat.VM
             }
         }
 
+        /// <summary>
+        /// Similar to <see cref="ExApi.GetSimpleString(ExObject)"/>, but uses _STRING meta method for instances
+        /// </summary>
+        /// <param name="obj">Object to stringify</param>
+        /// <returns>Stringified value of <paramref name="obj"/></returns>
         public string GetSimpleString(ExObject obj)
         {
             switch (obj.Type)
@@ -434,9 +418,9 @@ namespace ExMat.VM
                         {
                             ExObject c = new();
                             ExObject res = new();
-                            if (obj.GetInstance().GetMetaM(this, ExMetaMethod.STRING, ref c))
+                            if (obj.GetInstance().GetMetaM(ExMetaMethod.STRING, ref c))
                             {
-                                return CallMeta(ref c, ExMetaMethod.STRING, 1, ref res) ? res.GetString() : string.Empty;
+                                return CallMeta(ref c, 1, ref res) ? res.GetString() : string.Empty;
                             }
                         }
                         return obj.Type.ToString();
@@ -444,7 +428,7 @@ namespace ExMat.VM
             }
         }
 
-        public string GetArrayString(List<ExObject> lis, bool beauty = false, bool isdictval = false, int maxdepth = 2, string prefix = "")
+        private string GetArrayString(List<ExObject> lis, bool beauty = false, bool isdictval = false, int maxdepth = 2, string prefix = "")
         {
             if (maxdepth == 0)
             {
@@ -514,7 +498,7 @@ namespace ExMat.VM
             return s.ToString();
         }
 
-        public string GetDictString(Dictionary<string, ExObject> dict, bool isdictval = false, int maxdepth = 2, int currentdepth = 1)
+        private string GetDictString(Dictionary<string, ExObject> dict, int maxdepth = 2, int currentdepth = 1)
         {
             if (maxdepth == 0)
             {
@@ -558,6 +542,17 @@ namespace ExMat.VM
             return s.ToString();
         }
 
+        /// <summary>
+        /// Stringify given object
+        /// </summary>
+        /// <param name="obj">Object to use</param>
+        /// <param name="res">Resulting string object</param>
+        /// <param name="maxdepth">Maximum printing depth for lists and dictionaries</param>
+        /// <param name="dval">Is in a dictionary</param>
+        /// <param name="beauty">Use better indentation</param>
+        /// <param name="prefix">Prefix for each element of lists and dictionaries</param>
+        /// <param name="currentdepth">Current printing depth</param>
+        /// <returns>Wheter the process has succeeded</returns>
         public bool ToString(ExObject obj,
                              ref ExObject res,
                              int maxdepth = 2,
@@ -605,7 +600,7 @@ namespace ExMat.VM
                     }
                 case ExObjType.DICT:
                     {
-                        res = new(GetDictString(obj.GetDict(), dval, maxdepth, currentdepth));
+                        res = new(GetDictString(obj.GetDict(), maxdepth, currentdepth));
                         break;
                     }
                 case ExObjType.NATIVECLOSURE:
@@ -629,10 +624,10 @@ namespace ExMat.VM
                         {
                             ExObject c = new();
 
-                            if (obj.GetInstance().GetMetaM(this, ExMetaMethod.STRING, ref c))
+                            if (obj.GetInstance().GetMetaM(ExMetaMethod.STRING, ref c))
                             {
                                 Push(obj);
-                                return CallMeta(ref c, ExMetaMethod.STRING, 1, ref res);
+                                return CallMeta(ref c, 1, ref res);
                             }
                         }
                         res = new(obj.Type.ToString());
@@ -642,7 +637,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool NewSlotA(ExObject self, ExObject key, ExObject val, ExObject attrs, bool bstat, bool braw)
+        private bool NewSlotA(ExObject self, ExObject key, ExObject val, ExObject attrs, bool bstat, bool braw)
         {
             if (self.Type != ExObjType.CLASS)
             {
@@ -662,7 +657,7 @@ namespace ExMat.VM
                     Push(val);
                     Push(attrs);
                     Push(bstat);
-                    return CallMeta(ref meta, ExMetaMethod.NEWMEMBER, 5, ref TempRegistery);
+                    return CallMeta(ref meta, 5, ref TempRegistery);
                 }
             }
 
@@ -679,7 +674,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool NewSlot(ExObject self, ExObject key, ExObject val, bool bstat)
+        internal bool NewSlot(ExObject self, ExObject key, ExObject val, bool bstat)
         {
             if (ExTypeCheck.IsNull(key))
             {
@@ -739,11 +734,19 @@ namespace ExMat.VM
             return true;
         }
 
+        /// <summary>
+        /// Pop given amount of values from the top of the stack
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
         public void Pop(long n)
         {
             Pop((int)n);
         }
 
+        /// <summary>
+        /// Pop given amount of values from the top of the stack
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
         public void Pop(int n)
         {
             for (int i = 0; i < n; i++)
@@ -751,76 +754,127 @@ namespace ExMat.VM
                 Stack[--StackTop].Nullify();
             }
         }
+        /// <summary>
+        /// Pop the object on top of the stack
+        /// </summary>
         public void Pop()
         {
             Stack[--StackTop].Nullify();
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, Complex o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, string o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, double o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, long o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, bool o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, string[] o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, List<ExObject> o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn(long n, Dictionary<string, ExObject> o)
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
+        /// <summary>
+        /// Pop <paramref name="n"/> objects from the top of the stack and push <paramref name="o"/> on top
+        /// </summary>
+        /// <typeparam name="T"><see cref="ExObject"/> type</typeparam>
+        /// <param name="n">Amount of objects to pop</param>
+        /// <param name="o">Object to push after pops</param>
+        /// <returns>Always returns <see cref="ExFunctionStatus.SUCCESS"/></returns>
         public ExFunctionStatus CleanReturn<T>(long n, T o) where T : ExObject
         {
             Pop(n); Push(o);
             return ExFunctionStatus.SUCCESS;
         }
 
-        public void Remove(int n)
-        {
-            n = n >= 0 ? n + StackBase - 1 : StackTop + n;
-            for (int i = n; i < StackTop; i++)
-            {
-                Stack[i].Assign(Stack[i + 1]);
-            }
-            Stack[StackTop].Nullify();
-            StackTop--;
-        }
-
+        /// <summary>
+        /// Push a list of object to the stack
+        /// </summary>
+        /// <param name="o">List of objects to push</param>
         public void PushParse(List<ExObject> o)
         {
             foreach (ExObject ob in o)
@@ -829,133 +883,245 @@ namespace ExMat.VM
             }
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(string o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(Complex o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(int o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(long o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(double o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(bool o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExObject o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(Dictionary<string, ExObject> o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(List<ExObject> o)
         {
             Stack[StackTop++].Assign(o);
         }
+
+        /// <summary>
+        /// Push given string array as a single list of objects on top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(string[] o)
         {
             Push(ExApi.ListObjFromStringArray(o));
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExInstance o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExClass.ExClass o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExClosure o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExNativeClosure o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExOuter o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExWeakRef o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Push given object to the top of the stack
+        /// </summary>
+        /// <param name="o">Object to push</param>
         public void Push(ExPrototype o)
         {
             Stack[StackTop++].Assign(o);
         }
 
+        /// <summary>
+        /// Nullify the top of the stack and increment the top index
+        /// </summary>
         public void PushNull()
         {
             Stack[StackTop++].Nullify();
         }
 
+        /// <summary>
+        /// Get the object on top of the stack
+        /// </summary>
+        /// <returns>Returns <c><see cref="Stack"/>[<see cref="StackTop"/> - 1]</c></returns>
         public ExObject Top()
         {
             return Stack[StackTop - 1];
         }
 
+        /// <summary>
+        /// Get the <paramref name="n"/>th object from the top of the stack
+        /// </summary>
+        /// <param name="n">Indexes below stack top index, -1 for the top object</param>
+        /// <returns>Returns <c><see cref="Stack"/>[<see cref="StackTop"/> + n]</c></returns>
         public ExObject GetAbove(int n)
         {
             return Stack[StackTop + n];
         }
+        /// <summary>
+        /// Get the object in the given index from the stack
+        /// </summary>
+        /// <param name="n">Stack index</param>
+        /// <returns>Returns <c><see cref="Stack"/>[n]</c></returns>
         public ExObject GetAt(int n)
         {
             return Stack[n];
         }
+        /// <summary>
+        /// Get the <paramref name="idx"/>th argument passed to a native function
+        /// </summary>
+        /// <param name="idx">Argument index >= 1</param>
+        /// <returns>Returns <c><see cref="Stack"/>[<see cref="StackBase"/> + <paramref name="idx"/>]</c></returns>
         public ExObject GetArgument(int idx)
         {
-            return Stack[idx + StackBase];
+            return Stack[StackBase + idx];
         }
+        /// <summary>
+        /// Get the root object from current native function call, this will be the root dictionary for non-deleagets and the delegate base object for delegate functions
+        /// </summary>
+        /// <returns>Returns <c><see cref="Stack"/>[<see cref="StackBase"/>]</c></returns>
         public ExObject GetRootArgument()
         {
             return Stack[StackBase];
         }
+        /// <summary>
+        /// Get the native closure object which was used for the closure call
+        /// </summary>
+        /// <returns>Returns <c><see cref="Stack"/>[<see cref="StackBase"/> - 1]</c> object's <see cref="ExObject.GetNClosure()"/></returns>
         public ExNativeClosure GetRootClosure()
         {
             return Stack[StackBase - 1].GetNClosure();
         }
+        /// <summary>
+        /// Get argument at given index and force it to be positive or given default value
+        /// </summary>
+        /// <param name="idx">Argument no</param>
+        /// <param name="defaultVal">Default value to use for negative values</param>
+        /// <returns>Positive integer</returns>
         public long GetPositiveIntegerArgument(int idx, long defaultVal = 1)
         {
             long val = GetArgument(idx).GetInt();
             return val <= 0 ? defaultVal : val;
         }
 
+        /// <summary>
+        /// Get argument at given index and force it to be in range [<paramref name="min"/>, <paramref name="max"/>]
+        /// </summary>
+        /// <param name="idx">Argument no</param>
+        /// <param name="min">Minimum value inclusive</param>
+        /// <param name="max">Maximum value inclusive</param>
+        /// <returns>An integer in range [<paramref name="min"/>, <paramref name="max"/>]</returns>
         public long GetPositiveRangedIntegerArgument(int idx, long min = 1, long max = long.MaxValue)
         {
             long val = GetArgument(idx).GetInt();
             return val <= min ? min : val >= max ? max : val;
         }
 
-        public ExObject CreateString(string s)
+        internal ExObject CreateString(string s)
         {
             if (!SharedState.Strings.ContainsKey(s))
             {
@@ -966,19 +1132,19 @@ namespace ExMat.VM
             return SharedState.Strings[s];
         }
 
-        public bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, out ExObject cns)
+        private bool CreateClassInst(ExClass.ExClass cls, ref ExObject o, out ExObject cns)
         {
             cns = null;
             o.Assign(cls.CreateInstance());
 
-            if (!cls.GetConstructor(ref cns))
+            if (!cls.GetConstructor(ref cns)) // TO-DO Implement default constructor instead ?
             {
                 ExObject typeofmethod = new();
-                if (o.GetInstance().GetMetaM(this, ExMetaMethod.TYPEOF, ref typeofmethod))
+                if (o.GetInstance().GetMetaM(ExMetaMethod.TYPEOF, ref typeofmethod))
                 {
                     ExObject res = new();
                     Push(o);
-                    if (!CallMeta(ref typeofmethod, ExMetaMethod.TYPEOF, 1, ref res))
+                    if (!CallMeta(ref typeofmethod, 1, ref res))
                     {
                         AddToErrorMessage("TYPEOF meta method failed call");
                         return false;
@@ -1059,7 +1225,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool StartCall(ExClosure cls, long trg, long args, long sbase, bool tail)
+        private bool StartCall(ExClosure cls, long trg, long args, long sbase, bool tail)
         {
             return StartCall(cls, (int)trg, (int)args, (int)sbase, tail);
         }
@@ -1114,7 +1280,7 @@ namespace ExMat.VM
         private bool SetDefaultValuesInStack(ExPrototype prototype, ExClosure closure, int stackBase, int nParameters, ref int nArguments)
         {
             bool valid;
-            int nDefaultParams = prototype.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
+            int nDefaultParams = prototype.Info.nDefaultParameters, defaultsIndex = nParameters - nDefaultParams;
             if (nParameters != nArguments)       // Argüman sayısı != parametre sayısından
             {
                 // Minimum sayıda argüman sağlandığını kontrol et
@@ -1209,11 +1375,11 @@ namespace ExMat.VM
             return ExFunctionStatus.VOID;
         }
 
-        public bool StartCall(ExClosure closure, int targetIndex, int argumentCount, int stackBase, bool isTailCall)
+        private bool StartCall(ExClosure closure, int targetIndex, int argumentCount, int stackBase, bool isTailCall)
         {
             ExPrototype prototype = closure.Function;     // Fonksiyon bilgisi
 
-            int nParameters = prototype.nParams;           // Parametre sayısı kontrolü
+            int nParameters = prototype.Info.nParams;           // Parametre sayısı kontrolü
             int newTop = stackBase + prototype.StackSize; // Yeni tavan indeksi
             int nArguments = argumentCount;               // Argüman sayısı
 
@@ -1262,7 +1428,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool IsInSpace(ExObject argument, ExSpace space, int i, bool raise = true)
+        private bool IsInSpace(ExObject argument, ExSpace space, int i, bool raise = true)
         {
             switch (argument.Type)
             {
@@ -1839,7 +2005,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public static int IterDictNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv) // TO-DO optimize
+        private static int IterDictNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv) // TO-DO optimize
         {
             Dictionary<string, ExObject>.Enumerator e = obj.GetDict().GetEnumerator();
             if (!e.MoveNext())
@@ -1873,7 +2039,7 @@ namespace ExMat.VM
             }
         }
 
-        public static int IterStringNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
+        private static int IterStringNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
         {
             string e = obj.GetString();
             if (e.Length == 0)
@@ -1901,7 +2067,7 @@ namespace ExMat.VM
             }
         }
 
-        public static int IterArrayNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
+        private static int IterArrayNext(ExObject obj, ExObject rpos, ExObject outk, ExObject outv)
         {
             List<ExObject> e = obj.GetList();
             if (e.Count == 0)
@@ -1981,7 +2147,7 @@ namespace ExMat.VM
             return new(ExSpace.GetSpaceFromString(name));
         }
 
-        public bool FixStackAfterError()
+        private bool FixStackAfterError()
         {
             if (ForceThrow)
             {
@@ -2014,7 +2180,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool Execute(ExObject closure, int nArguments, int stackBase, ref ExObject resultObject)
+        private bool Execute(ExObject closure, int nArguments, int stackBase, ref ExObject resultObject)
         {
             if (nNativeCalls++ > 100)   // Sonsuz döngüye girildi
             {
@@ -2194,7 +2360,7 @@ namespace ExMat.VM
                                 case ExObjType.INSTANCE:    // Sınıfa ait obje(gerekli meta metota sahio olması beklenir)
                                     {
                                         ExObject cls2 = null;
-                                        if (obj.GetInstance().GetMetaM(this, ExMetaMethod.CALL, ref cls2))
+                                        if (obj.GetInstance().GetMetaM(ExMetaMethod.CALL, ref cls2))
                                         {
                                             Push(obj);
                                             for (int j = 0; j < instruction.arg3; j++)
@@ -2202,7 +2368,7 @@ namespace ExMat.VM
                                                 Push(GetTargetInStack(j + instruction.arg2));
                                             }
 
-                                            if (!CallMeta(ref cls2, ExMetaMethod.CALL, instruction.arg3 + 1, ref obj))
+                                            if (!CallMeta(ref cls2, instruction.arg3 + 1, ref obj))
                                             {
                                                 AddToErrorMessage("meta method failed call");
                                                 return FixStackAfterError();
@@ -2326,7 +2492,7 @@ namespace ExMat.VM
                     case ExOperationCode.SET:
                         {
                             ExObject t = new(GetTargetInStack(instruction.arg3));
-                            if (!Setter(GetTargetInStack(instruction.arg1), GetTargetInStack(instruction.arg2), ref t, ExFallback.OK))
+                            if (!Setter(GetTargetInStack(instruction.arg1), GetTargetInStack(instruction.arg2), ref t))
                             {
                                 return FixStackAfterError();
                             }
@@ -2387,7 +2553,7 @@ namespace ExMat.VM
                     case ExOperationCode.MMLT:
                         {
                             ExObject res = new();
-                            if (!DoMatrixMltOP(ExOperationCode.MMLT, GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
+                            if (!DoMatrixMltOP(GetTargetInStack(instruction.arg2), GetTargetInStack(instruction.arg1), ref res))
                             {
                                 return FixStackAfterError();
                             }
@@ -2481,7 +2647,6 @@ namespace ExMat.VM
                             continue;
                         }
 
-                    case ExOperationCode.JZS:
                     case ExOperationCode.JZ:    // Hedef(arg0 indeksli) boolean olarak 'false' ise arg1 adet komutu atla
                         {
                             if (!GetTargetInStack(instruction.arg0).GetBool())
@@ -2577,7 +2742,7 @@ namespace ExMat.VM
                     case ExOperationCode.TRANSPOSE:
                         {
                             ExObject s1 = new(GetTargetInStack(instruction.arg1));
-                            if (!DoMatrixTranspose(GetTargetInStack(instruction), ref s1, (ExFallback)instruction.arg1))
+                            if (!DoMatrixTranspose(GetTargetInStack(instruction), ref s1))
                             {
                                 return FixStackAfterError();
                             }
@@ -2751,11 +2916,11 @@ namespace ExMat.VM
                         {
                             ExObject obj = GetTargetInStack(instruction.arg1);
                             ExObject res = new();
-                            if (obj.Type == ExObjType.INSTANCE && obj.GetInstance().GetMetaM(this, ExMetaMethod.TYPEOF, ref res))
+                            if (obj.Type == ExObjType.INSTANCE && obj.GetInstance().GetMetaM(ExMetaMethod.TYPEOF, ref res))
                             {
                                 ExObject r = new();
                                 Push(obj);
-                                if (!CallMeta(ref res, ExMetaMethod.TYPEOF, 1, ref r))
+                                if (!CallMeta(ref res, 1, ref r))
                                 {
                                     AddToErrorMessage("'typeof' failed for the instance");
                                     return FixStackAfterError();
@@ -2783,15 +2948,6 @@ namespace ExMat.VM
                                 && GetTargetInStack(instruction.arg2).GetInstance().IsInstanceOf(GetTargetInStack(instruction.arg1).GetClass()));
                             continue;
                         }
-                    case ExOperationCode.RETURNMACRO:   // TO-DO
-                        {
-                            if (ReturnValue((int)instruction.arg0, (int)instruction.arg1, ref TempRegistery, false, true))
-                            {
-                                SwapObjects(resultObject, TempRegistery);
-                                return true;
-                            }
-                            continue;
-                        }
                     case ExOperationCode.GETBASE:
                         {
                             ExClosure c = CallInfo.Value.Closure.GetClosure();
@@ -2815,7 +2971,7 @@ namespace ExMat.VM
 
         }
 
-        public bool RemoveObjectSlot(ExObject self, ExObject k, ref ExObject r)
+        private bool RemoveObjectSlot(ExObject self, ExObject k, ref ExObject r)
         {
             switch (self.Type)
             {
@@ -2826,11 +2982,11 @@ namespace ExMat.VM
                         ExObject tmp;
 
                         // TO-DO allow dict deleg ?
-                        if (self.Type == ExObjType.INSTANCE && self.GetInstance().GetMetaM(this, ExMetaMethod.DELSLOT, ref cls))
+                        if (self.Type == ExObjType.INSTANCE && self.GetInstance().GetMetaM(ExMetaMethod.DELSLOT, ref cls))
                         {
                             Push(self);
                             Push(k);
-                            return CallMeta(ref cls, ExMetaMethod.DELSLOT, 2, ref r);
+                            return CallMeta(ref cls, 2, ref r);
                         }
                         else
                         {
@@ -2891,7 +3047,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public void FindOuterVal(ExObject target, ExObject sidx)
+        private void FindOuterVal(ExObject target, ExObject sidx)
         {
             if (Outers == null)
             {
@@ -2917,7 +3073,7 @@ namespace ExMat.VM
             target.Assign(tmp);
         }
 
-        public int FindFirstNullInStack()
+        private int FindFirstNullInStack()
         {
             for (int i = 0; i < StackSize; i++)
             {
@@ -2929,12 +3085,12 @@ namespace ExMat.VM
             return -1;
         }
 
-        public bool DoClosureOP(ExObject t, ExPrototype fp)
+        private bool DoClosureOP(ExObject t, ExPrototype fp)
         {
             int nout;
             ExClosure cl = ExClosure.Create(SharedState, fp);
 
-            if ((nout = fp.nOuters) > 0)
+            if ((nout = fp.Info.nOuters) > 0)
             {
                 for (int i = 0; i < nout; i++)
                 {
@@ -2955,7 +3111,7 @@ namespace ExMat.VM
                 }
             }
             int ndefpars;
-            if ((ndefpars = fp.nDefaultParameters) > 0)
+            if ((ndefpars = fp.Info.nDefaultParameters) > 0)
             {
                 for (int i = 0; i < ndefpars; i++)
                 {
@@ -2968,6 +3124,12 @@ namespace ExMat.VM
             return true;
         }
 
+        /// <summary>
+        /// Assign the negated result of given value to given target
+        /// </summary>
+        /// <param name="target">Negated result</param>
+        /// <param name="val">Value to negate</param>
+        /// <returns>Wheter the process was successful</returns>
         public static bool DoNegateOP(ExObject target, ExObject val)
         {
             switch (val.Type)
@@ -2998,7 +3160,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool DoMatrixTranspose(ExObject t, ref ExObject mat, ExFallback idx)
+        private bool DoMatrixTranspose(ExObject t, ref ExObject mat)
         {
             if (mat.Type != ExObjType.ARRAY)
             {
@@ -3020,7 +3182,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoDerefInc(ExOperationCode op, ExObject t, ref ExObject self, ref ExObject k, ExObject inc, bool post, ExFallback idx)
+        private bool DoDerefInc(ExOperationCode op, ExObject t, ref ExObject self, ref ExObject k, ExObject inc, bool post, ExFallback idx)
         {
             ExObject tmp = new();
             ExObject tmpk = k;
@@ -3035,7 +3197,7 @@ namespace ExMat.VM
                 return false;
             }
 
-            if (!Setter(tmps, tmpk, ref t, idx))
+            if (!Setter(tmps, tmpk, ref t))
             {
                 return false;
             }
@@ -3046,7 +3208,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoVarInc(ExOperationCode op, ref ExObject t, ref ExObject o, ExObject diff)
+        private bool DoVarInc(ExOperationCode op, ref ExObject t, ref ExObject o, ExObject diff)
         {
             ExObject res = new();
             if (!DoArithmeticOP(op, o, diff, ref res))
@@ -3058,7 +3220,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoClassOP(ExObject target, int bcls, int attr)
+        private bool DoClassOP(ExObject target, int bcls, int attr)
         {
             ExClass.ExClass cb = null;
             ExObject atrs = new();
@@ -3124,6 +3286,16 @@ namespace ExMat.VM
             }
         }
 
+        /// <summary>
+        /// Compare two objects, <paramref name="t"/> will be:
+        /// <para>-1 if <c>a &lt; b</c></para>
+        /// <para>0 if <c>a == b</c></para>
+        /// <para>1 if <c>a &gt; b</c></para>
+        /// </summary>
+        /// <param name="a">LHS object</param>
+        /// <param name="b">RHS object</param>
+        /// <param name="t">Result of comparison</param>
+        /// <returns>Wheter comparison was successful, ignore <paramref name="t"/> if <see langword="false"/> is returned</returns>
         public static bool InnerDoCompareOP(ExObject a, ExObject b, ref int t)
         {
             if (a.Type == ExObjType.COMPLEX || b.Type == ExObjType.COMPLEX)
@@ -3141,7 +3313,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool DoCompareOP(CmpOP cop, ExObject a, ExObject b, ExObject res)
+        private bool DoCompareOP(CmpOP cop, ExObject a, ExObject b, ExObject res)
         {
             int t = 0;
             if (InnerDoCompareOP(a, b, ref t))
@@ -3172,7 +3344,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public bool ReturnValue(int a0, int a1, ref ExObject res, bool makeBoolean = false, bool interactive = false)                            //  bool mac = false)
+        private bool ReturnValue(int a0, int a1, ref ExObject res, bool makeBoolean = false, bool interactive = false)                            //  bool mac = false)
         {
             bool root = CallInfo.Value.IsRootCall;
             int cbase = StackBase - CallInfo.Value.PrevBase;
@@ -3216,6 +3388,14 @@ namespace ExMat.VM
             return root;
         }
 
+        /// <summary>
+        /// Bitwise operation between two objects
+        /// </summary>
+        /// <param name="iop"><see cref="BitOP"/> operation integer value</param>
+        /// <param name="a">LHS value</param>
+        /// <param name="b">RHS value</param>
+        /// <param name="res">Result</param>
+        /// <returns>Wheter operation was successful</returns>
         public static bool DoBitwiseOP(long iop, ExObject a, ExObject b, ExObject res)
         {
             int a_mask = (int)a.Type | (int)b.Type;
@@ -3251,6 +3431,14 @@ namespace ExMat.VM
             return a > 0 ? double.PositiveInfinity : a == 0 ? double.NaN : double.NegativeInfinity;
         }
 
+        /// <summary>
+        /// Arithmetic operation between integers
+        /// </summary>
+        /// <param name="op">Operation</param>
+        /// <param name="a">LHS value</param>
+        /// <param name="b">RHS value</param>
+        /// <param name="res">Result</param>
+        /// <returns>Wheter process succeeded</returns>
         public static bool InnerDoArithmeticOPInt(ExOperationCode op, long a, long b, ref ExObject res)
         {
             switch (op)
@@ -3270,6 +3458,14 @@ namespace ExMat.VM
             return true;
         }
 
+        /// <summary>
+        /// Arithmetic operation between floats
+        /// </summary>
+        /// <param name="op">Operation</param>
+        /// <param name="a">LHS value</param>
+        /// <param name="b">RHS value</param>
+        /// <param name="res">Result</param>
+        /// <returns>Wheter process succeeded</returns>
         public static bool InnerDoArithmeticOPFloat(ExOperationCode op, double a, double b, ref ExObject res)
         {
             switch (op)
@@ -3293,6 +3489,14 @@ namespace ExMat.VM
             return true;
         }
 
+        /// <summary>
+        /// Arithmetic operation between complex numbers
+        /// </summary>
+        /// <param name="op">Operation</param>
+        /// <param name="a">LHS value</param>
+        /// <param name="b">RHS value</param>
+        /// <param name="res">Result</param>
+        /// <returns>Wheter process succeeded</returns>
         public static bool InnerDoArithmeticOPComplex(ExOperationCode op, Complex a, Complex b, ref ExObject res)
         {
             switch (op)
@@ -3374,7 +3578,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoMatrixMltChecks(List<ExObject> M, ref int cols)
+        private bool DoMatrixMltChecks(List<ExObject> M, ref int cols)
         {
             cols = 0;
             foreach (ExObject row in M)
@@ -3416,7 +3620,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool MatrixMultiplication(List<ExObject> A, List<ExObject> B, ref ExObject res)
+        private bool MatrixMultiplication(List<ExObject> A, List<ExObject> B, ref ExObject res)
         {
             int rA = A.Count;
             int rB = B.Count;
@@ -3458,7 +3662,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool DoMatrixMltOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
+        private bool DoMatrixMltOP(ExObject a, ExObject b, ref ExObject res)
         {
             if (a.Type != ExObjType.ARRAY || b.Type != ExObjType.ARRAY)
             {
@@ -3469,7 +3673,7 @@ namespace ExMat.VM
             return MatrixMultiplication(a.GetList(), b.GetList(), ref res);
         }
 
-        public bool DoCartesianProductOP(ExObject a, ExObject b, ref ExObject res)
+        private bool DoCartesianProductOP(ExObject a, ExObject b, ref ExObject res)
         {
             if (a.Type != ExObjType.ARRAY || b.Type != ExObjType.ARRAY)
             {
@@ -3551,6 +3755,14 @@ namespace ExMat.VM
             return false;
         }
 
+        /// <summary>
+        /// Arithmetic operation between two objects
+        /// </summary>
+        /// <param name="op">Operation</param>
+        /// <param name="a">LHS value</param>
+        /// <param name="b">RHS value</param>
+        /// <param name="res">Result</param>
+        /// <returns>Wheter process succeeded</returns>
         public bool DoArithmeticOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
         {
             // Veri tiplerini maskeleyerek işlemler basitleştirilir
@@ -3592,7 +3804,7 @@ namespace ExMat.VM
                     }
             }
         }
-        public bool DoArithmeticMetaOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
+        private bool DoArithmeticMetaOP(ExOperationCode op, ExObject a, ExObject b, ref ExObject res)
         {
             ExMetaMethod meta;
             switch (op)
@@ -3637,17 +3849,17 @@ namespace ExMat.VM
             {
                 ExObject c = new();
 
-                if (a.GetInstance().GetMetaM(this, meta, ref c))
+                if (a.GetInstance().GetMetaM(meta, ref c))
                 {
                     Push(a);
                     Push(b);
-                    return CallMeta(ref c, meta, 2, ref res);
+                    return CallMeta(ref c, 2, ref res);
                 }
             }
             return false;
         }
 
-        public bool CallMeta(ref ExObject cls, ExMetaMethod meta, long nargs, ref ExObject res)
+        private bool CallMeta(ref ExObject cls, long nargs, ref ExObject res)
         {
             nMetaCalls++;
             bool b = Call(ref cls, nargs, StackTop - nargs, ref res, true);
@@ -3656,7 +3868,7 @@ namespace ExMat.VM
             return b;
         }
 
-        public ExObject GetConditionFromInstr(ExInstr i)
+        private ExObject GetConditionFromInstr(ExInstr i)
         {
             return i.arg3 != 0 ? CallInfo.Value.Literals[(int)i.arg1] : GetTargetInStack(i.arg1);
         }
@@ -3770,7 +3982,7 @@ namespace ExMat.VM
             return ExSetterStatus.ERROR;
         }
 
-        public bool Setter(ExObject self, ExObject k, ref ExObject v, ExFallback f)
+        private bool Setter(ExObject self, ExObject k, ref ExObject v)
         {
             ExSetterStatus status = ExSetterStatus.ERROR;
             switch (self.Type)
@@ -3835,7 +4047,7 @@ namespace ExMat.VM
             return false;
         }
 
-        public ExFallback SetterFallback(ExObject self, ExObject k, ref ExObject v)
+        private ExFallback SetterFallback(ExObject self, ExObject k, ref ExObject v)
         {
             switch (self.Type)
             {
@@ -3843,7 +4055,7 @@ namespace ExMat.VM
                     {
                         ExObject cls = null;
                         ExObject t = new();
-                        if (self.GetInstance().GetMetaM(this, ExMetaMethod.SET, ref cls))
+                        if (self.GetInstance().GetMetaM(ExMetaMethod.SET, ref cls))
                         {
                             Push(self);
                             Push(k);
@@ -3866,7 +4078,7 @@ namespace ExMat.VM
             return ExFallback.NOMATCH;
         }
 
-        public bool InvokeDefaultDeleg(ExObject self, ExObject k, ref ExObject dest)
+        internal bool InvokeDefaultDeleg(ExObject self, ExObject k, ref ExObject dest)
         {
             if (!ExTypeCheck.IsDelegable(self))
             {
@@ -3932,14 +4144,14 @@ namespace ExMat.VM
             return false;
         }
 
-        public ExFallback GetterFallback(ExObject self, ExObject k, ref ExObject dest)
+        private ExFallback GetterFallback(ExObject self, ExObject k, ref ExObject dest)
         {
             switch (self.Type)
             {
                 case ExObjType.INSTANCE:
                     {
                         ExObject cls = null;
-                        if (self.GetInstance().GetMetaM(this, ExMetaMethod.GET, ref cls))
+                        if (self.GetInstance().GetMetaM(ExMetaMethod.GET, ref cls))
                         {
                             Push(self);
                             Push(k);
@@ -3961,7 +4173,7 @@ namespace ExMat.VM
             return ExFallback.NOMATCH;
         }
 
-        public ExGetterStatus Getter(Dictionary<string, ExObject> dict, ExObject key, ref ExObject dest, bool isUsingIn)
+        private ExGetterStatus Getter(Dictionary<string, ExObject> dict, ExObject key, ref ExObject dest, bool isUsingIn)
         {
             if (dict == null)
             {
@@ -3991,7 +4203,7 @@ namespace ExMat.VM
         }
 
 
-        public ExGetterStatus Getter(List<ExObject> lis, ExObject key, ref ExObject dest, bool isUsingIn)
+        private ExGetterStatus Getter(List<ExObject> lis, ExObject key, ref ExObject dest, bool isUsingIn)
         {
             if (lis == null)
             {
@@ -4023,7 +4235,7 @@ namespace ExMat.VM
             return ExGetterStatus.NOTFOUND;
         }
 
-        public ExGetterStatus Getter(ExInstance instance, ExObject key, ref ExObject dest, bool isUsingIn)
+        private ExGetterStatus Getter(ExInstance instance, ExObject key, ref ExObject dest)
         {
             if (instance == null)
             {
@@ -4049,7 +4261,7 @@ namespace ExMat.VM
             return ExGetterStatus.NOTFOUND;
         }
 
-        public ExGetterStatus Getter(ExClass.ExClass cls, ExObject key, ref ExObject dest, bool isUsingIn)
+        private ExGetterStatus Getter(ExClass.ExClass cls, ExObject key, ref ExObject dest)
         {
             if (cls == null)
             {
@@ -4109,7 +4321,7 @@ namespace ExMat.VM
             return tmp.GetBool() ? ExGetterStatus.FOUND : ExGetterStatus.NOTFOUND;
         }
 
-        public ExGetterStatus Getter(ExObject fbase, ExObject key, ref ExObject dest, bool isUsingIn, bool isNative = false)
+        private ExGetterStatus Getter(ExObject fbase, ExObject key, ref ExObject dest, bool isUsingIn, bool isNative = false)
         {
             ExClosure func = fbase.GetClosure();
             if (!isNative && isUsingIn)
@@ -4134,7 +4346,7 @@ namespace ExMat.VM
             return ExGetterStatus.ERROR;
         }
 
-        public ExGetterStatus Getter(string str, ExObject key, ref ExObject dest, bool isUsingIn)
+        private ExGetterStatus Getter(string str, ExObject key, ref ExObject dest, bool isUsingIn)
         {
             if (ExTypeCheck.IsNumeric(key))
             {
@@ -4166,7 +4378,7 @@ namespace ExMat.VM
             return ExGetterStatus.NOTFOUND;
         }
 
-        public bool Getter(ExObject self, ExObject k, ref ExObject dest, bool raw, ExFallback f, bool isUsingIn = false)
+        private bool Getter(ExObject self, ExObject k, ref ExObject dest, bool raw, ExFallback f, bool isUsingIn = false)
         {
             ExGetterStatus status = ExGetterStatus.NOTFOUND;
             switch (self.Type)
@@ -4183,12 +4395,12 @@ namespace ExMat.VM
                     }
                 case ExObjType.INSTANCE:
                     {
-                        status = Getter(self.GetInstance(), k, ref dest, isUsingIn);
+                        status = Getter(self.GetInstance(), k, ref dest);
                         break;
                     }
                 case ExObjType.CLASS:
                     {
-                        status = Getter(self.GetClass(), k, ref dest, isUsingIn);
+                        status = Getter(self.GetClass(), k, ref dest);
                         break;
                     }
                 case ExObjType.STRING:
@@ -4272,22 +4484,22 @@ namespace ExMat.VM
             }
         }
 
-        public ExObject GetTargetInStack(ExInstr i)
+        private ExObject GetTargetInStack(ExInstr i)
         {
             return Stack[StackBase + (int)i.arg0];
         }
 
-        public ExObject GetTargetInStack(int i)
+        private ExObject GetTargetInStack(int i)
         {
             return Stack[StackBase + i];
         }
 
-        public ExObject GetTargetInStack(long i)
+        private ExObject GetTargetInStack(long i)
         {
             return Stack[StackBase + (int)i];
         }
 
-        public static void SwapObjects(ExObject x, ExObject y)
+        private static void SwapObjects(ExObject x, ExObject y)
         {
             ExObjType t = x.Type;
             ExObjVal v = x.Value;
@@ -4302,7 +4514,7 @@ namespace ExMat.VM
             y.ValueCustom = vc;
         }
 
-        public void CloseOuters(int idx)
+        private void CloseOuters(int idx)
         {
             ExOuter o;
             while ((o = Outers) != null && idx-- > 0)
@@ -4316,7 +4528,7 @@ namespace ExMat.VM
             }
         }
 
-        public bool EnterFrame(int newBase, int newTop, bool isTailCall)
+        private bool EnterFrame(int newBase, int newTop, bool isTailCall)
         {
             if (!isTailCall)    // zincirleme çağrı değil
             {
@@ -4350,7 +4562,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool LeaveFrame(bool sequenceOptimize = false)
+        private bool LeaveFrame(bool sequenceOptimize = false)
         {
             int last_top = StackTop;        // Tavan
             int last_base = StackBase;      // Taban
@@ -4364,11 +4576,11 @@ namespace ExMat.VM
                 List<ExObject> dp = new();
                 List<ExObject> ps = new();
 
-                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nParams; i++)
+                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.Info.nParams; i++)
                 {
                     ps.Add(new(CallInfo.Value.Closure.GetClosure().Function.Parameters[i]));
                 }
-                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.nDefaultParameters; i++)
+                for (int i = 0; i < CallInfo.Value.Closure.GetClosure().Function.Info.nDefaultParameters; i++)
                 {
                     dp.Add(new(CallInfo.Value.Closure.GetClosure().DefaultParams[i]));
                 }
@@ -4402,7 +4614,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool CallNative(ExNativeClosure cls, long narg, long newb, ref ExObject o)
+        private bool CallNative(ExNativeClosure cls, long narg, long newb, ref ExObject o)
         {
             return CallNative(cls, (int)narg, (int)newb, ref o);
         }
@@ -4449,7 +4661,7 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool CallNative(ExNativeClosure cls, int nArguments, int newBase, ref ExObject result)
+        private bool CallNative(ExNativeClosure cls, int nArguments, int newBase, ref ExObject result)
         {
             int nParameterChecks = cls.nParameterChecks;        // Parametre sayısı kontrolü
             int newTop = newBase + nArguments + cls.nOuters;    // Yeni tavan indeksi
@@ -4544,11 +4756,20 @@ namespace ExMat.VM
             return true;
         }
 
-        public bool Call(ref ExObject cls, long nparams, long stackbase, ref ExObject o, bool forcereturn = false)
+        private bool Call(ref ExObject cls, long nparams, long stackbase, ref ExObject o, bool forcereturn = false)
         {
             return Call(ref cls, (int)nparams, (int)stackbase, ref o, forcereturn);
         }
 
+        /// <summary>
+        /// Attempt to call given object with the given call information
+        /// </summary>
+        /// <param name="cls">Object to call</param>
+        /// <param name="nArguments">Amount of arguments in the stack</param>
+        /// <param name="stackBase">Stack base</param>
+        /// <param name="result">Result of the call</param>
+        /// <param name="forcereturn">Wheter to force return last value if nothings is returned</param>
+        /// <returns>Wheter call succeded</returns>
         public bool Call(ref ExObject cls, int nArguments, int stackBase, ref ExObject result, bool forcereturn = false)
         {
             // İnteraktif konsola çıktı yardımcısı 
@@ -4600,7 +4821,9 @@ namespace ExMat.VM
             return "VM" + (IsMainCall ? "<main>" : "<inner>") + "(Base: " + StackBase + ", Top: " + StackTop + ")";
         }
 #endif
-
+        /// <summary>
+        /// Disposer
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

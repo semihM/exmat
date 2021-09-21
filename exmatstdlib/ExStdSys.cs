@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Objects;
 using ExMat.VM;
 
@@ -257,42 +258,33 @@ namespace ExMat.StdLib
             }
             ExFunctionStatus stat;
 
-            Process p = new();
+            using Process p = new();
 
             string fname = vm.StartDirectory + "\\" + ExApi.RandomString(48);
             File.WriteAllText(fname,
-                string.Format(CultureInfo.CurrentCulture, "// This file is a temporary file for created by 'print_out'\nprint(\"{0}\".slice(1,-1));exit()", ExApi.GetEscapedFormattedString(output, true)));
+                string.Format(CultureInfo.CurrentCulture, "// This file is a temporary file for created by 'print_out'\nprint(\"{0}\");exit()", ExApi.Escape(output)));
 
             File.SetAttributes(fname, FileAttributes.ReadOnly | FileAttributes.Hidden);
 
             try
             {
-                if (vm.HasExternalConsole)
-                {
-                    vm.ExternalConsole = null;
-                }
-
                 p.StartInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
                 p.StartInfo.Arguments = $"{fname} --no-inout --no-info --delete-onpost -stacksize:16 -title:\"{(nargs >= 2 ? vm.GetArgument(2).GetString() : ExMat.ConsoleTitle)}\"";
                 p.StartInfo.UseShellExecute = true;
                 p.Start();
 
-                vm.ExternalConsole = p;
-
                 stat = vm.CleanReturn(nargs + 2, true);
             }
             catch (Exception exp)
             {
-                if (p != null)
-                {
-                    vm.ExternalConsole = null;
-                }
                 stat = vm.AddToErrorMessage("Error printing: " + exp.Message);
             }
             finally
             {
                 FileInfo fileInfo = new(fname);
                 fileInfo.IsReadOnly = false;
+
+                System.Threading.Thread.Sleep(250); // To prevent spam in infinite loops
             }
             return stat;
         }

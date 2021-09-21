@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using ExMat.Attributes;
 using ExMat.Closure;
 using ExMat.ExClass;
 using ExMat.FuncPrototype;
@@ -17,12 +19,12 @@ namespace ExMat
         /// <summary>
         /// Full version
         /// </summary>
-        public const string Version = "ExMat v0.0.15";
+        public const string Version = "ExMat v0.0.16";
 
         /// <summary>
         /// Version number
         /// </summary>
-        public const int VersionNumber = 15;
+        public const int VersionNumber = 16;
 
         /// <summary>
         /// Title of the interactive console
@@ -32,7 +34,20 @@ namespace ExMat
         /// <summary>
         /// Help information to print at the beginning
         /// </summary>
-        public const string HelpInfoString = "Use 'help' for function information, 'root' for global variables, 'consts' for constants";
+        public static readonly string[] HelpInfoString = new string[2]
+        {
+            "Use 'help' for function information, 'root' for global variables, 'consts' for constants",
+            "Use 'exm --help' in your terminal to view startup options",
+        };
+
+        internal static int PreferredStackSize { get; set; } = 1 << 15;
+
+        internal static string PreferredConsoleTitle { get; set; } = ConsoleTitle;
+
+        /// <summary>
+        /// Time in ms to delay output so CTRL+C doesn't mess up
+        /// </summary>
+        public const int CANCELKEYTHREADTIMER = 50;
 
         /// <summary>
         /// String and file terminator character
@@ -287,7 +302,7 @@ namespace ExMat
         /// <summary>
         /// Standard library method signature pattern, this is for matching <see cref="StdLibFunction"/>'s signature
         /// </summary>
-        private static string StdLibFunctionPattern => System.Text.RegularExpressions.Regex.Escape(
+        private static string StdLibFunctionPattern => Regex.Escape(
                                                             typeof(StdLibFunction)
                                                             .GetMethod(StdLibFunctionPatternMethodName)
                                                             .ToString())
@@ -295,17 +310,87 @@ namespace ExMat
                                                         .Replace("\\ ", " ");
 
         /// <summary>
-        /// Regex object to use while finding standard library functions
+        /// Assembly type to decide wheter to load directly or from a file
         /// </summary>
-        public static readonly System.Text.RegularExpressions.Regex StdLibFunctionRegex = new(StdLibFunctionPattern);
-
-        public static readonly Dictionary<string, string> Assemblies = new()
+        public enum ExAssemblyType
         {
-            { "exm", "Entering assembly project" },
-            { "exmat", "Core project" },
-            { "exmatstdlib", "Built-in standard libraries" },
+            /// <summary>
+            /// Built-in assembly
+            /// </summary>
+            NATIVE,
+            /// <summary>
+            /// External plugin
+            /// </summary>
+            PLUGIN
+        }
+
+        internal static Dictionary<string, ExAssemblyType> Assemblies { get; } = new()
+        {
+            { "exm", ExAssemblyType.NATIVE },
+            { "exmat", ExAssemblyType.NATIVE },
+            { "exmatstdlib", ExAssemblyType.NATIVE }
         };
 
+        /// <summary>
+        /// Regex object to use while finding standard library functions
+        /// </summary>
+        public static readonly Regex StdLibFunctionRegex = new(StdLibFunctionPattern);
+
+        /// <summary>
+        /// Expected names for the console flags
+        /// <para>Don't display information banner: <code>--no-info</code></para>
+        /// <para>Don't use custom console title: <code>--no-title</code></para>
+        /// <para>Don't wait post exit: <code>--no-exit-hold</code></para>
+        /// <para>Don't write IN and OUT prefix: <code>--no-inout</code></para>
+        /// <para>Delete the given file post execution: <code>--delete-onpost</code></para>
+        /// <para>Print help string: <code>--help</code></para>
+        /// </summary>
+        [ExConsoleHelper("--help", "Print help information")]
+        [ExConsoleHelper("--no-info", "Don't display information banner")]
+        [ExConsoleHelper("--no-title", "Don't use custom console title")]
+        [ExConsoleHelper("--no-exit-hold", "Don't wait for input post exit (after an exit function call or an internal error)")]
+        [ExConsoleHelper("--no-inout", "Don't write IN and OUT prefixes")]
+        [ExConsoleHelper("--delete-onpost", "Delete the given file post execution")]
+        public static readonly Dictionary<string, ExConsoleFlag> ConsoleFlags = new()
+        {
+            { "--help", ExConsoleFlag.HELP },
+            { "--no-info", ExConsoleFlag.NOINFO },
+            { "--no-title", ExConsoleFlag.NOTITLE },
+            { "--no-exit-hold", ExConsoleFlag.DONTKEEPOPEN },
+            { "--no-inout", ExConsoleFlag.NOINOUT },
+            { "--delete-onpost", ExConsoleFlag.DELETEONPOST }
+        };
+
+        /// <summary>
+        /// Expected names for the console flags. Make <see cref="ExConsoleParameter"/> invoke return <see langword="null"/> to keep the parameter in the referenced array
+        /// <para>Custom stack size: <code>-stacksize:"?(.*)"?</code></para>
+        /// <para>Custom console title: <code>-title:"?(.*)"?</code></para>
+        /// <para>Plugin library path: <code>-plugin:"?(.*)"?</code></para>
+        /// </summary>
+        [ExConsoleHelper("-title:", "Custom console title")]
+        [ExConsoleHelper("-stacksize:", "Custom virtual stack size")]
+        [ExConsoleHelper("-plugin:", "Plugin dll path to include")]
+        public static readonly Dictionary<string, ExConsoleParameter> ConsoleParameters = new()
+        {
+            {
+                "-title:",
+                a => PreferredConsoleTitle = a.TrimEnd('\"')
+            },
+
+            {
+                "-stacksize:",
+                a => int.TryParse(a.TrimEnd('\"'), out int res)
+                    ? PreferredStackSize = res
+                    : null
+            },
+
+            {
+                "-plugin:",
+                a => Assemblies.TryAdd(a.TrimEnd('\"'), ExAssemblyType.PLUGIN)
+                    ? a
+                    : null
+            }
+        };
     }
 
     /// <summary>
@@ -514,12 +599,18 @@ namespace ExMat
     [StructLayout(LayoutKind.Explicit, Size = 8)]
     public struct DoubleLong
     {
+        /// <summary>
+        /// Float value
+        /// </summary>
         [FieldOffset(0)] public double f;
+        /// <summary>
+        /// Integer value
+        /// </summary>
         [FieldOffset(0)] public long i;
     }
 
     [Flags]
-    public enum ExMemberFlag
+    internal enum ExMemberFlag
     {
         METHOD = 0x01000000,
         FIELD = 0x02000000
@@ -621,29 +712,126 @@ namespace ExMat
     }
 
     /// <summary>
+    /// Types for standard libraries
+    /// </summary>
+    public enum ExStdLibType
+    {
+        /// <summary>
+        /// Unknown library, for internal use only
+        /// </summary>
+        UNKNOWN,
+        /// <summary>
+        /// External custom library
+        /// </summary>
+        EXTERNAL,
+        /// <summary>
+        /// Base library
+        /// </summary>
+        BASE,
+        /// <summary>
+        /// Math library
+        /// </summary>
+        MATH,
+        /// <summary>
+        /// Input-output library
+        /// </summary>
+        IO,
+        /// <summary>
+        /// String library
+        /// </summary>
+        STRING,
+        /// <summary>
+        /// Networking library
+        /// </summary>
+        NETWORK,
+        /// <summary>
+        /// System library
+        /// </summary>
+        SYSTEM,
+        /// <summary>
+        /// Statistics library
+        /// </summary>
+        STATISTICS
+    }
+
+    /// <summary>
     /// Meta methods
+    /// <para>Meta methods' names are derived from this enum class as<code>ENUMVAL -&gt; function _ENUMVAL(...)</code></para>
     /// </summary>
     public enum ExMetaMethod
     {
+        /// <summary>
+        /// Addition ( other )
+        /// </summary>
         ADD,    // +
+        /// <summary>
+        /// Subtraction ( other )
+        /// </summary>
         SUB,    // -
+        /// <summary>
+        /// Multiplication ( other )
+        /// </summary>
         MLT,    // *
+        /// <summary>
+        /// Division ( other )
+        /// </summary>
         DIV,    // /
+        /// <summary>
+        /// Exponential ( other )
+        /// </summary>
         EXP,    // **
+        /// <summary>
+        /// Modulo ( other )
+        /// </summary>
         MOD,    // %
+        /// <summary>
+        /// Negate ( )
+        /// </summary>
         NEG,    // -
+        /// <summary>
+        /// Setter ( key, value )
+        /// </summary>
         SET,    // []
+        /// <summary>
+        /// Getter ( key )
+        /// </summary>
         GET,    // []
+        /// <summary>
+        /// typeof ( )
+        /// </summary>
         TYPEOF,    // typeof
+        /// <summary>
+        /// WIP
+        /// </summary>
         NEXT,       // TO-DO Add remaining methods
+        /// <summary>
+        /// WIP
+        /// </summary>
         COMPARE,
+        /// <summary>
+        /// WIP
+        /// </summary>
         CALL,
+        /// <summary>
+        /// WIP
+        /// </summary>
         NEWSLOT,
+        /// <summary>
+        /// WIP
+        /// </summary>
         DELSLOT,
+        /// <summary>
+        /// WIP
+        /// </summary>
         NEWMEMBER,
+        /// <summary>
+        /// WIP
+        /// </summary>
         INHERIT,
-        STRING,
-        LAST
+        /// <summary>
+        /// WIP
+        /// </summary>
+        STRING
     }
 
     /// <summary>
@@ -773,6 +961,10 @@ namespace ExMat
         /// Don't print version information
         /// </summary>
         NOINFO = 1 << 4,
+        /// <summary>
+        /// Short console help
+        /// </summary>
+        HELP = 1 << 5
     }
 
     /// <summary>
@@ -823,7 +1015,13 @@ namespace ExMat
     /// </summary>
     public enum ExOuterType
     {
+        /// <summary>
+        /// Local var
+        /// </summary>
         LOCAL,
+        /// <summary>
+        /// Outer val
+        /// </summary>
         OUTER
     }
 
@@ -832,20 +1030,56 @@ namespace ExMat
     /// </summary>
     public enum ArithmeticMask
     {
+        /// <summary>
+        /// Integers
+        /// </summary>
         INT = ExObjType.INTEGER,
+        /// <summary>
+        /// Integer-complex
+        /// </summary>
         INTCOMPLEX = ExObjType.COMPLEX | ExObjType.INTEGER,
 
+        /// <summary>
+        /// Floats
+        /// </summary>
         FLOAT = ExObjType.FLOAT,
+        /// <summary>
+        /// Float-integer
+        /// </summary>
         FLOATINT = ExObjType.INTEGER | ExObjType.FLOAT,
+        /// <summary>
+        /// Float-complex
+        /// </summary>
         FLOATCOMPLEX = ExObjType.COMPLEX | ExObjType.FLOAT,
 
+        /// <summary>
+        /// Complex numbers
+        /// </summary>
         COMPLEX = ExObjType.COMPLEX,
 
+        /// <summary>
+        /// Strings
+        /// </summary>
         STRING = ExObjType.STRING,
+        /// <summary>
+        /// String-integer
+        /// </summary>
         STRINGINT = ExObjType.STRING | ExObjType.INTEGER,
+        /// <summary>
+        /// String-float
+        /// </summary>
         STRINGFLOAT = ExObjType.STRING | ExObjType.FLOAT,
+        /// <summary>
+        /// String-complex
+        /// </summary>
         STRINGCOMPLEX = ExObjType.STRING | ExObjType.COMPLEX,
+        /// <summary>
+        /// String-bool
+        /// </summary>
         STRINGBOOL = ExObjType.STRING | ExObjType.BOOL,
+        /// <summary>
+        /// String-null
+        /// </summary>
         STRINGNULL = ExObjType.STRING | ExObjType.NULL
     }
 
@@ -877,8 +1111,17 @@ namespace ExMat
     /// </summary>
     public enum ExProcessInfo
     {
+        /// <summary>
+        /// Start date of the process
+        /// </summary>
         DATE,
+        /// <summary>
+        /// Main module of the process
+        /// </summary>
         MODULE,
+        /// <summary>
+        /// Start arguments of the process
+        /// </summary>
         ARGS
     }
 

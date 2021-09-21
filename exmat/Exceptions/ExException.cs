@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 #if DEBUG
 using System.Diagnostics;
 #endif
@@ -8,12 +7,22 @@ using ExMat.VM;
 
 namespace ExMat.Exceptions
 {
+    /// <summary>
+    /// Exception types
+    /// </summary>
     public enum ExExceptionType
     {
+        /// <summary>
+        /// Internal
+        /// </summary>
         BASE,
-
+        /// <summary>
+        /// Compiler
+        /// </summary>
         COMPILER,
-
+        /// <summary>
+        /// VM, runtime
+        /// </summary>
         RUNTIME
     }
 
@@ -25,65 +34,63 @@ namespace ExMat.Exceptions
 #endif
     public class ExException : Exception
     {
+        /// <summary>
+        /// Exception type
+        /// </summary>
         public virtual ExExceptionType Type => ExExceptionType.BASE;
-
+        /// <summary>
+        /// Exception constructor
+        /// </summary>
         public ExException()
         {
         }
 
+        /// <summary>
+        /// Exception constructor
+        /// </summary>
         public ExException(string message)
             : base(message)
         {
         }
 
+        /// <summary>
+        /// Exception constructor
+        /// </summary>
         public ExException(ExVM vm, string message)
             : base(message)
         {
         }
 
+        /// <summary>
+        /// Exception constructor
+        /// </summary>
         public ExException(ExVM vm, string message, Exception innerException) : base(message, innerException)
         {
         }
 
+        /// <summary>
+        /// Exception constructor
+        /// </summary>
         protected ExException(ExVM vm, SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
 
+        /// <summary>
+        /// Exception constructor
+        /// </summary>
         protected ExException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
 
+        /// <summary>
+        /// Exception constructor
+        /// </summary>
         public ExException(string message, Exception innerException) : base(message, innerException)
         {
         }
 
-        public override IDictionary Data => base.Data;
-
-        public override string HelpLink { get => base.HelpLink; set => base.HelpLink = value; }
-
-        public override string Message => base.Message;
-
-        public override string Source { get => base.Source; set => base.Source = value; }
-
-        public override string StackTrace => base.StackTrace;
-
-        public override Exception GetBaseException()
-        {
-            return base.GetBaseException();
-        }
-
-        public override void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            base.GetObjectData(info, context);
-        }
-
-        public override string ToString()
-        {
-            return base.ToString();
-        }
-
 #if DEBUG
-        public string GetDebuggerDisplay()
+        internal string GetDebuggerDisplay()
         {
             return "Exception: " + Type.ToString();
         }

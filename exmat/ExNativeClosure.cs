@@ -11,32 +11,82 @@ using ExMat.Utils;
 
 namespace ExMat.Closure
 {
+    /// <summary>
+    /// Native closure model
+    /// </summary>
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExNativeClosure : ExRefC, IExClosure
+    public sealed class ExNativeClosure : ExRefC, IExClosure
     {
+        /// <summary>
+        /// Shared state
+        /// </summary>
         public ExSState SharedState;            // Ortak değerler
+        /// <summary>
+        /// Name of the closure
+        /// </summary>
         public ExObject Name;                   // Fonksiyon ismi
+        /// <summary>
+        /// Function to use for calls
+        /// </summary>
         public ExMat.StdLibFunction Function;      // C# metotu referansı
+        /// <summary>
+        /// Wheter this is a delegate function closure
+        /// </summary>
         public bool IsDelegateFunction;         // Temsili(delegate) metot?
 
+        /// <summary>
+        /// Outer value count
+        /// </summary>
         public int nOuters;                     // Dışardaki değişkenlere referansı sayısı
+
+        /// <summary>
+        /// Outers
+        /// </summary>
         public List<ExObject> OutersList;       // Dış değişkenlerin bellek indeks bilgisi
 
+        /// <summary>
+        /// Type masks for each parameter. If <see langword="null"/>, vargs is enabled
+        /// </summary>
         public List<int> TypeMasks = new();     // Parametre maskeleri
+        /// <summary>
+        /// Parameter check value. 
+        /// <para>Works together with <see cref="TypeMasks"/></para>
+        /// <para>Positive 'n': n - 1 parameters == n - 1 arguments</para>
+        /// <para>Negative 'n': -n parameters == -n - 1 arguments minimum</para>
+        /// </summary>
         public int nParameterChecks;            // Parametre sayısı
 
+        /// <summary>
+        /// Default parameter values with their parameter numbers
+        /// </summary>
         public Dictionary<int, ExObject> DefaultValues = new(); // Varsayılan değerler
 
+        /// <summary>
+        /// Full documentation
+        /// </summary>
         public string Documentation = string.Empty;
 
+        /// <summary>
+        /// Short description
+        /// </summary>
         public string Summary = string.Empty;
 
+        /// <summary>
+        /// Return type
+        /// </summary>
         public string Returns = string.Empty;
 
+        /// <summary>
+        /// Base object type
+        /// </summary>
         public string Base = string.Empty;
 
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)
@@ -59,6 +109,22 @@ namespace ExMat.Closure
             ExDisposer.DisposeDict(ref DefaultValues);
         }
 
+        /// <summary>
+        /// Get an attribute of the closure
+        /// <para>Built in names:</para>
+        /// <para><see cref="ExMat.FuncName"/></para>
+        /// <para><see cref="ExMat.HelpName"/></para>
+        /// <para><see cref="ExMat.DocsName"/></para>
+        /// <para><see cref="ExMat.VargsName"/></para>
+        /// <para><see cref="ExMat.DelegName"/></para>
+        /// <para><see cref="ExMat.nParams"/></para>
+        /// <para><see cref="ExMat.nDefParams"/></para>
+        /// <para><see cref="ExMat.nMinArgs"/></para>
+        /// <para><see cref="ExMat.DefParams"/></para>
+        /// <para>Or returns null</para>
+        /// </summary>
+        /// <param name="attr">Attribute name</param>
+        /// <returns>Depends on the attribute requested</returns>
         public dynamic GetAttribute(string attr)
         {
             switch (attr)
@@ -116,9 +182,18 @@ namespace ExMat.Closure
                     }
             }
         }
-
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExNativeClosure() { }
 
+        /// <summary>
+        /// Create a new native closure with given std lib function
+        /// </summary>
+        /// <param name="exS">Shared state</param>
+        /// <param name="f">Std lib method</param>
+        /// <param name="nout">Number of outer vals</param>
+        /// <returns>Created native closure</returns>
         public static ExNativeClosure Create(ExSState exS, ExMat.StdLibFunction f, int nout)
         {
             ExNativeClosure cls = new() { SharedState = exS, Function = f };
@@ -127,20 +202,7 @@ namespace ExMat.Closure
             return cls;
         }
 
-        public virtual void Release()
-        {
-            foreach (ExObject o in OutersList)
-            {
-                o.Nullify();
-            }
-            OutersList = null;
-        }
-        public static new ExObjType GetType()
-        {
-            return ExObjType.NATIVECLOSURE;
-        }
-
-        public string GetParameterInfoString()
+        private string GetParameterInfoString()
         {
             StringBuilder s = new();
             List<string> infos = new();
@@ -177,7 +239,7 @@ namespace ExMat.Closure
             return s.Length == 0 ? $"{(IsDelegateFunction ? "delegate, " : string.Empty)}params: 0, minargs: 0" : s.ToString();
         }
 
-        public string GetInfoString()
+        internal string GetInfoString()
         {
             string s = string.Empty;
 
@@ -196,7 +258,7 @@ namespace ExMat.Closure
         }
 
 #if DEBUG
-        public new string GetDebuggerDisplay()
+        internal new string GetDebuggerDisplay()
         {
             return "NATIVECLOSURE(" + Name.GetString() + ")";
         }

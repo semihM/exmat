@@ -1,10 +1,20 @@
 ﻿namespace ExMat.Objects
 {
-    public class ExWeakRef : ExRefC
+    /// <summary>
+    /// Weak reference object
+    /// </summary>
+    public sealed class ExWeakRef : ExRefC
     {
+        /// <summary>
+        /// Weakly refernced object
+        /// </summary>
         public ExObject ReferencedObject;   // Zayıf referans edilen obje
         private bool disposedValue;
 
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
             if (ReferenceCount > 0)

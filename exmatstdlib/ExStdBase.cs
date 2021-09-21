@@ -5,6 +5,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Exceptions;
 using ExMat.Objects;
 using ExMat.Utils;
@@ -2177,8 +2178,8 @@ namespace ExMat.StdLib
                         {
                             case ExObjType.CLOSURE:
                                 {
-                                    if (filler.GetClosure().Function.nParams != 3
-                                        && (filler.GetClosure().Function.nParams - filler.GetClosure().Function.nDefaultParameters) > 3)
+                                    if (filler.GetClosure().Function.Info.nParams != 3
+                                        && (filler.GetClosure().Function.Info.nParams - filler.GetClosure().Function.Info.nDefaultParameters) > 3)
                                     {
                                         return vm.AddToErrorMessage("given function must allow 2-argument calls");
                                     }
@@ -2377,9 +2378,7 @@ namespace ExMat.StdLib
         {
             if (obj.Type == ExObjType.ARRAY)
             {
-                StringBuilder str = new(obj.GetList().Count);
-
-                return !ExApi.ConvertIntegerStringArrayToString(obj.GetList(), str)
+                return !ExApi.ConvertIntegerStringArrayToString(obj.GetList(), out StringBuilder str)
                     ? vm.AddToErrorMessage("failed to create string, list must contain all positive integers within 'char' range or strings")
                     : vm.CleanReturn(nargs + 2, str.ToString());
             }

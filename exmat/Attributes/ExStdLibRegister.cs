@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ExMat
+namespace ExMat.Attributes
 {
     /// <summary>
     /// Attribute to register a main registery method of a standard library
@@ -9,10 +9,17 @@ namespace ExMat
     /// <para>Use <see langword="nameof"/> for best practice of getting the property name</para>
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-    public class ExStdLibRegister : Attribute
+    public sealed class ExStdLibRegister : Attribute
     {
+        /// <summary>
+        /// Method name
+        /// </summary>
         public string RegisterMethodName;
 
+        /// <summary>
+        /// Look for a property with given name as registery method
+        /// </summary>
+        /// <param name="name">Registery name</param>
         public ExStdLibRegister(string name)
         {
             RegisterMethodName = name;

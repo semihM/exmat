@@ -7,7 +7,7 @@ namespace ExMat.OPs
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public struct ExInstr
+    internal struct ExInstr
     {
         public ExOperationCode op;
         public long arg0;

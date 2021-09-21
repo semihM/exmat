@@ -7,6 +7,7 @@ using System.Text;
 using ClosedXML.Excel;
 using ExcelDataReader;
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Objects;
 using ExMat.VM;
 using Newtonsoft.Json;
@@ -664,7 +665,7 @@ namespace ExMat.StdLib
                             }
                             else
                             {
-                                vm.ErrorString = string.Empty;
+                                ExApi.ClearErrorMessages(vm);
                             }
 
                             if (stops)
@@ -684,7 +685,7 @@ namespace ExMat.StdLib
                         }
                         else
                         {
-                            vm.ErrorString = string.Empty;
+                            ExApi.ClearErrorMessages(vm);
                         }
 
                         if (stops)
@@ -719,7 +720,7 @@ namespace ExMat.StdLib
                         }
                         else
                         {
-                            vm.ErrorString = string.Empty;
+                            ExApi.ClearErrorMessages(vm);
                         }
                         return vm.CleanReturn(nargs + 3, false);
                     }
@@ -737,7 +738,7 @@ namespace ExMat.StdLib
                     }
                     else
                     {
-                        vm.ErrorString = string.Empty;
+                        ExApi.ClearErrorMessages(vm);
                     }
                     return vm.CleanReturn(nargs + 3, false);
                 }

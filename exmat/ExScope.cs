@@ -7,7 +7,7 @@ namespace ExMat.Compiler
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExScope
+    internal sealed class ExScope
     {
         public int nOuters;     // Referans edilen dışardaki değişken sayısı
         public int nLocal;      // Çerçevede tanımlı değişken sayısı

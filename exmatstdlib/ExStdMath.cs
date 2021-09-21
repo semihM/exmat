@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Objects;
 using ExMat.Utils;
 using ExMat.VM;

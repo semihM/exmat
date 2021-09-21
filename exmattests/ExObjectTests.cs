@@ -71,7 +71,7 @@ namespace ExMat.Objects.Tests
 
             Assert.AreEqual(obj.GetWeakRef(ExObjType.NULL, new(), new()), obj.WeakReference);
 
-            Assert.AreEqual(obj.ReferenceCount, 0);
+            Assert.AreEqual(0, obj.ReferenceCount);
 
             Assert.AreSame(obj.WeakReference.ReferencedObject.ValueCustom._RefC, obj);
         }

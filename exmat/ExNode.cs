@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace ExMat.InfoVar
 {
-    public class ExNode<T> : IDisposable
+    internal sealed class ExNode<T> : IDisposable
         where T : class, IDisposable, new()
     {
         public ExNode<T> Prev;
@@ -60,7 +60,7 @@ namespace ExMat.InfoVar
             }
         }
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {

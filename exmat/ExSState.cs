@@ -8,50 +8,98 @@ using ExMat.VM;
 
 namespace ExMat.States
 {
-    public class ExSState : IDisposable
+    /// <summary>
+    /// Shared state model to keep track of common values
+    /// </summary>
+    public sealed class ExSState : IDisposable
     {
+        /// <summary>
+        /// Owner VM
+        /// </summary>
         // Kullanılan ana sanal makine
         public ExVM Root;
 
+        /// <summary>
+        /// List of meta method names
+        /// </summary>
         // Meta metotların listesi
         public List<ExObject> MetaMethods = new();
 
+        /// <summary>
+        /// Meta method names mapped to <see cref="ExMetaMethod"/> integer values
+        /// </summary>
         // Meta metot isimleri tablosu
         public ExObject MetaMethodsMap = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// Class constructor method name
+        /// </summary>
         // Sınıfların inşa edici metot ismi
         public ExObject ConstructorID = new(ExMat.ConstructorName);
 
+        /// <summary>
+        /// String literals and the objects they are stored in
+        /// </summary>
         // Kullanılan yazı dizileri ve değişken isimleri
         public Dictionary<string, ExObject> Strings = new();
 
+        /// <summary>
+        /// Constant names and their values
+        /// </summary>
         // Sabitler
         public Dictionary<string, ExObject> Consts = new();
 
+        /// <summary>
+        /// <see cref="ExObjType.CLASS"/> type object delegates
+        /// </summary>
         // Sınıf temisili metotları
         public ExObject ClassDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.DICT"/> type object delegates
+        /// </summary>
         // Tablo temisili metotları
         public ExObject DictDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.ARRAY"/> type object delegates
+        /// </summary>
         // Liste temisili metotları
         public ExObject ListDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.COMPLEX"/> type object delegates
+        /// </summary>
         // Kompleks sayı temisili metotları
         public ExObject ComplexDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.INTEGER"/> or <see cref="ExObjType.FLOAT"/> type object delegates
+        /// </summary>
         // Gerçek sayı temisili metotları
         public ExObject NumberDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.STRING"/> type object delegates
+        /// </summary>
         // Yazı dizisi temisili metotları
         public ExObject StringDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.CLOSURE"/> type object delegates
+        /// </summary>
         // Fonksiyon/kod bloğu temisili metotları
         public ExObject ClosureDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.INSTANCE"/> type object delegates
+        /// </summary>
         // Sınıfa ait obje temisili metotları
         public ExObject InstanceDelegate = new(new Dictionary<string, ExObject>());
 
+        /// <summary>
+        /// <see cref="ExObjType.WEAKREF"/> type object delegates
+        /// </summary>
         // Zayıf referans temisili metotları
         public ExObject WeakRefDelegate = new(new Dictionary<string, ExObject>());
 
@@ -65,11 +113,14 @@ namespace ExMat.States
             MetaMethodsMap.GetDict().Add(mname, new(i));
         }
 
+        /// <summary>
+        /// Initialize the shared state
+        /// </summary>
         public void Initialize()
         {
             MetaMethodsMap.ValueCustom.d_Dict = new();
 
-            for (int i = 0; i < (int)ExMetaMethod.LAST; i++)
+            for (int i = 0; i < Enum.GetNames(typeof(ExMetaMethod)).Length; i++)
             {
                 CreateMetaMethod(i);
             }
@@ -104,7 +155,7 @@ namespace ExMat.States
             cls.Base = ((ExBaseType)ExMat.TypeMasks.FirstOrDefault(p => p.Value == f.BaseTypeMask).Key).ToString();
         }
 
-        public static ExObject CreateDefDel(ExSState exs, List<ExNativeFunc> f)
+        private static ExObject CreateDefDel(ExSState exs, List<ExNativeFunc> f)
         {
             Dictionary<string, ExObject> d = new();
             foreach (ExNativeFunc func in f)
@@ -131,12 +182,21 @@ namespace ExMat.States
             return new(d);
         }
 
+        /// <summary>
+        /// Get meta method index from it's name
+        /// </summary>
+        /// <param name="mname">Meta method name</param>
+        /// <returns></returns>
         public int GetMetaIdx(string mname)
         {
             return MetaMethodsMap != null && MetaMethodsMap.GetDict() != null && MetaMethodsMap.GetDict().ContainsKey(mname) ? (int)MetaMethodsMap.GetDict()[mname].GetInt() : -1;
         }
 
-        protected virtual void Dispose(bool disposing)
+        /// <summary>
+        /// Disposer
+        /// </summary>
+        /// <param name="disposing"></param>
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -167,6 +227,9 @@ namespace ExMat.States
             }
         }
 
+        /// <summary>
+        /// Disposer
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method

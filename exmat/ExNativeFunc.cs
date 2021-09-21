@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using ExMat.Attributes;
 
 namespace ExMat.Objects
 {
@@ -15,7 +16,7 @@ namespace ExMat.Objects
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    public class ExNativeFunc : ExNativeFuncBase, IDisposable
+    public sealed class ExNativeFunc : ExNativeFuncBase, IDisposable
     {
         /// <summary>
         /// Library of which this function is a part of 
@@ -30,7 +31,7 @@ namespace ExMat.Objects
         /// <summary>
         /// Parameter information
         /// </summary>
-        public List<ExNativeParam> Parameters;
+        internal List<ExNativeParam> Parameters;
 
         /// <summary>
         /// Combined parameter type mask string
@@ -101,8 +102,15 @@ namespace ExMat.Objects
             IsDelegateFunction = ex.IsDelegateFunction;
         }
 
+        /// <summary>
+        /// Empty constructor
+        /// </summary>
         public ExNativeFunc() { }
 
+        /// <summary>
+        /// Construct a native function from a standard library method
+        /// </summary>
+        /// <param name="foo">Standard library method</param>
         public ExNativeFunc(ExMat.StdLibFunction foo)
         {
             Function = foo;
@@ -128,6 +136,11 @@ namespace ExMat.Objects
             SetReturnInfo();
         }
 
+        /// <summary>
+        /// Construct a delegate native function from a standard library method
+        /// </summary>
+        /// <param name="foo">Standard library method</param>
+        /// <param name="baseMask">Delegate base</param>
         public ExNativeFunc(ExMat.StdLibFunction foo, char baseMask)
         {
             Function = foo;
@@ -153,7 +166,7 @@ namespace ExMat.Objects
             SetReturnInfo();
         }
 
-        protected virtual void Dispose(bool disposing)
+        internal void Dispose(bool disposing)
         {
             if (!disposedValue)
             {
@@ -174,6 +187,9 @@ namespace ExMat.Objects
             }
         }
 
+        /// <summary>
+        /// Disposer
+        /// </summary>
         public void Dispose()
         {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
