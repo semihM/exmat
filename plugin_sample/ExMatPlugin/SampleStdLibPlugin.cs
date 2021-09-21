@@ -16,7 +16,7 @@ namespace ExMat.StdLib                      // REQUIRED: Has to be in ExMat.StdL
     public static class SampleStdLibPlugin  // Static
     {
         /// <summary>
-        /// An example native function named 'my_method' with 3 parameters: param_1, param_2, param_3
+        /// An example native function named 'my_method' with 3 parameters: INTEGER param_1, [FLOAT param_2 = 3.14159], [ANY param_3 = "default_value"]
         /// <para>my_method is expected to return 'string'</para>
         /// </summary>
         /// <param name="vm">Virtual machine to use</param>
@@ -25,9 +25,9 @@ namespace ExMat.StdLib                      // REQUIRED: Has to be in ExMat.StdL
         /// <para>On error <see cref="ExFunctionStatus.ERROR"/></para>
         /// <para>On null <see cref="ExFunctionStatus.VOID"/></para></returns>
         [ExNativeFuncBase("my_method", ExBaseType.STRING, "Calls 'MyNativeMethod' and returns some string!")]
-        [ExNativeParamBase(1, "param_1", "i", "An integer parameter")]
-        [ExNativeParamBase(2, "param_2", "s", "A string parameter")]
-        [ExNativeParamBase(3, "param_3", ".", "A dynamic parameter", def: "default_value")]
+        [ExNativeParamBase(1, "param_1", ExBaseType.INTEGER, "An integer parameter")]
+        [ExNativeParamBase(2, "param_2", ExBaseType.FLOAT, "A float parameter with default value", def: 3.14159)]
+        [ExNativeParamBase(3, "param_3", ".", "A dynamic parameter accepting any type", def: "default_value")]
         public static ExFunctionStatus MyNativeMethod(ExVM vm, int nargs)
         {
             // Get arguments
