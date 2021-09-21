@@ -2389,11 +2389,6 @@ namespace ExMat.Compiler
                         FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
                         break;
                     }
-                case ExEType.CONSTDELEG:
-                    {
-                        FunctionState.AddInstr(ExOperationCode.LOADCONSTDICT, FunctionState.PushTarget(), 2, 0, 0);
-                        break;
-                    }
                 default:
                     {
                         FunctionState.AddInstr(ExOperationCode.MOVE, FunctionState.PushTarget(), 0, 0, 0);
@@ -2512,29 +2507,10 @@ namespace ExMat.Compiler
                         FunctionState.AddInstr(ExOperationCode.LOAD, ExpressionState.Position, FunctionState.GetLiteral(cval), 0, 0);
                         break;
                     }
-                case ExObjType.ARRAY:
-                case ExObjType.DICT:
-                case ExObjType.NATIVECLOSURE:
-                    {
-                        FunctionState.AddInstr(ExOperationCode.LOADCONSTDICT, FunctionState.PushTarget(), ExMat.InvalidArgument, 0, 0);
-                        FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(idx), 0, 0);
-                        AddBasicOpInstr(ExOperationCode.GET);
-
-                        if (cid != null)
-                        {
-                            FunctionState.AddInstr(ExOperationCode.LOAD, FunctionState.PushTarget(), FunctionState.GetLiteral(cid), 0, 0);
-                            AddBasicOpInstr(ExOperationCode.GET);
-                        }
-                        else
-                        {
-                            FunctionState.AddInstr(ExOperationCode.LOAD, 1, FunctionState.PopTarget(), 0, 0);
-                        }
-                        ExpressionState.Type = ExEType.CONSTDELEG;
-                        break;
-                    }
                 default:
                     {
-                        FunctionState.AddInstr(ExOperationCode.LOAD, ExpressionState.Position, FunctionState.GetLiteral(cval), 0, 0);
+                        int cno = cid == null ? 0 : (int)FunctionState.GetLiteral(cid);
+                        FunctionState.AddInstr(ExOperationCode.LOADCONSTDICTOBJDELEG, ExpressionState.Position, FunctionState.GetLiteral(idx), cno, 0);
                         break;
                     }
             }
@@ -2556,19 +2532,12 @@ namespace ExMat.Compiler
                 cval = new(cnst);
             }
 
-            if (cval.Type != ExObjType.NATIVECLOSURE)
-            {
-                ExpressionState.Position = FunctionState.PushTarget();
-            }
+            ExpressionState.Position = FunctionState.PushTarget();
 
             AddConstLoadInstr(cid, cval, idx);
 
-            if (cval.Type is not ExObjType.NATIVECLOSURE
-                and not ExObjType.DICT
-                and not ExObjType.ARRAY)
-            {
-                ExpressionState.Type = ExEType.EXPRESSION;
-            }
+            ExpressionState.Type = ExEType.EXPRESSION;
+
             return true;
         }
 

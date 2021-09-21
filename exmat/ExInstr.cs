@@ -7,13 +7,15 @@ namespace ExMat.OPs
 #if DEBUG
     [DebuggerDisplay("{" + nameof(GetDebuggerDisplay) + "(),nq}")]
 #endif
-    internal struct ExInstr
+    internal sealed class ExInstr
     {
         public ExOperationCode op;
         public long arg0;
         public long arg1;
         public long arg2;
         public long arg3;
+
+        public ExInstr() { }
 
         public ExInstr(ExInstr other)
         {
@@ -24,14 +26,6 @@ namespace ExMat.OPs
             arg3 = other.arg3;
         }
 
-        public ExInstr(ExOperationCode o, long a0, long a1, long a2, long a3)
-        {
-            op = o;
-            arg0 = a0;
-            arg1 = a1;
-            arg2 = a2;
-            arg3 = a3;
-        }
 #if DEBUG
         public string GetDebuggerDisplay()
         {
