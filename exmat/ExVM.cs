@@ -2265,6 +2265,22 @@ namespace ExMat.VM
                             GetTargetInStack(instruction).Assign(CallInfo.Value.Literals[(int)instruction.arg1]);
                             continue;
                         }
+                    case ExOperationCode.LOADCONSTDICTOBJDELEG:          // Yazı dizisi, değişken ismi vb. değer yükle
+                        {
+                            ExObject cnst = SharedState.Consts[CallInfo.Value.Literals[(int)instruction.arg1].GetString()];
+                            ExObject dres = null;
+                            if (!Getter(cnst, CallInfo.Value.Literals[(int)instruction.arg2], ref dres, false, ExFallback.OK))
+                            {
+                                return FixStackAfterError();
+                            }
+                            GetTargetInStack(instruction).Assign(dres);
+                            continue;
+                        }
+                    case ExOperationCode.LOADCONSTOBJ:  // Bir objeyi/değişkeni başka bir objeye/değişkene atama işlemi
+                        {
+                            GetTargetInStack(instruction).Assign(SharedState.Consts[CallInfo.Value.Literals[(int)instruction.arg1].GetString()]);
+                            continue;
+                        }
                     case ExOperationCode.DLOAD:
                         {
                             GetTargetInStack(instruction).Assign(CallInfo.Value.Literals[(int)instruction.arg1]);
@@ -2612,18 +2628,6 @@ namespace ExMat.VM
                                 {
                                     GetTargetInStack(instruction.arg0 + n).Nullify();
                                 }
-                            }
-                            continue;
-                        }
-                    case ExOperationCode.LOADCONSTDICT:
-                        {
-                            if (instruction.arg1 != ExMat.InvalidArgument)
-                            {
-                                GetTargetInStack(instruction).Assign(SharedState.Consts[CallInfo.Value.Literals[(int)instruction.arg1].GetString()]);
-                            }
-                            else
-                            {
-                                GetTargetInStack(instruction).Assign(SharedState.Consts);
                             }
                             continue;
                         }

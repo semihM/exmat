@@ -151,41 +151,37 @@ namespace ExMat.States
 
         public void SetInstrParams(int pos, int p1, int p2, int p3, int p4)
         {
-            ExInstr inst = Instructions[pos];
-            inst.arg0 = p1;
-            inst.arg1 = p2;
-            inst.arg2 = p3;
-            inst.arg3 = p4;
-            Instructions[pos] = inst;
+            Instructions[pos].arg0 = p1;
+            Instructions[pos].arg1 = p2;
+            Instructions[pos].arg2 = p3;
+            Instructions[pos].arg3 = p4;
         }
         public void UpdateInstructionArgument(int pos, int pno, int val)
         {
-            ExInstr inst = Instructions[pos];
             switch (pno)
             {
                 case 0:
                     {
-                        inst.arg0 = val;
+                        Instructions[pos].arg0 = val;
                         break;
                     }
                 case 1:
                 case 4:
                     {
-                        inst.arg1 = val;
+                        Instructions[pos].arg1 = val;
                         break;
                     }
                 case 2:
                     {
-                        inst.arg2 = val;
+                        Instructions[pos].arg2 = val;
                         break;
                     }
                 case 3:
                     {
-                        inst.arg3 = val;
+                        Instructions[pos].arg3 = val;
                         break;
                     }
             }
-            Instructions[pos] = inst;
         }
 
         public bool IsConst(ExObject idx, out ExObject cnst)
@@ -462,6 +458,12 @@ namespace ExMat.States
                         Instructions[size - 1] = prev;
                         return true;
                     }
+                case ExOperationCode.LOADCONSTDICTOBJDELEG:
+                    {
+                        curr.op = ExOperationCode.LOADCONSTOBJ;
+                        curr.arg1 = prev.arg1;
+                        break;
+                    }
             }
             return false;
         }
@@ -476,14 +478,6 @@ namespace ExMat.States
                 Instructions[size - 1] = prev;
                 return true;
             }
-            return false;
-        }
-
-        private bool UpdateInstrOpcLoadConstDict(ExInstr curr, int size)
-        {
-            curr.arg1 = curr.arg1 != ExMat.InvalidArgument && curr.arg1 <= size && Instructions[size - (int)curr.arg1].op == ExOperationCode.GETK
-                ? Instructions[size - (int)curr.arg1].arg1
-                : ExMat.InvalidArgument;
             return false;
         }
 
@@ -644,11 +638,6 @@ namespace ExMat.States
                     case ExOperationCode.LOAD:
                         {
                             shouldReturn = UpdateInstrOpcLoad(prev, curr, size);
-                            break;
-                        }
-                    case ExOperationCode.LOADCONSTDICT:
-                        {
-                            shouldReturn = UpdateInstrOpcLoadConstDict(curr, size);
                             break;
                         }
                     case ExOperationCode.JZ:

@@ -2735,9 +2735,9 @@
             Load parameter's default value
             </summary>
         </member>
-        <member name="F:ExMat.OPs.ExOperationCode.LOADCONSTDICT">
+        <member name="F:ExMat.OPs.ExOperationCode.LOADCONSTDICTOBJDELEG">
             <summary>
-            Load constants dictionary to stack
+            Load a dictionary value from constants dictionary to stack
             </summary>
         </member>
         <member name="F:ExMat.OPs.ExOperationCode.RELOADLIB">
@@ -2753,6 +2753,11 @@
         <member name="F:ExMat.OPs.ExOperationCode.POSTFOREACH">
             <summary>
             Post foreach for generators
+            </summary>
+        </member>
+        <member name="F:ExMat.OPs.ExOperationCode.LOADCONSTOBJ">
+            <summary>
+            Load constants dictionary
             </summary>
         </member>
         <member name="F:ExMat.OPs.ExOperationCode.CLOSE">

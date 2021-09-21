@@ -321,9 +321,9 @@
         DEFAULT,
 
         /// <summary>
-        /// Load constants dictionary to stack
+        /// Load a dictionary value from constants dictionary to stack
         /// </summary>
-        LOADCONSTDICT,
+        LOADCONSTDICTOBJDELEG,
 
         /// <summary>
         /// Reload a standard library
@@ -339,6 +339,11 @@
         /// Post foreach for generators
         /// </summary>
         POSTFOREACH,
+
+        /// <summary>
+        /// Load constants dictionary
+        /// </summary>
+        LOADCONSTOBJ,
 
         /// <summary>
         /// Outer variable control end
