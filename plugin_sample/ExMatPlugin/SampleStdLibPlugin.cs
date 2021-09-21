@@ -2,6 +2,7 @@
 
 // Basic namespaces for common methods
 using ExMat.API;
+using ExMat.Attributes;
 using ExMat.Objects;
 using ExMat.VM;
 //
